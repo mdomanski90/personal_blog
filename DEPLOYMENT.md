@@ -104,7 +104,7 @@ npm start
 sudo apt install nginx -y
 ```
 
-### 2. Konfiguracja virtual host
+### 2. Konfiguracja virtual host z security hardening
 
 ```bash
 sudo nano /etc/nginx/sites-available/blog
@@ -113,10 +113,35 @@ sudo nano /etc/nginx/sites-available/blog
 Wklej:
 
 ```nginx
+# Rate limiting zones
+limit_req_zone $binary_remote_addr zone=blog_limit:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=blog_burst:10m rate=50r/s;
+limit_conn_zone $binary_remote_addr zone=blog_conn:10m;
+
 server {
     listen 80;
     listen [::]:80;
     server_name blog.twojadomena.pl;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Rate limiting
+    limit_req zone=blog_limit burst=20 nodelay;
+    limit_conn blog_conn 10;
+
+    # Client body size limit
+    client_max_body_size 10M;
+    client_body_timeout 12;
+    client_header_timeout 12;
+    keepalive_timeout 15;
+    send_timeout 10;
+
+    # Hide nginx version
+    server_tokens off;
 
     location / {
         proxy_pass http://localhost:3000;
@@ -128,6 +153,18 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # Deny access to hidden files
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
     }
 }
 ```
@@ -158,7 +195,7 @@ sudo apt install certbot python3-certbot-nginx -y
 ```bash
 sudo certbot --nginx -d blog.twojadomena.pl
 
-# Postepuj według instrukcji:
+# Postępuj według instrukcji:
 # - Podaj email
 # - Zaakceptuj ToS
 # - Wybierz opcję przekierowania HTTP -> HTTPS
@@ -216,6 +253,157 @@ docker compose restart
 pm2 restart blog
 ```
 
+## Security Hardening
+
+### 1. Firewall (UFW)
+
+```bash
+# Reset UFW (opcjonalnie)
+sudo ufw --force reset
+
+# Domyślne polityki
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Zezwól na SSH (zmień port jeśli używasz niestandardowego)
+sudo ufw allow 22/tcp
+
+# Zezwól na HTTP i HTTPS
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Włącz firewall
+sudo ufw enable
+
+# Sprawdź status
+sudo ufw status verbose
+```
+
+### 2. Fail2ban dla SSH i Nginx
+
+```bash
+# Instalacja
+sudo apt install fail2ban -y
+
+# Konfiguracja SSH jail
+sudo nano /etc/fail2ban/jail.local
+```
+
+Wklej:
+
+```ini
+[DEFAULT]
+bantime = 3600
+findtime = 600
+maxretry = 5
+
+[sshd]
+enabled = true
+port = 22
+logpath = /var/log/auth.log
+
+[nginx-http-auth]
+enabled = true
+filter = nginx-http-auth
+port = http,https
+logpath = /var/log/nginx/error.log
+
+[nginx-limit-req]
+enabled = true
+filter = nginx-limit-req
+port = http,https
+logpath = /var/log/nginx/error.log
+maxretry = 3
+bantime = 7200
+```
+
+```bash
+# Restart fail2ban
+sudo systemctl restart fail2ban
+sudo systemctl enable fail2ban
+
+# Sprawdź status
+sudo fail2ban-client status
+```
+
+### 3. Automatyczne update systemu
+
+```bash
+sudo apt install unattended-upgrades -y
+sudo dpkg-reconfigure -plow unattended-upgrades
+
+# Konfiguracja
+sudo nano /etc/apt/apt.conf.d/50unattended-upgrades
+```
+
+Upewnij się że są włączone security updates:
+
+```
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}-security";
+};
+```
+
+### 4. Hardening SSH
+
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+
+Zalecane ustawienia:
+
+```
+# Disable root login
+PermitRootLogin no
+
+# Disable password authentication (tylko klucze)
+PasswordAuthentication no
+PubkeyAuthentication yes
+
+# Limit users
+AllowUsers twoj_user
+
+# Timeouts
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+# Disable empty passwords
+PermitEmptyPasswords no
+
+# Protocol
+Protocol 2
+```
+
+```bash
+# Restart SSH
+sudo systemctl restart sshd
+```
+
+### 5. Docker security
+
+```bash
+# Enable Docker security features
+sudo nano /etc/docker/daemon.json
+```
+
+Dodaj:
+
+```json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  },
+  "userland-proxy": false,
+  "no-new-privileges": true
+}
+```
+
+```bash
+sudo systemctl restart docker
+```
+
 ## Backup Strategy
 
 ### Skrypt backup
@@ -270,6 +458,52 @@ docker compose logs -f --tail=100
 docker stats personal_blog
 ```
 
+### Monitoring script
+
+Utwórz `/opt/monitor-blog.sh`:
+
+```bash
+#!/bin/bash
+
+echo "=== Blog Health Check ==="
+echo "Date: $(date)"
+echo ""
+
+# Check if container is running
+if docker ps | grep -q personal_blog; then
+    echo "✓ Container is running"
+else
+    echo "✗ Container is NOT running!"
+    docker compose -f /opt/personal_blog/docker-compose.yml up -d
+fi
+
+# Check HTTP response
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
+if [ $HTTP_CODE -eq 200 ]; then
+    echo "✓ HTTP response: $HTTP_CODE"
+else
+    echo "✗ HTTP response: $HTTP_CODE (expected 200)"
+fi
+
+# Check memory usage
+MEM_USAGE=$(docker stats --no-stream --format "{{.MemPerc}}" personal_blog)
+echo "Memory usage: $MEM_USAGE"
+
+# Check disk space
+DISK_USAGE=$(df -h / | tail -1 | awk '{print $5}')
+echo "Disk usage: $DISK_USAGE"
+
+echo "========================"
+```
+
+```bash
+chmod +x /opt/monitor-blog.sh
+
+# Run every 5 minutes
+crontab -e
+# Add: */5 * * * * /opt/monitor-blog.sh >> /var/log/blog-monitor.log 2>&1
+```
+
 ### Uptime monitoring (opcjonalnie)
 
 Zainstaluj Uptime Kuma:
@@ -296,8 +530,11 @@ git pull origin feature/complete-blog-system
 
 # Rebuild i restart
 docker compose down
-docker compose build
+docker compose build --no-cache
 docker compose up -d
+
+# Sprawdź logi
+docker compose logs -f
 ```
 
 ### Aktualizacja zależności
@@ -308,6 +545,10 @@ npm outdated
 
 # Update
 npm update
+
+# Security audit
+npm audit
+npm audit fix
 
 # Rebuild
 docker compose build --no-cache
@@ -340,6 +581,11 @@ sudo chmod -R 755 content/
 
 # Sprawdź format frontmatter (YAML)
 head -20 content/posts/problematyczny-post.md
+
+# Rebuild (może być cached)
+docker compose down
+docker compose build --no-cache
+docker compose up -d
 ```
 
 ### Błędy SSL
@@ -350,6 +596,9 @@ sudo certbot renew --force-renewal
 
 # Restart Nginx
 sudo systemctl restart nginx
+
+# Sprawdź certyfikat
+sudo certbot certificates
 ```
 
 ### Problemy z pamięcią
@@ -361,6 +610,25 @@ docker stats
 
 # Wyczyść Docker cache
 docker system prune -a
+
+# Restart kontenera z niższym limitem
+# Edytuj docker-compose.yml:
+# memory: 1G (zamiast 2G)
+docker compose up -d
+```
+
+### Rate limiting - zbyt wiele requestów
+
+```bash
+# Sprawdź logi Nginx
+sudo tail -f /var/log/nginx/error.log | grep limiting
+
+# Zwiększ limity w /etc/nginx/sites-available/blog
+# rate=10r/s -> rate=20r/s
+# burst=20 -> burst=50
+
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
 ## Optymalizacja wydajności
@@ -370,13 +638,20 @@ docker system prune -a
 Dodaj do `/etc/nginx/sites-available/blog`:
 
 ```nginx
-proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=blog_cache:10m max_size=1g inactive=60m;
+proxy_cache_path /var/cache/nginx/blog levels=1:2 keys_zone=blog_cache:10m max_size=1g inactive=60m use_temp_path=off;
 
-location / {
-    proxy_cache blog_cache;
-    proxy_cache_valid 200 60m;
-    proxy_cache_use_stale error timeout http_500 http_502 http_503 http_504;
-    # ... reszta proxy settings
+server {
+    # ... existing config
+    
+    location / {
+        proxy_cache blog_cache;
+        proxy_cache_valid 200 60m;
+        proxy_cache_use_stale error timeout http_500 http_502 http_503 http_504;
+        proxy_cache_bypass $http_cache_control;
+        add_header X-Cache-Status $upstream_cache_status;
+        
+        # ... existing proxy settings
+    }
 }
 ```
 
@@ -387,44 +662,42 @@ W `/etc/nginx/nginx.conf`:
 ```nginx
 gzip on;
 gzip_vary on;
-gzip_types text/plain text/css text/xml text/javascript application/json application/javascript;
+gzip_proxied any;
+gzip_comp_level 6;
+gzip_types text/plain text/css text/xml text/javascript application/json application/javascript application/xml+rss application/rss+xml font/truetype font/opentype application/vnd.ms-fontobject image/svg+xml;
+gzip_disable "msie6";
 ```
 
 ### 3. HTTP/2
 
 Już włączone przez Certbot po konfiguracji SSL.
 
-## Security Best Practices
-
-### 1. Firewall (UFW)
+## Performance Monitoring
 
 ```bash
-sudo ufw allow 22/tcp    # SSH
-sudo ufw allow 80/tcp    # HTTP
-sudo ufw allow 443/tcp   # HTTPS
-sudo ufw enable
-```
+# CPU usage
+top -bn1 | grep "Cpu(s)"
 
-### 2. Fail2ban dla SSH
+# Memory
+free -h
 
-```bash
-sudo apt install fail2ban -y
-sudo systemctl enable fail2ban
-```
+# Disk I/O
+iostat -x 1 5
 
-### 3. Automatyczne update systemu
+# Network
+iftop
 
-```bash
-sudo apt install unattended-upgrades -y
-sudo dpkg-reconfigure -plow unattended-upgrades
+# Docker stats
+docker stats --no-stream
 ```
 
 ## Kontakt i Wsparcie
 
 W razie problemów:
-- Sprawdź logi: `docker compose logs`
-- Issues na GitHub: https://github.com/mdomanski90/personal_blog/issues
-- Dokumentacja Next.js: https://nextjs.org/docs
+1. Sprawdź logi: `docker compose logs`
+2. Issues na GitHub: https://github.com/mdomanski90/personal_blog/issues
+3. Dokumentacja Next.js: https://nextjs.org/docs
+4. SECURITY.md dla problemów z bezpieczeństwem
 
 ## Podsumowanie
 
@@ -433,6 +706,9 @@ Po wykonaniu wszystkich kroków twój blog powinien:
 - ✅ Automatycznie się restartować po restarcie serwera
 - ✅ Mieć aktywny SSL/TLS
 - ✅ Być backupowany codziennie
+- ✅ Być zabezpieczony przed podstawowymi atakami
+- ✅ Mieć rate limiting
+- ✅ Być monitorowany
 - ✅ Być gotowy do dodawania nowych postów
 
 Gratulacje! Twój blog jest gotowy! 🎉
