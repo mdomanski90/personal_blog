@@ -81,6 +81,8 @@ const BlogPost = async ({ params }: BlogPostProps) => {
           <article className={styles.article}>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
+              disallowedElements={['script', 'iframe', 'object', 'embed', 'form', 'input', 'textarea']}
+              unwrapDisallowed={true}
               components={{
                 code({node, inline, className, children, ...props}) {
                   const match = /language-(\w+)/.exec(className || '');
@@ -102,6 +104,16 @@ const BlogPost = async ({ params }: BlogPostProps) => {
                 h1: ({node, ...props}) => <h2 {...props} />,
                 h2: ({node, ...props}) => <h3 {...props} />,
                 h3: ({node, ...props}) => <h4 {...props} />,
+                a: ({node, ...props}) => {
+                  // Security: add rel attributes to external links
+                  const href = props.href || '';
+                  const isExternal = href.startsWith('http://') || href.startsWith('https://');
+                  
+                  if (isExternal) {
+                    return <a {...props} rel="noopener noreferrer" target="_blank" />;
+                  }
+                  return <a {...props} />;
+                },
               }}
             >
               {content}
