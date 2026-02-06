@@ -1,23 +1,141 @@
-import Image from 'next/image';
+import { notFound } from 'next/navigation';
+import { getPostBySlug, generateStaticParams as getStaticParams } from '@/lib/posts';
 import GetCategoryColor from '@/helpers/get-category-color';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import styles from './style.module.sass';
 
-const BlogDetails = () => (
-    <div className="container pb-80">
-        <div className="row mb-50">
-            <div className="col col-9">
-                <div className={`h6 c-${GetCategoryColor('Kategoria 2')}`}>{'Kategoria 2'}</div>
-                <h2> Co asdk ow sda!? </h2>
-            </div>
-        </div>
-        <img className={`${styles.featuredImage} mb-50`} src="/RS2.jpg" alt="adsad" width="1280" height="387"/>
-        <div className="row mb-50">
-            <div className="col col-9">
-                <p>Vivamus ut porttitor ante. Morbi non est scelerisque, porta nisi vitae, venenatis nibh. Duis et molestie tellus. Fusce faucibus imperdiet nisi, sed fringilla magna cursus ut. Aenean dapibus blandit rhoncus. Vestibulum eget libero quis tortor porta semper. Proin ut risus ac tortor pellentesque pulvinar eget non tortor. Quisque pulvinar non felis eget auctor. Proin sed massa nec turpis aliquet bibendum. Nam quis ex nec lectus faucibus semper. Aenean fringilla lobortis cursus. Ut et justo et risus sodales accumsan a ut diam.</p>
-                <p>Vivamus ut porttitor ante. Morbi non est scelerisque, porta nisi vitae, venenatis nibh. Duis et molestie tellus. Fusce faucibus imperdiet nisi, sed fringilla magna cursus ut. Aenean dapibus blandit rhoncus. Vestibulum eget libero quis tortor porta semper. Proin ut risus ac tortor pellentesque pulvinar eget non tortor. Quisque pulvinar non felis eget auctor. Proin sed massa nec turpis aliquet bibendum. Nam quis ex nec lectus faucibus semper. Aenean fringilla lobortis cursus. Ut et justo et risus sodales accumsan a ut diam.</p>
-            </div>
-        </div>
-    </div>
-);
+export { getStaticParams as generateStaticParams };
 
-export default BlogDetails;
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const post = await getPostBySlug(params.slug);
+  
+  if (!post) {
+    return {
+      title: 'Post nie znaleziony',
+    };
+  }
+  
+  return {
+    title: `${post.metadata.title} | odniepamieci.pl`,
+    description: post.metadata.description,
+    openGraph: {
+      title: post.metadata.title,
+      description: post.metadata.description,
+      type: 'article',
+      publishedTime: post.metadata.date,
+      authors: post.metadata.author ? [post.metadata.author] : undefined,
+      tags: post.metadata.tags,
+    },
+  };
+}
+
+interface BlogPostProps {
+  params: { slug: string };
+}
+
+const BlogPost = async ({ params }: BlogPostProps) => {
+  const post = await getPostBySlug(params.slug);
+  
+  if (!post) {
+    notFound();
+  }
+  
+  const { metadata, content } = post;
+  const formattedDate = new Date(metadata.date).toLocaleDateString('pl-PL', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  
+  return (
+    <div className="container pb-80">
+      <div className="row mb-50">
+        <div className="col col-9">
+          <div className={`h6 c-${GetCategoryColor(metadata.category)}`}>
+            {metadata.category}
+          </div>
+          <h1>{metadata.title}</h1>
+          <p className="text-muted">
+            {formattedDate}
+            {metadata.readingTime && ` • ${metadata.readingTime} min czytania`}
+            {metadata.author && ` • ${metadata.author}`}
+          </p>
+        </div>
+      </div>
+      
+      {metadata.image && (
+        <img 
+          className={`${styles.featuredImage} mb-50`}
+          src={metadata.image} 
+          alt={metadata.title}
+          width="1280" 
+          height="387"
+        />
+      )}
+      
+      <div className="row mb-50">
+        <div className="col col-9">
+          <article className={styles.article}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              disallowedElements={['script', 'iframe', 'object', 'embed', 'form', 'input', 'textarea']}
+              unwrapDisallowed={true}
+              components={{
+                code({node, inline, className, children, ...props}) {
+                  const match = /language-(\w+)/.exec(className || '');
+                  return !inline && match ? (
+                    <SyntaxHighlighter
+                      style={oneDark}
+                      language={match[1]}
+                      PreTag="div"
+                      {...props}
+                    >
+                      {String(children).replace(/\n$/, '')}
+                    </SyntaxHighlighter>
+                  ) : (
+                    <code className={className} {...props}>
+                      {children}
+                    </code>
+                  );
+                },
+                h1: ({node, ...props}) => <h2 {...props} />,
+                h2: ({node, ...props}) => <h3 {...props} />,
+                h3: ({node, ...props}) => <h4 {...props} />,
+                a: ({node, ...props}) => {
+                  // Security: add rel attributes to external links
+                  const href = props.href || '';
+                  const isExternal = href.startsWith('http://') || href.startsWith('https://');
+                  
+                  if (isExternal) {
+                    return <a {...props} rel="noopener noreferrer" target="_blank" />;
+                  }
+                  return <a {...props} />;
+                },
+              }}
+            >
+              {content}
+            </ReactMarkdown>
+          </article>
+          
+          {metadata.tags && metadata.tags.length > 0 && (
+            <div className="mt-50">
+              <h4>Tagi:</h4>
+              <div className="flex gap-10 mt-10">
+                {metadata.tags.map(tag => (
+                  <span key={tag} className="tag">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BlogPost;
