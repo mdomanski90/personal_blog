@@ -15,3 +15,5 @@ Zarządzanie treścią
 
 Posty blogowe zarządzane przez Keystatic CMS w trybie lokalnym.
 Pliki markdown przechowywane w repozytorium.
+
+100% FOSS
