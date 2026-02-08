@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import colors from 'tailwindcss/colors'
 
 const config: Config = {
   darkMode: 'class',
@@ -10,6 +11,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Kolory semantyczne shadcn (zostają)
         background: 'rgb(var(--background))',
         foreground: 'rgb(var(--foreground))',
         card: 'rgb(var(--card))',
@@ -23,6 +25,9 @@ const config: Config = {
         accent: 'rgb(var(--accent))',
         'accent-foreground': 'rgb(var(--accent-foreground))',
         border: 'rgb(var(--border))',
+        
+        // DODANO: Pełna paleta kolorów Tailwind
+        ...colors,
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -31,7 +36,10 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
+  ],
 }
 
 export default config

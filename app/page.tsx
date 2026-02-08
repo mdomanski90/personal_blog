@@ -1,88 +1,136 @@
-"use client"
 import * as React from "react"
-import { Sun, Moon } from "lucide-react"
-import { useTheme } from "next-themes"
-import { Button } from "@/components/ui/button"
+import ThemeToggle from "./components/ThemeToggle"
+import { createReader } from '@keystatic/core/reader'
+import Markdoc from '@markdoc/markdoc'
+import config from '../keystatic.config'
 
-export default function Home() {
-    const { theme, setTheme } = useTheme()
-    const [mounted, setMounted] = React.useState(false)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-    React.useEffect(() => {
-        setMounted(true)
-    }, [])
+const reader = createReader(process.cwd(), config);
 
-    if (!mounted) return null
+const markdocConfig = {
+    nodes: {
+        // DODANO: Obsługa obrazów
+        image: {
+            render: 'img',
+            attributes: {
+                src: { type: String },
+                alt: { type: String },
+                title: { type: String },
+                // Dodajemy klasy Tailwind bezpośrednio do tagu HTML
+                class: { type: String, default: 'rounded-lg w-full my-8 shadow-sm' }
+            }
+        },
+        // Obsługa tabel
+        table: { render: 'table', attributes: {} },
+        thead: { render: 'thead', attributes: {} },
+        tbody: { render: 'tbody', attributes: {} },
+        tr: { render: 'tr', attributes: {} },
+        th: { render: 'th', attributes: {} },
+        td: { render: 'td', attributes: {} },
+    },
+};
+
+export default async function Home() {
+    let postsWithContent: any[] = [];
+    
+    try {
+        const allPosts = await reader.collections.posts.all();
+        
+        postsWithContent = await Promise.all(
+            allPosts.map(async (post) => {
+                try {
+                    const rawData = await post.entry.content();
+                    
+                    // Markdoc transformacja z nową konfiguracją (wspierającą obrazy)
+                    const transformed = Markdoc.transform(rawData.node, markdocConfig);
+                    const html = Markdoc.renderers.html(transformed);
+
+                    return {
+                        slug: post.slug,
+                        title: post.entry.title,
+                        date: post.entry.date,
+                        html: html,
+                    };
+                } catch (err) {
+                    console.error(`[ERROR] Post ${post.slug}:`, err);
+                    return {
+                        slug: post.slug,
+                        title: post.entry.title,
+                        date: post.entry.date,
+                        html: '',
+                    };
+                }
+            })
+        );
+
+        postsWithContent.sort((a, b) => {
+            const dateA = new Date(a.date || 0).getTime();
+            const dateB = new Date(b.date || 0).getTime();
+            return dateB - dateA;
+        });
+    } catch (e) {
+        console.error("Błąd ładowania danych:", e);
+    }
 
     return (
-        <main className="flex min-h-screen flex-col items-center justify-center gap-5 font-mono">
-            
-            <div className="w-2/3 space-y-6">
-                {/* Theme toggle - shadcn Button */}
-                <div className="mb-4">
-                    <Button
-                        variant="outline"
-                        size="default"
-                        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                        className="h-12 w-12 rounded-sm"
-                    >
-                        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                        <span className="sr-only">Toggle theme</span>
-                    </Button>
+        <div style={{ maxWidth: '42rem', margin: '0 auto', padding: '5rem 1.5rem', minHeight: '100vh' }} className="font-mono">
+            <div className="space-y-6">
+
+                <header>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <h1 className="text-6xl font-bold break-all tracking-tighter">
+                            odniepamieci.pl
+                        </h1>
+                        <ThemeToggle />
+                    </div>
+                    <div className="text-gray-400 dark:text-gray-600 mt-6">
+                        ---------------------------------------------------------------------
+                    </div>
+                </header>
+
+                <div className="space-y-16">
+                    {postsWithContent.length > 0 ? (
+                        postsWithContent.map((post) => (
+                            <article key={post.slug} className="group">
+                                <div className="flex flex-col gap-4">
+                                    <span className="text-sm font-semibold rounded bg-muted dark:bg-muted text-blue-800 dark:text-blue-100 px-2 py-1 w-fit">
+                                        {post.date ? new Date(post.date).toLocaleDateString('pl-PL') : 'Brak daty'}
+                                    </span>
+                                    
+                                    <h2 className="text-3xl font-bold">
+                                        {post.title}
+                                    </h2>
+                                    
+                                    <div className="post-content prose dark:prose-invert prose-slate max-w-none leading-relaxed"
+                                         style={{ fontSize: 'var(--blog-font-size, 18px)' }}>
+                                        {post.html ? (
+                                            <div dangerouslySetInnerHTML={{ __html: post.html }} />
+                                        ) : (
+                                            <p className="text-gray-500 italic">Treść nie została jeszcze dodana.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="text-gray-400 dark:text-gray-600 mt-12">
+                                    ---------------------------------------------------------------------
+                                </div>
+                            </article>
+                        ))
+                    ) : (
+                        <div className="py-10 text-center text-gray-500 italic">
+                            Brak dostępnych wpisów.
+                        </div>
+                    )}
                 </div>
 
-                {/* Tytuł strony */}
-                <h1 className="text-6xl font-bold">
-                    odniepamieci.pl
-                </h1>
-
-                <div className="text-gray-400 dark:text-gray-600 mt-4">
-                    ---------------------------------------------------------------------
-                </div>
-
-                <article className="px-6 py-4">
-                    <span 
-                        className="text-sm font-semibold rounded px-2 py-1"
-                        style={{
-                            backgroundColor: theme === "dark" ? "#1e3a8a" : "#dbeafe"
-                        }}
-                    >
-                        18/08/2024
-                    </span>
-                    <h3 className="text-xl font-semibold mt-2 mb-3">
-                        Tytuł posta
-                    </h3>
-                    <p className="text-base">
-                        To jest przykładowy post na blogu. Minimalistyczny design z monospace font.
-                    </p>
-                </article>
-
-                <div className="text-gray-400 dark:text-gray-600 mt-4">
-                    ---------------------------------------------------------------------
-                </div>
-
-                <article className="px-6 py-4">
-                    <span 
-                        className="text-sm font-semibold rounded px-2 py-1"
-                        style={{
-                            backgroundColor: theme === "dark" ? "#1e3a8a" : "#dbeafe"
-                        }}
-                    >
-                        15/08/2024
-                    </span>
-                    <h3 className="text-xl font-semibold mt-2 mb-3">
-                        Kolejny wpis
-                    </h3>
-                    <p className="text-base">
-                        Drugi przykładowy post. Dark mode działa idealnie!
-                    </p>
-                </article>
+                <footer className="pt-10">
+                    <code className="rounded bg-muted px-3 py-1 text-base font-semibold">
+                        © {new Date().getFullYear()} odniepamieci.pl
+                    </code>
+                </footer>
             </div>
-
-            <code className="rounded bg-muted px-3 py-1 text-base font-semibold mt-8">
-                © 2024 odniepamieci.pl
-            </code>
-        </main>
+        </div>
     )
 }

@@ -1,34 +1,75 @@
-'use client'
+"use client"
+import * as React from "react"
+import { Sun, Moon } from "lucide-react"
+import { useTheme } from "next-themes"
+import { Button } from "../../components/ui/button"
 
-import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
-import { Moon, Sun } from 'lucide-react'
+const FONT_SIZES = [14, 16, 18, 20, 22]
+const DEFAULT_SIZE = 14
 
 export default function ThemeToggle() {
-  const [mounted, setMounted] = useState(false)
-  const { theme, setTheme } = useTheme()
+    const { theme, setTheme } = useTheme()
+    const [mounted, setMounted] = React.useState(false)
+    const [fontSize, setFontSize] = React.useState(DEFAULT_SIZE)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+    React.useEffect(() => {
+        setMounted(true)
+        const saved = localStorage.getItem('blog-font-size')
+        if (saved) {
+            const size = parseInt(saved)
+            setFontSize(size)
+            document.documentElement.style.setProperty('--blog-font-size', `${size}px`)
+        } else {
+            document.documentElement.style.setProperty('--blog-font-size', `${DEFAULT_SIZE}px`)
+        }
+    }, [])
 
-  if (!mounted) {
-    return null
-  }
+    const changeFontSize = (direction: 'up' | 'down') => {
+        const currentIndex = FONT_SIZES.indexOf(fontSize)
+        const newIndex = direction === 'up'
+            ? Math.min(currentIndex + 1, FONT_SIZES.length - 1)
+            : Math.max(currentIndex - 1, 0)
+        const newSize = FONT_SIZES[newIndex]
+        setFontSize(newSize)
+        localStorage.setItem('blog-font-size', String(newSize))
+        document.documentElement.style.setProperty('--blog-font-size', `${newSize}px`)
+    }
 
-  return (
-    <button
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className="fixed top-6 right-6 z-50 p-3 rounded-full bg-gray-200 dark:bg-gray-800 
-                 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all duration-300 
-                 shadow-lg hover:shadow-xl"
-      aria-label="Toggle theme"
-    >
-      {theme === 'dark' ? (
-        <Sun className="w-5 h-5 text-yellow-500" />
-      ) : (
-        <Moon className="w-5 h-5 text-slate-700" />
-      )}
-    </button>
-  )
+    if (!mounted) return <div style={{ height: 48, width: 160 }} />
+
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Button
+                variant="outline"
+                size="default"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                style={{ height: 48, width: 48, minWidth: 48 }}
+                className="rounded-sm"
+            >
+                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
+            </Button>
+            <Button
+                variant="outline"
+                size="default"
+                onClick={() => changeFontSize('down')}
+                disabled={fontSize === FONT_SIZES[0]}
+                style={{ height: 48, width: 48, minWidth: 48, fontSize: 16, fontWeight: 700 }}
+                className="rounded-sm"
+            >
+                A−
+            </Button>
+            <Button
+                variant="outline"
+                size="default"
+                onClick={() => changeFontSize('up')}
+                disabled={fontSize === FONT_SIZES[FONT_SIZES.length - 1]}
+                style={{ height: 48, width: 48, minWidth: 48, fontSize: 16, fontWeight: 700 }}
+                className="rounded-sm"
+            >
+                A+
+            </Button>
+        </div>
+    )
 }

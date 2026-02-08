@@ -55,4 +55,12 @@ Thumbs.db
 *.bak
 *.old
 
-node_modules
+node_modules.env.local
+content/
+content/
+.idea/
+content/
+app_backup/
+src_backup/
+content/
+public/images/
