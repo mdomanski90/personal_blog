@@ -1,8 +1,10 @@
 import * as React from "react"
+import Link from "next/link"
 import ThemeToggle from "./components/ThemeToggle"
 import { createReader } from '@keystatic/core/reader'
 import Markdoc from '@markdoc/markdoc'
 import config from '../keystatic.config'
+import ImageZoom from "./components/ImageZoom"
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -11,18 +13,15 @@ const reader = createReader(process.cwd(), config);
 
 const markdocConfig = {
     nodes: {
-        // DODANO: Obsługa obrazów
         image: {
             render: 'img',
             attributes: {
                 src: { type: String },
                 alt: { type: String },
                 title: { type: String },
-                // Dodajemy klasy Tailwind bezpośrednio do tagu HTML
                 class: { type: String, default: 'rounded-lg w-full my-8 shadow-sm' }
             }
         },
-        // Obsługa tabel
         table: { render: 'table', attributes: {} },
         thead: { render: 'thead', attributes: {} },
         tbody: { render: 'tbody', attributes: {} },
@@ -34,16 +33,14 @@ const markdocConfig = {
 
 export default async function Home() {
     let postsWithContent: any[] = [];
-    
+
     try {
         const allPosts = await reader.collections.posts.all();
-        
+
         postsWithContent = await Promise.all(
             allPosts.map(async (post) => {
                 try {
                     const rawData = await post.entry.content();
-                    
-                    // Markdoc transformacja z nową konfiguracją (wspierającą obrazy)
                     const transformed = Markdoc.transform(rawData.node, markdocConfig);
                     const html = Markdoc.renderers.html(transformed);
 
@@ -79,13 +76,21 @@ export default async function Home() {
             <div className="space-y-6">
 
                 <header>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <h1 className="text-6xl font-bold break-all tracking-tighter">
+                    <div className="flex flex-wrap items-center justify-between mb-2" style={{ gap: '0.5rem 1rem' }}>
+                        <h1 className="text-3xl sm:text-6xl font-bold tracking-tighter whitespace-nowrap">
                             odniepamieci.pl
                         </h1>
                         <ThemeToggle />
                     </div>
-                    <div className="text-gray-400 dark:text-gray-600 mt-6">
+                    <nav className="flex text-sm" style={{ gap: '1rem', marginTop: '1rem' }}>
+                        <Link href="/" className="font-bold bg-muted !text-current !no-underline hover:opacity-80 transition-opacity">
+                            Strona główna
+                        </Link>
+                        <Link href="/kontakt" className="!text-current !no-underline hover:opacity-80 transition-opacity">
+                            Kontakt
+                        </Link>
+                    </nav>
+                    <div className="text-gray-400 dark:text-gray-600 mt-6 whitespace-nowrap overflow-hidden">
                         ---------------------------------------------------------------------
                     </div>
                 </header>
@@ -98,11 +103,11 @@ export default async function Home() {
                                     <span className="text-sm font-semibold rounded bg-muted dark:bg-muted text-blue-800 dark:text-blue-100 px-2 py-1 w-fit">
                                         {post.date ? new Date(post.date).toLocaleDateString('pl-PL') : 'Brak daty'}
                                     </span>
-                                    
+
                                     <h2 className="text-3xl font-bold">
                                         {post.title}
                                     </h2>
-                                    
+
                                     <div className="post-content prose dark:prose-invert prose-slate max-w-none leading-relaxed"
                                          style={{ fontSize: 'var(--blog-font-size, 18px)' }}>
                                         {post.html ? (
@@ -113,7 +118,7 @@ export default async function Home() {
                                     </div>
                                 </div>
 
-                                <div className="text-gray-400 dark:text-gray-600 mt-12">
+                                <div className="text-gray-400 dark:text-gray-600 mt-6 whitespace-nowrap overflow-hidden">
                                     ---------------------------------------------------------------------
                                 </div>
                             </article>
@@ -124,6 +129,8 @@ export default async function Home() {
                         </div>
                     )}
                 </div>
+
+                <ImageZoom />
 
                 <footer className="pt-10">
                     <code className="rounded bg-muted px-3 py-1 text-base font-semibold">

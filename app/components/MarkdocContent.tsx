@@ -17,7 +17,6 @@ const ZoomableImage = ({ src, alt }: { src: string; alt?: string }) => {
                 style={{ maxWidth: '100%', height: 'auto' }}
             />
 
-            {/* Nakładka (Lightbox) po kliknięciu */}
             {isZoomed && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 cursor-zoom-out p-4 md:p-10"
@@ -55,11 +54,18 @@ const markdocConfig = {
     },
 }
 
-export default function MarkdocContent({ node }: { node: any }) {
-    // Transformujemy AST do formatu renderowalnego przez Reacta
-    const content = Markdoc.transform(node, markdocConfig)
+// ZMIANA: Przyjmujemy serializowany content zamiast surowego node
+export default function MarkdocContent({ content }: { content: string }) {
+    // Parsujemy z powrotem jeśli to JSON string
+    let parsedContent;
+    try {
+        parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+    } catch {
+        // Jeśli to już obiekt lub błąd parsowania, używamy bezpośrednio
+        parsedContent = content;
+    }
 
-    return Markdoc.renderers.react(content, React, {
+    return Markdoc.renderers.react(parsedContent, React, {
         components: {
             ZoomableImage: ZoomableImage
         }
