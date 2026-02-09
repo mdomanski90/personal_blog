@@ -4,12 +4,13 @@ Next.js blog z Keystatic CMS, Markdown i Docker.
 
 ## Stack technologiczny
 
-- Next.js 16.1.6
+- Next.js 16.1.6 (App Router + View Transitions API)
 - Keystatic CMS
 - React 18
 - TypeScript 5
 - Tailwind CSS 4
-- Docker
+- Shuffle.js (animated filtering)
+- PM2 (process manager)
 
 Zarządzanie treścią
 
