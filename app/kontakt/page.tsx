@@ -1,10 +1,10 @@
-import Link from "next/link"
+import { Link } from "next-view-transitions"
 import ThemeToggle from "../components/ThemeToggle"
 import * as React from "react";
 
 export default function Kontakt() {
     return (
-        <div style={{ maxWidth: '42rem', margin: '0 auto', padding: '5rem 1.5rem', minHeight: '100vh' }} className="font-mono">
+        <div style={{ maxWidth: '42rem', margin: '0 auto', padding: '2rem 1.25rem 5rem 1.25rem', minHeight: '100vh' }} className="font-mono">
             <div className="space-y-6">
                 <header>
                     <div className="flex flex-wrap items-center justify-between mb-2" style={{ gap: '0.5rem 1rem' }}>

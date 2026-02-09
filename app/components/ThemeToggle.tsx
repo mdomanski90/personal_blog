@@ -33,6 +33,11 @@ export default function ThemeToggle() {
         setFontSize(newSize)
         localStorage.setItem('blog-font-size', String(newSize))
         document.documentElement.style.setProperty('--blog-font-size', `${newSize}px`)
+
+        // Wymuszenie przeliczenia layoutu
+        requestAnimationFrame(() => {
+            window.dispatchEvent(new Event('resize'))
+        })
     }
 
     if (!mounted) return <div style={{ height: 48, width: 160 }} />

@@ -1,8 +1,9 @@
 import * as React from "react"
-import Link from "next/link"
+import { Link } from 'next-view-transitions'
 import ThemeToggle from "./components/ThemeToggle"
+import BlogFilter from "./components/BlogFilter"
 import { createReader } from '@keystatic/core/reader'
-import Markdoc from '@markdoc/markdoc'
+import Markdoc, { Tag } from '@markdoc/markdoc'
 import config from '../keystatic.config'
 import ImageZoom from "./components/ImageZoom"
 
@@ -19,10 +20,18 @@ const markdocConfig = {
                 src: { type: String },
                 alt: { type: String },
                 title: { type: String },
-                class: { type: String, default: 'rounded-lg w-full my-8 shadow-sm' }
+                class: { type: String, default: 'rounded-none w-full my-8 shadow-sm' }
             }
         },
-        table: { render: 'table', attributes: {} },
+        table: {
+            render: 'table',
+            attributes: {},
+            transform(node: any, config: any) {
+                return new Tag('div', { class: 'overflow-x-auto' }, [
+                    new Tag('table', {}, node.transformChildren(config))
+                ]);
+            }
+        },
         thead: { render: 'thead', attributes: {} },
         tbody: { render: 'tbody', attributes: {} },
         tr: { render: 'tr', attributes: {} },
@@ -33,48 +42,49 @@ const markdocConfig = {
 
 export default async function Home() {
     let postsWithContent: any[] = [];
+    let allTags: string[] = [];
 
     try {
         const allPosts = await reader.collections.posts.all();
-
         postsWithContent = await Promise.all(
             allPosts.map(async (post) => {
                 try {
                     const rawData = await post.entry.content();
                     const transformed = Markdoc.transform(rawData.node, markdocConfig);
                     const html = Markdoc.renderers.html(transformed);
-
                     return {
                         slug: post.slug,
                         title: post.entry.title,
                         date: post.entry.date,
+                        tags: post.entry.tags || [],
                         html: html,
                     };
                 } catch (err) {
-                    console.error(`[ERROR] Post ${post.slug}:`, err);
-                    return {
-                        slug: post.slug,
-                        title: post.entry.title,
-                        date: post.entry.date,
-                        html: '',
-                    };
+                    return { slug: post.slug, title: post.entry.title, date: post.entry.date, tags: [], html: '' };
                 }
             })
         );
-
-        postsWithContent.sort((a, b) => {
-            const dateA = new Date(a.date || 0).getTime();
-            const dateB = new Date(b.date || 0).getTime();
-            return dateB - dateA;
-        });
+        postsWithContent.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+        const tagsSet = new Set<string>();
+        postsWithContent.forEach(post => post.tags?.forEach((tag: string) => tagsSet.add(tag)));
+        allTags = Array.from(tagsSet).sort();
     } catch (e) {
         console.error("Błąd ładowania danych:", e);
     }
 
-    return (
-        <div style={{ maxWidth: '42rem', margin: '0 auto', padding: '5rem 1.5rem', minHeight: '100vh' }} className="font-mono">
-            <div className="space-y-6">
+    const metaButtonStyle = {
+        fontSize: '14px',
+        fontWeight: '400',
+        height: '25px',
+        padding: '0 10px',
+        display: 'flex',
+        alignItems: 'center',
+        textTransform: 'lowercase' as const,
+    };
 
+    return (
+        <div style={{ maxWidth: '42rem', margin: '0 auto', padding: '2rem 1.25rem 5rem 1.25rem', minHeight: '100vh' }} className="font-mono">
+            <div className="space-y-6 w-full">
                 <header>
                     <div className="flex flex-wrap items-center justify-between mb-2" style={{ gap: '0.5rem 1rem' }}>
                         <h1 className="text-3xl sm:text-6xl font-bold tracking-tighter whitespace-nowrap">
@@ -82,29 +92,51 @@ export default async function Home() {
                         </h1>
                         <ThemeToggle />
                     </div>
-                    <nav className="flex text-sm" style={{ gap: '1rem', marginTop: '1rem' }}>
-                        <Link href="/" className="font-bold bg-muted !text-current !no-underline hover:opacity-80 transition-opacity">
-                            Strona główna
-                        </Link>
-                        <Link href="/kontakt" className="!text-current !no-underline hover:opacity-80 transition-opacity">
-                            Kontakt
-                        </Link>
-                    </nav>
-                    <div className="text-gray-400 dark:text-gray-600 mt-6 whitespace-nowrap overflow-hidden">
+                    <div className="flex flex-wrap items-center justify-between gap-4" style={{ marginTop: '1rem' }}>
+                        <nav className="flex text-sm" style={{ gap: '1rem' }}>
+                            <Link href="/" className="font-bold bg-muted px-2 !text-current !no-underline hover:opacity-80 transition-opacity">
+                                strona główna
+                            </Link>
+                            <Link href="/kontakt" className="!text-current !no-underline hover:opacity-80 transition-opacity">
+                                kontakt
+                            </Link>
+                        </nav>
+                        {allTags.length > 0 && <BlogFilter allTags={allTags} />}
+                    </div>
+                    <div className="text-gray-400 dark:text-gray-600 mt-6 whitespace-nowrap overflow-hidden opacity-50">
                         ---------------------------------------------------------------------
                     </div>
                 </header>
 
-                <div className="space-y-16">
+                <div id="blog-grid" className="space-y-16">
                     {postsWithContent.length > 0 ? (
                         postsWithContent.map((post) => (
-                            <article key={post.slug} className="group">
-                                <div className="flex flex-col gap-4">
-                                    <span className="text-sm font-semibold rounded bg-muted dark:bg-muted text-blue-800 dark:text-blue-100 px-2 py-1 w-fit">
-                                        {post.date ? new Date(post.date).toLocaleDateString('pl-PL') : 'Brak daty'}
-                                    </span>
+                            <article
+                                key={post.slug}
+                                className="blog-post-item group w-full"
+                                data-groups={JSON.stringify(post.tags?.map((t: string) => t.toLowerCase()) || [])}
+                            >
+                                <div className="flex flex-col gap-4 mt-8">
+                                    <div className="flex items-center border border-[#d1d5db] dark:border-[#4b5563] self-start">
+                                        <div
+                                            style={metaButtonStyle}
+                                            className="bg-muted text-current whitespace-nowrap"
+                                        >
+                                            {post.date ? new Date(post.date).toLocaleDateString('pl-PL') : 'brak daty'}
+                                        </div>
 
-                                    <h2 className="text-3xl font-bold">
+                                        {post.tags?.map((tag: string) => (
+                                            <div
+                                                key={tag}
+                                                style={metaButtonStyle}
+                                                className="text-current border-l border-[#d1d5db] dark:border-[#4b5563] whitespace-nowrap"
+                                            >
+                                                #{tag.toLowerCase()}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <h2 className="text-2xl sm:text-3xl font-bold lowercase tracking-tight break-words leading-tight">
                                         {post.title}
                                     </h2>
 
@@ -113,27 +145,27 @@ export default async function Home() {
                                         {post.html ? (
                                             <div dangerouslySetInnerHTML={{ __html: post.html }} />
                                         ) : (
-                                            <p className="text-gray-500 italic">Treść nie została jeszcze dodana.</p>
+                                            <p className="text-gray-500 italic lowercase">treść nie została jeszcze dodana.</p>
                                         )}
                                     </div>
                                 </div>
 
-                                <div className="text-gray-400 dark:text-gray-600 mt-6 whitespace-nowrap overflow-hidden">
+                                <div className="text-gray-400 dark:text-gray-600 mt-6 whitespace-nowrap overflow-hidden opacity-50">
                                     ---------------------------------------------------------------------
                                 </div>
                             </article>
                         ))
                     ) : (
-                        <div className="py-10 text-center text-gray-500 italic">
-                            Brak dostępnych wpisów.
+                        <div className="py-10 text-center text-gray-500 italic lowercase">
+                            brak dostępnych wpisów.
                         </div>
                     )}
                 </div>
 
                 <ImageZoom />
 
-                <footer className="pt-10">
-                    <code className="rounded bg-muted px-3 py-1 text-base font-semibold">
+                <footer className="pt-10 flex justify-start">
+                    <code className="bg-muted px-3 py-1 text-base font-semibold lowercase">
                         © {new Date().getFullYear()} odniepamieci.pl
                     </code>
                 </footer>
