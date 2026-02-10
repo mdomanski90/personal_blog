@@ -43,7 +43,7 @@
     --primary-foreground: 0 0% 98%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 217 33% 17%;
+    --muted: 210 67% 28%;
     --muted-foreground: 215 20% 65%;
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 210 100% 66%;
@@ -151,7 +151,7 @@ body {
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: oklch(0.279 0.041 260.031);
   --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.22 0.025 250);
+  --muted: oklch(0.33 0.08 250);
   --muted-foreground: oklch(0.70 0.015 250);
   --accent: oklch(0.279 0.041 260.031);
   --accent-foreground: oklch(0.65 0.22 250);
@@ -310,4 +310,18 @@ body {
   to {
     opacity: 1;
   }
+}
+/* Dodaj to do sekcji .blog-post-item w swoim CSS */
+.blog-post-item {
+  /* Istniejące style... */
+  transition:
+          opacity 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
+          transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1), /* Animacja przesuwania postów w dół */
+          height 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Upewnij się, że kontener Shuffle nie ucina treści */
+#blog-grid {
+  transition: height 0.4s ease-out;
+  overflow: visible !important;
 }

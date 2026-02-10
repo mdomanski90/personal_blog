@@ -5,7 +5,7 @@ import { useTheme } from "next-themes"
 import { Button } from "../../components/ui/button"
 
 const FONT_SIZES = [14, 16, 18, 20, 22]
-const DEFAULT_SIZE = 14
+const DEFAULT_SIZE = 18
 
 export default function ThemeToggle() {
     const { theme, setTheme } = useTheme()
@@ -18,11 +18,29 @@ export default function ThemeToggle() {
         if (saved) {
             const size = parseInt(saved)
             setFontSize(size)
-            document.documentElement.style.setProperty('--blog-font-size', `${size}px`)
+            updateProperties(size)
         } else {
-            document.documentElement.style.setProperty('--blog-font-size', `${DEFAULT_SIZE}px`)
+            updateProperties(DEFAULT_SIZE)
         }
     }, [])
+
+    const updateProperties = (size: number) => {
+        if (typeof window === 'undefined') return;
+
+        // 1. Ustawiamy zmienne CSS
+        document.documentElement.style.setProperty('--blog-font-size', `${size}px`)
+        document.documentElement.style.setProperty('--font-scale', String(size / 18))
+
+        // 2. Wysyłamy serię sygnałów do Shuffle.js
+        // Robimy to kilka razy (w odstępach), aby "nadążyć" za zmianą rozmiaru w przeglądarce
+        const delays = [10, 100, 300, 600];
+        delays.forEach(delay => {
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('blog:font-changed'));
+                window.dispatchEvent(new Event('resize'));
+            }, delay);
+        });
+    }
 
     const changeFontSize = (direction: 'up' | 'down') => {
         const currentIndex = FONT_SIZES.indexOf(fontSize)
@@ -30,14 +48,10 @@ export default function ThemeToggle() {
             ? Math.min(currentIndex + 1, FONT_SIZES.length - 1)
             : Math.max(currentIndex - 1, 0)
         const newSize = FONT_SIZES[newIndex]
+
         setFontSize(newSize)
         localStorage.setItem('blog-font-size', String(newSize))
-        document.documentElement.style.setProperty('--blog-font-size', `${newSize}px`)
-
-        // Wymuszenie przeliczenia layoutu
-        requestAnimationFrame(() => {
-            window.dispatchEvent(new Event('resize'))
-        })
+        updateProperties(newSize)
     }
 
     if (!mounted) return <div style={{ height: 48, width: 160 }} />

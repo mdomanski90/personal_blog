@@ -13,7 +13,18 @@ export default config({
       schema: {
         title: fields.slug({ name: { label: 'Tytuł' } }),
         date: fields.date({ label: 'Data', defaultValue: { kind: 'today' } }),
-        content: fields.markdoc({ 
+        tags: fields.multiselect({
+          label: 'Tagi',
+          options: [
+            { label: 'tech', value: 'tech' },
+            { label: 'historia', value: 'historia' },
+            { label: 'myślodsiewnia', value: 'myślodsiewnia' },
+            { label: 'genealogia', value: 'genealogia' },
+            // dodaj wszystkie tagi których używasz
+          ],
+          defaultValue: []
+        }),
+        content: fields.markdoc({
           label: 'Treść wpisu',
           options: {
             image: {

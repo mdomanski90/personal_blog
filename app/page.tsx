@@ -2,10 +2,12 @@ import * as React from "react"
 import { Link } from 'next-view-transitions'
 import ThemeToggle from "./components/ThemeToggle"
 import BlogFilter from "./components/BlogFilter"
+import NavLinks from "./components/NavLinks"
 import { createReader } from '@keystatic/core/reader'
 import Markdoc, { Tag } from '@markdoc/markdoc'
 import config from '../keystatic.config'
 import ImageZoom from "./components/ImageZoom"
+import Footer from "./components/Footer"
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -73,9 +75,9 @@ export default async function Home() {
     }
 
     const metaButtonStyle = {
-        fontSize: '14px',
+        fontSize: 'calc(14px * var(--font-scale, 1))',
         fontWeight: '400',
-        height: '25px',
+        height: 'calc(25px * var(--font-scale, 1))',
         padding: '0 10px',
         display: 'flex',
         alignItems: 'center',
@@ -83,7 +85,7 @@ export default async function Home() {
     };
 
     return (
-        <div style={{ maxWidth: '42rem', margin: '0 auto', padding: '2rem 1.25rem 5rem 1.25rem', minHeight: '100vh' }} className="font-mono">
+        <div style={{ maxWidth: '52rem', margin: '0 auto', padding: '2rem 1.25rem 5rem 1.25rem', minHeight: '100vh' }} className="font-mono">
             <div className="space-y-6 w-full">
                 <header>
                     <div className="flex flex-wrap items-center justify-between mb-2" style={{ gap: '0.5rem 1rem' }}>
@@ -93,30 +95,31 @@ export default async function Home() {
                         <ThemeToggle />
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-4" style={{ marginTop: '1rem' }}>
-                        <nav className="flex text-sm" style={{ gap: '1rem' }}>
-                            <Link href="/" className="font-bold bg-muted px-2 !text-current !no-underline hover:opacity-80 transition-opacity">
-                                strona główna
-                            </Link>
-                            <Link href="/kontakt" className="!text-current !no-underline hover:opacity-80 transition-opacity">
-                                kontakt
-                            </Link>
-                        </nav>
+                        <NavLinks />
                         {allTags.length > 0 && <BlogFilter allTags={allTags} />}
                     </div>
                     <div className="text-gray-400 dark:text-gray-600 mt-6 whitespace-nowrap overflow-hidden opacity-50">
-                        ---------------------------------------------------------------------
+                        ------------------------------------------------------------------------------------------------------
                     </div>
                 </header>
 
-                <div id="blog-grid" className="space-y-16">
+                <div id="blog-grid">
                     {postsWithContent.length > 0 ? (
-                        postsWithContent.map((post) => (
+                        postsWithContent.map((post, index) => (
                             <article
                                 key={post.slug}
                                 className="blog-post-item group w-full"
                                 data-groups={JSON.stringify(post.tags?.map((t: string) => t.toLowerCase()) || [])}
+                                style={{
+                                    paddingBottom: 'calc(4rem * var(--font-scale, 1))',
+                                    marginBottom: index < postsWithContent.length - 1 ? 0 : '4rem'
+                                }}
                             >
-                                <div className="flex flex-col gap-4 mt-8">
+                                <div className="flex flex-col"
+                                     style={{
+                                         gap: 'calc(0.25rem * var(--font-scale, 1))',
+                                         marginTop: 'calc(1.25rem * var(--font-scale, 1))'
+                                     }}>
                                     <div className="flex items-center border border-[#d1d5db] dark:border-[#4b5563] self-start">
                                         <div
                                             style={metaButtonStyle}
@@ -136,7 +139,10 @@ export default async function Home() {
                                         ))}
                                     </div>
 
-                                    <h2 className="text-2xl sm:text-3xl font-bold lowercase tracking-tight break-words leading-tight">
+                                    <h2
+                                        className="font-bold lowercase tracking-tight break-words leading-tight"
+                                        style={{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }}
+                                    >
                                         {post.title}
                                     </h2>
 
@@ -150,8 +156,11 @@ export default async function Home() {
                                     </div>
                                 </div>
 
-                                <div className="text-gray-400 dark:text-gray-600 mt-6 whitespace-nowrap overflow-hidden opacity-50">
-                                    ---------------------------------------------------------------------
+                                <div
+                                    className="text-gray-400 dark:text-gray-600 whitespace-nowrap overflow-hidden opacity-50"
+                                    style={{ marginTop: 'calc(1rem * var(--font-scale, 1))' }}
+                                >
+                                    ------------------------------------------------------------------------------------------------------
                                 </div>
                             </article>
                         ))
@@ -164,11 +173,7 @@ export default async function Home() {
 
                 <ImageZoom />
 
-                <footer className="pt-10 flex justify-start">
-                    <code className="bg-muted px-3 py-1 text-base font-semibold lowercase">
-                        © {new Date().getFullYear()} odniepamieci.pl
-                    </code>
-                </footer>
+                <Footer />
             </div>
         </div>
     )
