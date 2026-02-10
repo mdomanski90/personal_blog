@@ -1,4 +1,4 @@
-# Personal Blog
+# Self-hosted Personal Blog
 
 Next.js blog z Keystatic CMS, Markdown i Docker.
 
