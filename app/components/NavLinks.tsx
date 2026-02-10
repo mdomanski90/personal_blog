@@ -33,6 +33,15 @@ export default function NavLinks() {
                 strona główna
             </Link>
             <Link
+                href="/baza"
+                style={pathname === '/baza' ? activeNavLinkStyle : navLinkStyle}
+                className={pathname === '/baza'
+                    ? 'bg-muted text-accent-foreground whitespace-nowrap !no-underline border-l border-[#d1d5db] dark:border-[#4b5563]'
+                    : 'text-current whitespace-nowrap !no-underline border-l border-[#d1d5db] dark:border-[#4b5563] hover:opacity-80 transition-opacity'}
+            >
+                baza
+            </Link>
+            <Link
                 href="/kontakt"
                 style={pathname === '/kontakt' ? activeNavLinkStyle : navLinkStyle}
                 className={pathname === '/kontakt'

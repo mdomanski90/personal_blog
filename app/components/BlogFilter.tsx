@@ -20,6 +20,15 @@ export default function BlogFilter({ allTags }: BlogFilterProps) {
                 easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
             });
 
+            // Odśwież layout po załadowaniu każdego obrazu
+            const images = element.querySelectorAll('img');
+            images.forEach(img => {
+                if (img.complete) return;
+                img.addEventListener('load', () => {
+                    shuffleRef.current?.layout();
+                }, { once: true });
+            });
+
             const handleManualUpdate = () => {
                 if (shuffleRef.current) {
                     shuffleRef.current.update();
@@ -49,12 +58,10 @@ export default function BlogFilter({ allTags }: BlogFilterProps) {
             shuffleRef.current.filter(Shuffle.ALL_ITEMS);
         } else {
             shuffleRef.current.filter((element: Element) => {
-                // Pobierz grupy/tagi elementu - Shuffle używa atrybutu data-groups
                 const groups = JSON.parse(
                     (element as HTMLElement).getAttribute('data-groups') || '[]'
                 ).map((g: string) => g.toLowerCase());
 
-                // AND logic: element musi mieć WSZYSTKIE zaznaczone tagi
                 return activeFilters.every((filter) => groups.includes(filter));
             });
         }
@@ -92,7 +99,6 @@ export default function BlogFilter({ allTags }: BlogFilterProps) {
     return (
         <div className="flex flex-wrap items-center justify-end gap-3 overflow-x-auto pb-4">
             <div className="flex gap-0">
-                {/* Przycisk "wszystkie" - osobny, resetuje filtrowanie */}
                 <button
                     onClick={handleReset}
                     style={firstStyle}

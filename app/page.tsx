@@ -8,6 +8,7 @@ import Markdoc, { Tag } from '@markdoc/markdoc'
 import config from '../keystatic.config'
 import ImageZoom from "./components/ImageZoom"
 import Footer from "./components/Footer"
+import ScrollToTop from "./components/ScrollToTop"
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -22,7 +23,28 @@ const markdocConfig = {
                 src: { type: String },
                 alt: { type: String },
                 title: { type: String },
-                class: { type: String, default: 'rounded-none w-full my-8 shadow-sm' }
+                class: { type: String, default: 'rounded-none w-full my-8 shadow-sm cursor-zoom-in' }
+            },
+            transform(node: any, config: any) {
+                const src = node.attributes.src || ''
+                const alt = node.attributes.alt || ''
+                const title = node.attributes.title || ''
+
+                // /images/posts/folder/obraz.jpg → /images/posts/thumbs/folder/obraz.webp
+                const thumbSrc = src.replace(
+                    /\/images\/posts\/(?!thumbs\/)/,
+                    '/images/posts/thumbs/'
+                ).replace(/\.\w+$/, '.webp')
+
+                return new Tag('img', {
+                    src: thumbSrc,
+                    'data-zoom-src': src,
+                    alt,
+                    title,
+                    loading: 'lazy',
+                    decoding: 'async',
+                    class: 'rounded-none w-full my-8 shadow-sm cursor-zoom-in',
+                })
             }
         },
         table: {
@@ -85,96 +107,99 @@ export default async function Home() {
     };
 
     return (
-        <div style={{ maxWidth: '52rem', margin: '0 auto', padding: '2rem 1.25rem 5rem 1.25rem', minHeight: '100vh' }} className="font-mono">
-            <div className="space-y-6 w-full">
-                <header>
-                    <div className="flex flex-wrap items-center justify-between mb-2" style={{ gap: '0.5rem 1rem' }}>
-                        <h1 className="text-3xl sm:text-6xl font-bold tracking-tighter whitespace-nowrap">
-                            odniepamieci.pl
-                        </h1>
-                        <ThemeToggle />
-                    </div>
-                    <div className="flex flex-wrap items-center justify-between gap-4" style={{ marginTop: '1rem' }}>
-                        <NavLinks />
-                        {allTags.length > 0 && <BlogFilter allTags={allTags} />}
-                    </div>
-                    <div className="text-gray-400 dark:text-gray-600 mt-6 whitespace-nowrap overflow-hidden opacity-50">
-                        ------------------------------------------------------------------------------------------------------
-                    </div>
-                </header>
+        <>
+            <div style={{ maxWidth: '52rem', margin: '0 auto', padding: '2rem 1.25rem 5rem 1.25rem', minHeight: '100vh' }} className="font-mono">
+                <div className="space-y-6 w-full">
+                    <header>
+                        <div className="flex flex-wrap items-center justify-between mb-2" style={{ gap: '0.5rem 1rem' }}>
+                            <h1 className="text-3xl sm:text-6xl font-bold tracking-tighter whitespace-nowrap">
+                                odniepamieci.pl
+                            </h1>
+                            <ThemeToggle />
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-4" style={{ marginTop: '1rem' }}>
+                            <NavLinks />
+                            {allTags.length > 0 && <BlogFilter allTags={allTags} />}
+                        </div>
+                        <div className="text-gray-400 dark:text-gray-600 mt-6 whitespace-nowrap overflow-hidden opacity-50">
+                            ------------------------------------------------------------------------------------------------------
+                        </div>
+                    </header>
 
-                <div id="blog-grid">
-                    {postsWithContent.length > 0 ? (
-                        postsWithContent.map((post, index) => (
-                            <article
-                                key={post.slug}
-                                className="blog-post-item group w-full"
-                                data-groups={JSON.stringify(post.tags?.map((t: string) => t.toLowerCase()) || [])}
-                                style={{
-                                    paddingBottom: 'calc(4rem * var(--font-scale, 1))',
-                                    marginBottom: index < postsWithContent.length - 1 ? 0 : '4rem'
-                                }}
-                            >
-                                <div className="flex flex-col"
-                                     style={{
-                                         gap: 'calc(0.25rem * var(--font-scale, 1))',
-                                         marginTop: 'calc(1.25rem * var(--font-scale, 1))'
-                                     }}>
-                                    <div className="flex items-center border border-[#d1d5db] dark:border-[#4b5563] self-start">
-                                        <div
-                                            style={metaButtonStyle}
-                                            className="bg-muted text-current whitespace-nowrap"
-                                        >
-                                            {post.date ? new Date(post.date).toLocaleDateString('pl-PL') : 'brak daty'}
+                    <div id="blog-grid">
+                        {postsWithContent.length > 0 ? (
+                            postsWithContent.map((post, index) => (
+                                <article
+                                    key={post.slug}
+                                    className="blog-post-item group w-full"
+                                    data-groups={JSON.stringify(post.tags?.map((t: string) => t.toLowerCase()) || [])}
+                                    style={{
+                                        paddingBottom: 'calc(4rem * var(--font-scale, 1))',
+                                        marginBottom: index < postsWithContent.length - 1 ? 0 : '4rem'
+                                    }}
+                                >
+                                    <div className="flex flex-col"
+                                         style={{
+                                             gap: 'calc(0.25rem * var(--font-scale, 1))',
+                                             marginTop: 'calc(1.25rem * var(--font-scale, 1))'
+                                         }}>
+                                        <div className="flex items-center border border-[#d1d5db] dark:border-[#4b5563] self-start">
+                                            <div
+                                                style={metaButtonStyle}
+                                                className="bg-muted text-current whitespace-nowrap"
+                                            >
+                                                {post.date ? new Date(post.date).toLocaleDateString('pl-PL') : 'brak daty'}
+                                            </div>
+
+                                            {post.tags?.map((tag: string) => (
+                                                <div
+                                                    key={tag}
+                                                    style={metaButtonStyle}
+                                                    className="text-current border-l border-[#d1d5db] dark:border-[#4b5563] whitespace-nowrap"
+                                                >
+                                                    #{tag.toLowerCase()}
+                                                </div>
+                                            ))}
                                         </div>
 
-                                        {post.tags?.map((tag: string) => (
-                                            <div
-                                                key={tag}
-                                                style={metaButtonStyle}
-                                                className="text-current border-l border-[#d1d5db] dark:border-[#4b5563] whitespace-nowrap"
-                                            >
-                                                #{tag.toLowerCase()}
-                                            </div>
-                                        ))}
+                                        <h2
+                                            className="font-bold lowercase tracking-tight break-words leading-tight"
+                                            style={{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }}
+                                        >
+                                            {post.title}
+                                        </h2>
+
+                                        <div className="post-content prose dark:prose-invert prose-slate max-w-none leading-relaxed"
+                                             style={{ fontSize: 'var(--blog-font-size, 18px)' }}>
+                                            {post.html ? (
+                                                <div dangerouslySetInnerHTML={{ __html: post.html }} />
+                                            ) : (
+                                                <p className="text-gray-500 italic lowercase">treść nie została jeszcze dodana.</p>
+                                            )}
+                                        </div>
                                     </div>
 
-                                    <h2
-                                        className="font-bold lowercase tracking-tight break-words leading-tight"
-                                        style={{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }}
+                                    <div
+                                        className="text-gray-400 dark:text-gray-600 whitespace-nowrap overflow-hidden opacity-50"
+                                        style={{ marginTop: 'calc(1rem * var(--font-scale, 1))' }}
                                     >
-                                        {post.title}
-                                    </h2>
-
-                                    <div className="post-content prose dark:prose-invert prose-slate max-w-none leading-relaxed"
-                                         style={{ fontSize: 'var(--blog-font-size, 18px)' }}>
-                                        {post.html ? (
-                                            <div dangerouslySetInnerHTML={{ __html: post.html }} />
-                                        ) : (
-                                            <p className="text-gray-500 italic lowercase">treść nie została jeszcze dodana.</p>
-                                        )}
+                                        ------------------------------------------------------------------------------------------------------
                                     </div>
-                                </div>
+                                </article>
+                            ))
+                        ) : (
+                            <div className="py-10 text-center text-gray-500 italic lowercase">
+                                brak dostępnych wpisów.
+                            </div>
+                        )}
+                    </div>
 
-                                <div
-                                    className="text-gray-400 dark:text-gray-600 whitespace-nowrap overflow-hidden opacity-50"
-                                    style={{ marginTop: 'calc(1rem * var(--font-scale, 1))' }}
-                                >
-                                    ------------------------------------------------------------------------------------------------------
-                                </div>
-                            </article>
-                        ))
-                    ) : (
-                        <div className="py-10 text-center text-gray-500 italic lowercase">
-                            brak dostępnych wpisów.
-                        </div>
-                    )}
+                    <ImageZoom />
+                    <Footer />
                 </div>
-
-                <ImageZoom />
-
-                <Footer />
             </div>
-        </div>
+
+            <ScrollToTop />
+        </>
     )
 }

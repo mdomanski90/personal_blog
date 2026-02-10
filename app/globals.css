@@ -226,10 +226,10 @@ body {
 .dark .post-content th {
   background-color: #1f2937;
 }
-.post-content tbody tr:first-child {
+.post-content tbody tr:nth-child(even) {
   background-color: #f9fafb;
 }
-.dark .post-content tbody tr:first-child {
+.dark .post-content tbody tr:nth-child(even) {
   background-color: #111827;
 }
 
