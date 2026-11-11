@@ -38,7 +38,7 @@ function Wyszukiwarka() {
                 id="szukaj-q"
                 name="q"
                 type="search"
-                defaultValue={params.get('q') ?? ''}
+                defaultValue={params?.get('q') ?? ''}
                 placeholder="np. Olszanka, bieżeństwo"
                 className="flex-1 bg-transparent border border-[#d1d5db] dark:border-[#4b5563] px-2"
                 style={{ fontSize: '14px', height: '28px', minWidth: '12rem' }}
