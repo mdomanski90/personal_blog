@@ -1,6 +1,7 @@
 import * as React from "react"
 import SiteHeader from "../components/SiteHeader"
 import Footer from "../components/Footer"
+import EmailLink from "../components/EmailLink"
 
 export default function Kontakt() {
     return (
@@ -11,7 +12,7 @@ export default function Kontakt() {
                 <article className="prose dark:prose-invert prose-slate max-w-none leading-relaxed" style={{ fontSize: 'var(--blog-font-size, 18px)' }}>
                     <h2 className="font-bold lowercase" style={{ fontSize: 'calc(1.875rem * var(--font-scale, 1))' }}>kontakt</h2>
                     <p>możesz się ze mną skontaktować pisząc na adres:</p>
-                    <p><a href="mailto:domanski.mateusz@proton.me">domanski.mateusz@proton.me</a></p>
+                    <p><EmailLink /></p>
                 </article>
 
                 <Footer />
