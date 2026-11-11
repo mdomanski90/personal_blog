@@ -1,135 +1,173 @@
-import { config, collection, fields } from '@keystatic/core';
+import { config, collection, singleton, fields } from '@keystatic/core';
+import { EDTF_OPIS, EDTF_REGEX } from './lib/edtf';
+import { identyfikatorZNazwy } from './lib/tekst';
+
+// Model danych: claude/odniepamieci-model-danych.md (projekt „own www”).
+// Nazwy pól w plikach jak w Dublin Core – ułatwia późniejszy eksport do Omeka S.
+
+const WSPOLRZEDNE_REGEX = /^$|^-?\d{1,2}(\.\d+)?,\s*-?\d{1,3}(\.\d+)?$/;
+
+function nazwaIIdentyfikator(etykieta: string) {
+  return fields.slug({
+    name: { label: etykieta, validation: { isRequired: true } },
+    slug: {
+      label: 'Identyfikator (adres strony)',
+      description: 'Po opublikowaniu nie zmieniaj – od niego zależą odnośniki i eksport.',
+      generate: identyfikatorZNazwy,
+      validation: { pattern: { regex: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Tylko małe litery bez polskich znaków, cyfry i łączniki.' } },
+    },
+  });
+}
+
+const inneNazwy = () =>
+  fields.array(fields.text({ label: 'Nazwa lub forma' }), {
+    label: 'Inne nazwy i formy',
+    description: 'Odmiana (w Olszance, z Olszanki), nazwy dawne, zapis cyrylicą i łaciną. Używane przez wyszukiwarkę i wzmianki.',
+    itemLabel: (p) => p.value || 'nowa forma',
+  });
+
+const dataEdtf = (etykieta: string) =>
+  fields.text({
+    label: etykieta,
+    description: EDTF_OPIS,
+    validation: { pattern: { regex: EDTF_REGEX, message: 'Niepoprawny zapis daty. ' + EDTF_OPIS } },
+  });
+
+const widocznosc = () =>
+  fields.select({
+    label: 'Widoczność',
+    options: [
+      { label: 'publiczne', value: 'publiczne' },
+      { label: 'dla bliskich', value: 'bliscy' },
+      { label: 'tylko ja', value: 'ja' },
+    ],
+    defaultValue: 'publiczne',
+  });
+
+const notatka = () =>
+  fields.text({ label: 'Notatka robocza', description: 'Widoczna tylko w panelu, nie trafia na stronę ani do eksportu.', multiline: true });
+
+const dodano = () => fields.date({ label: 'Dodano', defaultValue: { kind: 'today' } });
+
+const opisMarkdoc = (etykieta: string, katalog: string) =>
+  fields.markdoc({
+    label: etykieta,
+    options: {
+      image: {
+        directory: `public/images/${katalog}`,
+        publicPath: `/images/${katalog}/`,
+      },
+    },
+  });
 
 export default config({
   storage: {
     kind: 'local',
   },
+  ui: {
+    brand: { name: 'odniepamieci.pl' },
+    navigation: {
+      'Treści': ['posts', 'miejsca', 'tematy'],
+      'Strony': ['oProjekcie'],
+    },
+  },
   collections: {
     posts: collection({
-      label: 'Posty',
+      label: 'Opowieści',
       slugField: 'title',
       path: 'content/posts/*',
       format: { contentField: 'content' },
+      columns: ['title', 'date'],
+      entryLayout: 'content',
       schema: {
-        title: fields.slug({ name: { label: 'Tytuł' } }),
-        date: fields.date({ label: 'Data', defaultValue: { kind: 'today' } }),
-        tags: fields.multiselect({
-          label: 'Tagi',
+        title: nazwaIIdentyfikator('Tytuł'),
+        date: fields.date({ label: 'Data publikacji', defaultValue: { kind: 'today' } }),
+        kind: fields.select({
+          label: 'Rodzaj',
           options: [
-            { label: 'tech', value: 'tech' },
-            { label: 'historia', value: 'historia' },
-            { label: 'myślodsiewnia', value: 'myślodsiewnia' },
-            { label: 'genealogia', value: 'genealogia' },
+            { label: 'o źródle', value: 'o-zrodle' },
+            { label: 'esej', value: 'esej' },
           ],
-          defaultValue: []
+          defaultValue: 'o-zrodle',
         }),
-        content: fields.markdoc({
-          label: 'Treść wpisu',
-          options: {
-            image: {
-              directory: 'public/images/posts',
-              publicPath: '/images/posts/',
-            }
-          }
-        }),
+        spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
+        subject: fields.multiRelationship({ label: 'Tematy', collection: 'tematy' }),
+        visibility: widocznosc(),
+        note: notatka(),
+        // Dawne tagi (#historia, #tech…) – zachowane w plikach, niewidoczne w panelu i na stronie.
+        tags: fields.ignored(),
+        content: opisMarkdoc('Treść', 'posts'),
       },
     }),
     miejsca: collection({
       label: 'Miejsca',
       slugField: 'title',
       path: 'content/miejsca/*',
-      format: { contentField: 'content' },
+      format: { contentField: 'description' },
+      columns: ['title', 'type'],
       schema: {
-        title: fields.slug({ name: { label: 'Tytuł' } }),
-        date: fields.date({
-          label: 'Data',
-          defaultValue: { kind: 'today' },
+        title: nazwaIIdentyfikator('Nazwa'),
+        alternative: inneNazwy(),
+        type: fields.select({
+          label: 'Rodzaj',
+          options: [
+            { label: 'wieś', value: 'wies' },
+            { label: 'miasto', value: 'miasto' },
+            { label: 'parafia', value: 'parafia' },
+            { label: 'cmentarz', value: 'cmentarz' },
+            { label: 'folwark', value: 'folwark' },
+            { label: 'inne', value: 'inne' },
+          ],
+          defaultValue: 'wies',
         }),
-        lokalizacja: fields.text({
-          label: 'Lokalizacja',
-          description: 'np. Olszanka, Korczówka',
+        coordinates: fields.text({
+          label: 'Współrzędne',
+          description: 'Szerokość, długość – np. 52.1860, 22.5627 (skopiuj z OpenStreetMap lub Google Maps).',
+          validation: { pattern: { regex: WSPOLRZEDNE_REGEX, message: 'Zapis: 52.1860, 22.5627' } },
         }),
-        content: fields.markdoc({
-          label: 'Treść',
-          options: {
-            image: {
-              directory: 'public/images/miejsca',
-              publicPath: '/images/miejsca/',
-            },
-          },
-        }),
+        approximate: fields.checkbox({ label: 'Położenie przybliżone' }),
+        isPartOf: fields.relationship({ label: 'Należy do (np. parafia)', collection: 'miejsca' }),
+        sameAs: fields.url({ label: 'Wikidata / GeoNames', description: 'Adres strony tego miejsca w Wikidata lub GeoNames (opcjonalnie).' }),
+        visibility: widocznosc(),
+        note: notatka(),
+        dateSubmitted: dodano(),
+        description: opisMarkdoc('Opis', 'miejsca'),
       },
     }),
-    zdjecia: collection({
-      label: 'Zdjęcia',
+    tematy: collection({
+      label: 'Tematy',
       slugField: 'title',
-      path: 'content/zdjecia/*',
+      path: 'content/tematy/*',
+      format: { contentField: 'description' },
+      columns: ['title', 'temporal'],
       schema: {
-        title: fields.slug({ name: { label: 'Tytuł/Opis' } }),
-        image: fields.image({
-          label: 'Zdjęcie',
-          directory: 'public/images/gallery',
-          publicPath: '/images/gallery/',
-        }),
-        date: fields.date({
-          label: 'Data wykonania',
-          description: 'Przybliżona data zdjęcia',
-        }),
-        year: fields.text({
-          label: 'Rok',
-          description: 'np. 1960, lata 70., ok. 1985',
-        }),
-        location: fields.select({
-          label: 'Miejscowość',
+        title: nazwaIIdentyfikator('Nazwa'),
+        alternative: inneNazwy(),
+        type: fields.select({
+          label: 'Rodzaj',
           options: [
-            { label: 'Olszanka', value: 'olszanka' },
-            { label: 'Korczówka', value: 'korczowka' },
-            { label: 'Próchenki', value: 'prochenki' },
-            { label: 'Szydłówka', value: 'szydlowka' },
-            { label: 'Bejdy', value: 'bejdy' },
-            { label: 'Dawidy', value: 'dawidy' },
-            { label: 'Łepki Stare', value: 'lepki stare' },
-            { label: 'Łepki Nowe', value: 'lepki nowe' },
-            { label: 'Hadynów', value: 'hadynow' },
-            { label: 'Pietrusy', value: 'pietrusy' },
-            { label: 'Mszanna', value: 'mszanna' },
-            { label: 'Bolesty', value: 'bolesty' },
-            { label: 'Szawły', value: 'szawly' },
-            { label: 'Wyczółki', value: 'wyczolki' },
-            { label: 'Radlnia', value: 'radlnia' },
-            { label: 'Łosice', value: 'losice' },
-            { label: 'Łuniew', value: 'luniew' },
-            { label: 'Łuby', value: 'luby' },
-            { label: 'Kożuszki', value: 'kozuszki' },
-            { label: 'Krzewica', value: 'krzewica' },
-            { label: 'Pościsze', value: 'poscisze' },
-            { label: 'Krzesk', value: 'krzesk' },
-            { label: 'Międzyrzec Podlaski', value: 'miedzyrzec' },
-            { label: 'Inne', value: 'inne' },
+            { label: 'zjawisko', value: 'zjawisko' },
+            { label: 'wydarzenie', value: 'wydarzenie' },
+            { label: 'instytucja', value: 'instytucja' },
           ],
-          defaultValue: 'olszanka',
+          defaultValue: 'zjawisko',
         }),
-        category: fields.multiselect({
-          label: 'Kategorie',
-          options: [
-            { label: 'Osoby', value: 'osoby' },
-            { label: 'Kościoły', value: 'koscioly' },
-            { label: 'Szkoły', value: 'szkoly' },
-            { label: 'Budynki', value: 'budynki' },
-            { label: 'Uroczystości', value: 'uroczystosci' },
-            { label: 'Krajobrazy', value: 'krajobrazy' },
-            { label: 'Życie codzienne', value: 'zycie-codzienne' },
-          ],
-          defaultValue: [],
-        }),
-        description: fields.text({
-          label: 'Dodatkowy opis',
-          multiline: true,
-        }),
-        source: fields.text({
-          label: 'Źródło/Autor',
-          description: 'Kto udostępnił zdjęcie',
-        }),
+        temporal: dataEdtf('Czas (EDTF)'),
+        spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
+        visibility: widocznosc(),
+        note: notatka(),
+        dateSubmitted: dodano(),
+        description: opisMarkdoc('Opis', 'tematy'),
+      },
+    }),
+  },
+  singletons: {
+    oProjekcie: singleton({
+      label: 'O projekcie',
+      path: 'content/o-projekcie',
+      format: { contentField: 'content' },
+      schema: {
+        content: opisMarkdoc('Treść', 'o-projekcie'),
       },
     }),
   },

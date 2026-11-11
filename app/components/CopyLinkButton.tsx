@@ -5,14 +5,15 @@ import { Check } from 'lucide-react'
 import { Toggle } from "@/components/ui/toggle"
 
 interface CopyLinkButtonProps {
-    slug: string
+    /** Ścieżka strony, np. „/opowiesci/niepamiec”. */
+    sciezka: string
 }
 
-export default function CopyLinkButton({ slug }: CopyLinkButtonProps) {
+export default function CopyLinkButton({ sciezka }: CopyLinkButtonProps) {
     const [copied, setCopied] = useState(false)
 
     const handleCopy = async () => {
-        const url = `${window.location.origin}/#${slug}`
+        const url = `${window.location.origin}${sciezka}`
 
         try {
             await navigator.clipboard.writeText(url)

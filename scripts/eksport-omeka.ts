@@ -1,0 +1,132 @@
+// Eksport treści do plików CSV dla modułu CSV Import w Omeka S i sprawdzenie spójności danych.
+// Uruchamiany przy każdym buildzie (npm run build). Błąd w danych zatrzymuje build z czytelnym komunikatem.
+//
+//   npm run eksport:omeka            → eksport/omeka/*.csv
+//
+// Kolumny = nazwy właściwości Omeka (dcterms:…); wiele wartości rozdzielone „|”;
+// powiązania przez dcterms:identifier (w CSV Import: „Identifier” jako sposób dopasowania zasobów).
+// Kolejność importu: miejsca → tematy → opowieści (później: osoby, obiekty, materiały).
+
+import fs from 'node:fs'
+import path from 'node:path'
+import { dlaEksportu, RODZAJE_MIEJSC, RODZAJE_OPOWIESCI, RODZAJE_TEMATOW, type Widocznosc } from '../lib/archiwum'
+import { czyPoprawnaEdtf, zakresIso } from '../lib/edtf'
+import { naTekst } from '../lib/markdoc'
+
+const KATALOG = path.join(process.cwd(), 'eksport', 'omeka')
+const bledy: string[] = []
+const ostrzezenia: string[] = []
+
+function pole(v: unknown): string {
+    const s = Array.isArray(v)
+        ? v.filter((x) => x !== null && x !== undefined && x !== '').map((x) => String(x).replace(/\|/g, '/')).join('|')
+        : v === null || v === undefined ? '' : String(v)
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
+function zapiszCsv(nazwa: string, kolumny: string[], wiersze: Record<string, unknown>[]) {
+    const linie = [kolumny.join(','), ...wiersze.map((w) => kolumny.map((k) => pole(w[k])).join(','))]
+    fs.writeFileSync(path.join(KATALOG, nazwa), linie.join('\n') + '\n', 'utf8')
+}
+
+const publiczne = (w: Widocznosc) => (w === 'publiczne' ? '1' : '0')
+
+async function main() {
+    const miejsca = await dlaEksportu.miejsca()
+    const tematy = await dlaEksportu.tematy()
+    const opowiesci = await dlaEksportu.opowiesci()
+
+    const idMiejsc = new Set(miejsca.map((m) => m.id))
+    const idTematow = new Set(tematy.map((t) => t.id))
+
+    // --- sprawdzanie spójności ---
+    for (const m of miejsca) {
+        if (m.nalezyDo && !idMiejsc.has(m.nalezyDo)) bledy.push(`miejsce „${m.id}”: „należy do” wskazuje nieistniejące miejsce „${m.nalezyDo}”`)
+        if (m.nalezyDo === m.id) bledy.push(`miejsce „${m.id}”: nie może należeć samo do siebie`)
+    }
+    for (const t of tematy) {
+        if (!czyPoprawnaEdtf(t.czas)) bledy.push(`temat „${t.id}”: niepoprawna data „${t.czas}”`)
+        for (const id of t.miejsca) if (!idMiejsc.has(id)) bledy.push(`temat „${t.id}”: nieistniejące miejsce „${id}”`)
+    }
+    for (const o of opowiesci) {
+        for (const id of o.miejsca) if (!idMiejsc.has(id)) bledy.push(`opowieść „${o.id}”: nieistniejące miejsce „${id}”`)
+        for (const id of o.tematy) if (!idTematow.has(id)) bledy.push(`opowieść „${o.id}”: nieistniejący temat „${id}”`)
+    }
+    const bezWspolrzednych = miejsca.filter((m) => !m.wspolrzedne).map((m) => m.nazwa)
+    if (bezWspolrzednych.length) ostrzezenia.push(`miejsca bez współrzędnych (nie ma ich na mapie): ${bezWspolrzednych.join(', ')}`)
+
+    if (bledy.length) {
+        console.error('\n✗ Błędy w danych – popraw je w panelu (/keystatic):\n')
+        for (const b of bledy) console.error('  - ' + b)
+        console.error('')
+        process.exit(1)
+    }
+
+    // --- eksport ---
+    fs.mkdirSync(KATALOG, { recursive: true })
+
+    zapiszCsv(
+        'miejsca.csv',
+        ['dcterms:identifier', 'o:resource_class', 'dcterms:title', 'dcterms:alternative', 'dcterms:type', 'mapping:latitude', 'mapping:longitude', 'mapping:approximate', 'dcterms:isPartOf', 'owl:sameAs', 'dcterms:description', 'dcterms:dateSubmitted', 'o:is_public'],
+        miejsca.map((m) => ({
+            'dcterms:identifier': m.id,
+            'o:resource_class': 'dcterms:Location',
+            'dcterms:title': m.nazwa,
+            'dcterms:alternative': m.inneNazwy,
+            'dcterms:type': RODZAJE_MIEJSC[m.rodzaj] ?? m.rodzaj,
+            'mapping:latitude': m.wspolrzedne?.[0],
+            'mapping:longitude': m.wspolrzedne?.[1],
+            'mapping:approximate': m.przyblizone ? '1' : '',
+            'dcterms:isPartOf': m.nalezyDo,
+            'owl:sameAs': m.sameAs,
+            'dcterms:description': naTekst(m.opis),
+            'dcterms:dateSubmitted': m.dodano,
+            'o:is_public': publiczne(m.widocznosc),
+        })),
+    )
+
+    zapiszCsv(
+        'tematy.csv',
+        ['dcterms:identifier', 'o:resource_class', 'dcterms:title', 'dcterms:alternative', 'dcterms:type', 'dcterms:temporal', 'numeric:interval', 'dcterms:spatial', 'dcterms:description', 'dcterms:dateSubmitted', 'o:is_public'],
+        tematy.map((t) => {
+            const z = zakresIso(t.czas)
+            return {
+                'dcterms:identifier': t.id,
+                'o:resource_class': t.rodzaj === 'wydarzenie' ? 'dcterms:PeriodOfTime' : 'skos:Concept',
+                'dcterms:title': t.nazwa,
+                'dcterms:alternative': t.inneNazwy,
+                'dcterms:type': RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj,
+                'dcterms:temporal': t.czas,
+                'numeric:interval': z ? `${z.od ?? ''}/${z.do ?? ''}` : '',
+                'dcterms:spatial': t.miejsca,
+                'dcterms:description': naTekst(t.opis),
+                'dcterms:dateSubmitted': t.dodano,
+                'o:is_public': publiczne(t.widocznosc),
+            }
+        }),
+    )
+
+    zapiszCsv(
+        'opowiesci.csv',
+        ['dcterms:identifier', 'o:resource_class', 'dcterms:title', 'dcterms:date', 'dcterms:type', 'dcterms:spatial', 'dcterms:subject', 'bibo:content', 'o:is_public'],
+        opowiesci.map((o) => ({
+            'dcterms:identifier': o.id,
+            'o:resource_class': 'bibo:Article',
+            'dcterms:title': o.tytul,
+            'dcterms:date': o.data,
+            'dcterms:type': RODZAJE_OPOWIESCI[o.rodzaj] ?? o.rodzaj,
+            'dcterms:spatial': o.miejsca,
+            'dcterms:subject': o.tematy,
+            'bibo:content': naTekst(o.tresc),
+            'o:is_public': publiczne(o.widocznosc),
+        })),
+    )
+
+    for (const o of ostrzezenia) console.warn('! ' + o)
+    console.log(`✓ Eksport dla Omeka S: ${miejsca.length} miejsc, ${tematy.length} tematów, ${opowiesci.length} opowieści → eksport/omeka/`)
+}
+
+main().catch((e) => {
+    console.error(e)
+    process.exit(1)
+})

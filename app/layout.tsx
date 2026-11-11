@@ -12,7 +12,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
     title: 'odniepamieci.pl',
-    description: 'Minimalistyczny blog',
+    description: 'Społeczne archiwum pamięci lokalnej: wsie wokół Olszanki i Łosic – dokumenty, zdjęcia, wspomnienia, ludzie i miejsca.',
 }
 
 export default function RootLayout({
@@ -33,26 +33,6 @@ export default function RootLayout({
                 {children}
             </ThemeProvider>
 
-            {/* Scroll do wpisu po załadowaniu */}
-            <script
-                dangerouslySetInnerHTML={{
-                    __html: `
-              if (window.location.hash) {
-                window.addEventListener('load', function() {
-                  setTimeout(function() {
-                    const hash = window.location.hash;
-                    if (hash) {
-                      const element = document.querySelector(hash);
-                      if (element) {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                    }
-                  }, 100);
-                });
-              }
-            `,
-                }}
-            />
             </body>
             </html>
         </ViewTransitions>

@@ -1,12 +1,13 @@
 @import "tw-animate-css";
 
+/* Tailwind v4: pełny zestaw klas + typografia treści (.prose).
+   Wcześniej były tu dyrektywy z Tailwinda 3 (@tailwind base/components/utilities),
+   przez które większość klas (gap-*, text-*, font-bold, prose…) w ogóle nie powstawała. */
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -294,4 +295,45 @@ body {
   font-size: calc(16px * var(--font-scale, 1));
   font-weight: 400;
   text-transform: lowercase;
+}
+
+/* ============================================ */
+/* MAPA (Leaflet)                               */
+/* ============================================ */
+.leaflet-container {
+  font-family: inherit;
+}
+.mapa-etykieta {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 0 4px;
+  border-radius: 0;
+  border: 1px solid #d1d5db;
+  box-shadow: none;
+}
+.mapa-etykieta::before {
+  display: none;
+}
+
+/* ============================================ */
+/* PODSTAWY STRON (.odp) – bez resetu Tailwinda */
+/* nie dotyczą treści wpisów (.prose)           */
+/* ============================================ */
+.odp :where(ul, ol):where(:not(.prose *)) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.odp :where(h1, h2, h3, p):where(:not(.prose *)) {
+  margin: 0;
+}
+.odp a:where(:not(.prose *)) {
+  color: inherit;
+  text-decoration: none;
+}
+.odp a:where(:not(.prose *)):hover {
+  text-decoration: underline;
+}
+.odp :where(button) {
+  font-family: inherit;
 }

@@ -4,9 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "test": "tsx --test lib/edtf.test.ts",
     "thumbs": "node scripts/generate-thumbs.mjs",
-    "build": "node scripts/generate-thumbs.mjs && next build",
+    "eksport:omeka": "tsx scripts/eksport-omeka.ts",
+    "zasiej": "tsx scripts/zasiej.ts",
+    "build": "npm test && node scripts/generate-thumbs.mjs && npm run eksport:omeka && next build",
     "start": "next start -p 3000",
+    "typecheck": "tsc --noEmit",
     "lint": "next lint"
   },
   "dependencies": {
@@ -24,6 +28,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "gray-matter": "^4.0.3",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.563.0",
     "medium-zoom": "^1.1.0",
     "next": "^16.3.8",
@@ -47,6 +52,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^20.19.32",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -57,6 +63,7 @@
     "postcss": "^8",
     "tailwindcss": "^4.1.18",
     "ts-node": "^10.9.2",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
