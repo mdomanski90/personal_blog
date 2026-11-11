@@ -10,7 +10,7 @@ import { useTheme } from 'next-themes'
 import { LngLatBounds, Map as MapaGL, NavigationControl, setWorkerUrl, type GeoJSONSource, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
-import { LATA_GRANIC, LEGENDA_PANSTW, WARSTWY_GRANIC, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, filtrGranic, warstwyGranic } from '@/lib/granice'
+import { LATA_GRANIC, LEGENDA_PANSTW, WARSTWY_GRANIC, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, czyRzeczpospolita, filtrGranic, kolorWojewodztw, panstwoWojewodztwa, przezroczystoscWojewodztw, warstwyGranic } from '@/lib/granice'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
 
 export interface PunktMapy {
@@ -208,24 +208,46 @@ export default function MapaMiejsc({
                             const nazwa = String(w.name_pl || w.name || '').trim()
                             if (!nazwa) continue
                             const poziom = Number(w.admin_level)
-                            const klucz = `${poziom}|${nazwa}`
-                            const o = obszary.get(klucz) ?? { nazwa, poziom, pkt: [] }
-                            if (!o.pkt.some(([a, b]) => a === x && b === y)) o.pkt.push([x, y])
-                            obszary.set(klucz, o)
+                            const dodaj = (n: string, p: number) => {
+                                const klucz = `${p}|${n}`
+                                const o = obszary.get(klucz) ?? { nazwa: n, poziom: p, pkt: [] }
+                                if (!o.pkt.some(([a, b]) => a === x && b === y)) o.pkt.push([x, y])
+                                obszary.set(klucz, o)
+                            }
+                            dodaj(nazwa, poziom)
+                            // lata bez danych o państwach: nazwa państwa z przynależności województwa
+                            const panstwo = poziom === 4 ? panstwoWojewodztwa(w, rokRef.current) : null
+                            if (panstwo) dodaj(panstwo, 2)
                         }
                     }
                 }
             }
             // najpierw państwa, potem województwa – każde w innym punkcie siatki, żeby podpisy nie nachodziły
             const zajete = new Set<string>()
-            const features = [...obszary.values()].sort((a, b) => a.poziom - b.poziom).map((o) => {
+            // punkty siatki zasłonięte tarczą i nazwą miejscowości (nazwy wsi mają pierwszeństwo, więc
+            // podpis państwa postawiony na nich by zniknął)
+            const tarcze = punkty.filter((p) => p.typ === 'miejsce').map((p) => m.project([p.lng, p.lat]))
+            for (const o of obszary.values()) {
+                for (const [x, y] of o.pkt) {
+                    const pol = o.poziom <= 3 ? 95 : 70
+                    const { clientWidth: W, clientHeight: H } = m.getCanvas()
+                    const zaKrawedzia = x - pol < 4 || x + pol > W - 4 || y < 24 || y > H - 40
+                    if (zaKrawedzia || tarcze.some((t) => x + pol > t.x - 14 && x - pol < t.x + 110 && Math.abs(y - t.y) < 26)) zajete.add(`${x},${y}`)
+                }
+            }
+            // kolejność: części państwa (Korona, Litwa – poziom 3), całe państwa, województwa
+            const waga = (p: number) => (p === 3 ? 0 : p === 2 ? 1 : p)
+            const features = [...obszary.values()].sort((a, b) => waga(a.poziom) - waga(b.poziom)).map((o) => {
                 const sx = o.pkt.reduce((a, p) => a + p[0], 0) / o.pkt.length
                 const sy = o.pkt.reduce((a, p) => a + p[1], 0) / o.pkt.length
                 const odl = (p: [number, number]) => Math.hypot(p[0] - sx, p[1] - sy)
                 const wolne = o.pkt.filter((p) => !zajete.has(p.join()))
                 const [x, y] = (wolne.length ? wolne : o.pkt).reduce((n, p) => (odl(p) < odl(n) ? p : n))
                 zajete.add(`${x},${y}`)
-                const ll = m.unproject([x, y])
+                // wąski skrawek przy krawędzi: podpis przesuwamy do środka, żeby nie był ucięty
+                const { clientWidth: W, clientHeight: H } = m.getCanvas()
+                const pol = o.poziom <= 3 ? 95 : 70
+                const ll = m.unproject([Math.min(Math.max(x, pol + 4), W - pol - 4), Math.min(Math.max(y, 24), H - 40)])
                 return { type: 'Feature' as const, geometry: { type: 'Point' as const, coordinates: [ll.lng, ll.lat] }, properties: { nazwa: o.nazwa, poziom: o.poziom } }
             })
             // „idle” przychodzi też po samym setData – bez tej kontroli podpisy odświeżałyby się w kółko
@@ -291,6 +313,10 @@ export default function MapaMiejsc({
             if (!m.getLayer(id)) continue
             m.setLayoutProperty(id, 'visibility', rok ? 'visible' : 'none')
             if (rok && WARSTWY_Z_ROKIEM[id]) m.setFilter(id, filtrGranic(rok, WARSTWY_Z_ROKIEM[id]))
+        }
+        if (rok && m.getLayer('granice-tlo-nizsze')) {
+            m.setPaintProperty('granice-tlo-nizsze', 'fill-color', kolorWojewodztw(rok) as string)
+            m.setPaintProperty('granice-tlo-nizsze', 'fill-opacity', przezroczystoscWojewodztw(rok, ciemnyRef.current) as number)
         }
         odswiezNapisyRef.current()
         if (zapamietaj) {
@@ -385,6 +411,19 @@ export default function MapaMiejsc({
                                 </span>
                             ))}
                             <span>· inne państwa – pozostałe kolory</span>
+                        </div>
+                    )}
+                    {rok && (
+                        <div className="flex flex-wrap items-center text-gray-600 dark:text-gray-400" style={{ gap: '4px 14px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
+                            <span className="inline-flex items-center" style={{ gap: 5 }}>
+                                <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="2.6" strokeDasharray="7 3.5" /></svg>
+                                granica państwa
+                            </span>
+                            <span className="inline-flex items-center" style={{ gap: 5 }}>
+                                <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="1.2" opacity="0.8" /></svg>
+                                województwo / gubernia (różne odcienie)
+                            </span>
+                            {czyRzeczpospolita(rok) && <span>· Rzeczpospolita Obojga Narodów = Korona + Litwa (wspólna granica przerywana)</span>}
                         </div>
                     )}
                     {rok && (

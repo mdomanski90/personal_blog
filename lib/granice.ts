@@ -11,14 +11,16 @@ export const ZRODLO_GRANIC: SourceSpecification = {
 
 /** Lata do szybkiego wyboru z krótkim opisem tego, co było wtedy na tym terenie. */
 export const LATA_GRANIC: { rok: number; opis: string }[] = [
-    { rok: 1500, opis: 'Podlasie w Wielkim Księstwie Litewskim' },
-    { rok: 1600, opis: 'województwo podlaskie w Koronie' },
+    { rok: 1520, opis: 'Podlasie w Wielkim Księstwie Litewskim' },
+    { rok: 1600, opis: 'Rzeczpospolita Obojga Narodów – Podlasie w Koronie od 1569' },
     { rok: 1700, opis: 'Rzeczpospolita Obojga Narodów' },
-    { rok: 1796, opis: 'po III rozbiorze – zabór austriacki' },
+    { rok: 1790, opis: 'Rzeczpospolita po I rozbiorze' },
+    { rok: 1796, opis: 'po III rozbiorze – Galicja Zachodnia (Austria)' },
     { rok: 1810, opis: 'Księstwo Warszawskie' },
     { rok: 1830, opis: 'Królestwo Polskie' },
-    { rok: 1880, opis: 'gubernia siedlecka' },
-    { rok: 1914, opis: 'przed I wojną światową' },
+    { rok: 1880, opis: 'gubernia siedlecka (Imperium Rosyjskie)' },
+    { rok: 1913, opis: 'przed I wojną światową' },
+    { rok: 1917, opis: 'Królestwo Polskie Regencyjne (okupacja niemiecka)' },
     { rok: 1930, opis: 'II Rzeczpospolita' },
 ]
 
@@ -33,70 +35,147 @@ export function filtrGranic(rok: number, poziomy: number[] = [2, 3, 4, 5, 6]): F
 
 /** Warstwy, którym przy zmianie roku podmieniamy filtr (id → poziomy administracyjne). */
 export const WARSTWY_Z_ROKIEM: Record<string, number[]> = {
-    'granice-tlo': [2],
-    'granice-tlo-nizsze': [3, 4],
-    'granice-hist': [2, 3, 4, 5, 6],
+    'granice-tlo': [2, 3],
+    'granice-tlo-nizsze': [4],
+    'granice-hist': [2, 3],
+    'granice-hist-woj': [4, 5, 6],
 }
 export const WARSTWY_GRANIC = [...Object.keys(WARSTWY_Z_ROKIEM), 'granice-napisy']
 
-// Kolor państwa po nazwie (sprawdzamy nazwę angielską, oryginalną i polską):
-// Polska / Korona / Księstwo Warszawskie – czerwień, Litwa – zieleń, Rosja – ochra,
-// Prusy / Niemcy – błękit, Austria – fiolet; pozostałe dostają kolor z palety wg numeru obiektu w OHM.
+type Panstwo = 'korona' | 'litwa' | 'rosja' | 'niemcy' | 'austria'
+
+/** Państwa z własnym kolorem (pozostałe dostają kolor z palety wg numeru obiektu w OHM). */
+export const PANSTWA: Record<Panstwo, { nazwa: string; legenda: string; kolor: string }> = {
+    korona: { nazwa: 'Korona Królestwa Polskiego', legenda: 'Korona / Polska', kolor: '#c0392b' },
+    litwa: { nazwa: 'Wielkie Księstwo Litewskie', legenda: 'Wielkie Księstwo Litewskie', kolor: '#2e7d4f' },
+    rosja: { nazwa: 'Imperium Rosyjskie', legenda: 'Rosja / ZSRR', kolor: '#b7791f' },
+    niemcy: { nazwa: 'Prusy', legenda: 'Prusy / Niemcy', kolor: '#2f6aa3' },
+    austria: { nazwa: 'Austria', legenda: 'Austria', kolor: '#7b4fa0' },
+}
 const PALETA_INNYCH = ['#6b8e23', '#a0522d', '#4682b4', '#8b6914', '#8a5a83', '#5f8a6f']
-/** Klucz kolorów pod mapą. */
-export const LEGENDA_PANSTW: { nazwa: string; kolor: string }[] = [
-    { nazwa: 'Polska', kolor: '#c0392b' },
-    { nazwa: 'Litwa', kolor: '#2e7d4f' },
-    { nazwa: 'Rosja', kolor: '#b7791f' },
-    { nazwa: 'Prusy / Niemcy', kolor: '#2f6aa3' },
-    { nazwa: 'Austria', kolor: '#7b4fa0' },
-]
-const KOLORY_PANSTW: [string[], string][] = [
-    [['polsk', 'poland', 'polish', 'polon', 'korona', 'warsaw', 'warszaw', 'rzeczpospolita'], '#c0392b'],
-    [['lithuan', 'litew', 'litw', 'lietuv'], '#2e7d4f'],
-    [['russia', 'rosyj', 'rossi', 'moscow', 'moskiew', 'moskov', 'росс', 'русск'], '#b7791f'],
-    [['prus', 'german', 'niemc', 'niemie', 'deutsch', 'preu'], '#2f6aa3'],
-    [['austri', 'habsburg', 'galic', 'österr', 'lodomer'], '#7b4fa0'],
+const PRZEZROCZYSTY = 'rgba(0,0,0,0)'
+
+// Rozpoznawanie po nazwie (angielska + oryginalna + polska, małymi literami).
+// Kolejność ma znaczenie: Rzeczpospolita Obojga Narodów nie dostaje własnego koloru – w środku
+// leżą Korona i Litwa (OHM: poziom 3), a granica zewnętrzna zostaje grubą kreską.
+const RZECZPOSPOLITA = ['obojga', 'poland-lithuania', 'polish-lithuanian']
+const KLUCZE_PANSTW: [string[], Panstwo][] = [
+    [['lithuan', 'litew', 'lietuv'], 'litwa'],
+    [['polsk', 'poland', 'polish', 'polon', 'korona', 'warsaw', 'warszaw', 'rzeczpospolita', 'polen'], 'korona'],
+    [['russia', 'rosyj', 'rossi', 'moscow', 'moskiew', 'moskov', 'росс', 'русск', 'soviet', 'radzieck', 'ссср', 'ssr', 'socjalistyczna'], 'rosja'],
+    [['prus', 'german', 'niemc', 'niemie', 'deutsch', 'preu', 'generalgouv', 'gubernatorstwo', 'bezirk', 'ober ost'], 'niemcy'],
+    [['austri', 'habsburg', 'galic', 'österr', 'oesterr', 'lodomer'], 'austria'],
 ]
 
+// Lata, dla których OHM nie ma tu państw, tylko województwa / gubernie – przynależność bierzemy z nich.
+const PRZED_UNIA: [number, number] = [-9999, 1569.5] // przed unią lubelską (1 VII 1569)
+const PO_I_ROZBIORZE: [number, number] = [1773.71, 1795.82] // Rzeczpospolita bez podziału w OHM
+const WOJ_ZMIANA = ['podlas', 'kijow', 'kijów', 'kyiv', 'kiev', 'wołyń', 'wolyn', 'volhyn', 'bracław', 'braclaw', 'bratslav']
+const WOJ_KORONY = ['lubelsk', 'lublin', 'krakow', 'krakó', 'cracow', 'sandomier', 'ruskie', 'ruthen', 'bełsk', 'belz', 'podolsk', 'podolia', 'kalisk', 'kalisz', 'poznań', 'poznan', 'sieradz', 'łęczyc', 'leczyc', 'rawsk', 'rawa', 'płock', 'plock', 'mazow', 'masov', 'mazov', 'inowrocław', 'inowroclaw', 'chełmiń', 'chelmin', 'chełmno', 'chelmno', 'malbor', 'pomorsk', 'prusy król', 'royal prussia', 'gnieźn', 'gniezn', 'czernihow', 'chernihiv', 'dobrzy', 'chełmsk', 'chelm']
+const WOJ_LITWY = ['brzeskie lit', 'brześć lit', 'brest lit', 'brzesko-lit', 'wileń', 'wilen', 'vilni', 'vilnius', 'trock', 'trakai', 'trakų', 'nowogródz', 'nowogrodz', 'navahrud', 'naugard', 'połock', 'polock', 'polotsk', 'witebsk', 'vitebsk', 'mścisław', 'mscislaw', 'mstsislaw', 'mińsk', 'minsk', 'smoleń', 'smolensk', 'żmud', 'zmud', 'samogit', 'žemait']
+const ZASTEPCZE: { klucze: string[]; lata: [number, number]; panstwo: Panstwo; nazwa?: string }[] = [
+    { klucze: ['brzesko-kuj', 'brześć kuj', 'brest kuj'], lata: PRZED_UNIA, panstwo: 'korona' },
+    { klucze: ['brzesko-kuj', 'brześć kuj', 'brest kuj'], lata: PO_I_ROZBIORZE, panstwo: 'korona' },
+    { klucze: WOJ_ZMIANA, lata: PRZED_UNIA, panstwo: 'litwa' },
+    { klucze: WOJ_ZMIANA, lata: PO_I_ROZBIORZE, panstwo: 'korona' },
+    { klucze: WOJ_LITWY, lata: PRZED_UNIA, panstwo: 'litwa' },
+    { klucze: WOJ_LITWY, lata: PO_I_ROZBIORZE, panstwo: 'litwa' },
+    { klucze: WOJ_KORONY, lata: PRZED_UNIA, panstwo: 'korona' },
+    { klucze: WOJ_KORONY, lata: PO_I_ROZBIORZE, panstwo: 'korona' },
+    // po 1867 OHM nie ma tu Imperium Rosyjskiego, po 1918 – II Rzeczypospolitej
+    { klucze: ['gubern', 'губерн', 'governorate'], lata: [1867, 1915.6], panstwo: 'rosja', nazwa: 'Imperium Rosyjskie' },
+    { klucze: ['wojew', 'voivod'], lata: [1918.86, 1939.75], panstwo: 'korona', nazwa: 'Rzeczpospolita Polska' },
+]
+
+const nazwaWyrazenie = ['downcase', ['concat', ['coalesce', ['get', 'name_en'], ''], ' ', ['coalesce', ['get', 'name'], ''], ' ', ['coalesce', ['get', 'name_pl'], '']]]
+const zawiera = (klucze: string[]) => ['any', ...klucze.map((s) => ['>=', ['index-of', s, nazwaWyrazenie], 0])]
+
+/** Kolor państw (poziom 2–3). */
 function kolorPanstwa(): unknown {
-    const nazwa = ['downcase', ['concat', ['coalesce', ['get', 'name_en'], ''], ' ', ['coalesce', ['get', 'name'], ''], ' ', ['coalesce', ['get', 'name_pl'], '']]]
-    const zawiera = (s: string) => ['>=', ['index-of', s, nazwa], 0]
     const reszta = ['to-color', ['at', ['%', ['floor', ['abs', ['to-number', ['coalesce', ['get', 'osm_id'], 0], 0]]], PALETA_INNYCH.length], ['literal', PALETA_INNYCH]]]
-    return ['case', ...KOLORY_PANSTW.flatMap(([klucze, kolor]) => [['any', ...klucze.map(zawiera)], kolor]), reszta]
+    return ['case', zawiera(RZECZPOSPOLITA), PRZEZROCZYSTY, ...KLUCZE_PANSTW.flatMap(([klucze, p]) => [zawiera(klucze), PANSTWA[p].kolor]), reszta]
 }
 
+const zastepczeNaRok = (rok: number) => ZASTEPCZE.filter((z) => rok >= z.lata[0] && rok < z.lata[1])
+
+// Każde województwo / gubernia dostaje jeden z trzech odcieni (wg numeru obiektu w OHM),
+// żeby sąsiednie dało się odróżnić. Przy znanym państwie – odcień jego koloru, poza tym
+// jaśniejsza / ciemniejsza nakładka na kolor państwa z warstwy niżej.
+const odcien = ['%', ['floor', ['abs', ['to-number', ['coalesce', ['get', 'osm_id'], 0], 0]]], 3]
+
+/** Kolor województw / guberni (poziom 4) w danym roku. */
+export function kolorWojewodztw(rok: number): unknown {
+    const nakladka = ['match', odcien, 0, '#ffffff', 1, '#3a2a20', '#ffffff']
+    const reguly = zastepczeNaRok(rok)
+    if (!reguly.length) return nakladka
+    return ['case', ...reguly.flatMap((z) => [zawiera(z.klucze), PANSTWA[z.panstwo].kolor]), nakladka]
+}
+
+/** Przezroczystość województw: odcień koloru państwa albo delikatna nakładka. */
+export function przezroczystoscWojewodztw(rok: number, ciemny: boolean): unknown {
+    const k = ciemny ? 1.35 : 1
+    const nakladka = ['match', odcien, 0, 0.22 * k, 1, 0.06 * k, 0]
+    const reguly = zastepczeNaRok(rok)
+    if (!reguly.length) return nakladka
+    return ['case', ['any', ...reguly.map((z) => zawiera(z.klucze))], ['match', odcien, 0, 0.12 * k, 1, 0.24 * k, 0.18 * k], nakladka]
+}
+
+/** Do jakiego państwa należało województwo w danym roku (tylko lata bez danych o państwach). */
+export function panstwoWojewodztwa(w: Record<string, unknown>, rok: number): string | null {
+    const nazwa = `${w.name_en ?? ''} ${w.name ?? ''} ${w.name_pl ?? ''}`.toLowerCase()
+    const z = zastepczeNaRok(rok).find((r) => r.klucze.some((k) => nazwa.includes(k)))
+    return z ? (z.nazwa ?? PANSTWA[z.panstwo].nazwa) : null
+}
+
+/** Klucz kolorów pod mapą. */
+export const LEGENDA_PANSTW = Object.values(PANSTWA).map((p) => ({ nazwa: p.legenda, kolor: p.kolor }))
+export const czyRzeczpospolita = (rok: number) => rok >= 1569.5 && rok < 1795.82
+
 /**
- * Warstwy granic: tło państw (półprzezroczyste kolory), niewidoczne tło województw / guberni
- * (tylko do wyszukiwania nazw), kreski granic i podpisy. Podpisy liczy komponent mapy –
+ * Warstwy granic: tło państw (półprzezroczyste kolory), odcienie województw / guberni,
+ * kreski granic (państwa przerywaną, województwa ciągłą) i podpisy. Podpisy liczy komponent mapy –
  * po jednym na każde państwo / województwo widoczne w kadrze (źródło GeoJSON „granice-napisy”).
  */
 export function warstwyGranic(rok: number, ciemny: boolean): LayerSpecification[] {
     const kolor = ciemny ? '#c98a6a' : '#9a3b22'
     const napis = ciemny ? '#ece4d6' : '#3a2a20'
     const obwodka = ciemny ? '#1c1d1f' : '#f3ede0'
-    const tlo = (id: string, poziomy: number[], przezroczystosc: number): LayerSpecification => ({
+    const tlo = (id: string, poziomy: number[], przezroczystosc: unknown, kolorTla: unknown): LayerSpecification => ({
         id,
         type: 'fill',
         source: 'granice',
         'source-layer': 'boundaries',
         filter: filtrGranic(rok, poziomy),
-        paint: { 'fill-color': kolorPanstwa() as string, 'fill-opacity': przezroczystosc, 'fill-antialias': false },
+        paint: { 'fill-color': kolorTla as string, 'fill-opacity': przezroczystosc as number, 'fill-antialias': false },
     })
     return [
-        tlo('granice-tlo', WARSTWY_Z_ROKIEM['granice-tlo'], ciemny ? 0.24 : 0.17),
-        tlo('granice-tlo-nizsze', WARSTWY_Z_ROKIEM['granice-tlo-nizsze'], 0),
+        tlo('granice-tlo', WARSTWY_Z_ROKIEM['granice-tlo'], ciemny ? 0.24 : 0.17, kolorPanstwa()),
+        tlo('granice-tlo-nizsze', WARSTWY_Z_ROKIEM['granice-tlo-nizsze'], przezroczystoscWojewodztw(rok, ciemny), kolorWojewodztw(rok)),
+        // województwa / gubernie ciągłą cienką kreską, powiaty jeszcze cieńszą
+        {
+            id: 'granice-hist-woj',
+            type: 'line',
+            source: 'granice',
+            'source-layer': 'boundaries',
+            filter: filtrGranic(rok, WARSTWY_Z_ROKIEM['granice-hist-woj']),
+            layout: { 'line-join': 'round' },
+            paint: {
+                'line-color': kolor,
+                'line-width': ['match', ['get', 'admin_level'], 4, 1.2, 0.7],
+                'line-opacity': ['match', ['get', 'admin_level'], 4, 0.7, 0.4],
+            },
+        },
         {
             id: 'granice-hist',
             type: 'line',
             source: 'granice',
             'source-layer': 'boundaries',
-            filter: filtrGranic(rok),
+            filter: filtrGranic(rok, WARSTWY_Z_ROKIEM['granice-hist']),
             layout: { 'line-join': 'round' },
             paint: {
                 'line-color': kolor,
-                'line-width': ['match', ['get', 'admin_level'], 2, 2.6, 3, 2, 4, 1.6, 1],
-                'line-opacity': ['match', ['get', 'admin_level'], 2, 0.9, 3, 0.8, 4, 0.75, 0.55],
+                'line-width': ['match', ['get', 'admin_level'], 2, 2.8, 2.2],
+                'line-opacity': 0.9,
                 'line-dasharray': ['literal', [5, 2.5]],
             },
         },
@@ -105,19 +184,20 @@ export function warstwyGranic(rok: number, ciemny: boolean): LayerSpecification[
             type: 'symbol',
             source: 'granice-napisy',
             layout: {
-                'symbol-sort-key': ['get', 'poziom'],
+                // pierwszeństwo: Korona / Litwa (3), państwa (2), województwa (4+)
+                'symbol-sort-key': ['match', ['get', 'poziom'], 3, 0, 2, 1, ['get', 'poziom']],
                 'text-field': ['get', 'nazwa'],
-                'text-font': ['case', ['==', ['get', 'poziom'], 2], ['literal', ['Noto Sans Bold']], ['literal', ['Noto Sans Italic']]],
-                'text-size': ['case', ['==', ['get', 'poziom'], 2], 14, 12],
-                'text-transform': ['case', ['==', ['get', 'poziom'], 2], 'uppercase', 'none'],
-                'text-letter-spacing': ['case', ['==', ['get', 'poziom'], 2], 0.18, 0.03],
+                'text-font': ['case', ['<=', ['get', 'poziom'], 3], ['literal', ['Noto Sans Bold']], ['literal', ['Noto Sans Italic']]],
+                'text-size': ['case', ['<=', ['get', 'poziom'], 3], 14, 12],
+                'text-transform': ['case', ['<=', ['get', 'poziom'], 3], 'uppercase', 'none'],
+                'text-letter-spacing': ['case', ['<=', ['get', 'poziom'], 3], 0.18, 0.03],
                 'text-max-width': 12,
                 // podpis województwa trafia zwykle w ten sam punkt co państwa – wtedy schodzi pod lub nad nie
                 'text-variable-anchor': ['center', 'top', 'bottom'],
-                'text-radial-offset': ['case', ['==', ['get', 'poziom'], 2], 0, 2.4],
+                'text-radial-offset': ['case', ['<=', ['get', 'poziom'], 3], 0, 2.4],
                 'text-padding': 3,
             },
-            paint: { 'text-color': napis, 'text-halo-color': obwodka, 'text-halo-width': 2, 'text-opacity': ['case', ['==', ['get', 'poziom'], 2], 0.9, 0.75] },
+            paint: { 'text-color': napis, 'text-halo-color': obwodka, 'text-halo-width': 2, 'text-opacity': ['case', ['<=', ['get', 'poziom'], 3], 0.9, 0.75] },
         },
     ]
 }
