@@ -43,13 +43,9 @@ export default async function MiejsceStrona({ params }: Parametry) {
 
     return (
         <Strona>
-            <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }]}>{m.nazwa}</TytulStrony>
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }]} akcje={<><PowrotDoMapy /><CopyLinkButton sciezka={`/miejsca/${m.id}`} /></>}>{m.nazwa}</TytulStrony>
+            <div className="flex flex-wrap items-center gap-2">
                 <Metki elementy={[RODZAJE_MIEJSC[m.rodzaj] ?? m.rodzaj, ...m.inneNazwy]} />
-                <div className="flex items-center gap-2">
-                    <PowrotDoMapy />
-                    <CopyLinkButton sciezka={`/miejsca/${m.id}`} />
-                </div>
             </div>
 
             <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))' }}>

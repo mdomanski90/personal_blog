@@ -82,9 +82,11 @@ export function Sekcja({ tytul, children, id }: { tytul: string; children: React
     )
 }
 
-export function TytulStrony({ children, sciezka }: { children: React.ReactNode; sciezka?: { tekst: string; href: string }[] }) {
+/** Tytuł strony; „akcje” (np. ← mapa, kopiuj link) stoją nad ścieżką, po lewej. */
+export function TytulStrony({ children, sciezka, akcje }: { children: React.ReactNode; sciezka?: { tekst: string; href: string }[]; akcje?: React.ReactNode }) {
     return (
         <div className="flex flex-col" style={{ gap: '0.4rem' }}>
+            {akcje && <div className="flex flex-wrap items-center gap-2" style={{ marginBottom: '0.6rem' }}>{akcje}</div>}
             {sciezka && sciezka.length > 0 && (
                 <p className="text-gray-600 dark:text-gray-400 lowercase" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>
                     {sciezka.map((s, i) => (

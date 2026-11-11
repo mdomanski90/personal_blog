@@ -7,10 +7,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { LngLatBounds, Map as MapaGL, NavigationControl, setWorkerUrl, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
+import { LngLatBounds, Map as MapaGL, NavigationControl, setWorkerUrl, type GeoJSONSource, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
-import { LATA_GRANIC, ZRODLO_GRANIC, filtrGranic, warstwyGranic } from '@/lib/granice'
+import { LATA_GRANIC, LEGENDA_PANSTW, WARSTWY_GRANIC, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, filtrGranic, warstwyGranic } from '@/lib/granice'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
 
 export interface PunktMapy {
@@ -86,6 +86,7 @@ export default function MapaMiejsc({
     const [zoom, setZoom] = useState(srodek ? przyblizenie : 10)
     const [rok, setRok] = useState<number | null>(null)
     const rokRef = useRef(rok)
+    const odswiezNapisyRef = useRef<() => void>(() => {})
     rokRef.current = rok
     const filtrObiektow = (a: string[]) => ['all', ['==', ['get', 'typ'], 'obiekt'], ['in', ['get', 'grupa'], ['literal', a]]] as never
 
@@ -141,6 +142,8 @@ export default function MapaMiejsc({
             if (m.getSource('punkty')) return
             if (granice) {
                 m.addSource('granice', ZRODLO_GRANIC)
+                m.addSource('granice-napisy', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+                ostatnieNapisy = ''
                 for (const w of warstwyGranic(rokRef.current ?? 1600, ciemnyRef.current)) {
                     m.addLayer({ ...w, layout: { ...w.layout, visibility: rokRef.current ? 'visible' : 'none' } } as typeof w)
                 }
@@ -184,6 +187,58 @@ export default function MapaMiejsc({
                 },
                 paint: farby,
             })
+        }
+        // Podpisy państw i województw: próbkujemy kadr siatką punktów i każdemu obszarowi dajemy
+        // jeden podpis w „środkowym” z trafionych punktów – także sąsiadom, których środek jest poza kadrem.
+        let ostatnieNapisy = ''
+        const odswiezNapisy = () => {
+            const zrodlo = m.getSource('granice-napisy') as GeoJSONSource | undefined
+            if (!zrodlo || !m.getLayer('granice-tlo')) return
+            const obszary = new Map<string, { nazwa: string; poziom: number; pkt: [number, number][] }>()
+            if (rokRef.current) {
+                const { clientWidth: W, clientHeight: H } = m.getCanvas()
+                const KOL = 10
+                const WIER = 7
+                for (let i = 0; i < KOL; i++) {
+                    for (let j = 0; j < WIER; j++) {
+                        const x = (W * (i + 0.5)) / KOL
+                        const y = (H * (j + 0.5)) / WIER
+                        for (const f of m.queryRenderedFeatures([x, y], { layers: ['granice-tlo', 'granice-tlo-nizsze'] })) {
+                            const w = f.properties ?? {}
+                            const nazwa = String(w.name_pl || w.name || '').trim()
+                            if (!nazwa) continue
+                            const poziom = Number(w.admin_level)
+                            const klucz = `${poziom}|${nazwa}`
+                            const o = obszary.get(klucz) ?? { nazwa, poziom, pkt: [] }
+                            if (!o.pkt.some(([a, b]) => a === x && b === y)) o.pkt.push([x, y])
+                            obszary.set(klucz, o)
+                        }
+                    }
+                }
+            }
+            // najpierw państwa, potem województwa – każde w innym punkcie siatki, żeby podpisy nie nachodziły
+            const zajete = new Set<string>()
+            const features = [...obszary.values()].sort((a, b) => a.poziom - b.poziom).map((o) => {
+                const sx = o.pkt.reduce((a, p) => a + p[0], 0) / o.pkt.length
+                const sy = o.pkt.reduce((a, p) => a + p[1], 0) / o.pkt.length
+                const odl = (p: [number, number]) => Math.hypot(p[0] - sx, p[1] - sy)
+                const wolne = o.pkt.filter((p) => !zajete.has(p.join()))
+                const [x, y] = (wolne.length ? wolne : o.pkt).reduce((n, p) => (odl(p) < odl(n) ? p : n))
+                zajete.add(`${x},${y}`)
+                const ll = m.unproject([x, y])
+                return { type: 'Feature' as const, geometry: { type: 'Point' as const, coordinates: [ll.lng, ll.lat] }, properties: { nazwa: o.nazwa, poziom: o.poziom } }
+            })
+            // „idle” przychodzi też po samym setData – bez tej kontroli podpisy odświeżałyby się w kółko
+            const c = m.getCenter()
+            const klucz = JSON.stringify([features.map((f) => f.properties), c.lng.toFixed(4), c.lat.toFixed(4), m.getZoom().toFixed(2)])
+            if (klucz === ostatnieNapisy) return
+            ostatnieNapisy = klucz
+            zrodlo.setData({ type: 'FeatureCollection', features })
+        }
+        if (granice) m.on('idle', odswiezNapisy)
+        odswiezNapisyRef.current = () => {
+            ostatnieNapisy = ''
+            odswiezNapisy()
         }
         m.on('style.load', () => void dodajWarstwy())
         m.on('zoomend', () => setZoom(m.getZoom()))
@@ -232,11 +287,12 @@ export default function MapaMiejsc({
     useEffect(() => {
         const m = mapa.current
         if (!m || !granice) return
-        for (const id of ['granice-hist', 'granice-hist-nazwy']) {
+        for (const id of WARSTWY_GRANIC) {
             if (!m.getLayer(id)) continue
             m.setLayoutProperty(id, 'visibility', rok ? 'visible' : 'none')
-            if (rok) m.setFilter(id, filtrGranic(rok))
+            if (rok && WARSTWY_Z_ROKIEM[id]) m.setFilter(id, filtrGranic(rok, WARSTWY_Z_ROKIEM[id]))
         }
+        odswiezNapisyRef.current()
         if (zapamietaj) {
             try {
                 const c = m.getCenter()
@@ -318,6 +374,17 @@ export default function MapaMiejsc({
                             <span className="text-gray-600 dark:text-gray-400 lowercase">
                                 {LATA_GRANIC.find((l) => l.rok === rok)?.opis ?? ''}
                             </span>
+                        </div>
+                    )}
+                    {rok && (
+                        <div className="flex flex-wrap items-center text-gray-600 dark:text-gray-400" style={{ gap: '4px 14px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
+                            {LEGENDA_PANSTW.map((p) => (
+                                <span key={p.nazwa} className="inline-flex items-center" style={{ gap: 5 }}>
+                                    <span aria-hidden="true" style={{ width: 12, height: 12, borderRadius: 3, background: p.kolor, opacity: 0.45, border: `1px solid ${p.kolor}` }} />
+                                    {p.nazwa}
+                                </span>
+                            ))}
+                            <span>· inne państwa – pozostałe kolory</span>
                         </div>
                     )}
                     {rok && (

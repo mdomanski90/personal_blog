@@ -33,18 +33,14 @@ export default async function ObiektStrona({ params }: Parametry) {
 
     return (
         <Strona>
-            <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]}>
+            <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]} akcje={<><PowrotDoMapy /><CopyLinkButton sciezka={`/obiekty/${o.id}`} /></>}>
                 <span className="inline-flex items-center" style={{ gap: 10 }}>
                     <span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaObiektu(o.rodzaj, rodzaj, 36, o.istnieje) }} />
                     {o.nazwa}
                 </span>
             </TytulStrony>
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
                 <Metki elementy={[rodzaj, o.czas ? formatujEdtf(o.czas) : null, o.istnieje ? null : 'nie istnieje', ...o.inneNazwy]} />
-                <div className="flex items-center gap-2">
-                    <PowrotDoMapy />
-                    <CopyLinkButton sciezka={`/obiekty/${o.id}`} />
-                </div>
             </div>
 
             <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))' }}>
