@@ -69,6 +69,3 @@ data/zrodla.db
 
 content/
 data/*.db
-
-# dane mapy okolicy (npm run mapa:dane, © OpenStreetMap)
-public/mapa/

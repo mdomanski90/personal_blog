@@ -11,8 +11,7 @@
     "build": "npm test && node scripts/generate-thumbs.mjs && npm run eksport:omeka && next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "lint": "next lint",
-    "mapa:dane": "tsx scripts/mapa-okolica.ts"
+    "lint": "next lint"
   },
   "dependencies": {
     "@keystatic/core": "^0.5.48",
@@ -28,9 +27,7 @@
     "better-sqlite3": "^12.6.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "d3-geo": "^3.1.1",
     "gray-matter": "^4.0.3",
-    "leaflet": "^1.9.4",
     "lucide-react": "^0.563.0",
     "maplibre-gl": "^6.17.0",
     "medium-zoom": "^1.1.0",
@@ -55,9 +52,6 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/d3-geo": "^3.1.0",
-    "@types/geojson": "^7946.0.16",
-    "@types/leaflet": "^1.9.22",
     "@types/node": "^20.19.32",
     "@types/react": "^18",
     "@types/react-dom": "^18",

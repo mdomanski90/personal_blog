@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 
 // Miniatury WebP (800 px) dla obrazków w treściach; pełne pliki zostają do powiększenia.
-const KATALOGI = ['posts', 'miejsca', 'tematy', 'o-projekcie'].map((k) => `public/images/${k}`)
+const KATALOGI = ['posts', 'miejsca', 'obiekty', 'tematy', 'o-projekcie'].map((k) => `public/images/${k}`)
 const MAX_WIDTH = 800
 const QUALITY = 60
 

@@ -4,7 +4,7 @@ import Markdoc, { Tag, type Node, type Config, type RenderableTreeNode, type Ren
 // Obrazki: miniatura WebP z katalogu thumbs/ (tworzy ją skrypt generate-thumbs przy buildzie),
 // pełna wersja pod data-zoom-src dla powiększenia.
 
-const KATALOGI_OBRAZOW = ['posts', 'miejsca', 'tematy', 'o-projekcie']
+const KATALOGI_OBRAZOW = ['posts', 'miejsca', 'obiekty', 'tematy', 'o-projekcie']
 
 function miniatura(src: string): string {
     for (const k of KATALOGI_OBRAZOW) {

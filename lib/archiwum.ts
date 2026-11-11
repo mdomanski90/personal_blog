@@ -70,7 +70,30 @@ export interface Opowiesc {
 }
 
 export const RODZAJE_MIEJSC: Record<string, string> = {
-    wies: 'wieś', miasto: 'miasto', parafia: 'parafia', cmentarz: 'cmentarz', folwark: 'folwark', inne: 'inne',
+    wies: 'wieś', miasto: 'miasto', kraina: 'kraina', gmina: 'gmina', parafia: 'parafia', cmentarz: 'cmentarz', folwark: 'folwark', inne: 'inne',
+}
+/** Rodzaje miejsc, które są obszarami (dzielą spis), a nie punktami na mapie. */
+export const OBSZARY = ['kraina', 'gmina']
+export const RODZAJE_OBIEKTOW: Record<string, string> = {
+    'cerkiew-unicka': 'cerkiew unicka', 'cerkiew-prawoslawna': 'cerkiew prawosławna', kosciol: 'kościół katolicki', boznica: 'bóżnica',
+}
+export const WYZNANIA_MIEJSC: Record<string, string> = {
+    unicka: 'unickie', katolicka: 'katolickie', mieszana: 'mieszane (unici i katolicy)', prawoslawna: 'prawosławne',
+}
+
+export interface Obiekt {
+    id: string
+    nazwa: string
+    inneNazwy: string[]
+    rodzaj: string
+    miejsce: string | null
+    wspolrzedne: [number, number] | null
+    przyblizone: boolean
+    czas: string
+    istnieje: boolean
+    widocznosc: Widocznosc
+    dodano: string | null
+    opis: Node | null
 }
 export const RODZAJE_TEMATOW: Record<string, string> = {
     zjawisko: 'zjawisko', wydarzenie: 'wydarzenie', instytucja: 'instytucja',
@@ -124,6 +147,26 @@ const wszystkieTematySurowe = cache(async (): Promise<Temat[]> => {
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
 
+const wszystkieObiektySurowe = cache(async (): Promise<Obiekt[]> => {
+    const wpisy = await reader.collections.obiekty.all({ resolveLinkedFiles: true })
+    return wpisy
+        .map(({ slug, entry }) => ({
+            id: slug,
+            nazwa: entry.title,
+            inneNazwy: [...entry.alternative].filter(Boolean),
+            rodzaj: entry.type,
+            miejsce: entry.spatial,
+            wspolrzedne: parsujWspolrzedne(entry.coordinates),
+            przyblizone: entry.approximate,
+            czas: entry.temporal,
+            istnieje: entry.exists,
+            widocznosc: entry.visibility as Widocznosc,
+            dodano: entry.dateSubmitted,
+            opis: entry.description?.node ?? null,
+        }))
+        .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
+})
+
 const wszystkieOpowiesciSurowe = cache(async (): Promise<Opowiesc[]> => {
     const wpisy = await reader.collections.posts.all({ resolveLinkedFiles: true })
     return wpisy
@@ -152,6 +195,73 @@ export async function miejsca(poziom: Widocznosc): Promise<Miejsce[]> {
 
 export async function miejsce(id: string, poziom: Widocznosc): Promise<Miejsce | null> {
     return (await miejsca(poziom)).find((m) => m.id === id) ?? null
+}
+
+export async function obiekty(poziom: Widocznosc): Promise<Obiekt[]> {
+    return (await wszystkieObiektySurowe()).filter((o) => widoczne(o.widocznosc, poziom))
+}
+
+export async function obiekt(id: string, poziom: Widocznosc): Promise<Obiekt | null> {
+    return (await obiekty(poziom)).find((o) => o.id === id) ?? null
+}
+
+export async function obiektyDlaMiejsca(id: string, poziom: Widocznosc): Promise<Obiekt[]> {
+    return (await obiekty(poziom)).filter((o) => o.miejsce === id)
+}
+
+export interface GrupaMiejsc {
+    obszar: Miejsce | null
+    miejsca: Miejsce[]
+    podgrupy: { obszar: Miejsce; miejsca: Miejsce[] }[]
+}
+
+/**
+ * Spis miejscowości podzielony według „należy do”: kraina → (gmina →) miejscowość.
+ * Miejscowości bez krainy trafiają do grupy „inne” (obszar: null, na końcu).
+ */
+export async function miejscaWedlugObszarow(poziom: Widocznosc): Promise<GrupaMiejsc[]> {
+    const lista = await miejsca(poziom)
+    const po = new Map(lista.map((m) => [m.id, m]))
+    const krainaDla = (m: Miejsce): Miejsce | null => {
+        let biezace: Miejsce | undefined = m
+        const odwiedzone = new Set<string>()
+        while (biezace?.nalezyDo && !odwiedzone.has(biezace.id)) {
+            odwiedzone.add(biezace.id)
+            biezace = po.get(biezace.nalezyDo)
+            if (biezace?.rodzaj === 'kraina') return biezace
+        }
+        return null
+    }
+    // najbliższa gmina w górę łańcucha „należy do” (np. przysiółek → wieś → gmina)
+    const gminaDla = (m: Miejsce): Miejsce | null => {
+        let biezace: Miejsce | undefined = m
+        const odwiedzone = new Set<string>()
+        while (biezace?.nalezyDo && !odwiedzone.has(biezace.id)) {
+            odwiedzone.add(biezace.id)
+            biezace = po.get(biezace.nalezyDo)
+            if (biezace?.rodzaj === 'gmina') return biezace
+            if (biezace?.rodzaj === 'kraina') return null
+        }
+        return null
+    }
+    const grupy = new Map<string, GrupaMiejsc>()
+    const inne: GrupaMiejsc = { obszar: null, miejsca: [], podgrupy: [] }
+    for (const k of lista.filter((m) => m.rodzaj === 'kraina')) grupy.set(k.id, { obszar: k, miejsca: [], podgrupy: [] })
+    for (const m of lista) {
+        if (OBSZARY.includes(m.rodzaj)) continue
+        const kraina = krainaDla(m)
+        const grupa = kraina ? grupy.get(kraina.id)! : inne
+        const rodzic = gminaDla(m)
+        if (rodzic) {
+            let pg = grupa.podgrupy.find((p) => p.obszar.id === rodzic.id)
+            if (!pg) grupa.podgrupy.push((pg = { obszar: rodzic, miejsca: [] }))
+            pg.miejsca.push(m)
+        } else grupa.miejsca.push(m)
+    }
+    const wynik = [...grupy.values()].filter((g) => g.miejsca.length || g.podgrupy.length)
+    for (const g of wynik) g.podgrupy.sort((a, b) => porownajPl(a.obszar.nazwa, b.obszar.nazwa))
+    if (inne.miejsca.length || inne.podgrupy.length) wynik.push(inne)
+    return wynik
 }
 
 export async function tematy(poziom: Widocznosc): Promise<Temat[]> {
@@ -221,7 +331,7 @@ export async function oProjekcie(): Promise<Node | null> {
 // ---------- wyszukiwarka ----------
 
 export interface Wynik {
-    rodzaj: 'miejsce' | 'temat' | 'wpis'
+    rodzaj: 'miejsce' | 'obiekt' | 'temat' | 'wpis'
     id: string
     tytul: string
     adres: string
@@ -253,6 +363,11 @@ export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wyn
         const waga = ocen([m.nazwa, ...m.inneNazwy], tekst)
         if (waga) wyniki.push({ rodzaj: 'miejsce', id: m.id, tytul: m.nazwa, adres: `/miejsca/${m.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : m.inneNazwy.join(', '), waga })
     }
+    for (const o of await obiekty(poziom)) {
+        const tekst = naTekst(o.opis)
+        const waga = ocen([o.nazwa, ...o.inneNazwy], tekst)
+        if (waga) wyniki.push({ rodzaj: 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, waga })
+    }
     for (const t of await tematy(poziom)) {
         const tekst = naTekst(t.opis)
         const waga = ocen([t.nazwa, ...t.inneNazwy], tekst)
@@ -270,6 +385,7 @@ export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wyn
 
 export const dlaEksportu = {
     miejsca: wszystkieMiejscaSurowe,
+    obiekty: wszystkieObiektySurowe,
     tematy: wszystkieTematySurowe,
     opowiesci: wszystkieOpowiesciSurowe,
 }

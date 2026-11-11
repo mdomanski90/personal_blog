@@ -20,6 +20,18 @@ function nazwaIIdentyfikator(etykieta: string) {
   });
 }
 
+function nazwaIIdentyfikatorObiektu() {
+  return fields.slug({
+    name: { label: 'Nazwa', validation: { isRequired: true } },
+    slug: {
+      label: 'Identyfikator (adres strony)',
+      description: 'Zaczyna się od „obj-”. Po opublikowaniu nie zmieniaj.',
+      generate: (n) => `obj-${identyfikatorZNazwy(n)}`,
+      validation: { pattern: { regex: /^obj-[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Zapis: obj-nazwa-malymi-literami' } },
+    },
+  });
+}
+
 const inneNazwy = () =>
   fields.array(fields.text({ label: 'Nazwa lub forma' }), {
     label: 'Inne nazwy i formy',
@@ -108,7 +120,7 @@ export default config({
   ui: {
     brand: { name: 'odniepamieci.pl' },
     navigation: {
-      'Treści': ['posts', 'miejsca', 'tematy'],
+      'Treści': ['posts', 'miejsca', 'obiekty', 'tematy'],
       'Strony': ['oProjekcie'],
     },
   },
@@ -154,6 +166,8 @@ export default config({
           options: [
             { label: 'wieś', value: 'wies' },
             { label: 'miasto', value: 'miasto' },
+            { label: 'kraina (np. ziemia łosicka)', value: 'kraina' },
+            { label: 'gmina', value: 'gmina' },
             { label: 'parafia', value: 'parafia' },
             { label: 'cmentarz', value: 'cmentarz' },
             { label: 'folwark', value: 'folwark' },
@@ -179,7 +193,11 @@ export default config({
           ],
           defaultValue: '',
         }),
-        isPartOf: fields.relationship({ label: 'Należy do (np. parafia)', collection: 'miejsca' }),
+        isPartOf: fields.relationship({
+          label: 'Należy do',
+          description: 'Wieś → gmina albo kraina, gmina → kraina (np. Olszanka → gmina Olszanka → ziemia łosicka). Na tej podstawie dzieli się spis miejscowości.',
+          collection: 'miejsca',
+        }),
         sameAs: fields.url({ label: 'Wikidata / GeoNames', description: 'Adres strony tego miejsca w Wikidata lub GeoNames (opcjonalnie).' }),
         visibility: widocznosc(),
         note: notatka(),
@@ -211,6 +229,40 @@ export default config({
         note: notatka(),
         dateSubmitted: dodano(),
         description: opisMarkdoc('Opis', 'tematy'),
+      },
+    }),
+    obiekty: collection({
+      label: 'Obiekty (świątynie)',
+      slugField: 'title',
+      path: 'content/obiekty/*',
+      format: { contentField: 'description' },
+      columns: ['title', 'type'],
+      schema: {
+        title: nazwaIIdentyfikatorObiektu(),
+        alternative: inneNazwy(),
+        type: fields.select({
+          label: 'Rodzaj',
+          options: [
+            { label: 'cerkiew unicka', value: 'cerkiew-unicka' },
+            { label: 'cerkiew prawosławna', value: 'cerkiew-prawoslawna' },
+            { label: 'kościół katolicki', value: 'kosciol' },
+            { label: 'bóżnica', value: 'boznica' },
+          ],
+          defaultValue: 'cerkiew-unicka',
+        }),
+        spatial: fields.relationship({ label: 'Miejscowość', collection: 'miejsca' }),
+        coordinates: fields.text({
+          label: 'Współrzędne',
+          description: 'Miejsce budynku – np. 52.2116, 22.7185. Bez współrzędnych obiekt nie pojawi się na mapie.',
+          validation: { pattern: { regex: WSPOLRZEDNE_REGEX, message: 'Zapis: 52.2116, 22.7185' } },
+        }),
+        approximate: fields.checkbox({ label: 'Położenie przybliżone' }),
+        temporal: dataEdtf('Lata istnienia (EDTF)'),
+        exists: fields.checkbox({ label: 'Istnieje do dziś', defaultValue: true }),
+        visibility: widocznosc(),
+        note: notatka(),
+        dateSubmitted: dodano(),
+        description: opisMarkdoc('Opis i historia', 'obiekty'),
       },
     }),
   },

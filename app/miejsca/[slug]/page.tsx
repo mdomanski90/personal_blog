@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
-import { miejsca, miejsce, nazwy, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, tematyDlaMiejsca } from '@/lib/archiwum'
+import { miejsca, miejsce, nazwy, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, WYZNANIA_MIEJSC } from '@/lib/archiwum'
+import { punktyMapy } from '@/lib/punkty-mapy'
+import { tarczaSwiatyni, type RodzajSwiatyni } from '@/lib/tarcze'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
 import { Metki, Sekcja, Strona, Tresc, TytulStrony, Wiersz, Kreski } from '../../components/Uklad'
 import ListaOpowiesci from '../../components/ListaOpowiesci'
-import MapaMiejsca from '../../components/MapaMiejsca'
+import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
 
 export const dynamic = 'force-dynamic'
@@ -34,6 +36,9 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const opow = await opowiesciDlaMiejsca(m.id, poziom)
     const { miejsca: nazwyMiejsc } = await nazwy(poziom)
     const opisHtml = naHtml(m.opis)
+    const swiatynie = await obiektyDlaMiejsca(m.id, poziom)
+    const punkty = m.wspolrzedne ? punktyMapy(wszystkie, await obiekty(poziom)) : []
+    const obszar = OBSZARY.includes(m.rodzaj)
 
     return (
         <Strona>
@@ -53,15 +58,34 @@ export default async function MiejsceStrona({ params }: Parametry) {
                             ))}
                         </Wiersz>
                     )}
-                    <Wiersz etykieta="współrzędne">
-                        {m.wspolrzedne ? `${m.wspolrzedne[0]}, ${m.wspolrzedne[1]}${m.przyblizone ? ' (przybliżone)' : ''}` : <span className="text-gray-500">brak</span>}
-                    </Wiersz>
+                    {m.wyznanie && <Wiersz etykieta="wyznanie przed 1875">{WYZNANIA_MIEJSC[m.wyznanie] ?? m.wyznanie}</Wiersz>}
+                    {!obszar && (
+                        <Wiersz etykieta="współrzędne">
+                            {m.wspolrzedne ? `${m.wspolrzedne[0]}, ${m.wspolrzedne[1]}${m.przyblizone ? ' (przybliżone)' : ''}` : <span className="text-gray-500">brak</span>}
+                        </Wiersz>
+                    )}
                     {m.sameAs && <Wiersz etykieta="zobacz też"><a href={m.sameAs} target="_blank" rel="noopener noreferrer">{m.sameAs.replace(/^https?:\/\//, '')}</a></Wiersz>}
                 </div>
-                {m.wspolrzedne && <MapaMiejsca id={m.id} nazwa={m.nazwa} lat={m.wspolrzedne[0]} lng={m.wspolrzedne[1]} przyblizone={m.przyblizone} />}
+                {m.wspolrzedne && <MapaMiejscLeniwa punkty={punkty} srodek={m.wspolrzedne} wysokosc={300} />}
             </div>
 
             {opisHtml && <Tresc html={opisHtml} />}
+
+            {swiatynie.length > 0 && (
+                <Sekcja tytul="świątynie">
+                    <ul className="flex flex-col" style={{ gap: 6 }}>
+                        {swiatynie.map((o) => (
+                            <li key={o.id} className="flex items-center" style={{ gap: 8, fontSize: 'calc(15px * var(--font-scale, 1))' }}>
+                                <span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaSwiatyni(o.rodzaj as RodzajSwiatyni, RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, 26, o.istnieje) }} />
+                                <Link href={`/obiekty/${o.id}`}>{o.nazwa}</Link>
+                                <span className="text-gray-500" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>
+                                    {[o.czas && formatujEdtf(o.czas), !o.istnieje && 'nie istnieje'].filter(Boolean).join(' · ')}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </Sekcja>
+            )}
 
             {zData.length > 0 && (
                 <Sekcja tytul="oś czasu">

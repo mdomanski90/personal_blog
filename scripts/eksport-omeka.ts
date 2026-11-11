@@ -5,11 +5,11 @@
 //
 // Kolumny = nazwy właściwości Omeka (dcterms:…); wiele wartości rozdzielone „|”;
 // powiązania przez dcterms:identifier (w CSV Import: „Identifier” jako sposób dopasowania zasobów).
-// Kolejność importu: miejsca → tematy → wpisy (później: osoby, obiekty, materiały).
+// Kolejność importu: miejsca → obiekty → tematy → wpisy (później: osoby, obiekty, materiały).
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { dlaEksportu, RODZAJE_MIEJSC, RODZAJE_OPOWIESCI, RODZAJE_TEMATOW, type Widocznosc } from '../lib/archiwum'
+import { dlaEksportu, OBSZARY, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, RODZAJE_OPOWIESCI, RODZAJE_TEMATOW, WYZNANIA_MIEJSC, type Widocznosc } from '../lib/archiwum'
 import { czyPoprawnaEdtf, zakresIso } from '../lib/edtf'
 import { naTekst } from '../lib/markdoc'
 import { odmiana } from '../lib/tekst'
@@ -34,6 +34,7 @@ const publiczne = (w: Widocznosc) => (w === 'publiczne' ? '1' : '0')
 
 async function main() {
     const miejsca = await dlaEksportu.miejsca()
+    const obiekty = await dlaEksportu.obiekty()
     const tematy = await dlaEksportu.tematy()
     const opowiesci = await dlaEksportu.opowiesci()
 
@@ -45,6 +46,10 @@ async function main() {
         if (m.nalezyDo && !idMiejsc.has(m.nalezyDo)) bledy.push(`miejsce „${m.id}”: „należy do” wskazuje nieistniejące miejsce „${m.nalezyDo}”`)
         if (m.nalezyDo === m.id) bledy.push(`miejsce „${m.id}”: nie może należeć samo do siebie`)
     }
+    for (const o of obiekty) {
+        if (o.miejsce && !idMiejsc.has(o.miejsce)) bledy.push(`obiekt „${o.id}”: nieistniejąca miejscowość „${o.miejsce}”`)
+        if (!czyPoprawnaEdtf(o.czas)) bledy.push(`obiekt „${o.id}”: niepoprawne lata „${o.czas}”`)
+    }
     for (const t of tematy) {
         if (!czyPoprawnaEdtf(t.czas)) bledy.push(`temat „${t.id}”: niepoprawna data „${t.czas}”`)
         for (const id of t.miejsca) if (!idMiejsc.has(id)) bledy.push(`temat „${t.id}”: nieistniejące miejsce „${id}”`)
@@ -53,7 +58,7 @@ async function main() {
         for (const id of o.miejsca) if (!idMiejsc.has(id)) bledy.push(`wpis „${o.id}”: nieistniejące miejsce „${id}”`)
         for (const id of o.tematy) if (!idTematow.has(id)) bledy.push(`wpis „${o.id}”: nieistniejący temat „${id}”`)
     }
-    const bezWspolrzednych = miejsca.filter((m) => !m.wspolrzedne).map((m) => m.nazwa)
+    const bezWspolrzednych = miejsca.filter((m) => !m.wspolrzedne && !OBSZARY.includes(m.rodzaj)).map((m) => m.nazwa)
     if (bezWspolrzednych.length) ostrzezenia.push(`miejsca bez współrzędnych (nie ma ich na mapie): ${bezWspolrzednych.join(', ')}`)
 
     if (bledy.length) {
@@ -68,7 +73,7 @@ async function main() {
 
     zapiszCsv(
         'miejsca.csv',
-        ['dcterms:identifier', 'o:resource_class', 'dcterms:title', 'dcterms:alternative', 'dcterms:type', 'mapping:latitude', 'mapping:longitude', 'mapping:approximate', 'dcterms:isPartOf', 'owl:sameAs', 'dcterms:description', 'dcterms:dateSubmitted', 'o:is_public'],
+        ['dcterms:identifier', 'o:resource_class', 'dcterms:title', 'dcterms:alternative', 'dcterms:type', 'mapping:latitude', 'mapping:longitude', 'mapping:approximate', 'dcterms:isPartOf', 'dcterms:subject', 'owl:sameAs', 'dcterms:description', 'dcterms:dateSubmitted', 'o:is_public'],
         miejsca.map((m) => ({
             'dcterms:identifier': m.id,
             'o:resource_class': 'dcterms:Location',
@@ -79,10 +84,32 @@ async function main() {
             'mapping:longitude': m.wspolrzedne?.[1],
             'mapping:approximate': m.przyblizone ? '1' : '',
             'dcterms:isPartOf': m.nalezyDo,
+            'dcterms:subject': m.wyznanie ? `wyznanie przed 1875: ${WYZNANIA_MIEJSC[m.wyznanie] ?? m.wyznanie}` : '',
             'owl:sameAs': m.sameAs,
             'dcterms:description': naTekst(m.opis),
             'dcterms:dateSubmitted': m.dodano,
             'o:is_public': publiczne(m.widocznosc),
+        })),
+    )
+
+    zapiszCsv(
+        'obiekty.csv',
+        ['dcterms:identifier', 'o:resource_class', 'dcterms:title', 'dcterms:alternative', 'dcterms:type', 'dcterms:spatial', 'dcterms:temporal', 'numeric:interval', 'mapping:latitude', 'mapping:longitude', 'mapping:approximate', 'dcterms:description', 'dcterms:dateSubmitted', 'o:is_public'],
+        obiekty.map((o) => ({
+            'dcterms:identifier': o.id,
+            'o:resource_class': 'dctype:PhysicalObject',
+            'dcterms:title': o.nazwa,
+            'dcterms:alternative': o.inneNazwy,
+            'dcterms:type': (RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj) + (o.istnieje ? '' : ' (nie istnieje)'),
+            'dcterms:spatial': o.miejsce,
+            'dcterms:temporal': o.czas,
+            'numeric:interval': zakresIso(o.czas),
+            'mapping:latitude': o.wspolrzedne?.[0],
+            'mapping:longitude': o.wspolrzedne?.[1],
+            'mapping:approximate': o.przyblizone ? '1' : '',
+            'dcterms:description': naTekst(o.opis),
+            'dcterms:dateSubmitted': o.dodano,
+            'o:is_public': publiczne(o.widocznosc),
         })),
     )
 
@@ -124,7 +151,7 @@ async function main() {
     )
 
     for (const o of ostrzezenia) console.warn('! ' + o)
-    console.log(`✓ Eksport dla Omeka S: ${odmiana(miejsca.length, ['miejsce', 'miejsca', 'miejsc'])}, ${odmiana(tematy.length, ['temat', 'tematy', 'tematów'])}, ${odmiana(opowiesci.length, ['wpis', 'wpisy', 'wpisów'])} → eksport/omeka/`)
+    console.log(`✓ Eksport dla Omeka S: ${odmiana(miejsca.length, ['miejsce', 'miejsca', 'miejsc'])}, ${odmiana(obiekty.length, ['obiekt', 'obiekty', 'obiektów'])}, ${odmiana(tematy.length, ['temat', 'tematy', 'tematów'])}, ${odmiana(opowiesci.length, ['wpis', 'wpisy', 'wpisów'])} → eksport/omeka/`)
 }
 
 main().catch((e) => {

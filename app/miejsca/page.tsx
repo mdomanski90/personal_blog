@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
-import { miejsca, poziomCzytelnika } from '@/lib/archiwum'
+import { miejsca, miejscaWedlugObszarow, obiekty, OBSZARY, poziomCzytelnika } from '@/lib/archiwum'
+import { punktyMapy } from '@/lib/punkty-mapy'
 import { Strona, TytulStrony } from '../components/Uklad'
-import MiejscaWidok from '../components/MiejscaWidok'
-import SiatkaMiejsc from '../components/SiatkaMiejsc'
-import type { PunktMapy } from '../components/Mapa'
+import MapaMiejscLeniwa from '../components/MapaMiejscLeniwa'
+import LegendaMapy from '../components/LegendaMapy'
+import SpisMiejsc from '../components/SpisMiejsc'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'miejsca · odniepamieci.pl' }
@@ -11,16 +12,24 @@ export const metadata: Metadata = { title: 'miejsca · odniepamieci.pl' }
 export default async function Miejsca() {
     const poziom = await poziomCzytelnika()
     const lista = await miejsca(poziom)
-
-    const punkty: PunktMapy[] = lista
-        .filter((m) => m.wspolrzedne)
-        .map((m) => ({ id: m.id, nazwa: m.nazwa, lat: m.wspolrzedne![0], lng: m.wspolrzedne![1], przyblizone: m.przyblizone, href: `/miejsca/${m.id}` }))
+    const ob = await obiekty(poziom)
+    const punkty = punktyMapy(lista, ob)
+    const miejscowosci = lista.filter((m) => !OBSZARY.includes(m.rodzaj))
+    const bez = miejscowosci.filter((m) => !m.wspolrzedne).length
 
     return (
         <Strona>
             <TytulStrony>miejsca</TytulStrony>
-            <MiejscaWidok punkty={punkty} wszystkich={lista.length} />
-            <SiatkaMiejsc miejsca={lista.map((m) => ({ id: m.id, nazwa: m.nazwa }))} />
+            <div className="flex flex-col" style={{ gap: 8 }}>
+                <MapaMiejscLeniwa punkty={punkty} />
+                {bez > 0 && (
+                    <p className="text-gray-500 lowercase" style={{ fontSize: 13 }}>
+                        {bez === miejscowosci.length ? 'żadna miejscowość nie ma jeszcze współrzędnych.' : `${bez} z ${miejscowosci.length} miejscowości nie ma jeszcze współrzędnych.`}
+                    </p>
+                )}
+                <LegendaMapy swiatynie={ob.length > 0} />
+            </div>
+            <SpisMiejsc grupy={await miejscaWedlugObszarow(poziom)} />
         </Strona>
     )
 }
