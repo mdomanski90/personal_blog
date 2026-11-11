@@ -1,55 +1,99 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Shuffle from 'shufflejs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-interface BlogFilterProps {
+interface BlogFilterComponentProps {
     allTags: string[];
 }
 
-export default function BlogFilter({ allTags }: BlogFilterProps) {
+export default function BlogFilter({ allTags }: BlogFilterComponentProps) {
     const shuffleRef = useRef<Shuffle | null>(null);
     const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
-    useEffect(() => {
-        const element = document.getElementById('blog-grid');
-        if (element) {
-            shuffleRef.current = new Shuffle(element, {
-                itemSelector: '.blog-post-item',
-                speed: 400,
-                easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
-            });
-
-            // Odśwież layout po załadowaniu każdego obrazu
-            const images = element.querySelectorAll('img');
-            images.forEach(img => {
-                if (img.complete) return;
-                img.addEventListener('load', () => {
-                    shuffleRef.current?.layout();
-                }, { once: true });
-            });
-
-            const handleManualUpdate = () => {
-                if (shuffleRef.current) {
-                    shuffleRef.current.update();
-                    shuffleRef.current.layout();
-                }
-            };
-
-            window.addEventListener('blog:font-changed', handleManualUpdate);
-            window.addEventListener('resize', handleManualUpdate);
-
-            const observer = new ResizeObserver(() => handleManualUpdate());
-            observer.observe(element);
-
-            return () => {
-                window.removeEventListener('blog:font-changed', handleManualUpdate);
-                window.removeEventListener('resize', handleManualUpdate);
-                observer.disconnect();
-                shuffleRef.current?.destroy();
-            };
+    const handleManualUpdate = useCallback(() => {
+        if (shuffleRef.current) {
+            shuffleRef.current.update();
+            shuffleRef.current.layout();
         }
     }, []);
+
+    useEffect(() => {
+        const element = document.getElementById('blog-grid');
+        if (!element) return;
+
+        shuffleRef.current = new Shuffle(element, {
+            itemSelector: '.blog-post-item',
+            speed: 400,
+            easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+        });
+
+        // Odśwież layout po załadowaniu każdego obrazu
+        const images = element.querySelectorAll('img');
+        images.forEach(img => {
+            if (img.complete) return;
+            img.addEventListener('load', () => {
+                shuffleRef.current?.layout();
+            }, { once: true });
+        });
+
+        // Komentarze — agresywne odświeżanie layoutu
+        // Remark42 ładuje się asynchronicznie i wielokrotnie zmienia
+        // wysokość elementów. Musimy reagować szybko, żeby treść
+        // poniżej nie była zakrywana.
+        const handleCommentsOpened = () => {
+            // Natychmiastowe odświeżenie
+            handleManualUpdate();
+
+            // Seria odświeżeń z rosnącymi opóźnieniami
+            const delays = [50, 100, 200, 400, 800, 1500, 3000];
+            delays.forEach(delay => {
+                setTimeout(() => handleManualUpdate(), delay);
+            });
+        };
+
+        window.addEventListener('blog:font-changed', handleManualUpdate);
+        window.addEventListener('blog:comments-opened', handleCommentsOpened);
+        window.addEventListener('resize', handleManualUpdate);
+
+        // ResizeObserver na KAŻDYM poście — łapie zmianę wysokości
+        // spowodowaną otwarciem komentarzy wewnątrz artykułu
+        const postItems = element.querySelectorAll('.blog-post-item');
+        const resizeObserver = new ResizeObserver(() => {
+            handleManualUpdate();
+        });
+
+        postItems.forEach(item => {
+            resizeObserver.observe(item);
+        });
+
+        // Główny observer na grid
+        const gridObserver = new ResizeObserver(() => handleManualUpdate());
+        gridObserver.observe(element);
+
+        // MutationObserver — łapie nowe elementy dodane przez Remark42
+        const mutationObserver = new MutationObserver(() => {
+            handleManualUpdate();
+            // Dodatkowe odświeżenie z opóźnieniem
+            setTimeout(() => handleManualUpdate(), 300);
+        });
+        mutationObserver.observe(element, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class'],
+        });
+
+        return () => {
+            window.removeEventListener('blog:font-changed', handleManualUpdate);
+            window.removeEventListener('blog:comments-opened', handleCommentsOpened);
+            window.removeEventListener('resize', handleManualUpdate);
+            resizeObserver.disconnect();
+            gridObserver.disconnect();
+            mutationObserver.disconnect();
+            shuffleRef.current?.destroy();
+        };
+    }, [handleManualUpdate]);
 
     useEffect(() => {
         if (!shuffleRef.current) return;

@@ -8,62 +8,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 211 100% 50%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 210 12% 55%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 211 100% 50%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 211 100% 50%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 210 100% 66%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 210 67% 28%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 210 100% 66%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 210 100% 66%;
-  }
-}
-
-body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-
-* {
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -105,6 +49,9 @@ body {
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ============================================ */
+/* KOLORY — LIGHT                               */
+/* ============================================ */
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -140,6 +87,9 @@ body {
   --sidebar-ring: oklch(0.58 0.22 250);
 }
 
+/* ============================================ */
+/* KOLORY — DARK                                */
+/* ============================================ */
 .dark {
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
@@ -174,6 +124,9 @@ body {
   --sidebar-ring: oklch(0.65 0.22 250);
 }
 
+/* ============================================ */
+/* BAZOWE                                       */
+/* ============================================ */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -183,7 +136,18 @@ body {
   }
 }
 
-/* Tabele - prosty styl */
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+* {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* ============================================ */
+/* TABELE W POSTACH                             */
+/* ============================================ */
 .post-content table {
   border-collapse: separate;
   border-spacing: 0;
@@ -195,9 +159,11 @@ body {
   border-radius: 8px;
   overflow: hidden;
 }
+
 .dark .post-content table {
   border-color: #4b5563;
 }
+
 .post-content th,
 .post-content td {
   border-bottom: 1px solid #d1d5db;
@@ -206,34 +172,40 @@ body {
   text-align: left;
   max-width: 800px;
 }
+
 .dark .post-content th,
 .dark .post-content td {
   border-color: #4b5563;
 }
+
 .post-content tr td:last-child,
 .post-content tr th:last-child {
   border-right: none;
 }
+
 .post-content tbody tr:last-child td {
   border-bottom: none;
 }
+
 .post-content th {
   background-color: #f3f4f6;
   font-weight: 700;
   font-size: 0.85em;
   letter-spacing: 0.05em;
 }
+
 .dark .post-content th {
   background-color: #1f2937;
 }
+
 .post-content tbody tr:nth-child(even) {
   background-color: #f9fafb;
 }
+
 .dark .post-content tbody tr:nth-child(even) {
   background-color: #111827;
 }
 
-/* Obrazy w tabelach zawsze responsywne */
 .post-content table img {
   max-width: 100%;
   width: 100%;
@@ -242,22 +214,25 @@ body {
   object-fit: contain;
 }
 
-/* Ogólnie obrazy w treści */
 .post-content img {
   max-width: 100%;
   height: auto;
 }
 
-/* Zawijanie długich słów w paragrafach */
 .post-content p,
 .post-content li {
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
 
-/* Animacje Shuffle.js */
+/* ============================================ */
+/* SHUFFLE.JS — ANIMACJE                        */
+/* ============================================ */
 .blog-post-item {
-  transition: opacity 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition:
+          opacity 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
+          transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1),
+          margin 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
 .shuffle-item--hidden {
@@ -270,7 +245,14 @@ body {
   opacity: 1;
 }
 
-/* Styl dla tła powiększonego obrazka w trybie ciemnym */
+#blog-grid {
+  transition: height 0.4s ease-out;
+  overflow: visible !important;
+}
+
+/* ============================================ */
+/* IMAGE ZOOM                                   */
+/* ============================================ */
 [data-rmiz-modal-overlay="visible"] {
   background-color: rgba(0, 0, 0, 0.9) !important;
 }
@@ -279,7 +261,9 @@ body {
   background-color: rgba(0, 0, 0, 0.95) !important;
 }
 
-/* View Transitions*/
+/* ============================================ */
+/* VIEW TRANSITIONS                             */
+/* ============================================ */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 0.3s;
@@ -295,33 +279,19 @@ body {
 }
 
 @keyframes shuffle-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 @keyframes shuffle-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-/* Dodaj to do sekcji .blog-post-item w swoim CSS */
-.blog-post-item {
-  /* Istniejące style... */
-  transition:
-          opacity 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
-          transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1), /* Animacja przesuwania postów w dół */
-          height 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* Upewnij się, że kontener Shuffle nie ucina treści */
-#blog-grid {
-  transition: height 0.4s ease-out;
-  overflow: visible !important;
+/* Przycisk kopiowania linku - ten sam styl co tagi */
+#blog-grid button {
+  font-family: inherit;
+  font-size: calc(16px * var(--font-scale, 1));
+  font-weight: 400;
+  text-transform: lowercase;
 }

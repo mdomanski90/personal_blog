@@ -56,11 +56,16 @@ Thumbs.db
 *.old
 
 node_modules.env.local
-content/
-content/
 .idea/
-content/
 app_backup/
 src_backup/
-content/
 public/images/
+
+#zrodla danych
+data/zrodla.db
+data/baza.db-shm
+data/baza.db-wal
+data/zrodla.db
+
+content/
+data/*.db
