@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
-import { miejsca, miejsce, nazwy, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, WYZNANIA_MIEJSC } from '@/lib/archiwum'
+import { miejsca, miejsce, nazwy, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, WYZNANIA_MIEJSC, powiazania, rozwiazOdnosniki } from '@/lib/archiwum'
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { tarczaObiektu } from '@/lib/tarcze'
 import { formatujEdtf } from '@/lib/edtf'
@@ -10,6 +10,7 @@ import { Metki, Sekcja, Strona, Tresc, TytulStrony, Wiersz, Kreski } from '../..
 import ListaOpowiesci from '../../components/ListaOpowiesci'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
+import Powiazania from '../../components/Powiazania'
 import PowrotDoMapy from '../../components/PowrotDoMapy'
 
 export const dynamic = 'force-dynamic'
@@ -36,10 +37,11 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const bezDaty = tematy.filter((t) => !t.czas)
     const opow = await opowiesciDlaMiejsca(m.id, poziom)
     const { miejsca: nazwyMiejsc } = await nazwy(poziom)
-    const opisHtml = naHtml(m.opis)
+    const opisHtml = naHtml(m.opis, await rozwiazOdnosniki(poziom))
     const swiatynie = await obiektyDlaMiejsca(m.id, poziom)
     const punkty = m.wspolrzedne ? punktyMapy(wszystkie, await obiekty(poziom)) : []
     const obszar = OBSZARY.includes(m.rodzaj)
+    const siec = await powiazania('miejsce', m.id, poziom)
 
     return (
         <Strona>
@@ -114,6 +116,9 @@ export default async function MiejsceStrona({ params }: Parametry) {
                     </Sekcja>
                 </>
             )}
+
+            {(siec.odnosniki.length > 0 || siec.wzmianki.length > 0) && <Kreski />}
+            <Powiazania dane={siec} />
         </Strona>
     )
 }

@@ -1,4 +1,5 @@
 import Markdoc, { Tag, type Node, type Config, type RenderableTreeNode, type RenderableTreeNodes } from '@markdoc/markdoc'
+import { bezNawiasow, ODNOSNIK, tekstOdnosnika, type Rozwiaz } from './odnosniki'
 
 // Wspólne renderowanie treści Markdoc (wpisy, opisy miejsc i tematów).
 // Obrazki: miniatura WebP z katalogu thumbs/ (tworzy ją skrypt generate-thumbs przy buildzie),
@@ -132,9 +133,46 @@ const config: Config = {
     },
 }
 
-export function naHtml(node: Node | null | undefined): string {
+// ---------- odnośniki [[…]] ----------
+
+const BEZ_ODNOSNIKOW = new Set(['a', 'code', 'pre'])
+
+/** Zamienia [[…]] w tekście na linki (albo zwykły tekst, gdy celu nie ma lub jest niewidoczny). */
+function wstawOdnosniki(n: RenderableTreeNode, rozwiaz?: Rozwiaz): RenderableTreeNode | RenderableTreeNode[] {
+    if (typeof n === 'string') {
+        if (!n.includes('[[')) return n
+        const czesci: RenderableTreeNode[] = []
+        let ostatni = 0
+        for (const m of n.matchAll(ODNOSNIK)) {
+            if (m.index! > ostatni) czesci.push(n.slice(ostatni, m.index))
+            const cel = rozwiaz?.(m[1]) ?? null
+            const tekst = tekstOdnosnika(cel, m[1], m[2])
+            czesci.push(cel ? new Tag('a', { href: cel.adres, class: 'odnosnik', title: cel.nazwa }, [tekst]) : tekst)
+            ostatni = m.index! + m[0].length
+        }
+        if (ostatni < n.length) czesci.push(n.slice(ostatni))
+        return czesci
+    }
+    if (!Tag.isTag(n) || BEZ_ODNOSNIKOW.has(n.name)) return n
+    // tekst bywa podzielony na kilka sąsiednich kawałków – sklejamy, żeby [[…]] był w jednym
+    const sklejone: RenderableTreeNode[] = []
+    for (const c of n.children) {
+        const ost = sklejone[sklejone.length - 1]
+        if (typeof c === 'string' && typeof ost === 'string') sklejone[sklejone.length - 1] = ost + c
+        else sklejone.push(c)
+    }
+    return new Tag(n.name, n.attributes, sklejone.flatMap((c) => wstawOdnosniki(c, rozwiaz)))
+}
+
+/**
+ * Treść do HTML. `rozwiaz` (z lib/archiwum: rozwiazOdnosniki) zamienia [[…]] na linki;
+ * bez niego odnośniki zostają zwykłym tekstem.
+ */
+export function naHtml(node: Node | null | undefined, rozwiaz?: Rozwiaz): string {
     if (!node) return ''
-    return Markdoc.renderers.html(Markdoc.transform(node, config))
+    const drzewo = Markdoc.transform(node, config)
+    const wynik = wstawOdnosniki(drzewo, rozwiaz)
+    return Markdoc.renderers.html(wynik as RenderableTreeNodes)
 }
 
 /** Sam tekst (bez znaczników) – do wyszukiwarki i zajawek. */
@@ -151,8 +189,9 @@ export function naTekst(node: Node | null | undefined): string {
 }
 
 /** Pierwszy akapit skrócony do ok. `dlugosc` znaków. */
-export function zajawka(node: Node | null | undefined, dlugosc = 220): string {
-    const tekst = naTekst(node).split('\n').find((l) => l.trim().length > 40) ?? naTekst(node)
+export function zajawka(node: Node | null | undefined, dlugosc = 220, rozwiaz?: Rozwiaz): string {
+    const caly = bezNawiasow(naTekst(node), rozwiaz)
+    const tekst = caly.split('\n').find((l) => l.trim().length > 40) ?? caly
     if (tekst.length <= dlugosc) return tekst
     return tekst.slice(0, dlugosc).replace(/\s+\S*$/, '') + '…'
 }

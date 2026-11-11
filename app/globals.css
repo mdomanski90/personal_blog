@@ -404,6 +404,18 @@ body {
 .dark .post-content .zrodlo .uzupelnienie { color: #6b7280; }
 
 /* ============================================ */
+/* SIEĆ POWIĄZAŃ – odnośniki [[…]] i wzmianki   */
+/* ============================================ */
+.post-content a.odnosnik { text-decoration-style: dotted; text-underline-offset: 3px; }
+.odp mark.powiazanie-odnosnik,
+.odp mark.powiazanie-wzmianka { color: inherit; border-radius: 3px; padding: 0 2px; }
+.odp mark.powiazanie-odnosnik { background: #dbeafe; }
+.odp mark.powiazanie-wzmianka { background: #fef3c7; }
+.dark .odp mark.powiazanie-odnosnik { background: #1e3a5f; }
+.dark .odp mark.powiazanie-wzmianka { background: #4a3b12; }
+.odp details#wzmianki > summary { list-style-position: inside; }
+
+/* ============================================ */
 /* MAPA (MapLibre)                              */
 /* ============================================ */
 .mapa-wektor .maplibregl-ctrl-attrib { font-family: inherit; font-size: 10px; }

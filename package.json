@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "test": "tsx --test lib/edtf.test.ts lib/odmiana.test.ts",
+    "test": "tsx --test lib/edtf.test.ts lib/odmiana.test.ts lib/odnosniki.test.ts",
     "thumbs": "node scripts/generate-thumbs.mjs",
     "eksport:omeka": "tsx scripts/eksport-omeka.ts",
     "zasiej": "tsx scripts/zasiej.ts",
@@ -12,7 +12,8 @@
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
-    "formy": "tsx scripts/formy-odmiany.ts"
+    "formy": "tsx scripts/formy-odmiany.ts",
+    "wzmianki": "tsx scripts/wzmianki.ts"
   },
   "dependencies": {
     "@keystatic/core": "^0.5.48",

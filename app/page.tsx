@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
-import { nazwy, opowiesci, poziomCzytelnika } from '@/lib/archiwum'
+import { nazwy, opowiesci, poziomCzytelnika, rozwiazOdnosniki } from '@/lib/archiwum'
 import { naHtml } from '@/lib/markdoc'
 import { Kreski, Strona, Tresc } from './components/Uklad'
 import MetkiWpisu from './components/MetkiWpisu'
@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function StronaGlowna() {
     const poziom = await poziomCzytelnika()
+    const rozwiaz = await rozwiazOdnosniki(poziom)
     const wpisy = await opowiesci(poziom)
     const n = await nazwy(poziom)
 
@@ -29,7 +30,7 @@ export default async function StronaGlowna() {
                     <h2 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }}>
                         <Link href={`/wpisy/${w.id}`} className="!no-underline hover:underline">{w.tytul}</Link>
                     </h2>
-                    <Tresc html={naHtml(w.tresc)} />
+                    <Tresc html={naHtml(w.tresc, rozwiaz)} />
                     <Kreski />
                 </article>
             ))}

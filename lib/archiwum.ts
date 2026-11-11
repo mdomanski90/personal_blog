@@ -7,6 +7,7 @@ import type { Node } from '@markdoc/markdoc'
 import keystaticConfig from '../keystatic.config'
 import { kluczSortowania } from './edtf'
 import { naTekst, zajawka } from './markdoc'
+import { bezNawiasow, fragment, ODNOSNIK, slownikOdnosnikow, wzorzecWzmianek, znajdzWzmianki, type Cel, type Fragment, type PozycjaSieci, type RodzajCelu, type Rozwiaz } from './odnosniki'
 import { normalizuj, porownajPl } from './tekst'
 
 const reader = createReader(process.cwd(), keystaticConfig)
@@ -283,9 +284,17 @@ export async function osCzasu(poziom: Widocznosc): Promise<Temat[]> {
         .sort((a, b) => kluczSortowania(a.czas) - kluczSortowania(b.czas))
 }
 
-export async function opowiesci(poziom: Widocznosc): Promise<Opowiesc[]> {
-    return (await wszystkieOpowiesciSurowe()).filter((o) => widoczne(o.widocznosc, poziom))
-}
+export const opowiesci = cache(async (poziom: Widocznosc): Promise<Opowiesc[]> => {
+    // zajawka z nazwami zamiast identyfikatorów w [[…]] (tylko pozycje widoczne dla czytelnika)
+    const rozwiaz = slownikOdnosnikow([
+        ...(await miejsca(poziom)).map((m) => ({ cel: { rodzaj: 'miejsce' as const, id: m.id, nazwa: m.nazwa, adres: '' }, nazwy: [] })),
+        ...(await tematy(poziom)).map((t) => ({ cel: { rodzaj: 'temat' as const, id: t.id, nazwa: t.nazwa, adres: '' }, nazwy: [] })),
+        ...(await obiekty(poziom)).map((o) => ({ cel: { rodzaj: 'obiekt' as const, id: o.id, nazwa: o.nazwa, adres: '' }, nazwy: [] })),
+    ])
+    return (await wszystkieOpowiesciSurowe())
+        .filter((o) => widoczne(o.widocznosc, poziom))
+        .map((o) => ({ ...o, zajawka: zajawka(o.tresc, 220, rozwiaz) }))
+})
 
 export async function opowiesc(id: string, poziom: Widocznosc): Promise<Opowiesc | null> {
     return (await opowiesci(poziom)).find((o) => o.id === id) ?? null
@@ -332,6 +341,107 @@ export async function oProjekcie(): Promise<Node | null> {
     return s?.content?.node ?? null
 }
 
+// ---------- sieć powiązań: odnośniki [[…]] i wzmianki (jak w Logseq) ----------
+
+const pozycjeSieci = cache(async (poziom: Widocznosc): Promise<PozycjaSieci[]> => [
+    ...(await miejsca(poziom)).map((m) => ({ cel: { rodzaj: 'miejsce' as const, id: m.id, nazwa: m.nazwa, adres: `/miejsca/${m.id}` }, nazwy: [m.nazwa, ...m.inneNazwy, ...m.formy] })),
+    ...(await tematy(poziom)).map((t) => ({ cel: { rodzaj: 'temat' as const, id: t.id, nazwa: t.nazwa, adres: `/tematy/${t.id}` }, nazwy: [t.nazwa, ...t.inneNazwy, ...t.formy] })),
+    ...(await obiekty(poziom)).map((o) => ({ cel: { rodzaj: 'obiekt' as const, id: o.id, nazwa: o.nazwa, adres: `/obiekty/${o.id}` }, nazwy: [o.nazwa, ...o.inneNazwy] })),
+    ...(await opowiesci(poziom)).map((o) => ({ cel: { rodzaj: 'wpis' as const, id: o.id, nazwa: o.tytul, adres: `/wpisy/${o.id}` }, nazwy: [o.tytul] })),
+])
+
+/** Zamiana [[…]] na cele – tylko pozycje widoczne dla czytelnika. Do naHtml(treść, rozwiaz). */
+export const rozwiazOdnosniki = cache(async (poziom: Widocznosc): Promise<Rozwiaz> => slownikOdnosnikow(await pozycjeSieci(poziom)))
+
+const kluczCelu = (c: { rodzaj: string; id: string }) => `${c.rodzaj}:${c.id}`
+
+export interface TekstSieci {
+    zrodlo: Cel
+    tekst: string
+    /** plik w content/ (do skryptu łączącego wzmianki) */
+    plik: string
+    /** pozycje już powiązane polami w panelu („miejsca”, „tematy”, „należy do”…) */
+    zwiazane: Set<string>
+}
+
+/** Pozycje sieci i teksty, w których szukamy odnośników i wzmianek (opisy miejsc, tematów, obiektów i wpisy). */
+export async function daneSieci(poziom: Widocznosc): Promise<{ pozycje: PozycjaSieci[]; teksty: TekstSieci[] }> {
+    const pozycje = await pozycjeSieci(poziom)
+    const cel = new Map(pozycje.map((p) => [kluczCelu(p.cel), p.cel]))
+    const teksty: TekstSieci[] = []
+    const dodaj = (rodzaj: RodzajCelu, id: string, katalog: string, node: Node | null, zwiazane: string[]) => {
+        const c = cel.get(`${rodzaj}:${id}`)
+        const tekst = naTekst(node)
+        if (c && tekst) teksty.push({ zrodlo: c, tekst, plik: `content/${katalog}/${id}.mdoc`, zwiazane: new Set(zwiazane) })
+    }
+    for (const m of await miejsca(poziom)) dodaj('miejsce', m.id, 'miejsca', m.opis, m.nalezyDo ? [`miejsce:${m.nalezyDo}`] : [])
+    for (const t of await tematy(poziom)) dodaj('temat', t.id, 'tematy', t.opis, t.miejsca.map((id) => `miejsce:${id}`))
+    for (const o of await obiekty(poziom)) dodaj('obiekt', o.id, 'obiekty', o.opis, o.miejsce ? [`miejsce:${o.miejsce}`] : [])
+    for (const o of await opowiesci(poziom)) dodaj('wpis', o.id, 'posts', o.tresc, [...o.miejsca.map((id) => `miejsce:${id}`), ...o.tematy.map((id) => `temat:${id}`)])
+    return { pozycje, teksty }
+}
+
+export interface ZrodloPowiazania {
+    zrodlo: Cel
+    fragmenty: Fragment[]
+    /** ile razy w sumie (fragmentów pokazujemy najwyżej 3) */
+    ile: number
+}
+
+export interface Powiazania {
+    /** teksty z odnośnikiem [[…]] do tej pozycji */
+    odnosniki: ZrodloPowiazania[]
+    /** teksty, w których nazwa (albo jej forma) pada bez odnośnika i bez powiązania w panelu */
+    wzmianki: ZrodloPowiazania[]
+}
+
+const MAKS_FRAGMENTOW = 3
+
+const indeksPowiazan = cache(async (poziom: Widocznosc): Promise<Map<string, Powiazania>> => {
+    const { pozycje, teksty } = await daneSieci(poziom)
+    const rozwiaz = slownikOdnosnikow(pozycje)
+    const indeks = new Map<string, Powiazania>()
+    const dodaj = (rodzaj: keyof Powiazania, cel: string, zrodlo: Cel, f: Fragment) => {
+        const p = indeks.get(cel) ?? { odnosniki: [], wzmianki: [] }
+        indeks.set(cel, p)
+        let z = p[rodzaj].find((x) => kluczCelu(x.zrodlo) === kluczCelu(zrodlo))
+        if (!z) p[rodzaj].push((z = { zrodlo, fragmenty: [], ile: 0 }))
+        z.ile++
+        if (z.fragmenty.length < MAKS_FRAGMENTOW) z.fragmenty.push(f)
+    }
+    const wzorce = pozycje.filter((p) => p.cel.rodzaj !== 'wpis').map((p) => ({ klucz: kluczCelu(p.cel), wzorzec: wzorzecWzmianek(p.nazwy, p.cel.rodzaj === 'temat') }))
+    for (const t of teksty) {
+        const wlasny = kluczCelu(t.zrodlo)
+        const linie = t.tekst.split('\n')
+        const polaczone = new Set<string>()
+        for (const linia of linie) {
+            for (const m of linia.matchAll(ODNOSNIK)) {
+                const c = rozwiaz(m[1])
+                if (!c || kluczCelu(c) === wlasny) continue
+                polaczone.add(kluczCelu(c))
+                dodaj('odnosniki', kluczCelu(c), t.zrodlo, fragment(linia, m.index!, m.index! + m[0].length, rozwiaz))
+            }
+        }
+        for (const { klucz, wzorzec } of wzorce) {
+            if (klucz === wlasny || polaczone.has(klucz) || t.zwiazane.has(klucz)) continue
+            for (const linia of linie) {
+                for (const tr of znajdzWzmianki(linia, wzorzec)) dodaj('wzmianki', klucz, t.zrodlo, fragment(linia, tr.start, tr.koniec, rozwiaz))
+            }
+        }
+    }
+    // najpierw wpisy, potem reszta; w grupie alfabetycznie
+    const kolejnosc = (z: ZrodloPowiazania) => (z.zrodlo.rodzaj === 'wpis' ? 0 : 1)
+    for (const p of indeks.values()) {
+        for (const lista of [p.odnosniki, p.wzmianki]) lista.sort((a, b) => kolejnosc(a) - kolejnosc(b) || porownajPl(a.zrodlo.nazwa, b.zrodlo.nazwa))
+    }
+    return indeks
+})
+
+/** Odnośniki zwrotne i wzmianki dla strony miejsca, tematu, obiektu albo wpisu. */
+export async function powiazania(rodzaj: RodzajCelu, id: string, poziom: Widocznosc): Promise<Powiazania> {
+    return (await indeksPowiazan(poziom)).get(`${rodzaj}:${id}`) ?? { odnosniki: [], wzmianki: [] }
+}
+
 // ---------- wyszukiwarka ----------
 
 export interface Wynik {
@@ -364,22 +474,22 @@ export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wyn
         return 0
     }
     for (const m of await miejsca(poziom)) {
-        const tekst = naTekst(m.opis)
+        const tekst = bezNawiasow(naTekst(m.opis))
         const waga = ocen([m.nazwa, ...m.inneNazwy, ...m.formy], tekst)
         if (waga) wyniki.push({ rodzaj: 'miejsce', id: m.id, tytul: m.nazwa, adres: `/miejsca/${m.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : m.inneNazwy.join(', '), waga })
     }
     for (const o of await obiekty(poziom)) {
-        const tekst = naTekst(o.opis)
+        const tekst = bezNawiasow(naTekst(o.opis))
         const waga = ocen([o.nazwa, ...o.inneNazwy], tekst)
         if (waga) wyniki.push({ rodzaj: 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : NAZWY_OBIEKTOW[o.rodzaj] ?? o.rodzaj, waga })
     }
     for (const t of await tematy(poziom)) {
-        const tekst = naTekst(t.opis)
+        const tekst = bezNawiasow(naTekst(t.opis))
         const waga = ocen([t.nazwa, ...t.inneNazwy, ...t.formy], tekst)
         if (waga) wyniki.push({ rodzaj: 'temat', id: t.id, tytul: t.nazwa, adres: `/tematy/${t.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : t.inneNazwy.join(', '), waga })
     }
     for (const o of await opowiesci(poziom)) {
-        const tekst = naTekst(o.tresc)
+        const tekst = bezNawiasow(naTekst(o.tresc))
         const waga = ocen([o.tytul], tekst)
         if (waga) wyniki.push({ rodzaj: 'wpis', id: o.id, tytul: o.tytul, adres: `/wpisy/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : o.zajawka, waga })
     }

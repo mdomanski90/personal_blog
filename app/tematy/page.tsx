@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Link } from 'next-view-transitions'
-import { osCzasu, poziomCzytelnika, RODZAJE_TEMATOW, tematy } from '@/lib/archiwum'
+import { osCzasu, poziomCzytelnika, rozwiazOdnosniki, RODZAJE_TEMATOW, tematy } from '@/lib/archiwum'
 import { formatujEdtf } from '@/lib/edtf'
 import { zajawka } from '@/lib/markdoc'
 import { Kreski, Sekcja, Strona, TytulStrony } from '../components/Uklad'
@@ -11,6 +11,7 @@ export const metadata: Metadata = { title: 'tematy · odniepamieci.pl' }
 export default async function Tematy() {
     const poziom = await poziomCzytelnika()
     const lista = await tematy(poziom)
+    const rozwiaz = await rozwiazOdnosniki(poziom)
     const os = await osCzasu(poziom)
 
     return (
@@ -29,7 +30,7 @@ export default async function Tematy() {
                                         {[RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj, t.czas ? formatujEdtf(t.czas) : ''].filter(Boolean).join(' · ')}
                                     </span>
                                 </div>
-                                {t.opis && <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{zajawka(t.opis, 160)}</p>}
+                                {t.opis && <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{zajawka(t.opis, 160, rozwiaz)}</p>}
                             </li>
                         ))}
                     </ul>

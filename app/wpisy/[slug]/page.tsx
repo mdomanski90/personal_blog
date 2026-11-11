@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { nazwy, opowiesc, poziomCzytelnika } from '@/lib/archiwum'
+import { nazwy, opowiesc, powiazania, poziomCzytelnika, rozwiazOdnosniki } from '@/lib/archiwum'
 import { naHtml } from '@/lib/markdoc'
-import { Strona, Tresc, TytulStrony } from '../../components/Uklad'
+import { Kreski, Strona, Tresc, TytulStrony } from '../../components/Uklad'
+import Powiazania from '../../components/Powiazania'
 import MetkiWpisu from '../../components/MetkiWpisu'
 
 export const dynamic = 'force-dynamic'
@@ -21,14 +22,17 @@ export default async function OpowiescStrona({ params }: Parametry) {
     const o = await opowiesc(slug, poziom)
     if (!o) notFound()
     const n = await nazwy(poziom)
+    const siec = await powiazania('wpis', o.id, poziom)
 
     return (
         <Strona>
             <article className="flex flex-col" style={{ gap: 'calc(1rem * var(--font-scale, 1))' }}>
                 <TytulStrony sciezka={[{ tekst: 'wpisy', href: '/wpisy' }]}>{o.tytul}</TytulStrony>
                 <MetkiWpisu wpis={o} nazwy={n} />
-                <Tresc html={naHtml(o.tresc)} />
+                <Tresc html={naHtml(o.tresc, await rozwiazOdnosniki(poziom))} />
             </article>
+            {siec.odnosniki.length > 0 && <Kreski />}
+            <Powiazania dane={{ odnosniki: siec.odnosniki, wzmianki: [] }} />
         </Strona>
     )
 }

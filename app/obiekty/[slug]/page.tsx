@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
-import { miejsca, obiekt, obiekty, poziomCzytelnika, RODZAJE_OBIEKTOW } from '@/lib/archiwum'
+import { miejsca, obiekt, obiekty, powiazania, poziomCzytelnika, rozwiazOdnosniki, RODZAJE_OBIEKTOW } from '@/lib/archiwum'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { tarczaObiektu } from '@/lib/tarcze'
-import { Metki, Strona, Tresc, TytulStrony, Wiersz } from '../../components/Uklad'
+import { Kreski, Metki, Strona, Tresc, TytulStrony, Wiersz } from '../../components/Uklad'
+import Powiazania from '../../components/Powiazania'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import PowrotDoMapy from '../../components/PowrotDoMapy'
@@ -30,6 +31,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     const wies = o.miejsce ? wszystkie.find((m) => m.id === o.miejsce) : undefined
     const punkty = o.wspolrzedne ? punktyMapy(wszystkie, await obiekty(poziom)) : []
     const rodzaj = RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj
+    const siec = await powiazania('obiekt', o.id, poziom)
 
     return (
         <Strona>
@@ -55,7 +57,10 @@ export default async function ObiektStrona({ params }: Parametry) {
                 {o.wspolrzedne && <MapaMiejscLeniwa punkty={punkty} srodek={o.wspolrzedne} przyblizenie={14} wysokosc={300} />}
             </div>
 
-            <Tresc html={naHtml(o.opis)} />
+            <Tresc html={naHtml(o.opis, await rozwiazOdnosniki(poziom))} />
+
+            {(siec.odnosniki.length > 0 || siec.wzmianki.length > 0) && <Kreski />}
+            <Powiazania dane={siec} />
         </Strona>
     )
 }
