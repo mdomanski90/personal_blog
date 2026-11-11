@@ -167,6 +167,18 @@ export default config({
           validation: { pattern: { regex: WSPOLRZEDNE_REGEX, message: 'Zapis: 52.1860, 22.5627' } },
         }),
         approximate: fields.checkbox({ label: 'Położenie przybliżone' }),
+        religion: fields.select({
+          label: 'Wyznanie mieszkańców przed 1875',
+          description: 'Stan sprzed kasaty unii – od tego zależy znak wsi na mapie.',
+          options: [
+            { label: 'nieopisane', value: '' },
+            { label: 'unickie', value: 'unicka' },
+            { label: 'katolickie', value: 'katolicka' },
+            { label: 'mieszane (unici i katolicy)', value: 'mieszana' },
+            { label: 'prawosławne', value: 'prawoslawna' },
+          ],
+          defaultValue: '',
+        }),
         isPartOf: fields.relationship({ label: 'Należy do (np. parafia)', collection: 'miejsca' }),
         sameAs: fields.url({ label: 'Wikidata / GeoNames', description: 'Adres strony tego miejsca w Wikidata lub GeoNames (opcjonalnie).' }),
         visibility: widocznosc(),

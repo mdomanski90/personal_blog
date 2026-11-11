@@ -36,6 +36,8 @@ export interface Miejsce {
     rodzaj: string
     wspolrzedne: [number, number] | null
     przyblizone: boolean
+    /** wyznanie mieszkańców przed 1875: '' | unicka | katolicka | mieszana | prawoslawna */
+    wyznanie: string
     nalezyDo: string | null
     sameAs: string | null
     widocznosc: Widocznosc
@@ -95,6 +97,7 @@ const wszystkieMiejscaSurowe = cache(async (): Promise<Miejsce[]> => {
             rodzaj: entry.type,
             wspolrzedne: parsujWspolrzedne(entry.coordinates),
             przyblizone: entry.approximate,
+            wyznanie: entry.religion ?? '',
             nalezyDo: entry.isPartOf,
             sameAs: entry.sameAs,
             widocznosc: entry.visibility as Widocznosc,
