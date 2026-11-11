@@ -7,6 +7,9 @@ import PrzekierowanieKotwicy from './components/PrzekierowanieKotwicy'
 
 export const dynamic = 'force-dynamic'
 
+// Komórki siatki miejscowości wchodzą 1px pod zaokrągloną ramkę, więc ich kreski na brzegach się chowają.
+const KOMORKA: React.CSSProperties = { margin: '0 -1px -1px 0' }
+
 export default async function StronaGlowna() {
     const poziom = await poziomCzytelnika()
     const wszystkieOpowiesci = await opowiesci(poziom)
@@ -24,17 +27,17 @@ export default async function StronaGlowna() {
             {wsie.length > 0 && (
                 <Sekcja tytul="miejsca">
                     <ul
-                        className="grid border-t border-l border-[#d1d5db] dark:border-[#4b5563]"
-                        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(11rem, 1fr))' }}
+                        className="grid overflow-hidden border border-[#d1d5db] dark:border-[#4b5563]"
+                        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(11rem, 1fr))', borderRadius: '8px' }}
                     >
                         {wsie.map((m) => (
-                            <li key={m.id} className="border-r border-b border-[#d1d5db] dark:border-[#4b5563]">
+                            <li key={m.id} className="border-r border-b border-[#d1d5db] dark:border-[#4b5563]" style={KOMORKA}>
                                 <Link href={`/miejsca/${m.id}`} className="block px-3 py-2 !no-underline hover:bg-muted" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
                                     {m.nazwa}
                                 </Link>
                             </li>
                         ))}
-                        <li className="border-r border-b border-[#d1d5db] dark:border-[#4b5563] bg-muted">
+                        <li className="border-r border-b border-[#d1d5db] dark:border-[#4b5563] bg-muted" style={KOMORKA}>
                             <Link href="/miejsca" className="block px-3 py-2 !no-underline hover:opacity-80" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
                                 → na mapie
                             </Link>
