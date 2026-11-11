@@ -21,7 +21,7 @@ export default async function Miejsca() {
         <Strona>
             <TytulStrony>miejsca</TytulStrony>
             <div className="flex flex-col" style={{ gap: 8 }}>
-                <MapaMiejscLeniwa punkty={punkty} />
+                <MapaMiejscLeniwa punkty={punkty} granice zapamietaj="mapa-miejsca" />
                 {bez > 0 && (
                     <p className="text-gray-500 lowercase" style={{ fontSize: 13 }}>
                         {bez === miejscowosci.length ? 'żadna miejscowość nie ma jeszcze współrzędnych.' : `${bez} z ${miejscowosci.length} miejscowości nie ma jeszcze współrzędnych.`}

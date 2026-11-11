@@ -9,6 +9,7 @@ import { tarczaObiektu } from '@/lib/tarcze'
 import { Metki, Strona, Tresc, TytulStrony, Wiersz } from '../../components/Uklad'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
+import PowrotDoMapy from '../../components/PowrotDoMapy'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +41,10 @@ export default async function ObiektStrona({ params }: Parametry) {
             </TytulStrony>
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <Metki elementy={[rodzaj, o.czas ? formatujEdtf(o.czas) : null, o.istnieje ? null : 'nie istnieje', ...o.inneNazwy]} />
-                <CopyLinkButton sciezka={`/obiekty/${o.id}`} />
+                <div className="flex items-center gap-2">
+                    <PowrotDoMapy />
+                    <CopyLinkButton sciezka={`/obiekty/${o.id}`} />
+                </div>
             </div>
 
             <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))' }}>

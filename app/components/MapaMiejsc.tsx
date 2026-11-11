@@ -10,6 +10,7 @@ import { useTheme } from 'next-themes'
 import { LngLatBounds, Map as MapaGL, NavigationControl, setWorkerUrl, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
+import { LATA_GRANIC, ZRODLO_GRANIC, filtrGranic, warstwyGranic } from '@/lib/granice'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
 
 export interface PunktMapy {
@@ -54,12 +55,18 @@ export default function MapaMiejsc({
     wysokosc = 520,
     srodek,
     przyblizenie = 12.5,
+    granice = false,
+    zapamietaj,
 }: {
     punkty: PunktMapy[]
     wysokosc?: number
     /** gdy podany: mapa wyśrodkowana na tym punkcie (strona miejscowości), inaczej dopasowana do wszystkich */
     srodek?: [number, number]
     przyblizenie?: number
+    /** pokaż wybór granic historycznych */
+    granice?: boolean
+    /** klucz, pod którym mapa pamięta widok w tej karcie (powrót ze strony miejscowości) */
+    zapamietaj?: string
 }) {
     const kontener = useRef<HTMLDivElement>(null)
     const mapa = useRef<MapaGL | null>(null)
@@ -77,6 +84,9 @@ export default function MapaMiejsc({
     const aktywneRef = useRef(aktywne)
     aktywneRef.current = aktywne
     const [zoom, setZoom] = useState(srodek ? przyblizenie : 10)
+    const [rok, setRok] = useState<number | null>(null)
+    const rokRef = useRef(rok)
+    rokRef.current = rok
     const filtrObiektow = (a: string[]) => ['all', ['==', ['get', 'typ'], 'obiekt'], ['in', ['get', 'grupa'], ['literal', a]]] as never
 
     useEffect(() => {
@@ -91,7 +101,14 @@ export default function MapaMiejsc({
             cooperativeGestures: true,
         })
         m.addControl(new NavigationControl({ showCompass: false }), 'top-left')
-        if (!srodek && punkty.length > 1) {
+        let zapisany: { c: [number, number]; z: number; r?: number | null } | null = null
+        try {
+            if (zapamietaj) zapisany = JSON.parse(sessionStorage.getItem(zapamietaj) ?? 'null')
+        } catch {}
+        if (zapisany) {
+            m.jumpTo({ center: zapisany.c, zoom: zapisany.z })
+            if (granice && zapisany.r) setRok(zapisany.r)
+        } else if (!srodek && punkty.length > 1) {
             const b = new LngLatBounds()
             punkty.forEach((p) => b.extend([p.lng, p.lat]))
             m.fitBounds(b, { padding: 50, duration: 0 })
@@ -122,6 +139,12 @@ export default function MapaMiejsc({
                 if (!m.hasImage(id)) m.addImage(id, img, { pixelRatio: SKALA })
             }
             if (m.getSource('punkty')) return
+            if (granice) {
+                m.addSource('granice', ZRODLO_GRANIC)
+                for (const w of warstwyGranic(rokRef.current ?? 1600, ciemnyRef.current)) {
+                    m.addLayer({ ...w, layout: { ...w.layout, visibility: rokRef.current ? 'visible' : 'none' } } as typeof w)
+                }
+            }
             m.addSource('punkty', { type: 'geojson', data: dane })
             const wspolne: SymbolLayerSpecification['layout'] = {
                 'icon-image': ['get', 'ikona'],
@@ -164,6 +187,13 @@ export default function MapaMiejsc({
         }
         m.on('style.load', () => void dodajWarstwy())
         m.on('zoomend', () => setZoom(m.getZoom()))
+        m.on('moveend', () => {
+            if (!zapamietaj) return
+            try {
+                const c = m.getCenter()
+                sessionStorage.setItem(zapamietaj, JSON.stringify({ c: [c.lng, c.lat], z: m.getZoom(), r: rokRef.current }))
+            } catch {}
+        })
         for (const warstwa of ['miejsca', 'obiekty']) {
             m.on('click', warstwa, (e) => {
                 const href = e.features?.[0]?.properties?.href
@@ -199,6 +229,23 @@ export default function MapaMiejsc({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [aktywne])
 
+    useEffect(() => {
+        const m = mapa.current
+        if (!m || !granice) return
+        for (const id of ['granice-hist', 'granice-hist-nazwy']) {
+            if (!m.getLayer(id)) continue
+            m.setLayoutProperty(id, 'visibility', rok ? 'visible' : 'none')
+            if (rok) m.setFilter(id, filtrGranic(rok))
+        }
+        if (zapamietaj) {
+            try {
+                const c = m.getCenter()
+                sessionStorage.setItem(zapamietaj, JSON.stringify({ c: [c.lng, c.lat], z: m.getZoom(), r: rok }))
+            } catch {}
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [rok])
+
     const przelacz = (g: string) => setAktywne((a) => (a.includes(g) ? a.filter((x) => x !== g) : [...a, g]))
 
     return (
@@ -232,6 +279,54 @@ export default function MapaMiejsc({
             className="border border-[#d1d5db] dark:border-[#4b5563] w-full mapa-wektor"
             style={{ height: wysokosc, borderRadius: '8px', overflow: 'hidden' }}
             />
+            {granice && (
+                <div className="flex flex-col" style={{ gap: 6, fontSize: 'calc(13px * var(--font-scale, 1))' }}>
+                    <div className="flex flex-wrap items-center" style={{ gap: '6px 10px' }}>
+                        <span className="lowercase text-gray-600 dark:text-gray-400">granice historyczne:</span>
+                        <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1, paddingTop: 1 }} role="group" aria-label="granice historyczne – rok">
+                            {[null, ...LATA_GRANIC.map((l) => l.rok)].map((r) => {
+                                const wl = rok === r
+                                return (
+                                    <button
+                                        key={r ?? 'brak'}
+                                        type="button"
+                                        aria-pressed={wl}
+                                        title={r ? LATA_GRANIC.find((l) => l.rok === r)?.opis : 'bez granic historycznych'}
+                                        onClick={() => setRok(r)}
+                                        className={`border border-[#d1d5db] dark:border-[#4b5563] lowercase cursor-pointer ${wl ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
+                                        style={{ margin: '-1px 0 0 -1px', padding: '0 8px', height: 26, fontSize: 'inherit', fontFamily: 'inherit' }}
+                                    >
+                                        {r ?? 'brak'}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                    {rok && (
+                        <div className="flex flex-wrap items-center" style={{ gap: '4px 10px' }}>
+                            <input
+                                type="range"
+                                min={1400}
+                                max={1950}
+                                step={1}
+                                value={rok}
+                                onChange={(e) => setRok(Number(e.target.value))}
+                                aria-label="rok"
+                                style={{ width: 'min(100%, 22rem)', accentColor: '#9a3b22' }}
+                            />
+                            <span className="font-bold">{rok}</span>
+                            <span className="text-gray-600 dark:text-gray-400 lowercase">
+                                {LATA_GRANIC.find((l) => l.rok === rok)?.opis ?? ''}
+                            </span>
+                        </div>
+                    )}
+                    {rok && (
+                        <p className="text-gray-500 lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>
+                            granice: OpenHistoricalMap – dane społeczności, nie zawsze kompletne dla każdego roku.
+                        </p>
+                    )}
+                </div>
+            )}
         </div>
     )
 }

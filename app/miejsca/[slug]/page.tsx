@@ -10,6 +10,7 @@ import { Metki, Sekcja, Strona, Tresc, TytulStrony, Wiersz, Kreski } from '../..
 import ListaOpowiesci from '../../components/ListaOpowiesci'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
+import PowrotDoMapy from '../../components/PowrotDoMapy'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,7 +46,10 @@ export default async function MiejsceStrona({ params }: Parametry) {
             <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }]}>{m.nazwa}</TytulStrony>
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <Metki elementy={[RODZAJE_MIEJSC[m.rodzaj] ?? m.rodzaj, ...m.inneNazwy]} />
-                <CopyLinkButton sciezka={`/miejsca/${m.id}`} />
+                <div className="flex items-center gap-2">
+                    <PowrotDoMapy />
+                    <CopyLinkButton sciezka={`/miejsca/${m.id}`} />
+                </div>
             </div>
 
             <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))' }}>
