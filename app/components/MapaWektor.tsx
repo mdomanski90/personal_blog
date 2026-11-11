@@ -6,7 +6,7 @@
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { LngLatBounds, Map as MapaGL, Marker, NavigationControl } from 'maplibre-gl'
+import { LngLatBounds, Map as MapaGL, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
 import { tarczaMiejsca, type Wyznanie } from '@/lib/tarcze'
@@ -33,6 +33,7 @@ export default function MapaWektor({ punkty, wysokosc = 560 }: { punkty: PunktTa
 
     useEffect(() => {
         if (!kontener.current || mapa.current) return
+        setWorkerUrl('/api/mapa-worker')
         const m = new MapaGL({
             container: kontener.current,
             style: stylMapy(ciemny, nazwy),
