@@ -375,6 +375,8 @@ body {
 .dark .post-content blockquote { border-left-color: #6b7280; }
 .post-content blockquote > :first-child { margin-top: 0; }
 .post-content blockquote > :last-child { margin-bottom: 0; }
+/* cytat w cytacie: sama kreska, bez kolejnego tła */
+.post-content blockquote blockquote { background: none; margin: 0.5em 0; padding: 0.2em 0 0.2em 0.9em; }
 
 /* ramka „transkrypcja / tłumaczenie / cytat / oryginał” i dwie kolumny */
 .post-content .zrodlo {

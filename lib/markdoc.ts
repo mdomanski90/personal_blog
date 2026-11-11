@@ -54,6 +54,15 @@ function naglowek(lewa: string, prawa?: string): Tag {
     return new Tag('div', { class: 'zrodlo-naglowek' }, czesci)
 }
 
+/** Czy w węźle nie ma żadnego tekstu, obrazka ani innego elementu z treścią. */
+function pusty(node: Node): boolean {
+    for (const n of node.walk()) {
+        if (n.type === 'text' && String(n.attributes.content ?? '').trim()) return false
+        if (n.type === 'image' || n.type === 'tag' || n.type === 'code' || n.type === 'fence' || n.type === 'table') return false
+    }
+    return true
+}
+
 const config: Config = {
     tags: {
         zrodlo: {
@@ -103,6 +112,15 @@ const config: Config = {
                     decoding: 'async',
                     class: 'rounded-none w-full cursor-zoom-in',
                 })
+            },
+        },
+        // puste cytaty (np. same znaki „>” zostawione w tekście, także zagnieżdżone) pomijamy –
+        // inaczej na stronie zostają puste szare ramki jedna w drugiej
+        blockquote: {
+            render: 'blockquote',
+            transform(node, cfg) {
+                if (pusty(node)) return null
+                return new Tag('blockquote', {}, node.transformChildren(cfg))
             },
         },
         table: {
