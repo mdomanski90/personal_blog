@@ -85,7 +85,7 @@ export default function Mapa({
             role="region"
             aria-label="mapa miejsc"
             className="border border-[#d1d5db] dark:border-[#4b5563] w-full"
-            style={{ height: wysokosc, zIndex: 0 }}
+            style={{ height: wysokosc, zIndex: 0, borderRadius: '8px' }}
         />
     )
 }

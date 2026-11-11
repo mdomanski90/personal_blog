@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 
 const Mapa = dynamic(() => import('./Mapa'), {
     ssr: false,
-    loading: () => <div className="border border-[#d1d5db] dark:border-[#4b5563] bg-muted" style={{ height: 260 }} />,
+    loading: () => <div className="border border-[#d1d5db] dark:border-[#4b5563] bg-muted" style={{ height: 260, borderRadius: '8px' }} />,
 })
 
 /** Mała mapka jednego miejsca (strona miejscowości). */
