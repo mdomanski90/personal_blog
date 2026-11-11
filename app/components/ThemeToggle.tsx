@@ -2,93 +2,104 @@
 import * as React from "react"
 import { Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
-import { Button } from "../../components/ui/button"
 
 const FONT_SIZES = [14, 16, 18, 20, 22]
 const DEFAULT_SIZE = 18
+const ZDARZENIE = 'odp:rozmiar-czcionki'
+
+const RAMKA = 'border-[#d1d5db] dark:border-[#4b5563]'
+
+// Ten sam wygląd co menu i wyszukiwarka: obramowane segmenty, czcionka strony.
+// Kolory, tło i obramowanie w klasach (styl wpisany w element miałby pierwszeństwo przed hover/disabled).
+const segment: React.CSSProperties = {
+    fontSize: '14px',
+    fontWeight: 700,
+    height: '28px',
+    minWidth: '36px',
+    padding: '0 10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: 'inherit',
+}
+
+function ustawRozmiar(size: number) {
+    document.documentElement.style.setProperty('--blog-font-size', `${size}px`)
+    document.documentElement.style.setProperty('--font-scale', String(size / 18))
+}
 
 export default function ThemeToggle() {
-    const { theme, setTheme } = useTheme()
+    const { resolvedTheme, setTheme } = useTheme()
     const [mounted, setMounted] = React.useState(false)
     const [fontSize, setFontSize] = React.useState(DEFAULT_SIZE)
 
     React.useEffect(() => {
         setMounted(true)
-        const saved = localStorage.getItem('blog-font-size')
-        if (saved) {
-            const size = parseInt(saved)
-            setFontSize(size)
-            updateProperties(size)
-        } else {
-            updateProperties(DEFAULT_SIZE)
-        }
+        let size = DEFAULT_SIZE
+        try {
+            const zapisany = parseInt(localStorage.getItem('blog-font-size') ?? '')
+            if (FONT_SIZES.includes(zapisany)) size = zapisany
+        } catch {}
+        setFontSize(size)
+        ustawRozmiar(size)
+        // przyciski są w nagłówku dwa razy (komputer / telefon) – trzymamy je w zgodzie
+        const naZmiane = (e: Event) => setFontSize((e as CustomEvent<number>).detail)
+        window.addEventListener(ZDARZENIE, naZmiane)
+        return () => window.removeEventListener(ZDARZENIE, naZmiane)
     }, [])
 
-    const updateProperties = (size: number) => {
-        if (typeof window === 'undefined') return;
-
-        // 1. Ustawiamy zmienne CSS
-        document.documentElement.style.setProperty('--blog-font-size', `${size}px`)
-        document.documentElement.style.setProperty('--font-scale', String(size / 18))
-
-        // 2. Wysyłamy serię sygnałów do Shuffle.js
-        // Robimy to kilka razy (w odstępach), aby "nadążyć" za zmianą rozmiaru w przeglądarce
-        const delays = [10, 100, 300, 600];
-        delays.forEach(delay => {
-            setTimeout(() => {
-                window.dispatchEvent(new CustomEvent('blog:font-changed'));
-                window.dispatchEvent(new Event('resize'));
-            }, delay);
-        });
+    const zmienRozmiar = (kierunek: 1 | -1) => {
+        const i = FONT_SIZES.indexOf(fontSize)
+        const nowy = FONT_SIZES[Math.min(Math.max(i + kierunek, 0), FONT_SIZES.length - 1)]
+        setFontSize(nowy)
+        try { localStorage.setItem('blog-font-size', String(nowy)) } catch {}
+        ustawRozmiar(nowy)
+        window.dispatchEvent(new CustomEvent(ZDARZENIE, { detail: nowy }))
     }
 
-    const changeFontSize = (direction: 'up' | 'down') => {
-        const currentIndex = FONT_SIZES.indexOf(fontSize)
-        const newIndex = direction === 'up'
-            ? Math.min(currentIndex + 1, FONT_SIZES.length - 1)
-            : Math.max(currentIndex - 1, 0)
-        const newSize = FONT_SIZES[newIndex]
+    // Rezerwujemy miejsce, żeby nagłówek nie skakał przed wczytaniem.
+    if (!mounted) return <div style={{ height: 30, width: 130 }} />
 
-        setFontSize(newSize)
-        localStorage.setItem('blog-font-size', String(newSize))
-        updateProperties(newSize)
-    }
-
-    if (!mounted) return <div style={{ height: 48, width: 160 }} />
+    const ciemny = resolvedTheme === 'dark'
+    const najmniejszy = fontSize === FONT_SIZES[0]
+    const najwiekszy = fontSize === FONT_SIZES[FONT_SIZES.length - 1]
+    const klasa = (wylaczony = false) =>
+        `border-0 bg-transparent ${wylaczony ? 'text-gray-400 dark:text-gray-600 cursor-default' : 'text-current cursor-pointer hover:bg-muted transition-colors'}`
 
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Button
-                variant="outline"
-                size="default"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                style={{ height: 48, width: 48, minWidth: 48 }}
-                className="rounded-sm"
+        <div className={`flex items-stretch overflow-hidden border ${RAMKA}`} style={{ borderRadius: '7px' }}>
+            <button
+                type="button"
+                onClick={() => setTheme(ciemny ? 'light' : 'dark')}
+                style={segment}
+                className={klasa()}
+                aria-label={ciemny ? 'jasny motyw' : 'ciemny motyw'}
+                title={ciemny ? 'jasny motyw' : 'ciemny motyw'}
             >
-                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Toggle theme</span>
-            </Button>
-            <Button
-                variant="outline"
-                size="default"
-                onClick={() => changeFontSize('down')}
-                disabled={fontSize === FONT_SIZES[0]}
-                style={{ height: 48, width: 48, minWidth: 48, fontSize: 16, fontWeight: 700 }}
-                className="rounded-sm"
+                {ciemny ? <Moon size={15} /> : <Sun size={15} />}
+            </button>
+            <button
+                type="button"
+                onClick={() => zmienRozmiar(-1)}
+                disabled={najmniejszy}
+                style={segment}
+                className={`border-l ${RAMKA} ${klasa(najmniejszy)}`}
+                aria-label="mniejsza czcionka"
+                title="mniejsza czcionka"
             >
                 A−
-            </Button>
-            <Button
-                variant="outline"
-                size="default"
-                onClick={() => changeFontSize('up')}
-                disabled={fontSize === FONT_SIZES[FONT_SIZES.length - 1]}
-                style={{ height: 48, width: 48, minWidth: 48, fontSize: 16, fontWeight: 700 }}
-                className="rounded-sm"
+            </button>
+            <button
+                type="button"
+                onClick={() => zmienRozmiar(1)}
+                disabled={najwiekszy}
+                style={segment}
+                className={`border-l ${RAMKA} ${klasa(najwiekszy)}`}
+                aria-label="większa czcionka"
+                title="większa czcionka"
             >
                 A+
-            </Button>
+            </button>
         </div>
     )
 }

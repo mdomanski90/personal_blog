@@ -11,6 +11,7 @@ export const RAMKA = 'border border-[#d1d5db] dark:border-[#4b5563]'
 export const RAMKA_L = 'border-l border-[#d1d5db] dark:border-[#4b5563]'
 
 const segmentStyl: React.CSSProperties = {
+    margin: '-1px 0 0 -1px',
     fontSize: 'calc(15px * var(--font-scale, 1))',
     minHeight: 'calc(28px * var(--font-scale, 1))',
     padding: '0 10px',
@@ -50,9 +51,10 @@ export function Metki({ elementy }: { elementy: (React.ReactNode | { tekst: Reac
     const widoczne = elementy.filter((e) => e !== null && e !== undefined && e !== false && e !== '')
     if (!widoczne.length) return null
     return (
-        <div className={`flex flex-wrap items-stretch w-fit ${RAMKA}`}>
+        // pełne ramki nachodzące o 1px – po zawinięciu na telefonie kreski się nie dublują
+        <div className="flex flex-wrap items-stretch w-fit" style={{ paddingLeft: 1, paddingTop: 1 }}>
             {widoczne.map((e, i) => {
-                const klasy = `${i === 0 ? 'bg-muted' : RAMKA_L} text-current whitespace-nowrap`
+                const klasy = `${RAMKA} ${i === 0 ? 'bg-muted' : ''} text-current whitespace-nowrap`
                 if (e && typeof e === 'object' && 'href' in (e as object)) {
                     const l = e as { tekst: React.ReactNode; href: string }
                     return (

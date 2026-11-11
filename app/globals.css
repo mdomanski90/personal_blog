@@ -343,5 +343,21 @@ body {
   .odp :where(button, input) {
     font-family: inherit;
   }
+
+  /* obwódka tylko przy obsłudze klawiaturą (Tab), myszką jej nie widać;
+     do środka, żeby nie ucinały jej zaokrąglone ramki */
+  .odp :where(a, button, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+  .odp form[role="search"]:focus-within {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
 }
+
+/* treść wpisu: bez dodatkowej przerwy nad pierwszym i pod ostatnim akapitem
+   (odstęp od tytułu i metek daje układ strony) */
+.post-content > div > :first-child { margin-top: 0; }
+.post-content > div > :last-child { margin-bottom: 0; }
 

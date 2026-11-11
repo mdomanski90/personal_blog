@@ -29,10 +29,18 @@ function aktywny(pathname: string | null, href: string) {
     return pathname === href || pathname.startsWith(href + '/')
 }
 
+const RAMKA = 'border-[#d1d5db] dark:border-[#4b5563]'
+
 function Wyszukiwarka() {
     const params = useSearchParams()
     return (
-        <form action="/szukaj" method="get" role="search" className="flex items-stretch w-fit ml-auto overflow-hidden border border-[#d1d5db] dark:border-[#4b5563]" style={{ marginTop: '0.75rem', borderRadius: '7px' }}>
+        <form
+            action="/szukaj"
+            method="get"
+            role="search"
+            className={`flex items-stretch flex-1 min-w-0 sm:flex-none sm:ml-auto overflow-hidden border ${RAMKA}`}
+            style={{ borderRadius: '7px' }}
+        >
             <label htmlFor="szukaj-q" className="bg-muted lowercase whitespace-nowrap" style={{ ...linkStyl, height: 'auto' }}>szukaj</label>
             <input
                 id="szukaj-q"
@@ -40,8 +48,8 @@ function Wyszukiwarka() {
                 type="search"
                 defaultValue={params?.get('q') ?? ''}
                 placeholder="np. Olszanka, bieżeństwo"
-                className="bg-transparent text-current border-0 border-l border-[#d1d5db] dark:border-[#4b5563] outline-none"
-                style={{ fontSize: '14px', height: '28px', padding: '0 10px', width: '16rem', maxWidth: '60vw' }}
+                className={`flex-1 min-w-0 sm:flex-none sm:w-64 bg-transparent text-current border-0 border-l ${RAMKA} outline-none`}
+                style={{ fontSize: '14px', height: '28px', padding: '0 10px' }}
             />
         </form>
     )
@@ -52,10 +60,10 @@ export default function SiteHeader() {
 
     return (
         <header>
-            <div className="flex flex-wrap items-center justify-between" style={{ gap: '0.5rem 1rem' }}>
-                <div>
+            <div className="flex items-center justify-between" style={{ gap: '0.5rem 1rem' }}>
+                <div className="min-w-0">
                     <Link href="/" className="!no-underline text-current">
-                        <span className="block font-bold whitespace-nowrap" style={{ fontSize: '2rem', lineHeight: 1, marginTop: '1.34rem' }}>
+                        <span className="block font-bold whitespace-nowrap" style={{ fontSize: 'clamp(1.5rem, 8vw, 2rem)', lineHeight: 1, marginTop: '1.34rem' }}>
                             odniepamieci.pl
                         </span>
                     </Link>
@@ -63,20 +71,25 @@ export default function SiteHeader() {
                         społeczne archiwum pamięci lokalnej
                     </p>
                 </div>
-                <ThemeToggle />
+                {/* na szerszym ekranie przyciski obok tytułu, na telefonie w linii z wyszukiwarką */}
+                <div className="hidden sm:block shrink-0">
+                    <ThemeToggle />
+                </div>
             </div>
 
             <nav aria-label="menu główne" style={{ marginTop: '2rem' }}>
-                <div className="flex flex-wrap items-center border border-[#d1d5db] dark:border-[#4b5563] w-fit">
-                    {MENU.map((m, i) => {
+                {/* każda pozycja ma pełną ramkę, a sąsiednie nachodzą na siebie o 1px –
+                    po zawinięciu do drugiej linii kreski się nie dublują i nie zostaje pusta ramka */}
+                <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1, paddingTop: 1 }}>
+                    {MENU.map((m) => {
                         const akt = aktywny(pathname, m.href)
                         return (
                             <Link
                                 key={m.href}
                                 href={m.href}
                                 aria-current={akt ? 'page' : undefined}
-                                style={{ ...linkStyl, fontWeight: akt ? 700 : 400 }}
-                                className={`${akt ? 'bg-muted text-accent-foreground' : 'text-current hover:opacity-80 transition-opacity'} whitespace-nowrap !no-underline ${i > 0 ? 'border-l border-[#d1d5db] dark:border-[#4b5563]' : ''}`}
+                                style={{ ...linkStyl, fontWeight: akt ? 700 : 400, margin: '-1px 0 0 -1px' }}
+                                className={`${akt ? 'bg-muted text-accent-foreground' : 'text-current hover:opacity-80 transition-opacity'} whitespace-nowrap !no-underline border ${RAMKA}`}
                             >
                                 {m.tekst}
                             </Link>
@@ -89,9 +102,14 @@ export default function SiteHeader() {
                 ------------------------------------------------------------------------------------------------------
             </div>
 
-            <Suspense fallback={null}>
-                <Wyszukiwarka />
-            </Suspense>
+            <div className="flex items-center gap-2" style={{ marginTop: '0.75rem' }}>
+                <Suspense fallback={<div className="flex-1" style={{ height: 30 }} />}>
+                    <Wyszukiwarka />
+                </Suspense>
+                <div className="sm:hidden shrink-0">
+                    <ThemeToggle />
+                </div>
+            </div>
         </header>
     )
 }
