@@ -1,4 +1,5 @@
 import { config, collection, singleton, fields } from '@keystatic/core';
+import { wrapper, repeating } from '@keystatic/core/content-components';
 import { EDTF_OPIS, EDTF_REGEX } from './lib/edtf';
 import { identyfikatorZNazwy } from './lib/tekst';
 
@@ -49,6 +50,45 @@ const notatka = () =>
 
 const dodano = () => fields.date({ label: 'Dodano', defaultValue: { kind: 'today' } });
 
+// Wyróżnione fragmenty w treści: transkrypcja, tłumaczenie, cytat, oryginał –
+// w ramce z etykietą i źródłem; „oryginał i tłumaczenie” w dwóch kolumnach.
+// Wygląd: lib/markdoc.ts (znaczniki zrodlo, dwujezyczne, kolumna) i app/globals.css (.zrodlo).
+const komponenty = {
+  zrodlo: wrapper({
+    label: 'Źródło (transkrypcja, tłumaczenie, cytat)',
+    description: 'Tekst z dokumentu w ramce z etykietą. Luki w nawiasach kwadratowych, np. [...], będą przygaszone.',
+    schema: {
+      rodzaj: fields.select({
+        label: 'Rodzaj',
+        options: [
+          { label: 'transkrypcja', value: 'transkrypcja' },
+          { label: 'tłumaczenie', value: 'tlumaczenie' },
+          { label: 'cytat', value: 'cytat' },
+          { label: 'oryginał', value: 'oryginal' },
+        ],
+        defaultValue: 'transkrypcja',
+      }),
+      opis: fields.text({ label: 'Skąd', description: 'Np. „AP Lublin, sygn. 35/99/0/1/405” albo autor i tytuł. Można zostawić puste.' }),
+    },
+  }),
+  dwujezyczne: repeating({
+    label: 'Oryginał i tłumaczenie (dwie kolumny)',
+    description: 'Na telefonie kolumny ułożą się jedna pod drugą.',
+    children: ['kolumna'],
+    validation: { children: { min: 2, max: 2 } },
+    schema: {
+      opis: fields.text({ label: 'Skąd', description: 'Np. sygnatura księgi. Można zostawić puste.' }),
+    },
+  }),
+  kolumna: wrapper({
+    label: 'Kolumna',
+    forSpecificLocations: true,
+    schema: {
+      etykieta: fields.text({ label: 'Nagłówek kolumny', description: 'Np. „oryginał · łacina” albo „tłumaczenie”.' }),
+    },
+  }),
+};
+
 const opisMarkdoc = (etykieta: string, katalog: string) =>
   fields.markdoc({
     label: etykieta,
@@ -58,6 +98,7 @@ const opisMarkdoc = (etykieta: string, katalog: string) =>
         publicPath: `/images/${katalog}/`,
       },
     },
+    components: komponenty,
   });
 
 export default config({

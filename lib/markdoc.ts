@@ -1,4 +1,4 @@
-import Markdoc, { Tag, type Node, type Config } from '@markdoc/markdoc'
+import Markdoc, { Tag, type Node, type Config, type RenderableTreeNode, type RenderableTreeNodes } from '@markdoc/markdoc'
 
 // Wspólne renderowanie treści Markdoc (wpisy, opisy miejsc i tematów).
 // Obrazki: miniatura WebP z katalogu thumbs/ (tworzy ją skrypt generate-thumbs przy buildzie),
@@ -16,7 +16,78 @@ function miniatura(src: string): string {
     return src
 }
 
+// ---------- wyróżnione fragmenty (komponenty z panelu: zrodlo, dwujezyczne, kolumna) ----------
+
+const RODZAJE_ZRODLA: Record<string, string> = {
+    transkrypcja: 'transkrypcja', tlumaczenie: 'tłumaczenie', cytat: 'cytat', oryginal: 'oryginał',
+}
+
+// [...] albo [Z Boże] – uzupełnienia i luki w tekście źródła; pomija odnośniki [[…]]
+const UZUPELNIENIE = /(?<!\[)\[(?!\[)[^\[\]]*\](?!\])/g
+
+function przygasUzupelnienia(n: RenderableTreeNode): RenderableTreeNode | RenderableTreeNode[] {
+    if (typeof n === 'string') {
+        const czesci: RenderableTreeNode[] = []
+        let ostatni = 0
+        for (const m of n.matchAll(UZUPELNIENIE)) {
+            if (m.index! > ostatni) czesci.push(n.slice(ostatni, m.index))
+            czesci.push(new Tag('span', { class: 'uzupelnienie' }, [m[0]]))
+            ostatni = m.index! + m[0].length
+        }
+        if (!czesci.length) return n
+        if (ostatni < n.length) czesci.push(n.slice(ostatni))
+        return czesci
+    }
+    if (Tag.isTag(n)) return new Tag(n.name, n.attributes, n.children.flatMap((c) => przygasUzupelnienia(c)))
+    return n
+}
+
+function tresc(node: Node, cfg: Config): RenderableTreeNode[] {
+    const dzieci = node.transformChildren(cfg) as RenderableTreeNodes
+    const lista = Array.isArray(dzieci) ? dzieci : [dzieci]
+    return [new Tag('div', { class: 'zrodlo-tresc' }, lista.flatMap((c) => przygasUzupelnienia(c)))]
+}
+
+function naglowek(lewa: string, prawa?: string): Tag {
+    const czesci: RenderableTreeNode[] = [new Tag('span', { class: 'zrodlo-rodzaj' }, [lewa])]
+    if (prawa) czesci.push(new Tag('span', { class: 'zrodlo-opis' }, [prawa]))
+    return new Tag('div', { class: 'zrodlo-naglowek' }, czesci)
+}
+
 const config: Config = {
+    tags: {
+        zrodlo: {
+            render: 'div',
+            attributes: { rodzaj: { type: String }, opis: { type: String } },
+            transform(node, cfg) {
+                const rodzaj = String(node.attributes.rodzaj ?? 'transkrypcja')
+                return new Tag('figure', { class: `zrodlo zrodlo-${rodzaj}` }, [
+                    naglowek(RODZAJE_ZRODLA[rodzaj] ?? rodzaj, node.attributes.opis || undefined),
+                    ...tresc(node, cfg),
+                ])
+            },
+        },
+        dwujezyczne: {
+            render: 'div',
+            attributes: { opis: { type: String } },
+            transform(node, cfg) {
+                const opis = node.attributes.opis
+                const kolumny = node.transformChildren(cfg) as RenderableTreeNode[]
+                return new Tag('figure', { class: 'zrodlo zrodlo-dwujezyczne' }, [
+                    ...(opis ? [new Tag('div', { class: 'zrodlo-naglowek' }, [new Tag('span', { class: 'zrodlo-opis' }, [opis])])] : []),
+                    new Tag('div', { class: 'zrodlo-kolumny' }, kolumny),
+                ])
+            },
+        },
+        kolumna: {
+            render: 'div',
+            attributes: { etykieta: { type: String } },
+            transform(node, cfg) {
+                const etykieta = node.attributes.etykieta
+                return new Tag('div', { class: 'zrodlo-kolumna' }, [...(etykieta ? [naglowek(etykieta)] : []), ...tresc(node, cfg)])
+            },
+        },
+    },
     nodes: {
         image: {
             render: 'img',
