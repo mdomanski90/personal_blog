@@ -43,7 +43,7 @@ export default function ScrollToTop() {
             onClick={scrollToTop}
             variant="outline"
             size="icon"
-            className="fixed bottom-8 right-8 rounded-sm font-mono lowercase z-[100] shadow-lg"
+            className="fixed bottom-8 right-8 rounded-sm lowercase z-[100] shadow-lg"
             style={{
                 width: '48px',
                 height: '48px',

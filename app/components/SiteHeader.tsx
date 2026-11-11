@@ -32,16 +32,16 @@ function aktywny(pathname: string | null, href: string) {
 function Wyszukiwarka() {
     const params = useSearchParams()
     return (
-        <form action="/szukaj" method="get" role="search" className="flex flex-wrap items-center gap-2 w-full" style={{ marginTop: '0.75rem' }}>
-            <label htmlFor="szukaj-q" className="lowercase" style={{ fontSize: '14px' }}>szukaj</label>
+        <form action="/szukaj" method="get" role="search" className="flex items-stretch w-fit ml-auto border border-[#d1d5db] dark:border-[#4b5563]" style={{ marginTop: '0.75rem' }}>
+            <label htmlFor="szukaj-q" className="bg-muted lowercase whitespace-nowrap" style={{ ...linkStyl, height: 'auto' }}>szukaj</label>
             <input
                 id="szukaj-q"
                 name="q"
                 type="search"
                 defaultValue={params?.get('q') ?? ''}
                 placeholder="np. Olszanka, bieżeństwo"
-                className="flex-1 bg-transparent border border-[#d1d5db] dark:border-[#4b5563] px-2"
-                style={{ fontSize: '14px', height: '28px', minWidth: '12rem' }}
+                className="bg-transparent text-current border-0 border-l border-[#d1d5db] dark:border-[#4b5563] outline-none"
+                style={{ fontSize: '14px', height: '28px', padding: '0 10px', width: '16rem', maxWidth: '60vw' }}
             />
         </form>
     )
@@ -52,27 +52,21 @@ export default function SiteHeader() {
 
     return (
         <header>
-            <div className="flex flex-wrap items-center justify-between mb-1" style={{ gap: '0.5rem 1rem' }}>
+            <div className="flex flex-wrap items-center justify-between" style={{ gap: '0.5rem 1rem' }}>
                 <div>
                     <Link href="/" className="!no-underline text-current">
-                        <span
-                            className="block text-3xl sm:text-6xl font-bold tracking-tighter whitespace-nowrap"
-                            style={{ lineHeight: 1, marginBottom: 0 }}
-                        >
+                        <span className="block font-bold whitespace-nowrap" style={{ fontSize: '2rem', lineHeight: 1, marginTop: '1.34rem' }}>
                             odniepamieci.pl
                         </span>
                     </Link>
-                    <p
-                        className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 tracking-tight lowercase"
-                        style={{ lineHeight: 1.2, marginTop: '7px' }}
-                    >
+                    <p className="lowercase" style={{ fontSize: '16px', lineHeight: 1.2, marginTop: '7px' }}>
                         społeczne archiwum pamięci lokalnej
                     </p>
                 </div>
                 <ThemeToggle />
             </div>
 
-            <nav aria-label="menu główne" style={{ marginTop: '1rem' }}>
+            <nav aria-label="menu główne" style={{ marginTop: '2rem' }}>
                 <div className="flex flex-wrap items-center border border-[#d1d5db] dark:border-[#4b5563] w-fit">
                     {MENU.map((m, i) => {
                         const akt = aktywny(pathname, m.href)
@@ -91,13 +85,13 @@ export default function SiteHeader() {
                 </div>
             </nav>
 
+            <div className="whitespace-nowrap overflow-hidden opacity-50" aria-hidden="true">
+                ------------------------------------------------------------------------------------------------------
+            </div>
+
             <Suspense fallback={null}>
                 <Wyszukiwarka />
             </Suspense>
-
-            <div className="text-gray-400 dark:text-gray-600 mt-6 whitespace-nowrap overflow-hidden opacity-50" aria-hidden="true">
-                ------------------------------------------------------------------------------------------------------
-            </div>
         </header>
     )
 }

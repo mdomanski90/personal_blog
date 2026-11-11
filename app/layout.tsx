@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
     return (
         <ViewTransitions>
-            <html lang="pl" suppressHydrationWarning className={jetbrainsMono.className}>
+            <html lang="pl" suppressHydrationWarning className={`${jetbrainsMono.className} ${jetbrainsMono.variable}`}>
             <body>
             <ThemeProvider
                 attribute="class"

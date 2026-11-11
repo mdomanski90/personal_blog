@@ -30,7 +30,7 @@ const config: Config = {
                     title: node.attributes.title || '',
                     loading: 'lazy',
                     decoding: 'async',
-                    class: 'rounded-none w-full my-8 shadow-sm cursor-zoom-in',
+                    class: 'rounded-none w-full cursor-zoom-in',
                 })
             },
         },

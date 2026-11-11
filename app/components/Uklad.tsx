@@ -22,7 +22,7 @@ const segmentStyl: React.CSSProperties = {
 export function Strona({ children, szeroka = false }: { children: React.ReactNode; szeroka?: boolean }) {
     return (
         <>
-            <div style={{ maxWidth: szeroka ? '64rem' : '52rem', margin: '0 auto', padding: '2rem 1.25rem 5rem 1.25rem', minHeight: '100vh' }} className="font-mono odp">
+            <div style={{ maxWidth: szeroka ? '64rem' : '52rem', margin: '0 auto', padding: '2rem 1.25rem 5rem 1.25rem', minHeight: '100vh' }} className="odp">
                 <div className="space-y-6 w-full">
                     <div style={szeroka ? { maxWidth: '52rem', margin: '0 auto' } : undefined}>
                         <SiteHeader />
@@ -39,7 +39,7 @@ export function Strona({ children, szeroka = false }: { children: React.ReactNod
 
 export function Kreski({ className = '' }: { className?: string }) {
     return (
-        <div aria-hidden="true" className={`text-gray-400 dark:text-gray-600 whitespace-nowrap overflow-hidden opacity-50 ${className}`}>
+        <div aria-hidden="true" className={`whitespace-nowrap overflow-hidden opacity-50 ${className}`}>
             ------------------------------------------------------------------------------------------------------------------------
         </div>
     )
@@ -93,7 +93,7 @@ export function TytulStrony({ children, sciezka }: { children: React.ReactNode; 
                     ))}
                 </p>
             )}
-            <h1 className="font-bold tracking-tight break-words leading-tight" style={{ fontSize: 'calc(2.25rem * var(--font-scale, 1))' }}>
+            <h1 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.75rem * var(--font-scale, 1))' }}>
                 {children}
             </h1>
         </div>
@@ -104,7 +104,7 @@ export function TytulStrony({ children, sciezka }: { children: React.ReactNode; 
 export function Tresc({ html, pusta = 'treść nie została jeszcze dodana.' }: { html: string; pusta?: string | null }) {
     if (!html) return pusta ? <p className="text-gray-500 italic lowercase">{pusta}</p> : null
     return (
-        <div className="post-content prose dark:prose-invert prose-slate max-w-none leading-relaxed" style={{ fontSize: 'var(--blog-font-size, 18px)' }}>
+        <div className="post-content" style={{ fontSize: 'var(--blog-font-size, 18px)' }}>
             <div dangerouslySetInnerHTML={{ __html: html }} />
         </div>
     )

@@ -12,7 +12,7 @@ export default function Footer() {
     }
 
     return (
-        <footer className="pt-10">
+        <footer>
             <div className="flex items-center border border-[#d1d5db] dark:border-[#4b5563] w-fit">
                 <div
                     style={linkStyle}

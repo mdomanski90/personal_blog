@@ -64,7 +64,7 @@ export default function MiejscaWidok({ miejsca }: { miejsca: MiejsceNaLiscie[] }
                                     aria-expanded={czyOtwarte}
                                     aria-controls={`miejsce-${m.id}-szczegoly`}
                                     onClick={() => setOtwarte(czyOtwarte ? null : m.id)}
-                                    className="w-full text-left flex items-baseline gap-3 py-2 px-1 bg-transparent border-0 cursor-pointer text-current hover:bg-muted"
+                                    className="w-full box-border text-left flex items-baseline gap-3 py-2 px-1 bg-transparent border-0 cursor-pointer text-current hover:bg-muted"
                                     style={{ fontSize: 'calc(16px * var(--font-scale, 1))' }}
                                 >
                                     <span aria-hidden="true" style={{ width: '1rem' }}>{czyOtwarte ? '▾' : '▸'}</span>

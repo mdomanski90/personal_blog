@@ -20,7 +20,7 @@ export default function ListaOpowiesci({ opowiesci, nazwyMiejsc }: { opowiesci: 
                                 miejsca.length ? nazwyMiejsc.get(miejsca[0]) + (miejsca.length > 1 ? ` +${miejsca.length - 1}` : '') : null,
                             ]}
                         />
-                        <h2 className="font-bold tracking-tight break-words leading-tight" style={{ fontSize: 'calc(1.4rem * var(--font-scale, 1))' }}>
+                        <h2 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }}>
                             <Link href={`/opowiesci/${o.id}`} className="!no-underline hover:underline">{o.tytul}</Link>
                         </h2>
                         {o.zajawka && (

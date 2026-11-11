@@ -1,15 +1,18 @@
 @import "tw-animate-css";
 
-/* Tailwind v4: pełny zestaw klas + typografia treści (.prose).
-   Wcześniej były tu dyrektywy z Tailwinda 3 (@tailwind base/components/utilities),
-   przez które większość klas (gap-*, text-*, font-bold, prose…) w ogóle nie powstawała. */
-@import "tailwindcss";
-@plugin "@tailwindcss/typography";
+/* Tailwind v4: motyw (rozmiary, odstępy, kolory) + klasy narzędziowe,
+   ale BEZ resetu przeglądarki (preflight) i bez wtyczki typografii –
+   tak jak wyglądała strona dotąd: domyślne odstępy akapitów, nagłówków
+   i list w treści wpisów, JetBrains Mono wszędzie. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -316,24 +319,29 @@ body {
 }
 
 /* ============================================ */
-/* PODSTAWY STRON (.odp) – bez resetu Tailwinda */
-/* nie dotyczą treści wpisów (.prose)           */
+/* PODSTAWY STRON (.odp) – listy, nagłówki i    */
+/* akapity w układzie stron (poza treścią       */
+/* wpisów, która zostaje z domyślnym wyglądem)  */
 /* ============================================ */
-.odp :where(ul, ol):where(:not(.prose *)) {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* w warstwie base, żeby klasy Tailwinda (kolory, odstępy) miały pierwszeństwo */
+@layer base {
+  .odp :where(ul, ol):where(:not(.post-content *)) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .odp :where(h1, h2, h3, p):where(:not(.post-content *)) {
+    margin: 0;
+  }
+  .odp a:where(:not(.post-content *)) {
+    color: inherit;
+    text-decoration: none;
+  }
+  .odp a:where(:not(.post-content *)):hover {
+    text-decoration: underline;
+  }
+  .odp :where(button, input) {
+    font-family: inherit;
+  }
 }
-.odp :where(h1, h2, h3, p):where(:not(.prose *)) {
-  margin: 0;
-}
-.odp a:where(:not(.prose *)) {
-  color: inherit;
-  text-decoration: none;
-}
-.odp a:where(:not(.prose *)):hover {
-  text-decoration: underline;
-}
-.odp :where(button) {
-  font-family: inherit;
-}
+
