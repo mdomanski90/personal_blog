@@ -45,10 +45,10 @@ export default async function StronaGlowna() {
 
             <Kreski />
 
-            <Sekcja tytul="ostatnie opowieści">
+            <Sekcja tytul="ostatnie wpisy">
                 <ListaOpowiesci opowiesci={wszystkieOpowiesci.slice(0, 3)} nazwyMiejsc={nazwyMiejsc} />
                 {wszystkieOpowiesci.length > 3 && (
-                    <Link href="/opowiesci" className="lowercase w-fit" style={{ fontSize: '14px' }}>wszystkie opowieści →</Link>
+                    <Link href="/wpisy" className="lowercase w-fit font-bold" style={{ fontSize: '14px' }}>wszystkie wpisy →</Link>
                 )}
             </Sekcja>
         </Strona>

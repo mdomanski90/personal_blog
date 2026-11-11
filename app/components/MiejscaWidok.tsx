@@ -4,6 +4,7 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Link } from 'next-view-transitions'
 import type { PunktMapy } from './Mapa'
+import { odmiana } from '@/lib/tekst'
 
 const Mapa = dynamic(() => import('./Mapa'), {
     ssr: false,
@@ -54,8 +55,8 @@ export default function MiejscaWidok({ miejsca }: { miejsca: MiejsceNaLiscie[] }
                     {miejsca.map((m) => {
                         const czyOtwarte = otwarte === m.id
                         const powiazania = [
-                            m.opowiesci ? `${m.opowiesci} ${m.opowiesci === 1 ? 'opowieść' : 'opowieści'}` : '',
-                            m.tematy ? `${m.tematy} ${m.tematy === 1 ? 'temat' : 'tematy'}` : '',
+                            m.opowiesci ? odmiana(m.opowiesci, ['wpis', 'wpisy', 'wpisów']) : '',
+                            m.tematy ? odmiana(m.tematy, ['temat', 'tematy', 'tematów']) : '',
                         ].filter(Boolean).join(' · ')
                         return (
                             <li key={m.id} id={`miejsce-${m.id}`} className="border-b border-[#d1d5db] dark:border-[#4b5563] scroll-mt-24">

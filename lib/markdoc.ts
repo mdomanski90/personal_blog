@@ -1,6 +1,6 @@
 import Markdoc, { Tag, type Node, type Config } from '@markdoc/markdoc'
 
-// Wspólne renderowanie treści Markdoc (opowieści, opisy miejsc i tematów).
+// Wspólne renderowanie treści Markdoc (wpisy, opisy miejsc i tematów).
 // Obrazki: miniatura WebP z katalogu thumbs/ (tworzy ją skrypt generate-thumbs przy buildzie),
 // pełna wersja pod data-zoom-src dla powiększenia.
 
@@ -54,7 +54,9 @@ export function naTekst(node: Node | null | undefined): string {
     const czesci: string[] = []
     for (const n of node.walk()) {
         if (n.type === 'text' && typeof n.attributes.content === 'string') czesci.push(n.attributes.content)
-        if (n.type === 'paragraph' || n.type === 'heading' || n.type === 'item') czesci.push('\n')
+        if (n.type === 'softbreak' || n.type === 'hardbreak') czesci.push(' ')
+        // granice bloków (także komórek tabel), żeby tekst z sąsiednich miejsc się nie sklejał
+        if (['paragraph', 'heading', 'item', 'blockquote', 'table', 'tr', 'th', 'td', 'fence', 'hr'].includes(n.type)) czesci.push('\n')
     }
     return czesci.join('').replace(/[ \t]+/g, ' ').replace(/\n\s*/g, '\n').trim()
 }

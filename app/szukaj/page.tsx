@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Link } from 'next-view-transitions'
 import { poziomCzytelnika, szukaj } from '@/lib/archiwum'
 import { Strona, TytulStrony } from '../components/Uklad'
+import { odmiana } from '@/lib/tekst'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'szukaj · odniepamieci.pl', robots: { index: false } }
@@ -14,10 +15,10 @@ export default async function Szukaj({ searchParams }: { searchParams: Promise<{
     return (
         <Strona>
             <TytulStrony>szukaj</TytulStrony>
-            {!q && <p className="text-gray-500 lowercase">wpisz szukane słowo w pole nad kreską – nazwę miejscowości, temat albo słowo z opowieści.</p>}
+            {!q && <p className="text-gray-500 lowercase">wpisz szukane słowo w pole nad kreską – nazwę miejscowości, temat albo słowo z wpisów.</p>}
             {q && (
                 <p className="lowercase" style={{ fontSize: '14px' }}>
-                    „{q}”: {wyniki.length === 0 ? 'nic nie znaleziono.' : `${wyniki.length} ${wyniki.length === 1 ? 'wynik' : wyniki.length < 5 ? 'wyniki' : 'wyników'}`}
+                    „{q}”: {wyniki.length === 0 ? 'nic nie znaleziono.' : odmiana(wyniki.length, ['wynik', 'wyniki', 'wyników'])}
                 </p>
             )}
             <ul className="flex flex-col border-t border-[#e5e7eb] dark:border-[#374151]">

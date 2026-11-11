@@ -25,7 +25,7 @@ export default async function OpowiescStrona({ params }: Parametry) {
     return (
         <Strona>
             <article className="flex flex-col" style={{ gap: 'calc(1rem * var(--font-scale, 1))' }}>
-                <TytulStrony sciezka={[{ tekst: 'opowieści', href: '/opowiesci' }]}>{o.tytul}</TytulStrony>
+                <TytulStrony sciezka={[{ tekst: 'wpisy', href: '/wpisy' }]}>{o.tytul}</TytulStrony>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <Metki
                         elementy={[
@@ -35,7 +35,7 @@ export default async function OpowiescStrona({ params }: Parametry) {
                             ...o.tematy.filter((id) => n.tematy.has(id)).map((id) => ({ tekst: n.tematy.get(id), href: `/tematy/${id}` })),
                         ]}
                     />
-                    <CopyLinkButton sciezka={`/opowiesci/${o.id}`} />
+                    <CopyLinkButton sciezka={`/wpisy/${o.id}`} />
                 </div>
                 <Tresc html={naHtml(o.tresc)} />
             </article>

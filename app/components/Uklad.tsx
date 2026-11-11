@@ -120,7 +120,7 @@ export function Wiersz({ etykieta, children }: { etykieta: string; children: Rea
     )
 }
 
-/** Data publikacji opowieści z nazwą dnia tygodnia (jak dotąd na stronie). */
+/** Data publikacji wpisu z nazwą dnia tygodnia (jak dotąd na stronie). */
 export function dataZDniem(iso: string | null): string {
     if (!iso) return 'brak daty'
     const d = new Date(iso + 'T12:00:00')

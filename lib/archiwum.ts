@@ -218,7 +218,7 @@ export async function oProjekcie(): Promise<Node | null> {
 // ---------- wyszukiwarka ----------
 
 export interface Wynik {
-    rodzaj: 'miejsce' | 'temat' | 'opowieść'
+    rodzaj: 'miejsce' | 'temat' | 'wpis'
     id: string
     tytul: string
     adres: string
@@ -258,7 +258,7 @@ export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wyn
     for (const o of await opowiesci(poziom)) {
         const tekst = naTekst(o.tresc)
         const waga = ocen([o.tytul], tekst)
-        if (waga) wyniki.push({ rodzaj: 'opowieść', id: o.id, tytul: o.tytul, adres: `/opowiesci/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : o.zajawka, waga })
+        if (waga) wyniki.push({ rodzaj: 'wpis', id: o.id, tytul: o.tytul, adres: `/wpisy/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : o.zajawka, waga })
     }
     return wyniki.sort((a, b) => b.waga - a.waga || porownajPl(a.tytul, b.tytul))
 }

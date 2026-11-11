@@ -4,7 +4,7 @@ import { Strona, TytulStrony } from '../components/Uklad'
 import ListaOpowiesci from '../components/ListaOpowiesci'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = { title: 'opowieści · odniepamieci.pl' }
+export const metadata: Metadata = { title: 'wpisy · odniepamieci.pl' }
 
 export default async function Opowiesci() {
     const poziom = await poziomCzytelnika()
@@ -12,7 +12,7 @@ export default async function Opowiesci() {
     const { miejsca } = await nazwy(poziom)
     return (
         <Strona>
-            <TytulStrony>opowieści</TytulStrony>
+            <TytulStrony>wpisy</TytulStrony>
             <ListaOpowiesci opowiesci={lista} nazwyMiejsc={miejsca} />
         </Strona>
     )

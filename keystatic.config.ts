@@ -73,7 +73,7 @@ export default config({
   },
   collections: {
     posts: collection({
-      label: 'Opowieści',
+      label: 'Wpisy',
       slugField: 'title',
       path: 'content/posts/*',
       format: { contentField: 'content' },

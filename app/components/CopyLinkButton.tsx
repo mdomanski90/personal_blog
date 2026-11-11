@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import { Toggle } from "@/components/ui/toggle"
 
 interface CopyLinkButtonProps {
-    /** Ścieżka strony, np. „/opowiesci/niepamiec”. */
+    /** Ścieżka strony, np. „/wpisy/niepamiec”. */
     sciezka: string
 }
 

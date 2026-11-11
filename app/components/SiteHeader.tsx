@@ -8,7 +8,7 @@ import ThemeToggle from './ThemeToggle'
 // Menu: tylko działy, które już istnieją. Kolejne (osoby, archiwum, biblioteczka) dochodzą z kolejnymi etapami.
 const MENU: { href: string; tekst: string }[] = [
     { href: '/', tekst: 'strona główna' },
-    { href: '/opowiesci', tekst: 'opowieści' },
+    { href: '/wpisy', tekst: 'wpisy' },
     { href: '/miejsca', tekst: 'miejsca' },
     { href: '/tematy', tekst: 'tematy' },
     { href: '/o-projekcie', tekst: 'o projekcie' },
@@ -32,7 +32,7 @@ function aktywny(pathname: string | null, href: string) {
 function Wyszukiwarka() {
     const params = useSearchParams()
     return (
-        <form action="/szukaj" method="get" role="search" className="flex items-stretch w-fit ml-auto border border-[#d1d5db] dark:border-[#4b5563]" style={{ marginTop: '0.75rem' }}>
+        <form action="/szukaj" method="get" role="search" className="flex items-stretch w-fit ml-auto overflow-hidden border border-[#d1d5db] dark:border-[#4b5563]" style={{ marginTop: '0.75rem', borderRadius: '7px' }}>
             <label htmlFor="szukaj-q" className="bg-muted lowercase whitespace-nowrap" style={{ ...linkStyl, height: 'auto' }}>szukaj</label>
             <input
                 id="szukaj-q"

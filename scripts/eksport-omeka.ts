@@ -5,13 +5,14 @@
 //
 // Kolumny = nazwy właściwości Omeka (dcterms:…); wiele wartości rozdzielone „|”;
 // powiązania przez dcterms:identifier (w CSV Import: „Identifier” jako sposób dopasowania zasobów).
-// Kolejność importu: miejsca → tematy → opowieści (później: osoby, obiekty, materiały).
+// Kolejność importu: miejsca → tematy → wpisy (później: osoby, obiekty, materiały).
 
 import fs from 'node:fs'
 import path from 'node:path'
 import { dlaEksportu, RODZAJE_MIEJSC, RODZAJE_OPOWIESCI, RODZAJE_TEMATOW, type Widocznosc } from '../lib/archiwum'
 import { czyPoprawnaEdtf, zakresIso } from '../lib/edtf'
 import { naTekst } from '../lib/markdoc'
+import { odmiana } from '../lib/tekst'
 
 const KATALOG = path.join(process.cwd(), 'eksport', 'omeka')
 const bledy: string[] = []
@@ -49,8 +50,8 @@ async function main() {
         for (const id of t.miejsca) if (!idMiejsc.has(id)) bledy.push(`temat „${t.id}”: nieistniejące miejsce „${id}”`)
     }
     for (const o of opowiesci) {
-        for (const id of o.miejsca) if (!idMiejsc.has(id)) bledy.push(`opowieść „${o.id}”: nieistniejące miejsce „${id}”`)
-        for (const id of o.tematy) if (!idTematow.has(id)) bledy.push(`opowieść „${o.id}”: nieistniejący temat „${id}”`)
+        for (const id of o.miejsca) if (!idMiejsc.has(id)) bledy.push(`wpis „${o.id}”: nieistniejące miejsce „${id}”`)
+        for (const id of o.tematy) if (!idTematow.has(id)) bledy.push(`wpis „${o.id}”: nieistniejący temat „${id}”`)
     }
     const bezWspolrzednych = miejsca.filter((m) => !m.wspolrzedne).map((m) => m.nazwa)
     if (bezWspolrzednych.length) ostrzezenia.push(`miejsca bez współrzędnych (nie ma ich na mapie): ${bezWspolrzednych.join(', ')}`)
@@ -107,7 +108,7 @@ async function main() {
     )
 
     zapiszCsv(
-        'opowiesci.csv',
+        'wpisy.csv',
         ['dcterms:identifier', 'o:resource_class', 'dcterms:title', 'dcterms:date', 'dcterms:type', 'dcterms:spatial', 'dcterms:subject', 'bibo:content', 'o:is_public'],
         opowiesci.map((o) => ({
             'dcterms:identifier': o.id,
@@ -123,7 +124,7 @@ async function main() {
     )
 
     for (const o of ostrzezenia) console.warn('! ' + o)
-    console.log(`✓ Eksport dla Omeka S: ${miejsca.length} miejsc, ${tematy.length} tematów, ${opowiesci.length} opowieści → eksport/omeka/`)
+    console.log(`✓ Eksport dla Omeka S: ${odmiana(miejsca.length, ['miejsce', 'miejsca', 'miejsc'])}, ${odmiana(tematy.length, ['temat', 'tematy', 'tematów'])}, ${odmiana(opowiesci.length, ['wpis', 'wpisy', 'wpisów'])} → eksport/omeka/`)
 }
 
 main().catch((e) => {

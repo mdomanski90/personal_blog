@@ -45,7 +45,7 @@ export default async function TematStrona({ params }: Parametry) {
             {opow.length > 0 && (
                 <>
                     <Kreski />
-                    <Sekcja tytul="opowieści">
+                    <Sekcja tytul="wpisy">
                         <ListaOpowiesci opowiesci={opow} nazwyMiejsc={n.miejsca} />
                     </Sekcja>
                 </>
