@@ -4,14 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "test": "tsx --test lib/edtf.test.ts",
+    "test": "tsx --test lib/edtf.test.ts lib/odmiana.test.ts",
     "thumbs": "node scripts/generate-thumbs.mjs",
     "eksport:omeka": "tsx scripts/eksport-omeka.ts",
     "zasiej": "tsx scripts/zasiej.ts",
     "build": "npm test && node scripts/generate-thumbs.mjs && npm run eksport:omeka && next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "lint": "next lint"
+    "lint": "next lint",
+    "formy": "tsx scripts/formy-odmiany.ts"
   },
   "dependencies": {
     "@keystatic/core": "^0.5.48",
@@ -52,12 +53,14 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.19.32",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/react-syntax-highlighter": "^15.5.11",
     "eslint": "^9.39.2",
     "eslint-config-next": "^15.5.12",
+    "js-yaml": "^4.1.0",
     "npm-run-all": "^4.1.5",
     "postcss": "^8",
     "tailwindcss": "^4.1.18",

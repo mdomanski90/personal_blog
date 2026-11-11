@@ -2,6 +2,7 @@ import { config, collection, singleton, fields } from '@keystatic/core';
 import { wrapper, repeating } from '@keystatic/core/content-components';
 import { EDTF_OPIS, EDTF_REGEX } from './lib/edtf';
 import { identyfikatorZNazwy } from './lib/tekst';
+import { NAZWY_OBIEKTOW } from './lib/tarcze';
 
 // Model danych: claude/odniepamieci-model-danych.md (projekt „own www”).
 // Nazwy pól w plikach jak w Dublin Core – ułatwia późniejszy eksport do Omeka S.
@@ -35,7 +36,7 @@ function nazwaIIdentyfikatorObiektu() {
 const inneNazwy = () =>
   fields.array(fields.text({ label: 'Nazwa lub forma' }), {
     label: 'Inne nazwy i formy',
-    description: 'Odmiana (w Olszance, z Olszanki), nazwy dawne, zapis cyrylicą i łaciną. Używane przez wyszukiwarkę i wzmianki.',
+    description: 'Nazwy dawne i urzędowe, zapis cyrylicą i łaciną (np. Stare Łepki, Ольшанка). Widoczne na stronie. Odmiana – w polu „Formy odmiany”.',
     itemLabel: (p) => p.value || 'nowa forma',
   });
 
@@ -44,6 +45,13 @@ const dataEdtf = (etykieta: string) =>
     label: etykieta,
     description: EDTF_OPIS,
     validation: { pattern: { regex: EDTF_REGEX, message: 'Niepoprawny zapis daty. ' + EDTF_OPIS } },
+  });
+
+const formyOdmiany = () =>
+  fields.array(fields.text({ label: 'Forma' }), {
+    label: 'Formy odmiany',
+    description: 'Niewidoczne na stronie – dla wyszukiwarki (i później wzmianek). Uzupełnia je polecenie „npm run formy”; możesz poprawić lub dopisać formy dawne (np. Korczowki).',
+    itemLabel: (p) => p.value,
   });
 
 const widocznosc = () =>
@@ -161,6 +169,7 @@ export default config({
       schema: {
         title: nazwaIIdentyfikator('Nazwa'),
         alternative: inneNazwy(),
+        inflections: formyOdmiany(),
         type: fields.select({
           label: 'Rodzaj',
           options: [
@@ -169,7 +178,6 @@ export default config({
             { label: 'kraina (np. ziemia łosicka)', value: 'kraina' },
             { label: 'gmina', value: 'gmina' },
             { label: 'parafia', value: 'parafia' },
-            { label: 'cmentarz', value: 'cmentarz' },
             { label: 'folwark', value: 'folwark' },
             { label: 'inne', value: 'inne' },
           ],
@@ -214,6 +222,7 @@ export default config({
       schema: {
         title: nazwaIIdentyfikator('Nazwa'),
         alternative: inneNazwy(),
+        inflections: formyOdmiany(),
         type: fields.select({
           label: 'Rodzaj',
           options: [
@@ -232,7 +241,7 @@ export default config({
       },
     }),
     obiekty: collection({
-      label: 'Obiekty (świątynie)',
+      label: 'Obiekty w terenie',
       slugField: 'title',
       path: 'content/obiekty/*',
       format: { contentField: 'description' },
@@ -242,12 +251,7 @@ export default config({
         alternative: inneNazwy(),
         type: fields.select({
           label: 'Rodzaj',
-          options: [
-            { label: 'cerkiew unicka', value: 'cerkiew-unicka' },
-            { label: 'cerkiew prawosławna', value: 'cerkiew-prawoslawna' },
-            { label: 'kościół katolicki', value: 'kosciol' },
-            { label: 'bóżnica', value: 'boznica' },
-          ],
+          options: Object.entries(NAZWY_OBIEKTOW).map(([value, label]) => ({ label, value })),
           defaultValue: 'cerkiew-unicka',
         }),
         spatial: fields.relationship({ label: 'Miejscowość', collection: 'miejsca' }),

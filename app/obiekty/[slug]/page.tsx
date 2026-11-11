@@ -5,7 +5,7 @@ import { miejsca, obiekt, obiekty, poziomCzytelnika, RODZAJE_OBIEKTOW } from '@/
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
 import { punktyMapy } from '@/lib/punkty-mapy'
-import { tarczaSwiatyni, type RodzajSwiatyni } from '@/lib/tarcze'
+import { tarczaObiektu } from '@/lib/tarcze'
 import { Metki, Strona, Tresc, TytulStrony, Wiersz } from '../../components/Uklad'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
@@ -34,7 +34,7 @@ export default async function ObiektStrona({ params }: Parametry) {
         <Strona>
             <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]}>
                 <span className="inline-flex items-center" style={{ gap: 10 }}>
-                    <span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaSwiatyni(o.rodzaj as RodzajSwiatyni, rodzaj, 36, o.istnieje) }} />
+                    <span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaObiektu(o.rodzaj, rodzaj, 36, o.istnieje) }} />
                     {o.nazwa}
                 </span>
             </TytulStrony>

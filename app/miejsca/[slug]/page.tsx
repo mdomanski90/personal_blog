@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
 import { miejsca, miejsce, nazwy, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, WYZNANIA_MIEJSC } from '@/lib/archiwum'
 import { punktyMapy } from '@/lib/punkty-mapy'
-import { tarczaSwiatyni, type RodzajSwiatyni } from '@/lib/tarcze'
+import { tarczaObiektu } from '@/lib/tarcze'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
 import { Metki, Sekcja, Strona, Tresc, TytulStrony, Wiersz, Kreski } from '../../components/Uklad'
@@ -72,11 +72,11 @@ export default async function MiejsceStrona({ params }: Parametry) {
             {opisHtml && <Tresc html={opisHtml} />}
 
             {swiatynie.length > 0 && (
-                <Sekcja tytul="świątynie">
+                <Sekcja tytul="w terenie">
                     <ul className="flex flex-col" style={{ gap: 6 }}>
                         {swiatynie.map((o) => (
                             <li key={o.id} className="flex items-center" style={{ gap: 8, fontSize: 'calc(15px * var(--font-scale, 1))' }}>
-                                <span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaSwiatyni(o.rodzaj as RodzajSwiatyni, RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, 26, o.istnieje) }} />
+                                <span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaObiektu(o.rodzaj, RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, 26, o.istnieje) }} />
                                 <Link href={`/obiekty/${o.id}`}>{o.nazwa}</Link>
                                 <span className="text-gray-500" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>
                                     {[o.czas && formatujEdtf(o.czas), !o.istnieje && 'nie istnieje'].filter(Boolean).join(' · ')}

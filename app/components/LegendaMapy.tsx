@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { SWIATYNIE, WYZNANIA, tarczaMiejsca, tarczaSwiatyni, type RodzajSwiatyni, type Wyznanie } from '@/lib/tarcze'
+import { NAZWY_OBIEKTOW, WYZNANIA, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
 
 function Pozycja({ html, children }: { html: string; children: React.ReactNode }) {
     return (
@@ -10,8 +10,9 @@ function Pozycja({ html, children }: { html: string; children: React.ReactNode }
     )
 }
 
-/** Objaśnienie znaków mapy; `swiatynie` – czy pokazać też znaki świątyń. */
-export default function LegendaMapy({ swiatynie = true }: { swiatynie?: boolean }) {
+/** Objaśnienie znaków mapy; `rodzajeObiektow` – rodzaje obiektów obecne na mapie (tylko one trafiają do legendy). */
+export default function LegendaMapy({ rodzajeObiektow = [] }: { rodzajeObiektow?: string[] }) {
+    const obecne = Object.keys(NAZWY_OBIEKTOW).filter((r) => rodzajeObiektow.includes(r))
     return (
         <details className="lowercase" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>
             <summary className="cursor-pointer text-gray-600 dark:text-gray-400 w-fit">objaśnienie znaków</summary>
@@ -22,11 +23,10 @@ export default function LegendaMapy({ swiatynie = true }: { swiatynie?: boolean 
                 ))}
                 <Pozycja html={tarczaMiejsca('wies', '', 'wieś', 24)}>wieś – wyznanie nieopisane</Pozycja>
                 <Pozycja html={tarczaMiejsca('wies', '', 'położenie przybliżone', 24, true)}>położenie przybliżone</Pozycja>
-                {swiatynie &&
-                    (Object.keys(SWIATYNIE) as RodzajSwiatyni[]).map((r) => (
-                        <Pozycja key={r} html={tarczaSwiatyni(r, SWIATYNIE[r], 26)}>{SWIATYNIE[r]}</Pozycja>
-                    ))}
-                {swiatynie && <Pozycja html={tarczaSwiatyni('cerkiew-unicka', 'nieistniejąca', 26, false)}>świątynia nieistniejąca</Pozycja>}
+                {obecne.map((r) => (
+                    <Pozycja key={r} html={tarczaObiektu(r, NAZWY_OBIEKTOW[r], 26)}>{NAZWY_OBIEKTOW[r]}</Pozycja>
+                ))}
+                {obecne.length > 0 && <Pozycja html={tarczaObiektu(obecne[0], 'nieistniejący', 26, false)}>obiekt nieistniejący</Pozycja>}
             </div>
         </details>
     )

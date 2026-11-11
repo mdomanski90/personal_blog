@@ -27,7 +27,7 @@ export default async function Miejsca() {
                         {bez === miejscowosci.length ? 'żadna miejscowość nie ma jeszcze współrzędnych.' : `${bez} z ${miejscowosci.length} miejscowości nie ma jeszcze współrzędnych.`}
                     </p>
                 )}
-                <LegendaMapy swiatynie={ob.length > 0} />
+                <LegendaMapy rodzajeObiektow={[...new Set(ob.filter((o) => o.wspolrzedne).map((o) => o.rodzaj))]} />
             </div>
             <SpisMiejsc grupy={await miejscaWedlugObszarow(poziom)} />
         </Strona>

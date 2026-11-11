@@ -33,6 +33,8 @@ export interface Miejsce {
     id: string
     nazwa: string
     inneNazwy: string[]
+    /** formy odmiany – tylko do wyszukiwania i wzmianek, nie do wyświetlania */
+    formy: string[]
     rodzaj: string
     wspolrzedne: [number, number] | null
     przyblizone: boolean
@@ -49,6 +51,7 @@ export interface Temat {
     id: string
     nazwa: string
     inneNazwy: string[]
+    formy: string[]
     rodzaj: string
     czas: string
     miejsca: string[]
@@ -74,9 +77,8 @@ export const RODZAJE_MIEJSC: Record<string, string> = {
 }
 /** Rodzaje miejsc, które są obszarami (dzielą spis), a nie punktami na mapie. */
 export const OBSZARY = ['kraina', 'gmina']
-export const RODZAJE_OBIEKTOW: Record<string, string> = {
-    'cerkiew-unicka': 'cerkiew unicka', 'cerkiew-prawoslawna': 'cerkiew prawosławna', kosciol: 'kościół katolicki', boznica: 'bóżnica',
-}
+export { NAZWY_OBIEKTOW as RODZAJE_OBIEKTOW } from './tarcze'
+import { NAZWY_OBIEKTOW } from './tarcze'
 export const WYZNANIA_MIEJSC: Record<string, string> = {
     unicka: 'unickie', katolicka: 'katolickie', mieszana: 'mieszane (unici i katolicy)', prawoslawna: 'prawosławne',
 }
@@ -117,6 +119,7 @@ const wszystkieMiejscaSurowe = cache(async (): Promise<Miejsce[]> => {
             id: slug,
             nazwa: entry.title,
             inneNazwy: [...entry.alternative].filter(Boolean),
+            formy: [...entry.inflections].filter(Boolean),
             rodzaj: entry.type,
             wspolrzedne: parsujWspolrzedne(entry.coordinates),
             przyblizone: entry.approximate,
@@ -137,6 +140,7 @@ const wszystkieTematySurowe = cache(async (): Promise<Temat[]> => {
             id: slug,
             nazwa: entry.title,
             inneNazwy: [...entry.alternative].filter(Boolean),
+            formy: [...entry.inflections].filter(Boolean),
             rodzaj: entry.type,
             czas: entry.temporal,
             miejsca: [...entry.spatial],
@@ -349,7 +353,8 @@ function fragmentWokol(tekst: string, fraza: string): string {
 }
 
 export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wynik[]> {
-    const fraza = normalizuj(zapytanie)
+    // „w Korczówce”, „z Olszanki” – przyimek pomijamy, formy odmiany są przy nazwach
+    const fraza = normalizuj(zapytanie).replace(/^(w|we|z|ze|do|na|od|po|pod|przy|nad|ku|koło|kolo)\s+(?=\S)/, '')
     if (fraza.length < 2) return []
     const wyniki: (Wynik & { waga: number })[] = []
     const ocen = (nazwy: string[], tekst: string) => {
@@ -360,17 +365,17 @@ export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wyn
     }
     for (const m of await miejsca(poziom)) {
         const tekst = naTekst(m.opis)
-        const waga = ocen([m.nazwa, ...m.inneNazwy], tekst)
+        const waga = ocen([m.nazwa, ...m.inneNazwy, ...m.formy], tekst)
         if (waga) wyniki.push({ rodzaj: 'miejsce', id: m.id, tytul: m.nazwa, adres: `/miejsca/${m.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : m.inneNazwy.join(', '), waga })
     }
     for (const o of await obiekty(poziom)) {
         const tekst = naTekst(o.opis)
         const waga = ocen([o.nazwa, ...o.inneNazwy], tekst)
-        if (waga) wyniki.push({ rodzaj: 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, waga })
+        if (waga) wyniki.push({ rodzaj: 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : NAZWY_OBIEKTOW[o.rodzaj] ?? o.rodzaj, waga })
     }
     for (const t of await tematy(poziom)) {
         const tekst = naTekst(t.opis)
-        const waga = ocen([t.nazwa, ...t.inneNazwy], tekst)
+        const waga = ocen([t.nazwa, ...t.inneNazwy, ...t.formy], tekst)
         if (waga) wyniki.push({ rodzaj: 'temat', id: t.id, tytul: t.nazwa, adres: `/tematy/${t.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : t.inneNazwy.join(', '), waga })
     }
     for (const o of await opowiesci(poziom)) {
