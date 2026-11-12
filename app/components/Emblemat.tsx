@@ -72,9 +72,9 @@ export default function Emblemat({ rozmiar = 56, animacja = true }: { rozmiar?: 
                     style={{ animationDelay: `${k.o}s`, animationDuration: `${k.t ?? 0.6}s` } as React.CSSProperties}
                 />
             ))}
-            <text className="emblemat-napis" fill="currentColor" stroke="none" fontSize={5} fontWeight={700} letterSpacing={0.6} textAnchor="middle" aria-hidden="true">
-                <tspan x={40} y={88.5}>KAPLICZKA</tspan>
-                <tspan x={40} y={95}>W OLSZANCE</tspan>
+            <text className="emblemat-napis" fill="currentColor" stroke="none" fontSize={4.4} fontWeight={700} letterSpacing={0.5} textAnchor="middle" aria-hidden="true">
+                <tspan x={40} y={88.3}>KAPLICZKA</tspan>
+                <tspan x={40} y={94.3}>W OLSZANCE</tspan>
             </text>
         </svg>
     )
