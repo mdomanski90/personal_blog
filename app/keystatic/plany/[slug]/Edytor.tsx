@@ -36,6 +36,23 @@ const odwrotna = (m: Macierz): Macierz => {
     return [d / det, -b / det, -c / det, a / det, (c * f - d * e) / det, (b * e - a * f) / det]
 }
 
+/** Same kontury elementów (bez wypełnień), zawsze w pełni widoczne, z jasną obwódką na tle podkładu. */
+function Kontury({ elementy, r }: { elementy: Element[]; r: number }) {
+    const ksztalty = elementy.map((e) => {
+        const g = e.g
+        if (g.k === 't') return null
+        if (g.k === 'p') return <circle key={e.id} cx={g.x} cy={g.y} r={r * 0.6} />
+        const pkt = punktyElementu(g).map((q) => q.join(',')).join(' ')
+        return g.k === 'l' ? <polyline key={e.id} points={pkt} /> : <polygon key={e.id} points={pkt} />
+    })
+    return (
+        <g pointerEvents="none" fill="none">
+            <g className="ed-kontur-tlo">{ksztalty}</g>
+            <g className="ed-kontur">{ksztalty}</g>
+        </g>
+    )
+}
+
 export default function Edytor({ slug }: { slug: string }) {
     const [plan, ustawPlanSurowo] = React.useState<Plan | null>(null)
     const [ust, ustawUst] = React.useState<UstawieniaPlanow>({ progLat: 30, ukryteTypy: [], wlasneTypy: [] })
@@ -631,6 +648,10 @@ export default function Edytor({ slug }: { slug: string }) {
                         <g opacity={plan.podklady.some((p) => !ukrytePodklady.has(p.id)) ? kryRys : 1}>
                             <RysunekPlanu plan={{ ...plan, obrot: 0 }} o={{ prefix, typy, ukryteTypy, wybrane: zazn, numery, ukryteWarstwy, edycja: true }} />
                         </g>
+                        {/* przy przezroczystym rysunku kontury zostają w pełni widoczne – żeby było widać, co się edytuje */}
+                        {plan.podklady.some((p) => !ukrytePodklady.has(p.id)) && kryRys < 1 && (
+                            <Kontury elementy={plan.elementy.filter((e) => !ukryteTypy.has(e.typ) && !ukryteWarstwy.has(typy.get(e.typ)?.warstwa ?? ''))} r={r} />
+                        )}
                         <Nakladka plan={plan} wzor={zazn.size === 1 ? wzor : null} zaznaczone={zaznaczone} r={r} u={u} />
                         {duchy.map((d) => <polygon key={d.id} points={punktyElementu(d.g).map((q) => q.join(',')).join(' ')} className="ed-duch" />)}
                         {ramka && <rect x={Math.min(ramka[0][0], ramka[1][0])} y={Math.min(ramka[0][1], ramka[1][1])} width={Math.abs(ramka[1][0] - ramka[0][0])} height={Math.abs(ramka[1][1] - ramka[0][1])} className="ed-ramka" />}
@@ -1087,6 +1108,8 @@ p.ed-maly,span.ed-maly{cursor:default}
 .ed-uch-l{stroke:#1d4ed8;stroke-width:1.5;vector-effect:non-scaling-stroke}
 .ed-obw{fill:none;stroke:#1d4ed8;stroke-width:1.2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
 .ed-ramka{fill:rgba(29,78,216,.08);stroke:#1d4ed8;stroke-width:1.2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;pointer-events:none}
+.ed-kontur-tlo *{stroke:rgba(255,255,255,.85);stroke-width:3;vector-effect:non-scaling-stroke}
+.ed-kontur *{stroke:#1f2937;stroke-width:1.1;vector-effect:non-scaling-stroke}
 .ed-duch{fill:rgba(29,78,216,.1);stroke:#1d4ed8;stroke-width:1.2;stroke-dasharray:5 4;vector-effect:non-scaling-stroke;pointer-events:none}
 .ed-rys{fill:none;stroke:#1d4ed8;stroke-width:2;vector-effect:non-scaling-stroke}
 .ed-miarka{fill:none;stroke:#b45309;stroke-width:2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
