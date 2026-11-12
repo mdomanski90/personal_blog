@@ -5,7 +5,7 @@ import { miejsca, obiekt, obiekty, materialyDla, powiazania, poziomCzytelnika, k
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
 import { punktyMapy } from '@/lib/punkty-mapy'
-import { dolaczPlany } from '@/lib/plany/serwer'
+import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import { tarczaObiektu } from '@/lib/tarcze'
 import { Kreski, Metki, Sekcja, Strona, Tresc, TytulStrony, Wiersz } from '../../components/Uklad'
 import Powiazania from '../../components/Powiazania'
@@ -35,6 +35,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     const wszystkie = await miejsca(poziom)
     const wies = o.miejsce ? wszystkie.find((m) => m.id === o.miejsce) : undefined
     const punkty = o.wspolrzedne ? await dolaczPlany(punktyMapy(wszystkie, await obiekty(poziom))) : []
+    const planyGeo = await planyNaMape()
     const rodzaj = RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj
     const siec = await powiazania('obiekt', o.id, poziom)
     const mat = await materialyDla('obiekt', o.id, poziom)
@@ -61,7 +62,7 @@ export default async function ObiektStrona({ params }: Parametry) {
                         {o.wspolrzedne ? `${o.wspolrzedne[0]}, ${o.wspolrzedne[1]}${o.przyblizone ? ' (przybliżone)' : ''}` : <span className="text-gray-500">brak</span>}
                     </Wiersz>
                 </div>
-                {o.wspolrzedne && <MapaMiejscLeniwa punkty={punkty} srodek={o.wspolrzedne} przyblizenie={14} wysokosc={300} />}
+                {o.wspolrzedne && <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={14} wysokosc={300} />}
             </div>
 
             <Tresc html={naHtml(o.opis, await kontekstTresci(poziom))} />

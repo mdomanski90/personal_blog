@@ -4,7 +4,7 @@ import { Link } from 'next-view-transitions'
 import { licznikiMiejsc, materialy, miejsca, miejsce, nazwy, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, WYZNANIA_MIEJSC, materialyDla, powiazania, kontekstTresci, ksiegiDlaMiejsca, parafie } from '@/lib/archiwum'
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
 import { punktyMapy } from '@/lib/punkty-mapy'
-import { dolaczPlany } from '@/lib/plany/serwer'
+import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import { tarczaObiektu } from '@/lib/tarcze'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
@@ -47,6 +47,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const opisHtml = naHtml(m.opis, await kontekstTresci(poziom))
     const swiatynie = await obiektyDlaMiejsca(m.id, poziom)
     const punkty = m.wspolrzedne || m.rodzaj === 'gmina' ? await dolaczPlany(punktyMapy(wszystkie, await obiekty(poziom))) : []
+    const planyGeo = await planyNaMape()
     const obszar = OBSZARY.includes(m.rodzaj)
     const siec = await powiazania('miejsce', m.id, poziom)
     const mat = await materialyDla('miejsce', m.id, poziom)
@@ -117,8 +118,8 @@ export default async function MiejsceStrona({ params }: Parametry) {
                 </div>
                 {(m.wspolrzedne || (m.rodzaj === 'gmina' && punkty.length > 0)) && <div style={{ position: 'relative', minHeight: m.rodzaj === 'gmina' ? 340 : 300 }}><div style={{ position: 'absolute', inset: 0 }}>
                     {m.rodzaj === 'gmina'
-                        ? <MapaMiejscLeniwa punkty={punkty} wysokosc="100%" obrys={{ url: '/granice/gminy-okolic.geojson', nazwa: m.nazwa.replace(/^gmina /i, '') }} wyroznione={[...idsGminy]} />
-                        : <MapaMiejscLeniwa punkty={punkty} srodek={m.wspolrzedne ?? undefined} wysokosc="100%" />}
+                        ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} wysokosc="100%" obrys={{ url: '/granice/gminy-okolic.geojson', nazwa: m.nazwa.replace(/^gmina /i, '') }} wyroznione={[...idsGminy]} />
+                        : <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={m.wspolrzedne ?? undefined} wysokosc="100%" />}
                 </div></div>}
             </div>
 

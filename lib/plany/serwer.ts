@@ -1,7 +1,8 @@
 // Wspólne dla stron i tras: plan widziany przez bieżącego czytelnika, wydawanie plików.
 import fs from 'node:fs'
 import { poziomCzytelnika } from '@/lib/archiwum'
-import { dlaCzytelnika, widoczne, type Plan } from './model'
+import { dlaCzytelnika, planNaGeo, widoczne, type Plan } from './model'
+import { kadr } from '@/app/components/plan/Rysunek'
 import { sciezkaPliku, wczytajPlan, wczytajUstawienia, listaPlanow } from './dane'
 import { mimePliku } from '@/lib/pliki'
 
@@ -46,4 +47,25 @@ export async function dolaczPlany<T extends { id: string; typ: 'miejsce' | 'obie
         const L = plany.filter((p) => (pt.typ === 'obiekt' ? p.obiekt === pt.id : p.miejsce === pt.id)).sort((a, b) => Number(!!a.obiekt) - Number(!!b.obiekt))
         return L.length ? { ...pt, plany: L.map((p) => ({ slug: p.slug, tytul: p.tytul })) } : pt
     })
+}
+
+export interface PlanNaMapie {
+    slug: string
+    tytul: string
+    /** narożniki obrazu planu: lewy górny, prawy górny, prawy dolny, lewy dolny – [dł., szer.] */
+    naroza: [[number, number], [number, number], [number, number], [number, number]]
+}
+
+/** Plany z punktami geo (co najmniej 2), widoczne dla czytelnika – do nałożenia na mapę przy dużym przybliżeniu. */
+export async function planyNaMape(): Promise<PlanNaMapie[]> {
+    const poziom = (await poziomCzytelnika()) === 'bliscy' ? 'bliscy' : 'publiczne'
+    const wyn: PlanNaMapie[] = []
+    for (const p of await listaPlanow()) {
+        if (!widoczne(p.widocznosc, poziom) || p.geo.length < 2) continue
+        const f = planNaGeo(p.geo)
+        if (!f) continue
+        const [x, y, w, h] = kadr({ ...p, obrot: 0 })
+        wyn.push({ slug: p.slug, tytul: p.tytul, naroza: [f([x, y]), f([x + w, y]), f([x + w, y + h]), f([x, y + h])] })
+    }
+    return wyn
 }

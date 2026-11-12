@@ -111,6 +111,16 @@ const komponenty = {
       podpis: fields.text({ label: 'Podpis', description: 'Puste – tytuł materiału.' }),
     },
   }),
+  drzewo: block({
+    label: 'Drzewo osoby',
+    description: 'Drzewo z działu „osoby”: przodkowie nad osobą, potomkowie pod nią (na telefonie jako lista). Osoby żyjące widzą tylko zalogowani.',
+    schema: {
+      osoba: fields.text({ label: 'Osoba', description: 'Identyfikator z panelu osób (/keystatic/osoby), np. jan-kowalski-1862 – widać go na dole karty osoby.', validation: { length: { min: 1 } } }),
+      wstecz: fields.integer({ label: 'Pokolenia wstecz', defaultValue: 2, validation: { min: 0, max: 4 } }),
+      naprzod: fields.integer({ label: 'Pokolenia naprzód', defaultValue: 1, validation: { min: 0, max: 3 } }),
+      zakres: fields.select({ label: 'Zakres', options: [{ label: 'linia prosta', value: 'linia' }, { label: 'z małżonkami', value: 'malzonkowie' }, { label: 'z rodzeństwem', value: 'rodzenstwo' }], defaultValue: 'malzonkowie' }),
+    },
+  }),
   kolumna: wrapper({
     label: 'Kolumna',
     forSpecificLocations: true,

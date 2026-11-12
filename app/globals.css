@@ -482,3 +482,60 @@ header .emblemat { height: clamp(44px, 12vw, 64px); width: auto; display: block;
   body.drukuj-plan .plan-do-druku,body.drukuj-plan .plan-do-druku *{visibility:visible}
   body.drukuj-plan .plan-do-druku{position:absolute;left:0;top:0;width:100%}
 }
+
+/* Osoby: lista, odnośniki w kolorach płci, obrządek, drzewo (klepsydra na komputerze, lista na telefonie) */
+.osoby-lista { display: flex; flex-direction: column; gap: 2px; list-style: none; padding: 0; margin: 0; font-size: calc(15px * var(--font-scale, 1)); }
+.osoba-link { text-decoration: none !important; padding: 0 4px; border-radius: 4px; }
+.osoba-link:hover { text-decoration: underline !important; }
+.osoba-K { background: #fcf3f6; box-shadow: inset 0 0 0 1px #f1d9e2; }
+.osoba-M { background: #f2f7fc; box-shadow: inset 0 0 0 1px #d5e3f3; }
+.osoba-U { background: #f4f3f0; box-shadow: inset 0 0 0 1px #e2e0da; }
+.dark .osoba-K { background: #3a2730; box-shadow: inset 0 0 0 1px #5a3a48; }
+.dark .osoba-M { background: #233040; box-shadow: inset 0 0 0 1px #34485f; }
+.dark .osoba-U { background: #2a2a2a; box-shadow: inset 0 0 0 1px #404040; }
+.osoba-ukryta { color: #6b7280; font-style: italic; }
+.obrzadek { display: inline-block; font-size: 0.82em; padding: 0 6px; border-radius: 5px; color: var(--kolor); box-shadow: inset 0 0 0 1px var(--kolor); white-space: nowrap; }
+.dark .obrzadek { filter: brightness(1.6); }
+
+.drzewo { margin: 0.5rem 0; font-size: calc(13px * var(--font-scale, 1)); }
+.drzewo .dr-klepsydra { display: flex; flex-direction: column; align-items: center; gap: 10px; overflow-x: auto; padding: 4px 0; }
+.drzewo .dr-galaz { display: flex; align-items: center; gap: 8px; }
+.drzewo .dr-gora { flex-direction: column; }
+.drzewo .dr-dol { flex-direction: column; }
+.drzewo .dr-pokolenie { display: flex; gap: 10px; justify-content: center; align-items: flex-start; }
+.drzewo .dr-gora > .dr-pokolenie { align-items: flex-end; position: relative; padding-bottom: 8px; }
+.drzewo .dr-gora > .dr-pokolenie::after { content: ''; position: absolute; left: 25%; right: 25%; bottom: 0; border-top: 1px solid #c9c4b8; }
+.drzewo .dr-potomni { display: flex; flex-direction: column; gap: 8px; align-items: center; padding-top: 8px; border-top: 1px solid #c9c4b8; }
+.drzewo .dr-rodzina { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.drzewo .dr-malzonek { display: flex; align-items: center; gap: 4px; }
+.drzewo .dr-rodzenstwo { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.drzewo .dr-podpis { color: #6b7280; }
+.drzewo .dr-karta { display: flex; flex-direction: column; align-items: center; min-width: 7.5rem; max-width: 10rem; padding: 4px 8px; border-radius: 8px; text-align: center; text-decoration: none !important; color: inherit; line-height: 1.25; transition: transform .15s ease; }
+.drzewo a.dr-karta:hover { transform: scale(1.04); }
+.drzewo .dr-K { background: #fcf3f6; border: 1px solid #f1d9e2; }
+.drzewo .dr-M { background: #f2f7fc; border: 1px solid #d5e3f3; }
+.drzewo .dr-U { background: #f4f3f0; border: 1px solid #e2e0da; }
+.drzewo .dr-glowna { font-weight: 700; box-shadow: 0 0 0 2px currentColor; }
+.drzewo .dr-ukryta { background: #eeeeec; border: 1px dashed #c4c4c0; color: #6b7280; }
+.drzewo .dr-brak { color: #9ca3af; border: 1px dashed #e2e0da; }
+.drzewo .dr-lata { color: #6b7280; font-size: 0.9em; }
+.dark .drzewo .dr-K { background: #3a2730; border-color: #5a3a48; }
+.dark .drzewo .dr-M { background: #233040; border-color: #34485f; }
+.dark .drzewo .dr-U, .dark .drzewo .dr-ukryta { background: #2a2a2a; border-color: #404040; }
+.dark .drzewo .dr-gora > .dr-pokolenie::after, .dark .drzewo .dr-potomni { border-color: #4b5563; }
+.drzewo { position: relative; }
+/* lista dostępna dla czytników ekranu także na komputerze (klepsydra jest aria-hidden) */
+.drzewo .dr-tekst { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.drzewo .dr-tekst ul { list-style: none; margin: 0; padding-left: 1rem; border-left: 1px solid #d1d5db; }
+.drzewo .dr-tekst li { margin: 2px 0; }
+.drzewo .dr-t-osoba { font-weight: 700; margin: 0 0 4px; }
+.drzewo .dr-t-naglowek { margin: 8px 0 2px; color: #6b7280; }
+.drzewo .dr-t-ukryta { color: #6b7280; font-style: italic; }
+.drzewo .dr-t-K { background: #fcf3f6; padding: 0 3px; border-radius: 3px; }
+.drzewo .dr-t-M { background: #f2f7fc; padding: 0 3px; border-radius: 3px; }
+.dark .drzewo .dr-t-K { background: #3a2730; }
+.dark .drzewo .dr-t-M { background: #233040; }
+@media (max-width: 640px) {
+  .drzewo .dr-klepsydra { display: none; }
+  .drzewo .dr-tekst { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
+}

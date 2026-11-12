@@ -11,6 +11,7 @@ import { LngLatBounds, Map as MapaGL, NavigationControl, setWorkerUrl, type GeoJ
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
 import { ATRYBUCJA_GRANIC, LATA_GRANIC, LEGENDA_PANSTW, PUSTE, WARSTWY_OKRESU, czyRzeczpospolita, czyZiemie, etykietaOkresu, nazwaNaMapie, wczytajOkres, warstwyOkresu } from '@/lib/granice'
+import type { PlanNaMapie } from '@/lib/plany/serwer'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
 
 export interface PunktMapy {
@@ -68,6 +69,7 @@ export default function MapaMiejsc({
     zapamietaj,
     obrys,
     wyroznione,
+    planyGeo,
 }: {
     punkty: PunktMapy[]
     wysokosc?: number | string
@@ -82,6 +84,8 @@ export default function MapaMiejsc({
     obrys?: { url: string; nazwa: string }
     /** miejscowości wyróżnione (np. wsie gminy) – pozostałe przygaszone */
     wyroznione?: string[]
+    /** plany z punktami geo – obraz planu na mapie przy dużym przybliżeniu */
+    planyGeo?: PlanNaMapie[]
 }) {
     const kontener = useRef<HTMLDivElement>(null)
     const mapa = useRef<MapaGL | null>(null)
@@ -96,6 +100,11 @@ export default function MapaMiejsc({
     const nazwyMiejsc = punkty.filter((p) => p.typ === 'miejsce').map((p) => p.nazwa)
     const grupy = Object.keys(GRUPY_OBIEKTOW).filter((g) => punkty.some((p) => p.typ === 'obiekt' && grupaObiektu(p.rodzaj) === g))
     const [aktywne, setAktywne] = useState<string[]>(grupy)
+    const [pokazPlany, setPokazPlany] = useState(true)
+    const pokazPlanyRef = useRef(pokazPlany)
+    pokazPlanyRef.current = pokazPlany
+    const planyRef = useRef(planyGeo ?? [])
+    planyRef.current = planyGeo ?? []
     const aktywneRef = useRef(aktywne)
     aktywneRef.current = aktywne
     const [zoom, setZoom] = useState(srodek ? przyblizenie : 10)
@@ -197,6 +206,13 @@ export default function MapaMiejsc({
                     dodaj(f.geometry.coordinates)
                     m.fitBounds(b, { padding: 30, duration: 0 })
                 }).catch(() => {})
+            }
+            // plany (cmentarze, wsie) z punktami geo – obraz rysunku na mapie przy dużym przybliżeniu
+            for (const pl of planyRef.current) {
+                const id = `plan-${pl.slug}`
+                if (m.getSource(id)) continue
+                m.addSource(id, { type: 'image', url: `/plany/${encodeURIComponent(pl.slug)}/mapa.png`, coordinates: pl.naroza })
+                m.addLayer({ id, type: 'raster', source: id, minzoom: 14, layout: { visibility: pokazPlanyRef.current ? 'visible' : 'none' }, paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.6, 0.92], 'raster-fade-duration': 0 } })
             }
             // obiekty dopiero po przybliżeniu (przy oddaleniu zasłaniałyby tarcze miejscowości), nazwy od 13
             m.addLayer({
@@ -370,6 +386,12 @@ export default function MapaMiejsc({
 
     useEffect(() => {
         const m = mapa.current
+        if (!m) return
+        for (const pl of planyRef.current) if (m.getLayer(`plan-${pl.slug}`)) m.setLayoutProperty(`plan-${pl.slug}`, 'visibility', pokazPlany ? 'visible' : 'none')
+    }, [pokazPlany])
+
+    useEffect(() => {
+        const m = mapa.current
         if (!m || !granice) return
         pokazOkresRef.current(rok)
         odswiezNapisyRef.current()
@@ -388,7 +410,7 @@ export default function MapaMiejsc({
     const wypelnij = typeof wysokosc === 'string'
     return (
         <div className="flex flex-col" style={{ gap: 6, height: wypelnij ? wysokosc : undefined }}>
-            {grupy.length > 0 && (
+            {(grupy.length > 0 || (planyGeo?.length ?? 0) > 0) && (
                 <div className="flex flex-wrap items-center" style={{ gap: '6px 12px', fontSize: 'calc(13px * var(--font-scale, 1))' }}>
                     <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1, paddingTop: 1 }} role="group" aria-label="pokaż na mapie">
                         {grupy.map((g) => {
@@ -406,8 +428,20 @@ export default function MapaMiejsc({
                                 </button>
                             )
                         })}
+                        {(planyGeo?.length ?? 0) > 0 && (
+                            <button
+                                type="button"
+                                aria-pressed={pokazPlany}
+                                onClick={() => setPokazPlany((x) => !x)}
+                                title="rysunki planów (cmentarzy, wsi) na mapie przy dużym przybliżeniu"
+                                className={`border border-[#d1d5db] dark:border-[#4b5563] lowercase cursor-pointer ${pokazPlany ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
+                                style={{ margin: '-1px 0 0 -1px', padding: '0 10px', height: 26, fontSize: 'inherit', fontFamily: 'inherit' }}
+                            >
+                                plany
+                            </button>
+                        )}
                     </div>
-                    {zoom < PROG_OBIEKTOW && aktywne.length > 0 && <span className="text-gray-500 lowercase">przybliż mapę, żeby zobaczyć obiekty</span>}
+                    {zoom < PROG_OBIEKTOW && (aktywne.length > 0 || (planyGeo?.length ?? 0) > 0) && <span className="text-gray-500 lowercase">przybliż mapę, żeby zobaczyć obiekty{(planyGeo?.length ?? 0) > 0 ? ' i plany' : ''}</span>}
                 </div>
             )}
             <div style={{ position: 'relative', ...(wypelnij ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : {}) }}>

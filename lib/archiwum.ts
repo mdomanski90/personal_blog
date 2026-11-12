@@ -569,7 +569,10 @@ export const rozwiazOdnosniki = cache(async (poziom: Widocznosc): Promise<Rozwia
 /** Wszystko, czego treść potrzebuje przy renderowaniu: odnośniki [[…]] i wstawione materiały. */
 export const kontekstTresci = cache(async (poziom: Widocznosc): Promise<KontekstTresci> => {
     const mat = new Map<string, MaterialWstawki>((await materialy(poziom)).map((m) => [m.id, { id: m.id, nazwa: m.nazwa, rodzaj: m.rodzaj, plik: m.plik }]))
-    return { rozwiaz: await rozwiazOdnosniki(poziom), material: (id) => mat.get(id) ?? null }
+    const { stanOsob } = await import('./osoby/dane')
+    const { drzewoOsoby } = await import('./osoby/drzewo')
+    const stan = await stanOsob()
+    return { rozwiaz: await rozwiazOdnosniki(poziom), material: (id) => mat.get(id) ?? null, drzewo: (id, op) => drzewoOsoby(stan, id, op, poziom) }
 })
 
 const kluczCelu = (c: { rodzaj: string; id: string }) => `${c.rodzaj}:${c.id}`

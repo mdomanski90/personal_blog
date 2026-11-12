@@ -250,6 +250,21 @@ export function geoNaPlan(geo: PunktGeo[]): ((lat: number, lon: number) => Pkt) 
     return (lat, lon) => zastosuj(T, m(lat, lon))
 }
 
+/** Jednostki planu → [długość, szerokość geograficzna] (odwrotność geoNaPlan), np. do położenia obrazu planu na mapie. */
+export function planNaGeo(geo: PunktGeo[]): ((p: Pkt) => [number, number]) | null {
+    if (geo.length < 2) return null
+    const lat0 = geo[0].lat, lon0 = geo[0].lon, kx = 111320 * Math.cos(rad(lat0)), ky = 110540
+    const m = (lat: number, lon: number): Pkt => [(lon - lon0) * kx, -(lat - lat0) * ky]
+    const T = geo.length >= 3 ? afiniczna(geo.slice(0, 3).map((g) => m(g.lat, g.lon)), geo.slice(0, 3).map((g) => [g.x, g.y])) : podobienstwo(geo.map((g) => m(g.lat, g.lon)), geo.map((g) => [g.x, g.y]))
+    if (!T) return null
+    const [a, b, c, d, e, f] = T, det = a * d - b * c
+    if (Math.abs(det) < 1e-12) return null
+    return ([x, y]) => {
+        const X = (d * (x - e) - c * (y - f)) / det, Y = (-b * (x - e) + a * (y - f)) / det
+        return [lon0 + X / kx, lat0 - Y / ky]
+    }
+}
+
 /** Skala (m na jednostkę) wynikająca z punktów geo – gdy nie ustawiono jej ręcznie. */
 export function skalaZGeo(geo: PunktGeo[]): number | null {
     if (geo.length < 2) return null

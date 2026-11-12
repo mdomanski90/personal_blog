@@ -99,6 +99,16 @@ const config: Config = {
                 return new Tag('figure', { 'data-material': String(node.attributes.id ?? ''), 'data-podpis': String(node.attributes.podpis ?? '') }, [])
             },
         },
+        // drzewo osoby z działu „osoby” – treść wstawia naHtml (zna widoczność czytelnika)
+        drzewo: {
+            render: 'figure',
+            selfClosing: true,
+            attributes: { osoba: { type: String }, wstecz: { type: Number }, naprzod: { type: Number }, zakres: { type: String } },
+            transform(node) {
+                const a = node.attributes
+                return new Tag('figure', { 'data-drzewo': String(a.osoba ?? ''), 'data-wstecz': String(a.wstecz ?? 2), 'data-naprzod': String(a.naprzod ?? 1), 'data-zakres': String(a.zakres ?? 'malzonkowie') }, [])
+            },
+        },
         kolumna: {
             render: 'div',
             attributes: { etykieta: { type: String } },
@@ -178,6 +188,8 @@ export interface KontekstTresci {
     rozwiaz?: Rozwiaz
     /** materiał po identyfikatorze – null, gdy go nie ma albo czytelnik go nie widzi */
     material?: (id: string) => MaterialWstawki | null
+    /** drzewo osoby – null, gdy jej nie ma albo czytelnik jej nie widzi */
+    drzewo?: (id: string, op: { wstecz: number; naprzod: number; zakres: 'linia' | 'malzonkowie' | 'rodzenstwo' }) => RenderableTreeNode | null
 }
 
 function wstawOdnosniki(n: RenderableTreeNode, k: KontekstTresci): RenderableTreeNode | RenderableTreeNode[] {
@@ -197,6 +209,12 @@ function wstawOdnosniki(n: RenderableTreeNode, k: KontekstTresci): RenderableTre
         return czesci
     }
     if (!Tag.isTag(n) || BEZ_ODNOSNIKOW.has(n.name)) return n
+    if (n.name === 'figure' && 'data-drzewo' in n.attributes) {
+        const a = n.attributes
+        const z = String(a['data-zakres'])
+        const t = k.drzewo?.(String(a['data-drzewo']), { wstecz: Number(a['data-wstecz']) || 0, naprzod: Number(a['data-naprzod']) || 0, zakres: z === 'linia' || z === 'rodzenstwo' ? z : 'malzonkowie' })
+        return t ?? []
+    }
     if (n.name === 'figure' && 'data-material' in n.attributes) {
         const m = k.material?.(String(n.attributes['data-material']))
         return m ? wstawkaMaterialu(m, String(n.attributes['data-podpis'] || '') || undefined) : []
