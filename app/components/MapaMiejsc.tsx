@@ -10,7 +10,7 @@ import { useTheme } from 'next-themes'
 import { LngLatBounds, Map as MapaGL, NavigationControl, setWorkerUrl, type GeoJSONSource, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
-import { LATA_GRANIC, LEGENDA_PANSTW, nazwaNaMapie, WARSTWY_KORONY, ZRODLO_KORONY, czyKorona, kolorKorony, przezroczystoscKorony, panstwoCzesci, ZRODLO_UZUPELNIEN, WARSTWY_UZUPELNIEN, czyUzupelnienia, warstwyUzupelnien, panstwoObszaru, warstwyKorony, WARSTWY_GRANIC, WARSTWY_ZIEM, ZRODLO_ZIEM, czyZiemie, warstwyZiem, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, czyRzeczpospolita, filtrGranic, kolorWojewodztw, przezroczystoscWojewodztw, warstwyGranic } from '@/lib/granice'
+import { ATRYBUCJA_GRANIC, LATA_GRANIC, LEGENDA_PANSTW, PUSTE, WARSTWY_OKRESU, czyRzeczpospolita, czyZiemie, etykietaOkresu, nazwaNaMapie, wczytajOkres, warstwyOkresu } from '@/lib/granice'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
 
 export interface PunktMapy {
@@ -103,6 +103,7 @@ export default function MapaMiejsc({
     const [panel, setPanel] = useState<{ nazwa: string; href: string; plany: { slug: string; tytul: string }[] } | null>(null)
     const rokRef = useRef(rok)
     const odswiezNapisyRef = useRef<() => void>(() => {})
+    const pokazOkresRef = useRef<(r: number | null) => void>(() => {})
     rokRef.current = rok
     const filtrObiektow = (a: string[]) => ['all', ['==', ['get', 'typ'], 'obiekt'], ['in', ['get', 'grupa'], ['literal', a]]] as never
 
@@ -159,25 +160,13 @@ export default function MapaMiejsc({
             }
             if (m.getSource('punkty')) return
             if (granice) {
-                m.addSource('granice', ZRODLO_GRANIC)
-                m.addSource('granice-napisy', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+                m.addSource('okres', { type: 'geojson', data: PUSTE, attribution: ATRYBUCJA_GRANIC })
+                m.addSource('granice-napisy', { type: 'geojson', data: PUSTE })
                 ostatnieNapisy = ''
-                for (const w of warstwyGranic(rokRef.current ?? 1600, ciemnyRef.current)) {
+                for (const w of warstwyOkresu(ciemnyRef.current)) {
                     m.addLayer({ ...w, layout: { ...w.layout, visibility: rokRef.current ? 'visible' : 'none' } } as typeof w)
                 }
-                m.addSource('korona', ZRODLO_KORONY)
-                for (const w of warstwyKorony(rokRef.current ?? 1600, ciemnyRef.current)) {
-                    const widoczna = czyKorona(rokRef.current) && (w.id !== 'korona-granica-1569' || (rokRef.current ?? 9999) < 1569.5)
-                    m.addLayer({ ...w, layout: { ...w.layout, visibility: widoczna ? 'visible' : 'none' } } as typeof w, 'granice-napisy')
-                }
-                m.addSource('uzupelnienia', ZRODLO_UZUPELNIEN)
-                for (const w of warstwyUzupelnien(ciemnyRef.current)) {
-                    m.addLayer({ ...w, layout: { ...w.layout, visibility: czyUzupelnienia(rokRef.current) ? 'visible' : 'none' } } as typeof w, 'granice-napisy')
-                }
-                m.addSource('ziemie', ZRODLO_ZIEM)
-                for (const w of warstwyZiem(ciemnyRef.current)) {
-                    m.addLayer({ ...w, layout: { ...w.layout, visibility: czyZiemie(rokRef.current) ? 'visible' : 'none' } } as typeof w, 'granice-napisy')
-                }
+                pokazOkres(rokRef.current)
             }
             if (m.getLayer('granice')) m.setLayoutProperty('granice', 'visibility', !rokRef.current || rokRef.current >= 1999 ? 'visible' : 'none')
             m.addSource('punkty', { type: 'geojson', data: dane })
@@ -239,7 +228,7 @@ export default function MapaMiejsc({
         let ostatnieNapisy = ''
         const odswiezNapisy = () => {
             const zrodlo = m.getSource('granice-napisy') as GeoJSONSource | undefined
-            if (!zrodlo || !m.getLayer('granice-tlo')) return
+            if (!zrodlo || !m.getLayer('okres-tlo')) return
             const obszary = new Map<string, { nazwa: string; poziom: number; pkt: [number, number][] }>()
             if (rokRef.current) {
                 const { clientWidth: W, clientHeight: H } = m.getCanvas()
@@ -249,27 +238,21 @@ export default function MapaMiejsc({
                     for (let j = 0; j < WIER; j++) {
                         const x = (W * (i + 0.5)) / KOL
                         const y = (H * (j + 0.5)) / WIER
-                        for (const f of m.queryRenderedFeatures([x, y], { layers: ['granice-tlo', 'granice-tlo-nizsze', ...(czyKorona(rokRef.current) ? ['korona-tlo'] : []), ...(czyZiemie(rokRef.current) ? ['ziemie-tlo'] : []), ...(czyUzupelnienia(rokRef.current) ? ['uzupelnienia-tlo'] : [])] })) {
-                            if (f.properties?.bezPodpisu) continue
+                        for (const f of m.queryRenderedFeatures([x, y], { layers: ['okres-tlo'] })) {
                             const w = f.properties ?? {}
-                            // OHM ma np. name „Województwo podlaskie”, a name:pl tylko „Podlaskie” – pełna nazwa jest czytelniejsza
-                            const nazwa = nazwaNaMapie(String(/^województwo /i.test(String(w.name ?? '')) ? w.name : w.name_pl || w.name || '').trim(), rokRef.current)
-                            if (!nazwa) continue
-                            // Litwa przed 1569 to państwo (w OHM zapisana jako część RON – poziom 3)
-                            const poziom = Number(w.admin_level) === 3 && rokRef.current < 1569.5 && w.name_en === 'Grand Duchy of Lithuania' ? 2 : Number(w.admin_level)
-                            const dodaj = (n: string, p: number) => {
-                                const klucz = `${p}|${n}`
-                                const o = obszary.get(klucz) ?? { nazwa: n, poziom: p, pkt: [] }
+                            const dodaj = (n: unknown, p: number) => {
+                                const nazwa = nazwaNaMapie(String(n ?? '').trim(), rokRef.current ?? 0)
+                                if (!nazwa) return
+                                const klucz = `${p}|${nazwa}`
+                                const o = obszary.get(klucz) ?? { nazwa, poziom: p, pkt: [] }
                                 if (!o.pkt.some(([a, b]) => a === x && b === y)) o.pkt.push([x, y])
                                 obszary.set(klucz, o)
                             }
-                            dodaj(nazwa, poziom)
-                            // lata bez danych o państwach: nazwa państwa z przynależności województwa
-                            const panstwo = poziom === 4 ? panstwoObszaru(w, rokRef.current) : null
-                            // w latach Rzeczypospolitej Obojga Narodów Korona i Litwa to jej części – podpis mniejszy
-                            if (panstwo) dodaj(panstwo, czyRzeczpospolita(rokRef.current) && /^(Korona|Wielkie Księstwo)/.test(panstwo) ? 3 : 2)
-                            const calosc = poziom === 3 ? panstwoCzesci(w, rokRef.current) : null
-                            if (calosc) dodaj(calosc, 2)
+                            // państwo, część państwa (Korona i Litwa w Rzeczypospolitej, kraje Rzeszy), województwo, ziemia
+                            dodaj(w.n2, 2)
+                            dodaj(w.n3, 3)
+                            if (!w.bp) dodaj(w.n4, 4)
+                            dodaj(w.n5, 5)
                         }
                     }
                 }
@@ -311,6 +294,28 @@ export default function MapaMiejsc({
             ostatnieNapisy = klucz
             zrodlo.setData({ type: 'FeatureCollection', features })
         }
+        // okres: obszary i linie z pliku public/granice/okresy/<okres>.json (pobierany raz, potem z pamięci)
+        const pokazOkres = (r: number | null) => {
+            const zr = m.getSource('okres') as GeoJSONSource | undefined
+            if (!zr) return
+            for (const id of WARSTWY_OKRESU) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', r ? 'visible' : 'none')
+            // dzisiejsze granice województw i powiatów z podkładu – tylko na mapie współczesnej (bez okresu albo od 1999)
+            if (m.getLayer('granice')) m.setLayoutProperty('granice', 'visibility', !r || r >= 1999 ? 'visible' : 'none')
+            const et = r ? etykietaOkresu(r) : null
+            if (!et) {
+                zr.setData(PUSTE)
+                return
+            }
+            wczytajOkres(et)
+                .then((fc) => {
+                    const z = m.getSource('okres') as GeoJSONSource | undefined
+                    if (rokRef.current !== r || !z) return
+                    z.setData(fc)
+                    odswiezNapisyRef.current()
+                })
+                .catch(() => {})
+        }
+        pokazOkresRef.current = pokazOkres
         if (granice) m.on('idle', odswiezNapisy)
         odswiezNapisyRef.current = () => {
             ostatnieNapisy = ''
@@ -366,28 +371,7 @@ export default function MapaMiejsc({
     useEffect(() => {
         const m = mapa.current
         if (!m || !granice) return
-        for (const id of WARSTWY_GRANIC) {
-            if (!m.getLayer(id)) continue
-            m.setLayoutProperty(id, 'visibility', rok ? 'visible' : 'none')
-            if (rok && WARSTWY_Z_ROKIEM[id]) m.setFilter(id, filtrGranic(rok, WARSTWY_Z_ROKIEM[id]))
-        }
-        if (rok && m.getLayer('granice-tlo-nizsze')) {
-            m.setPaintProperty('granice-tlo-nizsze', 'fill-color', kolorWojewodztw(rok) as string)
-            m.setPaintProperty('granice-tlo-nizsze', 'fill-opacity', przezroczystoscWojewodztw(rok, ciemnyRef.current) as number)
-        }
-        // dzisiejsze granice województw i powiatów z podkładu – tylko na mapie współczesnej (bez okresu albo od 1999)
-        if (m.getLayer('granice')) m.setLayoutProperty('granice', 'visibility', !rok || rok >= 1999 ? 'visible' : 'none')
-        for (const id of WARSTWY_ZIEM) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', czyZiemie(rok) ? 'visible' : 'none')
-        for (const id of WARSTWY_KORONY) {
-            if (!m.getLayer(id)) continue
-            const widoczna = czyKorona(rok) && (id !== 'korona-granica-1569' || (rok ?? 9999) < 1569.5)
-            m.setLayoutProperty(id, 'visibility', widoczna ? 'visible' : 'none')
-        }
-        if (rok && m.getLayer('korona-tlo')) {
-            m.setPaintProperty('korona-tlo', 'fill-color', kolorKorony(rok) as string)
-            m.setPaintProperty('korona-tlo', 'fill-opacity', przezroczystoscKorony(rok, ciemnyRef.current) as number)
-        }
-        for (const id of WARSTWY_UZUPELNIEN) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', czyUzupelnienia(rok) ? 'visible' : 'none')
+        pokazOkresRef.current(rok)
         odswiezNapisyRef.current()
         if (zapamietaj) {
             try {
@@ -497,7 +481,7 @@ export default function MapaMiejsc({
                     )}
                     {rok && (
                         <p className="text-gray-500 lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>
-                            granice: OpenHistoricalMap – dane społeczności, nie zawsze kompletne dla każdego roku.
+                            granice: OpenHistoricalMap (CC0) – dane społeczności, nie zawsze kompletne dla każdego roku; Korona i ziemie podlaskie w XVI w. – Atlas historyczny Polski XVI w., IH PAN (CC BY 4.0). Granice z obu źródeł dopasowane do siebie i uproszczone.
                         </p>
                     )}
                 </div>
