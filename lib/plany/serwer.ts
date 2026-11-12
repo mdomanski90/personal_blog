@@ -36,3 +36,14 @@ export async function wydajPlik(katalog: string, plik: string, publiczny: boolea
         })
     } catch { return nieMa() }
 }
+
+/** Do punktów mapy dopisuje plany (widoczne dla czytelnika): plakietka wsi – plany wsi, obiekt – jego plany. */
+export async function dolaczPlany<T extends { id: string; typ: 'miejsce' | 'obiekt'; plany?: { slug: string; tytul: string }[] }>(punkty: T[]): Promise<T[]> {
+    const poziom = (await poziomCzytelnika()) === 'bliscy' ? 'bliscy' : 'publiczne'
+    const plany = (await listaPlanow()).filter((p) => widoczne(p.widocznosc, poziom))
+    if (!plany.length) return punkty
+    return punkty.map((pt) => {
+        const L = plany.filter((p) => (pt.typ === 'obiekt' ? p.obiekt === pt.id : p.miejsce === pt.id)).sort((a, b) => Number(!!a.obiekt) - Number(!!b.obiekt))
+        return L.length ? { ...pt, plany: L.map((p) => ({ slug: p.slug, tytul: p.tytul })) } : pt
+    })
+}

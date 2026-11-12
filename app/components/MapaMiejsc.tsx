@@ -10,7 +10,7 @@ import { useTheme } from 'next-themes'
 import { LngLatBounds, Map as MapaGL, NavigationControl, setWorkerUrl, type GeoJSONSource, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
-import { LATA_GRANIC, LEGENDA_PANSTW, nazwaNaMapie, WARSTWY_KORONY, ZRODLO_KORONY, czyKorona, kolorKorony, panstwoObszaru, warstwyKorony, WARSTWY_GRANIC, WARSTWY_ZIEM, ZRODLO_ZIEM, czyZiemie, warstwyZiem, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, czyRzeczpospolita, filtrGranic, kolorWojewodztw, przezroczystoscWojewodztw, warstwyGranic } from '@/lib/granice'
+import { LATA_GRANIC, LEGENDA_PANSTW, nazwaNaMapie, WARSTWY_KORONY, ZRODLO_KORONY, czyKorona, kolorKorony, przezroczystoscKorony, panstwoCzesci, ZRODLO_UZUPELNIEN, WARSTWY_UZUPELNIEN, czyUzupelnienia, warstwyUzupelnien, panstwoObszaru, warstwyKorony, WARSTWY_GRANIC, WARSTWY_ZIEM, ZRODLO_ZIEM, czyZiemie, warstwyZiem, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, czyRzeczpospolita, filtrGranic, kolorWojewodztw, przezroczystoscWojewodztw, warstwyGranic } from '@/lib/granice'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
 
 export interface PunktMapy {
@@ -24,19 +24,28 @@ export interface PunktMapy {
     istnieje?: boolean
     lat: number
     lng: number
+    /** plany obiektu / wsi zrobione w edytorze – po kliknięciu plakietki podgląd w panelu */
+    plany?: { slug: string; tytul: string }[]
 }
+
+// znaczek „jest plan” w prawym górnym rogu tarczy (układ tarczy: viewBox -20 -22 40 44)
+const ZNACZEK_PLANU = '<g transform="translate(12 -15)"><circle r="7" fill="#fff" stroke="#2b2d31" stroke-width="1.4"/><path d="M-3.6-2.6 -1.2-3.6 1.2-2.6 3.6-3.6V2.6L1.2 3.6-1.2 2.6-3.6 3.6Z M-1.2-3.6V2.6M1.2-2.6V3.6" fill="none" stroke="#2b2d31" stroke-width="1" stroke-linejoin="round"/></g>'
+const zZnaczkiem = (svg: string) => svg.replace(/<\/svg>$/, `${ZNACZEK_PLANU}</svg>`)
 
 const SKALA = 2
 const PROG_OBIEKTOW = 11 // od tego przybliżenia widać obiekty w terenie // tarcze rysowane w podwójnej rozdzielczości – ostre na ekranach retina
 
 function ikona(p: PunktMapy): { id: string; svg: string } {
+    const plan = p.plany?.length ? '-plan' : ''
     if (p.typ === 'obiekt') {
-        const id = `o-${p.rodzaj}-${p.istnieje === false ? 0 : 1}`
-        return { id, svg: tarczaObiektu(p.rodzaj, '', 26 * SKALA, p.istnieje !== false) }
+        const id = `o-${p.rodzaj}-${p.istnieje === false ? 0 : 1}${plan}`
+        const svg = tarczaObiektu(p.rodzaj, '', 26 * SKALA, p.istnieje !== false)
+        return { id, svg: plan ? zZnaczkiem(svg) : svg }
     }
     const miasto = p.rodzaj === 'miasto'
-    const id = `m-${miasto ? 'miasto' : p.wyznanie || 'brak'}-${p.przyblizone ? 1 : 0}`
-    return { id, svg: tarczaMiejsca(miasto ? 'miasto' : 'wies', (p.wyznanie || '') as Wyznanie, '', (miasto ? 32 : 27) * SKALA, p.przyblizone) }
+    const id = `m-${miasto ? 'miasto' : p.wyznanie || 'brak'}-${p.przyblizone ? 1 : 0}${plan}`
+    const svg = tarczaMiejsca(miasto ? 'miasto' : 'wies', (p.wyznanie || '') as Wyznanie, '', (miasto ? 32 : 27) * SKALA, p.przyblizone)
+    return { id, svg: plan ? zZnaczkiem(svg) : svg }
 }
 
 const obrazy = new Map<string, HTMLImageElement>()
@@ -57,9 +66,11 @@ export default function MapaMiejsc({
     przyblizenie = 12.5,
     granice = false,
     zapamietaj,
+    obrys,
+    wyroznione,
 }: {
     punkty: PunktMapy[]
-    wysokosc?: number
+    wysokosc?: number | string
     /** gdy podany: mapa wyśrodkowana na tym punkcie (strona miejscowości), inaczej dopasowana do wszystkich */
     srodek?: [number, number]
     przyblizenie?: number
@@ -67,6 +78,10 @@ export default function MapaMiejsc({
     granice?: boolean
     /** klucz, pod którym mapa pamięta widok w tej karcie (powrót ze strony miejscowości) */
     zapamietaj?: string
+    /** granica obszaru (np. gminy) – przerywaną linią, mapa dopasowana do niej */
+    obrys?: { url: string; nazwa: string }
+    /** miejscowości wyróżnione (np. wsie gminy) – pozostałe przygaszone */
+    wyroznione?: string[]
 }) {
     const kontener = useRef<HTMLDivElement>(null)
     const mapa = useRef<MapaGL | null>(null)
@@ -85,6 +100,7 @@ export default function MapaMiejsc({
     aktywneRef.current = aktywne
     const [zoom, setZoom] = useState(srodek ? przyblizenie : 10)
     const [rok, setRok] = useState<number | null>(null)
+    const [panel, setPanel] = useState<{ nazwa: string; href: string; plany: { slug: string; tytul: string }[] } | null>(null)
     const rokRef = useRef(rok)
     const odswiezNapisyRef = useRef<() => void>(() => {})
     rokRef.current = rok
@@ -126,6 +142,8 @@ export default function MapaMiejsc({
                     typ: p.typ,
                     grupa: p.typ === 'obiekt' ? grupaObiektu(p.rodzaj) : '',
                     ikona: ikona(p).id,
+                    plany: p.plany?.length ? JSON.stringify(p.plany) : '',
+                    przygas: !!wyroznione && !wyroznione.includes(p.id),
                     // niższa wartość = pierwszeństwo przy nachodzeniu podpisów
                     kolejnosc: p.typ === 'miejsce' ? (p.rodzaj === 'miasto' ? 0 : 1) : 2,
                 },
@@ -152,11 +170,16 @@ export default function MapaMiejsc({
                     const widoczna = czyKorona(rokRef.current) && (w.id !== 'korona-granica-1569' || (rokRef.current ?? 9999) < 1569.5)
                     m.addLayer({ ...w, layout: { ...w.layout, visibility: widoczna ? 'visible' : 'none' } } as typeof w, 'granice-napisy')
                 }
+                m.addSource('uzupelnienia', ZRODLO_UZUPELNIEN)
+                for (const w of warstwyUzupelnien(ciemnyRef.current)) {
+                    m.addLayer({ ...w, layout: { ...w.layout, visibility: czyUzupelnienia(rokRef.current) ? 'visible' : 'none' } } as typeof w, 'granice-napisy')
+                }
                 m.addSource('ziemie', ZRODLO_ZIEM)
                 for (const w of warstwyZiem(ciemnyRef.current)) {
                     m.addLayer({ ...w, layout: { ...w.layout, visibility: czyZiemie(rokRef.current) ? 'visible' : 'none' } } as typeof w, 'granice-napisy')
                 }
             }
+            if (m.getLayer('granice')) m.setLayoutProperty('granice', 'visibility', !rokRef.current || rokRef.current >= 1999 ? 'visible' : 'none')
             m.addSource('punkty', { type: 'geojson', data: dane })
             const wspolne: SymbolLayerSpecification['layout'] = {
                 'icon-image': ['get', 'ikona'],
@@ -171,6 +194,20 @@ export default function MapaMiejsc({
                 'text-color': ciemnyRef.current ? '#e7e2d6' : '#2b2a26',
                 'text-halo-color': ciemnyRef.current ? '#1c1d1f' : '#f3ede0',
                 'text-halo-width': 1.6,
+                'icon-opacity': ['case', ['get', 'przygas'], 0.35, 1] as unknown as number,
+                'text-opacity': ['case', ['get', 'przygas'], 0.45, 1] as unknown as number,
+            }
+            if (obrys && !m.getSource('obrys')) {
+                fetch(obrys.url).then((r) => r.json()).then((fc: { features: { properties: { nazwa: string }; geometry: { type: string; coordinates: unknown } }[] }) => {
+                    const f = fc.features.find((x) => x.properties.nazwa.toLowerCase() === obrys.nazwa.toLowerCase())
+                    if (!f || m.getSource('obrys')) return
+                    m.addSource('obrys', { type: 'geojson', data: f as unknown as GeoJSON.Feature, attribution: 'granica gminy: PRG (GUGiK), uproszczona' })
+                    m.addLayer({ id: 'obrys-linia', type: 'line', source: 'obrys', paint: { 'line-color': ciemnyRef.current ? '#c98a6a' : '#9a3b22', 'line-width': 2, 'line-dasharray': [3, 2], 'line-opacity': 0.85 } }, 'miejsca')
+                    const b = new LngLatBounds()
+                    const dodaj = (c: unknown): void => { if (Array.isArray(c) && typeof c[0] === 'number') b.extend(c as [number, number]); else if (Array.isArray(c)) c.forEach(dodaj) }
+                    dodaj(f.geometry.coordinates)
+                    m.fitBounds(b, { padding: 30, duration: 0 })
+                }).catch(() => {})
             }
             // obiekty dopiero po przybliżeniu (przy oddaleniu zasłaniałyby tarcze miejscowości), nazwy od 13
             m.addLayer({
@@ -212,7 +249,8 @@ export default function MapaMiejsc({
                     for (let j = 0; j < WIER; j++) {
                         const x = (W * (i + 0.5)) / KOL
                         const y = (H * (j + 0.5)) / WIER
-                        for (const f of m.queryRenderedFeatures([x, y], { layers: ['granice-tlo', 'granice-tlo-nizsze', ...(czyKorona(rokRef.current) ? ['korona-tlo'] : []), ...(czyZiemie(rokRef.current) ? ['ziemie-tlo'] : [])] })) {
+                        for (const f of m.queryRenderedFeatures([x, y], { layers: ['granice-tlo', 'granice-tlo-nizsze', ...(czyKorona(rokRef.current) ? ['korona-tlo'] : []), ...(czyZiemie(rokRef.current) ? ['ziemie-tlo'] : []), ...(czyUzupelnienia(rokRef.current) ? ['uzupelnienia-tlo'] : [])] })) {
+                            if (f.properties?.bezPodpisu) continue
                             const w = f.properties ?? {}
                             // OHM ma np. name „Województwo podlaskie”, a name:pl tylko „Podlaskie” – pełna nazwa jest czytelniejsza
                             const nazwa = nazwaNaMapie(String(/^województwo /i.test(String(w.name ?? '')) ? w.name : w.name_pl || w.name || '').trim(), rokRef.current)
@@ -230,6 +268,8 @@ export default function MapaMiejsc({
                             const panstwo = poziom === 4 ? panstwoObszaru(w, rokRef.current) : null
                             // w latach Rzeczypospolitej Obojga Narodów Korona i Litwa to jej części – podpis mniejszy
                             if (panstwo) dodaj(panstwo, czyRzeczpospolita(rokRef.current) && /^(Korona|Wielkie Księstwo)/.test(panstwo) ? 3 : 2)
+                            const calosc = poziom === 3 ? panstwoCzesci(w, rokRef.current) : null
+                            if (calosc) dodaj(calosc, 2)
                         }
                     }
                 }
@@ -287,8 +327,11 @@ export default function MapaMiejsc({
         })
         for (const warstwa of ['miejsca', 'obiekty']) {
             m.on('click', warstwa, (e) => {
-                const href = e.features?.[0]?.properties?.href
-                if (href) routerRef.current.push(String(href))
+                const w = e.features?.[0]?.properties
+                if (!w) return
+                // plakietka z planem: panel z podglądem zamiast przejścia na stronę
+                if (w.plany) { try { setPanel({ nazwa: String(w.nazwa), href: String(w.href), plany: JSON.parse(String(w.plany)) }); return } catch {} }
+                if (w.href) routerRef.current.push(String(w.href))
             })
             m.on('mouseenter', warstwa, () => (m.getCanvas().style.cursor = 'pointer'))
             m.on('mouseleave', warstwa, () => (m.getCanvas().style.cursor = ''))
@@ -332,13 +375,19 @@ export default function MapaMiejsc({
             m.setPaintProperty('granice-tlo-nizsze', 'fill-color', kolorWojewodztw(rok) as string)
             m.setPaintProperty('granice-tlo-nizsze', 'fill-opacity', przezroczystoscWojewodztw(rok, ciemnyRef.current) as number)
         }
+        // dzisiejsze granice województw i powiatów z podkładu – tylko na mapie współczesnej (bez okresu albo od 1999)
+        if (m.getLayer('granice')) m.setLayoutProperty('granice', 'visibility', !rok || rok >= 1999 ? 'visible' : 'none')
         for (const id of WARSTWY_ZIEM) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', czyZiemie(rok) ? 'visible' : 'none')
         for (const id of WARSTWY_KORONY) {
             if (!m.getLayer(id)) continue
             const widoczna = czyKorona(rok) && (id !== 'korona-granica-1569' || (rok ?? 9999) < 1569.5)
             m.setLayoutProperty(id, 'visibility', widoczna ? 'visible' : 'none')
         }
-        if (rok && m.getLayer('korona-tlo')) m.setPaintProperty('korona-tlo', 'fill-color', kolorKorony(rok) as string)
+        if (rok && m.getLayer('korona-tlo')) {
+            m.setPaintProperty('korona-tlo', 'fill-color', kolorKorony(rok) as string)
+            m.setPaintProperty('korona-tlo', 'fill-opacity', przezroczystoscKorony(rok, ciemnyRef.current) as number)
+        }
+        for (const id of WARSTWY_UZUPELNIEN) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', czyUzupelnienia(rok) ? 'visible' : 'none')
         odswiezNapisyRef.current()
         if (zapamietaj) {
             try {
@@ -351,8 +400,10 @@ export default function MapaMiejsc({
 
     const przelacz = (g: string) => setAktywne((a) => (a.includes(g) ? a.filter((x) => x !== g) : [...a, g]))
 
+    // wysokość w procentach (np. mapa wypełniająca kolumnę obok metryczki): całość wypełnia rodzica, mapa bierze resztę miejsca
+    const wypelnij = typeof wysokosc === 'string'
     return (
-        <div className="flex flex-col" style={{ gap: 6 }}>
+        <div className="flex flex-col" style={{ gap: 6, height: wypelnij ? wysokosc : undefined }}>
             {grupy.length > 0 && (
                 <div className="flex flex-wrap items-center" style={{ gap: '6px 12px', fontSize: 'calc(13px * var(--font-scale, 1))' }}>
                     <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1, paddingTop: 1 }} role="group" aria-label="pokaż na mapie">
@@ -375,13 +426,16 @@ export default function MapaMiejsc({
                     {zoom < PROG_OBIEKTOW && aktywne.length > 0 && <span className="text-gray-500 lowercase">przybliż mapę, żeby zobaczyć obiekty</span>}
                 </div>
             )}
+            <div style={{ position: 'relative', ...(wypelnij ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : {}) }}>
             <div
             ref={kontener}
             role="region"
             aria-label="mapa miejsc"
             className="border border-[#d1d5db] dark:border-[#4b5563] w-full mapa-wektor"
-            style={{ height: wysokosc, borderRadius: '8px', overflow: 'hidden' }}
+            style={wypelnij ? { flex: 1, minHeight: 0, borderRadius: '8px', overflow: 'hidden' } : { height: wysokosc, borderRadius: '8px', overflow: 'hidden' }}
             />
+            {panel && <PanelPlanu panel={panel} zamknij={() => setPanel(null)} />}
+            </div>
             {granice && (
                 <div className="flex flex-col" style={{ gap: 6, fontSize: 'calc(13px * var(--font-scale, 1))' }}>
                     <div className="flex flex-wrap items-center" style={{ gap: '6px 10px' }}>
@@ -448,6 +502,35 @@ export default function MapaMiejsc({
                     )}
                 </div>
             )}
+        </div>
+    )
+}
+
+/** Panel z podglądem planu po kliknięciu plakietki: na komputerze z boku mapy, na telefonie od dołu. */
+function PanelPlanu({ panel, zamknij }: { panel: { nazwa: string; href: string; plany: { slug: string; tytul: string }[] }; zamknij: () => void }) {
+    useEffect(() => {
+        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') zamknij() }
+        window.addEventListener('keydown', esc)
+        return () => window.removeEventListener('keydown', esc)
+    }, [zamknij])
+    return (
+        <div className="mapa-panel-planu border border-[#d1d5db] dark:border-[#4b5563] bg-white dark:bg-[#111827]" role="dialog" aria-label={`plany: ${panel.nazwa}`}>
+            <style>{`.mapa-panel-planu{position:absolute;top:10px;right:10px;bottom:10px;width:min(300px,calc(100% - 20px));overflow:auto;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:14px;box-shadow:0 4px 18px rgb(0 0 0 / .14);z-index:5}@media (max-width:640px){.mapa-panel-planu{top:auto;left:0;right:0;bottom:0;width:auto;max-height:75%;border-radius:12px 12px 0 0}}`}</style>
+            <div className="flex items-start justify-between" style={{ gap: 8 }}>
+                <div className="flex flex-col" style={{ gap: 2 }}>
+                    <b style={{ fontSize: 15 }}>{panel.nazwa}</b>
+                    <a href={panel.href} style={{ fontSize: 13 }}>strona miejsca →</a>
+                </div>
+                <button type="button" onClick={zamknij} aria-label="zamknij" className="text-gray-500" style={{ fontSize: 20, lineHeight: 1, background: 'none', border: 0, cursor: 'pointer' }}>×</button>
+            </div>
+            {panel.plany.map((p) => (
+                <a key={p.slug} href={`/plany/${p.slug}`} className="flex flex-col !no-underline text-current" style={{ gap: 6 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/plany/${p.slug}/podglad.svg`} alt={`podgląd: ${p.tytul}`} loading="lazy" style={{ width: '100%', borderRadius: 6, border: '1px solid #e5e7eb', background: '#f6f3ec', aspectRatio: '4 / 3', objectFit: 'contain' }} />
+                    <span style={{ fontSize: 13 }}>{p.tytul}</span>
+                    <span className="border border-[#d1d5db] dark:border-[#4b5563] rounded-[7px] w-fit" style={{ fontSize: 13, padding: '3px 10px' }}>otwórz plan →</span>
+                </a>
+            ))}
         </div>
     )
 }

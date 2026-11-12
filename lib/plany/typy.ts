@@ -137,7 +137,7 @@ export const TYPY_WBUDOWANE: TypElementu[] = [
     t('cm-wojenny', 'cmentarz wojenny, wojskowy', 'Cmentarze (obszary)', 'obszar', 'cmentarz', 'wzor', { wzor: 'woj', plot: true }),
     t('cm-epidemiczny', 'cmentarz epidemiczny (choleryczny)', 'Cmentarze (obszary)', 'obszar', 'cmentarz', 'wzor', { wzor: 'epi' }),
     t('groby-polne', 'groby polne, grzebalisko', 'Cmentarze (obszary)', 'obszar', 'cmentarz', 'wzor', { wzor: 'polne' }),
-    t('teren-cmentarza', 'teren cmentarza (bez wzoru)', 'Cmentarze (obszary)', 'obszar', 'cmentarz', 'kolor', { wzor: 'laka', plot: true }),
+    t('teren-cmentarza', 'teren cmentarza (bez wzoru)', 'Cmentarze (obszary)', 'obszar', 'teren', 'kolor', { wzor: 'laka', plot: true }),
     t('kwatera', 'kwatera', 'Cmentarze (obszary)', 'obszar', 'cmentarz', 'kolor', { wzor: 'kw' }),
     t('plac', 'plac, parking, utwardzenie', 'Cmentarze (obszary)', 'obszar', 'cmentarz', 'kolor', { wzor: 'plac' }),
     // wieś

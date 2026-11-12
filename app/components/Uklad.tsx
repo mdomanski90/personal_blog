@@ -20,13 +20,13 @@ const segmentStyl: React.CSSProperties = {
 }
 
 /** Strona z nagłówkiem, stopką i powiększaniem obrazków. */
-export function Strona({ children, szeroka = false }: { children: React.ReactNode; szeroka?: boolean }) {
+export function Strona({ children, szeroka = false, akcje }: { children: React.ReactNode; szeroka?: boolean; akcje?: React.ReactNode }) {
     return (
         <>
             <div style={{ maxWidth: szeroka ? '64rem' : '52rem', margin: '0 auto', padding: '2rem 1.25rem 5rem 1.25rem', minHeight: '100vh' }} className="odp">
                 <div className="space-y-6 w-full">
                     <div style={szeroka ? { maxWidth: '52rem', margin: '0 auto' } : undefined}>
-                        <SiteHeader />
+                        <SiteHeader akcje={akcje} />
                     </div>
                     {children}
                     <ImageZoom />
@@ -104,9 +104,12 @@ export function TytulStrony({ children, sciezka, akcje }: { children: React.Reac
     )
 }
 
+/** Czy HTML zawiera jakikolwiek tekst albo obraz (pusty dokument z panelu to np. „<article></article>”). */
+export const maTekst = (html: string | null | undefined) => !!html && (/<img|<iframe|<video|<audio/i.test(html) || html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0)
+
 /** Treść Markdoc wyrenderowana do HTML (z klasami typografii jak dotąd). */
 export function Tresc({ html, pusta = 'treść nie została jeszcze dodana.' }: { html: string; pusta?: string | null }) {
-    if (!html) return pusta ? <p className="text-gray-500 italic lowercase">{pusta}</p> : null
+    if (!maTekst(html)) return pusta ? <p className="text-gray-500 italic lowercase">{pusta}</p> : null
     return (
         <div className="post-content" style={{ fontSize: 'var(--blog-font-size, 18px)' }}>
             <div dangerouslySetInnerHTML={{ __html: html }} />

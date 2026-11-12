@@ -3,7 +3,7 @@
 // znaki z obwódką w kolorze tła; napisy z poświatą; kolory jako zmienne CSS (tryb jasny i ciemny).
 
 import * as React from 'react'
-import { jednostka, losowe, punktyElementu, rad, srodek, wWielokacie, type Element, type Numer, type Pkt, type Plan, type Podklad } from '@/lib/plany/model'
+import { jednostka, losowe, pole, punktyElementu, rad, srodek, wWielokacie, type Element, type Numer, type Pkt, type Plan, type Podklad } from '@/lib/plany/model'
 import { KOLEJNOSC_WARSTW, KOLORY, WZORY, type TypElementu } from '@/lib/plany/typy'
 
 const F = { fontFamily: 'var(--font-jetbrains), JetBrains Mono, ui-monospace, monospace' }
@@ -359,7 +359,9 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
     }
 
     const warstwa = (w: string) => {
-        const L = wg.get(w) ?? []
+        // w warstwie: najpierw duże obszary, potem mniejsze (mały staw nie znika pod łąką), na końcu linie i znaki
+        const waga = (e: Element) => (e.g.k === 'w' || e.g.k === 'r' ? -pole(punktyElementu(e.g)) : e.g.k === 'l' ? 1 : 2)
+        const L = [...(wg.get(w) ?? [])].sort((a, b) => waga(a) - waga(b))
         if (!L.length) return null
         const linie: Linia[] = [], inne: React.ReactNode[] = []
         for (const e of L) {

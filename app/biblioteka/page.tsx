@@ -17,6 +17,10 @@ export default function Biblioteka() {
                     <Link href="/biblioteka/ksiegi" className="font-bold">księgi metrykalne →</Link>
                     <span className="block text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>które roczniki się zachowały, gdzie są przechowywane, gdzie obejrzeć skany i indeksy</span>
                 </p>
+                <p style={{ fontSize: 'calc(16px * var(--font-scale, 1))' }}>
+                    <Link href="/biblioteka/slownik" className="font-bold">słownik →</Link>
+                    <span className="block text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>dawne pojęcia, urzędy, miary i słowa z miejscowej gwary – ze źródłem znaczenia</span>
+                </p>
             </Sekcja>
         </Strona>
     )

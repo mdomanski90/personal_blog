@@ -243,3 +243,21 @@ export function zajawka(node: Node | null | undefined, dlugosc = 220, rozwiaz?: 
     if (tekst.length <= dlugosc) return tekst
     return tekst.slice(0, dlugosc).replace(/\s+\S*$/, '') + '…'
 }
+
+/**
+ * Rozdziela treść materiału: wyróżnione transkrypcje, tłumaczenia i oryginały (znacznik „zrodlo”) idą obok skanu,
+ * reszta zostaje opisem pod spodem.
+ */
+export function rozdzielZrodla(node: Node | null | undefined): { transkrypcja: Node | null; tlumaczenie: Node | null; oryginal: Node | null; reszta: Node | null } {
+    const pusty = { transkrypcja: null, tlumaczenie: null, oryginal: null, reszta: node ?? null }
+    if (!node || !Array.isArray(node.children)) return pusty
+    const wg: Record<string, Node[]> = { transkrypcja: [], tlumaczenie: [], oryginal: [] }
+    const reszta: Node[] = []
+    for (const c of node.children) {
+        const r = c.type === 'tag' && c.tag === 'zrodlo' ? String(c.attributes?.rodzaj ?? '') : ''
+        if (r in wg) wg[r].push(c)
+        else reszta.push(c)
+    }
+    const dok = (L: Node[]) => (L.length ? new Markdoc.Ast.Node('document', {}, L) : null)
+    return { transkrypcja: dok(wg.transkrypcja), tlumaczenie: dok(wg.tlumaczenie), oryginal: dok(wg.oryginal), reszta: dok(reszta) }
+}

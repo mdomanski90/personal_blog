@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { miejsca, miejscaWedlugObszarow, obiekty, OBSZARY, poziomCzytelnika } from '@/lib/archiwum'
 import { punktyMapy } from '@/lib/punkty-mapy'
+import { dolaczPlany } from '@/lib/plany/serwer'
 import { Strona, TytulStrony } from '../components/Uklad'
 import MapaMiejscLeniwa from '../components/MapaMiejscLeniwa'
 import LegendaMapy from '../components/LegendaMapy'
@@ -13,7 +14,7 @@ export default async function Miejsca() {
     const poziom = await poziomCzytelnika()
     const lista = await miejsca(poziom)
     const ob = await obiekty(poziom)
-    const punkty = punktyMapy(lista, ob)
+    const punkty = await dolaczPlany(punktyMapy(lista, ob))
     const miejscowosci = lista.filter((m) => !OBSZARY.includes(m.rodzaj))
     const bez = miejscowosci.filter((m) => !m.wspolrzedne).length
 

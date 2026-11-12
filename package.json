@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "test": "tsx --test lib/edtf.test.ts lib/odmiana.test.ts lib/odnosniki.test.ts lib/sesja.test.ts lib/ksiegi.test.ts",
+    "test": "tsx --test lib/edtf.test.ts lib/odmiana.test.ts lib/odnosniki.test.ts lib/sesja.test.ts lib/ksiegi.test.ts lib/plany/model.test.ts",
     "thumbs": "node scripts/generate-thumbs.mjs",
     "eksport:omeka": "tsx scripts/eksport-omeka.ts",
     "zasiej": "tsx scripts/zasiej.ts",

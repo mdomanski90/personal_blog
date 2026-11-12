@@ -21,10 +21,12 @@ export const LATA_GRANIC: { etykieta: string; rok: number; opis: string }[] = [
     { etykieta: '1815–1830', rok: 1825, opis: 'Królestwo Polskie (w unii personalnej z Rosją, car królem polskim) – województwo podlaskie' },
     { etykieta: '1875', rok: 1875, opis: 'kasata unii – gubernia siedlecka w Imperium Rosyjskim' },
     { etykieta: '1913', rok: 1913, opis: 'przed wojną i bieżeństwem (1915)' },
-    { etykieta: '1921', rok: 1921, opis: 'II Rzeczpospolita po traktacie ryskim – województwo lubelskie' },
+    { etykieta: '1922', rok: 1922.7, opis: 'II Rzeczpospolita po traktacie ryskim (1921) i przyłączeniu Wileńszczyzny (1922) – województwo lubelskie' },
     { etykieta: '1940', rok: 1940, opis: 'okupacja – granica niemiecko-sowiecka na Bugu, Generalne Gubernatorstwo' },
     { etykieta: '1942', rok: 1942, opis: 'okupacja niemiecka – zagłada gmin żydowskich' },
     { etykieta: '1946', rok: 1946.5, opis: 'Polska w granicach po umowie z ZSRR (VIII 1945) – województwo lubelskie, powiat siedlecki' },
+    { etykieta: '1975', rok: 1980, opis: 'po reformie z 1975 r. – Łosice i Olszanka w województwie siedleckim, Międzyrzec w bialskopodlaskim' },
+    { etykieta: '1999', rok: 2010, opis: 'po reformie z 1999 r. – Łosice i Olszanka w województwie mazowieckim, Międzyrzec w lubelskim' },
 ]
 
 export function filtrGranic(rok: number, poziomy: number[] = [2, 3, 4, 5, 6]): FilterSpecification {
@@ -99,8 +101,8 @@ const ZASTEPCZE: { klucze: string[]; lata: [number, number]; panstwo: Panstwo; n
     { klucze: WOJ_KORONY, lata: PO_I_ROZBIORZE, panstwo: 'korona' },
     // po 1867 OHM nie ma tu Imperium Rosyjskiego, po 1918 – II Rzeczypospolitej
     { klucze: ['gubern', 'губерн', 'governorate'], lata: [1867, 1915.6], panstwo: 'rosja', nazwa: 'Imperium Rosyjskie' },
-    { klucze: ['wojew', 'voivod'], lata: [1918.86, 1939.75], panstwo: 'korona', nazwa: 'Rzeczpospolita Polska' },
-    { klucze: ['wojew', 'voivod'], lata: [1944.55, 1999], panstwo: 'korona', nazwa: 'Polska' },
+    // tylko lata bez obszaru Polski w OHM (1918–VI 1922) – potem województwa bez własnego koloru, żeby nie odcinały się od reszty kraju
+    { klucze: ['wojew', 'voivod'], lata: [1918.86, 1922.47], panstwo: 'korona', nazwa: 'Rzeczpospolita Polska' },
 ]
 
 const nazwaWyrazenie = ['downcase', ['concat', ['coalesce', ['get', 'name_en'], ''], ' ', ['coalesce', ['get', 'name'], ''], ' ', ['coalesce', ['get', 'name_pl'], '']]]
@@ -131,7 +133,7 @@ export function kolorWojewodztw(rok: number): unknown {
 export function przezroczystoscWojewodztw(rok: number, ciemny: boolean): unknown {
     const k = ciemny ? 1.35 : 1
     // tylko lekkie przyciemnienie – kolor państwa zostaje ten sam we wszystkich okresach
-    const nakladka = ['match', odcien, 0, 0, 1, 0.05 * k, 0.1 * k]
+    const nakladka = ['match', odcien, 0, 0, 1, 0.03 * k, 0.06 * k]
     const reguly = zastepczeNaRok(rok)
     if (!reguly.length) return nakladka
     return ['case', ['any', ...reguly.map((z) => zawiera(z.klucze))], ['match', odcien, 0, 0.18 * k, 1, 0.24 * k, 0.21 * k], nakladka]
@@ -279,14 +281,21 @@ export function kolorKorony(rok: number): unknown {
 
 /** Państwo, do którego należał obszar (województwo z Atlasu albo z OHM) – do podpisu państwa. */
 export function panstwoObszaru(w: Record<string, unknown>, rok: number): string | null {
+    if (w.zrodlo === 'ohm-luka') return w.panstwo ? String(w.panstwo) : null
     if (w.zrodlo === 'ahp') return rok < 1569.5 && w.przed1569 ? String(w.przed1569) : String(w.panstwo)
     return panstwoWojewodztwa(w, rok)
+}
+
+/** Przezroczystość województw z Atlasu: Mazowsze przed 1526 – księstwo, lenno Korony – jaśniej. */
+export function przezroczystoscKorony(rok: number, ciemny: boolean): unknown {
+    const pelna = ciemny ? 0.28 : 0.22
+    return rok < 1526 ? ['case', ['==', ['get', 'name'], 'województwo mazowieckie'], pelna * 0.45, pelna] : pelna
 }
 
 export function warstwyKorony(rok: number, ciemny: boolean): LayerSpecification[] {
     const kolor = ciemny ? '#c98a6a' : '#9a3b22'
     return [
-        { id: 'korona-tlo', type: 'fill', source: 'korona', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': kolorKorony(rok) as string, 'fill-opacity': ciemny ? 0.28 : 0.22, 'fill-antialias': false } },
+        { id: 'korona-tlo', type: 'fill', source: 'korona', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': kolorKorony(rok) as string, 'fill-opacity': przezroczystoscKorony(rok, ciemny) as number, 'fill-antialias': false } },
         {
             id: 'korona-linie',
             type: 'line',
@@ -304,4 +313,41 @@ export function warstwyKorony(rok: number, ciemny: boolean): LayerSpecification[
             paint: { 'line-color': kolor, 'line-width': 2.6, 'line-opacity': 0.9 },
         },
     ]
+}
+
+// ---------- Rzeczpospolita ok. 1600: obszary, których OHM nie dzieli na województwa ----------
+// public/granice/rzeczpospolita-1600-uzupelnienia.geojson – wyliczone z OHM (CC0) jako część obszaru RON z 1600 r.
+// poza Wielkim Księstwem i województwami (OHM i Atlas): województwo kijowskie, Inflanty, Prusy Książęce i drobne lenna.
+export const ZRODLO_UZUPELNIEN: SourceSpecification = { type: 'geojson', data: '/granice/rzeczpospolita-1600-uzupelnienia.geojson', attribution: 'Kijowszczyzna, Inflanty i lenna ok. 1600: wyznaczone z danych <a href="https://www.openhistoricalmap.org/copyright">OpenHistoricalMap</a> (CC0)' }
+export const WARSTWY_UZUPELNIEN = ['uzupelnienia-tlo', 'uzupelnienia-linie']
+export const czyUzupelnienia = (rok: number | null) => rok !== null && rok >= 1569.5 && rok < 1618.9
+
+export function warstwyUzupelnien(ciemny: boolean): LayerSpecification[] {
+    const a = ciemny ? 0.28 : 0.22
+    return [
+        {
+            id: 'uzupelnienia-tlo', type: 'fill', source: 'uzupelnienia',
+            paint: {
+                'fill-color': ['match', ['get', 'rodzaj'], 'kondominium', '#77603d', PANSTWA.korona.kolor] as unknown as string,
+                'fill-opacity': ['match', ['get', 'rodzaj'], 'lenno', a * 0.45, 'kondominium', a * 0.9, a] as unknown as number,
+                'fill-antialias': false,
+            },
+        },
+        {
+            id: 'uzupelnienia-linie', type: 'line', source: 'uzupelnienia', filter: ['!=', ['get', 'rodzaj'], 'korona'],
+            layout: { 'line-join': 'round' },
+            paint: { 'line-color': ciemny ? '#c98a6a' : '#9a3b22', 'line-width': 1.2, 'line-opacity': 0.7, 'line-dasharray': ['literal', [3, 2]] },
+        },
+    ]
+}
+
+/**
+ * Nazwa państwa dla części (poziom 3), gdy OHM nie ma całego państwa jako obszaru – np. ziemie Habsburgów
+ * w 1796 są w OHM tylko jako Galicja, Królewskie Węgry, Korona Czeska, Austriacki Okręg Rzeszy.
+ */
+export function panstwoCzesci(w: Record<string, unknown>, rok: number): string | null {
+    const nazwa = `${w.name_en ?? ''} ${w.name ?? ''} ${w.name_pl ?? ''}`.toLowerCase()
+    const habsburskie = ['galic', 'lodomer', 'królewskie węgry', 'royal hungary', 'koruny české', 'bohemian crown', 'österreichischer reichskreis', 'austrian circle']
+    if (rok >= 1526 && rok < 1918.9 && habsburskie.some((k) => nazwa.includes(k))) return rok < 1804.6 ? 'Monarchia Habsburgów' : rok < 1867.4 ? 'Cesarstwo Austriackie' : 'Austro-Węgry'
+    return null
 }

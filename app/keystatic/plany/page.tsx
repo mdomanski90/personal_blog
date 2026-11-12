@@ -1,40 +1,108 @@
 'use client'
-// Tymczasowy panel planów: lista i import pliku planu. Pełny edytor – w następnej łatce.
+// Panel planów: lista, nowy plan, import pliku planu, prośby czytelników (plany i strony).
 import * as React from 'react'
 
+type Wiersz = { slug: string; tytul: string; widocznosc: string; miejsce?: string; obiekt?: string; elementow: number; zmieniono: string }
+type ZgPlanu = { id: string; plan: string; element: string; opisElementu: string; tresc: string; kontakt: string; data: string }
+type ZgStrony = { id: string; rodzaj: string; adres: string; tytul: string; tresc: string; kontakt: string; data: string }
+
+const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
+const WID: Record<string, string> = { ja: 'szkic', bliscy: 'dla bliskich', publiczne: 'publiczny' }
+const RODZ: Record<string, string> = { poprawka: 'poprawka', miejsce: 'nowe miejsce', material: 'materiał' }
+
 export default function Plany() {
-    const [dane, ustaw] = React.useState<{ plany: { slug: string; tytul: string; widocznosc: string; elementow: number }[]; zgloszenia: number } | null>(null)
+    const [dane, ustaw] = React.useState<{ plany: Wiersz[]; miejsca: { id: string; nazwa: string }[] } | null>(null)
+    const [zgP, ustawZgP] = React.useState<ZgPlanu[]>([])
+    const [zgS, ustawZgS] = React.useState<ZgStrony[]>([])
     const [msg, ustawMsg] = React.useState('')
-    const wczytaj = () => fetch('/api/keystatic/plany').then((r) => r.json()).then(ustaw).catch(() => ustawMsg('Brak dostępu do API planów.'))
-    React.useEffect(() => { wczytaj() }, [])
-    const importuj = async (f: File, nadpisz: boolean) => {
-        ustawMsg('wgrywam…')
-        const plan = JSON.parse(await f.text())
-        const r = await fetch('/api/keystatic/plany', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ akcja: 'import', plan, nadpisz }) })
-        const j = await r.json(); ustawMsg(r.ok ? `Zaimportowano: ${j.tytul}` : j.blad); wczytaj()
-    }
-    const ustawWid = async (slug: string, w: string) => {
-        const p = await (await fetch(`/api/keystatic/plany/${slug}`)).json()
-        const r = await fetch(`/api/keystatic/plany/${slug}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...p, widocznosc: w }) })
-        ustawMsg(r.ok ? 'zapisano' : 'błąd zapisu'); wczytaj()
-    }
+    const [tytul, ustawTytul] = React.useState('')
+    const [miejsce, ustawMiejsce] = React.useState('')
     const [nadpisz, ustawNadpisz] = React.useState(false)
+    const wczytaj = React.useCallback(() => {
+        fetch('/api/keystatic/plany').then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then(ustaw).catch((s) => ustawMsg(s === 401 ? 'Brak dostępu – panel planów działa tylko za hasłem panelu (nginx).' : 'Nie udało się wczytać listy planów.'))
+        fetch('/api/keystatic/plany/zgloszenia').then((r) => r.json()).then(ustawZgP).catch(() => {})
+        fetch('/api/keystatic/zgloszenia').then((r) => r.json()).then(ustawZgS).catch(() => {})
+    }, [])
+    React.useEffect(() => { wczytaj() }, [wczytaj])
+    const nowy = async (e: React.FormEvent) => {
+        e.preventDefault()
+        const r = await fetch('/api/keystatic/plany', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ akcja: 'nowy', slug: slugify(tytul), tytul, miejsce: miejsce || undefined }) })
+        const j = await r.json()
+        if (r.ok) location.href = `/keystatic/plany/${j.slug}`
+        else ustawMsg(j.blad)
+    }
+    const importuj = async (f: File) => {
+        ustawMsg('wgrywam…')
+        try {
+            const plan = JSON.parse(await f.text())
+            const r = await fetch('/api/keystatic/plany', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ akcja: 'import', plan, nadpisz }) })
+            const j = await r.json()
+            ustawMsg(r.ok ? `Zaimportowano: ${j.tytul}` : j.blad)
+            wczytaj()
+        } catch { ustawMsg('To nie jest plik planu (.plan.json).') }
+    }
+    const usunPlan = async (p: Wiersz) => {
+        if (!confirm(`Przenieść plan „${p.tytul}” do kosza (content/plany/_kosz)?`)) return
+        await fetch(`/api/keystatic/plany/${p.slug}`, { method: 'DELETE' })
+        wczytaj()
+    }
+    const usunZg = async (rodzaj: 'plan' | 'strona', id: string) => {
+        await fetch(rodzaj === 'plan' ? `/api/keystatic/plany/zgloszenia?id=${id}` : `/api/keystatic/zgloszenia?id=${id}`, { method: 'DELETE' })
+        wczytaj()
+    }
+    const pole: React.CSSProperties = { font: 'inherit', fontSize: 14, height: 30, padding: '0 8px', border: '1px solid #d1d5db', borderRadius: 7, background: 'transparent', color: 'inherit' }
+    const btn: React.CSSProperties = { ...pole, cursor: 'pointer', background: 'var(--muted, #f2f0eb)' }
     return (
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: 24, fontFamily: 'var(--font-jetbrains), monospace', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <h1 style={{ fontSize: 20, margin: 0 }}>plany obiektów</h1>
-            <p style={{ margin: 0, color: '#6b7280', fontSize: 13 }}>Edytor planów pojawi się w następnej łatce. Na razie: import pliku planu i widoczność na stronie.</p>
-            {dane?.plany.map((p) => (
-                <div key={p.slug} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: 14 }}>
-                    <a href={`/plany/${p.slug}`}>{p.tytul}</a><span style={{ color: '#6b7280' }}>{p.elementow} el.</span>
-                    <select value={p.widocznosc} onChange={(e) => ustawWid(p.slug, e.target.value)}>
-                        <option value="ja">szkic (tylko ja)</option><option value="bliscy">dla bliskich</option><option value="publiczne">publiczny</option>
-                    </select>
-                </div>
-            ))}
-            <label style={{ fontSize: 14 }}>importuj plik planu (.plan.json): <input type="file" accept=".json" onChange={(e) => e.target.files?.[0] && importuj(e.target.files[0], nadpisz)} /></label>
-            <label style={{ fontSize: 13 }}><input type="checkbox" checked={nadpisz} onChange={(e) => ustawNadpisz(e.target.checked)} /> zastąp istniejący plan</label>
-            {dane && dane.zgloszenia > 0 && <p style={{ margin: 0 }}>Prośby czytelników: {dane.zgloszenia} (pliki w content/plany/_zgloszenia)</p>}
-            {msg && <p style={{ margin: 0 }}>{msg}</p>}
+        <div style={{ maxWidth: 860, margin: '0 auto', padding: '28px 20px 60px', fontFamily: 'var(--font-jetbrains), monospace', display: 'flex', flexDirection: 'column', gap: 18, fontSize: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 10 }}>
+                <h1 style={{ fontSize: 22, margin: 0 }}>plany obiektów</h1>
+                <span style={{ display: 'flex', gap: 14 }}><a href="/keystatic/plany/typy">katalog typów →</a><a href="/keystatic">panel treści →</a></span>
+            </div>
+            {msg && <p style={{ margin: 0, padding: '8px 10px', borderRadius: 7, background: '#fef3c7', color: '#78350f' }}>{msg}</p>}
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {dane?.plany.length === 0 && <p style={{ color: '#6b7280', margin: 0 }}>Nie ma jeszcze planów.</p>}
+                {dane?.plany.map((p) => (
+                    <div key={p.slug} style={{ display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap', borderBottom: '1px solid #e5e7eb', padding: '6px 0' }}>
+                        <a href={`/keystatic/plany/${p.slug}`} style={{ fontWeight: 700 }}>{p.tytul}</a>
+                        <span style={{ color: '#6b7280', fontSize: 12 }}>{WID[p.widocznosc] ?? p.widocznosc} · {p.elementow} elementów · zmieniono {new Date(p.zmieniono).toLocaleString('pl-PL')}</span>
+                        <span style={{ flex: 1 }} />
+                        {p.widocznosc !== 'ja' && <a href={`/plany/${p.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>na stronie ↗</a>}
+                        <button onClick={() => usunPlan(p)} style={{ ...btn, height: 26, fontSize: 12, background: 'none' }}>do kosza</button>
+                    </div>
+                ))}
+            </section>
+            <form onSubmit={nowy} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <b style={{ width: '100%' }}>nowy plan</b>
+                <input required value={tytul} onChange={(e) => ustawTytul(e.target.value)} placeholder="tytuł, np. cmentarz w Mszannie" style={{ ...pole, flex: '1 1 260px' }} />
+                <select value={miejsce} onChange={(e) => ustawMiejsce(e.target.value)} style={pole}><option value="">miejscowość…</option>{dane?.miejsca.map((m) => <option key={m.id} value={m.id}>{m.nazwa}</option>)}</select>
+                <button type="submit" style={btn}>utwórz</button>
+                {tytul && <span style={{ color: '#6b7280', fontSize: 12, width: '100%' }}>adres: /plany/{slugify(tytul)}</span>}
+            </form>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <b style={{ width: '100%' }}>import pliku planu</b>
+                <label style={{ ...btn, display: 'inline-flex', alignItems: 'center' }}>wybierz plik .plan.json<input type="file" accept=".json" hidden onChange={(e) => e.target.files?.[0] && importuj(e.target.files[0])} /></label>
+                <label style={{ fontSize: 13 }}><input type="checkbox" checked={nadpisz} onChange={(e) => ustawNadpisz(e.target.checked)} /> zastąp istniejący plan o tym samym adresie</label>
+            </div>
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <b>prośby i zgłoszenia czytelników {zgP.length + zgS.length > 0 && `(${zgP.length + zgS.length})`}</b>
+                {zgP.length + zgS.length === 0 && <p style={{ color: '#6b7280', margin: 0 }}>Brak nowych zgłoszeń.</p>}
+                {zgP.map((z) => (
+                    <div key={z.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontSize: 12, color: '#6b7280' }}>{new Date(z.data).toLocaleString('pl-PL')} · plan <a href={`/keystatic/plany/${z.plan}`}>{z.plan}</a> · {z.opisElementu || z.element}</span>
+                        <span style={{ whiteSpace: 'pre-wrap' }}>{z.tresc}</span>
+                        {z.kontakt && <span style={{ fontSize: 12 }}>kontakt: {z.kontakt}</span>}
+                        <button onClick={() => usunZg('plan', z.id)} style={{ ...btn, alignSelf: 'flex-start', height: 26, fontSize: 12 }}>załatwione – usuń</button>
+                    </div>
+                ))}
+                {zgS.map((z) => (
+                    <div key={z.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontSize: 12, color: '#6b7280' }}>{new Date(z.data).toLocaleString('pl-PL')} · {RODZ[z.rodzaj] ?? z.rodzaj} · <a href={z.adres} target="_blank" rel="noreferrer">{z.tytul || z.adres}</a></span>
+                        <span style={{ whiteSpace: 'pre-wrap' }}>{z.tresc}</span>
+                        {z.kontakt && <span style={{ fontSize: 12 }}>kontakt: {z.kontakt}</span>}
+                        <button onClick={() => usunZg('strona', z.id)} style={{ ...btn, alignSelf: 'flex-start', height: 26, fontSize: 12 }}>załatwione – usuń</button>
+                    </div>
+                ))}
+            </section>
         </div>
     )
 }

@@ -1,4 +1,5 @@
 'use client'
+import * as React from 'react'
 
 import { Link } from 'next-view-transitions'
 import { usePathname, useSearchParams } from 'next/navigation'
@@ -60,7 +61,7 @@ function Wyszukiwarka() {
     )
 }
 
-export default function SiteHeader() {
+export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) {
     const pathname = usePathname()
     const [otwarte, setOtwarte] = useState(false)
     useEffect(() => setOtwarte(false), [pathname])
@@ -130,7 +131,8 @@ export default function SiteHeader() {
                 ------------------------------------------------------------------------------------------------------
             </div>
 
-            <div className="flex items-center gap-2" style={{ marginTop: '0.75rem' }}>
+            <div className="flex flex-wrap items-center gap-2" style={{ marginTop: '0.75rem' }}>
+                {akcje && <div className="flex flex-wrap items-center gap-2">{akcje}</div>}
                 <Suspense fallback={<div className="flex-1" style={{ height: 30 }} />}>
                     <Wyszukiwarka />
                 </Suspense>

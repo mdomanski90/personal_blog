@@ -1,0 +1,40 @@
+'use client'
+// Przycisk z rozwijanym formularzem zgłoszenia (poprawka, nowe miejsce, materiał). Nic nie publikuje – trafia do panelu.
+import * as React from 'react'
+const RAMKA = 'border border-[#d1d5db] dark:border-[#4b5563]'
+
+const OPISY = {
+    poprawka: { przycisk: 'zgłoś poprawkę lub dodaj informację', podpowiedz: 'Co się nie zgadza albo co wiesz więcej o tym miejscu?' },
+    miejsce: { przycisk: 'zgłoś', podpowiedz: 'Jakie to miejsce (krzyż, kapliczka, mogiła, młyn…) i gdzie mniej więcej jest?' },
+    material: { przycisk: 'przyślij materiał', podpowiedz: 'Co masz (zdjęcie, dokument, wspomnienie)? Odezwę się i umówimy, jak je przekazać.' },
+} as const
+
+export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk' }: { rodzaj: keyof typeof OPISY; adres: string; tytul: string; wariant?: 'przycisk' | 'link' }) {
+    const [stan, ustawStan] = React.useState<'zamkniety' | 'otwarty' | 'wysylanie' | 'wyslany' | 'blad'>('zamkniety')
+    const [tresc, ustawTresc] = React.useState('')
+    const [kontakt, ustawKontakt] = React.useState('')
+    const wyslij = async (e: React.FormEvent) => {
+        e.preventDefault()
+        ustawStan('wysylanie')
+        const r = await fetch('/api/zgloszenie', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rodzaj, adres, tytul, tresc, kontakt }) }).catch(() => null)
+        ustawStan(r?.ok ? 'wyslany' : 'blad')
+    }
+    const pole: React.CSSProperties = { font: 'inherit', fontSize: 'calc(14px * var(--font-scale, 1))', padding: '6px 8px', borderRadius: 7, background: 'transparent', color: 'inherit', width: '100%' }
+    if (stan === 'wyslany') return <p className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>Dziękuję – wiadomość dotarła. Nic nie pojawi się na stronie bez sprawdzenia.</p>
+    if (stan === 'zamkniety')
+        return wariant === 'link'
+            ? <button type="button" onClick={() => ustawStan('otwarty')} className="underline text-current" style={{ font: 'inherit', background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>{OPISY[rodzaj].przycisk}</button>
+            : <button type="button" onClick={() => ustawStan('otwarty')} className={`${RAMKA} lowercase hover:bg-muted rounded-[7px]`} style={{ height: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', fontSize: 'calc(14px * var(--font-scale, 1))' }}>{OPISY[rodzaj].przycisk}</button>
+    return (
+        <form onSubmit={wyslij} className="flex flex-col w-full" style={{ gap: 8, maxWidth: '36rem' }}>
+            <label className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }} htmlFor={`zg-${rodzaj}`}>{OPISY[rodzaj].podpowiedz}</label>
+            <textarea id={`zg-${rodzaj}`} required minLength={3} maxLength={4000} rows={4} value={tresc} onChange={(e) => ustawTresc(e.target.value)} className={RAMKA} style={pole} />
+            <input value={kontakt} onChange={(e) => ustawKontakt(e.target.value)} maxLength={200} placeholder="kontakt do Ciebie (nieobowiązkowy, nie będzie pokazany)" className={RAMKA} style={pole} />
+            <div className="flex items-center" style={{ gap: 10 }}>
+                <button type="submit" disabled={stan === 'wysylanie'} className={`${RAMKA} bg-muted rounded-[7px] lowercase`} style={{ height: 'calc(28px * var(--font-scale, 1))', padding: '0 12px', fontSize: 'calc(14px * var(--font-scale, 1))' }}>{stan === 'wysylanie' ? 'wysyłam…' : 'wyślij'}</button>
+                <button type="button" onClick={() => ustawStan('zamkniety')} className="text-gray-500" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>anuluj</button>
+                {stan === 'blad' && <span style={{ color: '#b91c1c', fontSize: 'calc(13px * var(--font-scale, 1))' }}>Nie udało się wysłać – spróbuj za chwilę.</span>}
+            </div>
+        </form>
+    )
+}

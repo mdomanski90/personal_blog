@@ -28,10 +28,9 @@ export default async function PlanStrona({ params }: Parametry) {
     const ob = plan.obiekt ? await obiekt(plan.obiekt, poz) : null
     const ustawienia = await wczytajUstawienia()
     return (
-        <Strona szeroka>
+        <Strona szeroka akcje={<CopyLinkButton sciezka={`/plany/${plan.slug}`} />}>
             <TytulStrony
                 sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : []), ...(ob ? [{ tekst: ob.nazwa, href: `/obiekty/${ob.id}` }] : [])]}
-                akcje={<CopyLinkButton sciezka={`/plany/${plan.slug}`} />}
             >
                 {plan.tytul}
             </TytulStrony>

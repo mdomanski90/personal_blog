@@ -5,6 +5,7 @@ import { miejsca, obiekt, obiekty, materialyDla, powiazania, poziomCzytelnika, k
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
 import { punktyMapy } from '@/lib/punkty-mapy'
+import { dolaczPlany } from '@/lib/plany/serwer'
 import { tarczaObiektu } from '@/lib/tarcze'
 import { Kreski, Metki, Sekcja, Strona, Tresc, TytulStrony, Wiersz } from '../../components/Uklad'
 import Powiazania from '../../components/Powiazania'
@@ -12,6 +13,7 @@ import ListaMaterialow from '../../components/ListaMaterialow'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import PowrotDoMapy from '../../components/PowrotDoMapy'
+import Zgloszenie from '../../components/Zgloszenie'
 import ListaPlanow from '../../components/plan/ListaPlanow'
 import { planyDlaCzytelnika } from '@/lib/plany/serwer'
 
@@ -32,15 +34,15 @@ export default async function ObiektStrona({ params }: Parametry) {
     if (!o) notFound()
     const wszystkie = await miejsca(poziom)
     const wies = o.miejsce ? wszystkie.find((m) => m.id === o.miejsce) : undefined
-    const punkty = o.wspolrzedne ? punktyMapy(wszystkie, await obiekty(poziom)) : []
+    const punkty = o.wspolrzedne ? await dolaczPlany(punktyMapy(wszystkie, await obiekty(poziom))) : []
     const rodzaj = RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj
     const siec = await powiazania('obiekt', o.id, poziom)
     const mat = await materialyDla('obiekt', o.id, poziom)
     const planyObiektu = await planyDlaCzytelnika('obiekt', o.id)
 
     return (
-        <Strona>
-            <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]} akcje={<><PowrotDoMapy /><CopyLinkButton sciezka={`/obiekty/${o.id}`} /></>}>
+        <Strona akcje={<><PowrotDoMapy /><CopyLinkButton sciezka={`/obiekty/${o.id}`} /></>}>
+            <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]}>
                 <span className="inline-flex items-center" style={{ gap: 10 }}>
                     <span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaObiektu(o.rodzaj, rodzaj, 36, o.istnieje) }} />
                     {o.nazwa}
@@ -78,6 +80,11 @@ export default async function ObiektStrona({ params }: Parametry) {
 
             {(siec.odnosniki.length > 0 || siec.wzmianki.length > 0) && <Kreski />}
             <Powiazania dane={siec} />
+
+            <div className="border-t border-[#e5e7eb] dark:border-[#374151] flex flex-wrap items-center" style={{ paddingTop: '1rem', gap: '0.6rem 1rem' }}>
+                <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>Coś się nie zgadza albo wiesz więcej o tym miejscu?</span>
+                <Zgloszenie rodzaj="poprawka" adres={`/obiekty/${o.id}`} tytul={o.nazwa} />
+            </div>
         </Strona>
     )
 }

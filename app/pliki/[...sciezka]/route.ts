@@ -20,8 +20,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ sciezka:
     const m = await material(id, await poziomCzytelnika())
     if (!m || m.plik !== `${ADRES_PLIKOW}${id}/${nazwa}`) return nieMa()
 
-    const katalog = path.resolve(process.cwd(), KATALOG_PLIKOW)
-    const plik = path.resolve(katalog, id, nazwa)
+    const katalog = path.resolve(/*turbopackIgnore: true*/ process.cwd(), KATALOG_PLIKOW)
+    const plik = path.resolve(/*turbopackIgnore: true*/ katalog, id, nazwa)
     if (!plik.startsWith(katalog + path.sep)) return nieMa()
     let rozmiar: number
     try {

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
-import { nazwy, opowiesci, poziomCzytelnika, kontekstTresci, materialy } from '@/lib/archiwum'
+import { nazwy, opowiesci, poziomCzytelnika, kontekstTresci, materialy, tenDzien } from '@/lib/archiwum'
 import { naHtml } from '@/lib/markdoc'
 import { Kreski, Strona, Tresc } from './components/Uklad'
 import MetkiWpisu from './components/MetkiWpisu'
@@ -16,12 +16,40 @@ export default async function StronaGlowna() {
     const n = await nazwy(poziom)
     // ostatnio dodane materiały (najwyżej 4)
     const nowe = [...(await materialy(poziom))].sort((a, b) => (b.dodano ?? '').localeCompare(a.dodano ?? '')).slice(0, 4)
+    // dzisiejsza data w Polsce (serwer może mieć inną strefę)
+    const [rok, mies, dz] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()).split('-').map(Number)
+    const dzis = await tenDzien(poziom, mies, dz)
+    const MIES = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia']
+    const latTemu = (r: number) => { const n = rok - r; return n === 1 ? 'rok temu' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? `${n} lata temu` : `${n} lat temu` }
 
     return (
         <Strona>
-            <p className="leading-relaxed" style={{ fontSize: 'var(--blog-font-size, 18px)' }}>
-                Archiwum wsi wokół Olszanki i Łosic: dokumenty, zdjęcia, nagrania i wspomnienia, ludzie i miejsca, o których pamięta coraz mniej osób.
-            </p>
+            {/* opis i „ten dzień w historii” obok siebie; w dni bez dat opis zajmuje całą szerokość, na telefonie ramka pod opisem */}
+            <div className="grid" style={{ gap: '1.25rem', gridTemplateColumns: dzis.length ? 'repeat(auto-fit, minmax(17rem, 1fr))' : '1fr', alignItems: 'start' }}>
+                <div className="flex flex-col" style={{ gap: 10 }}>
+                    <p className="leading-relaxed" style={{ fontSize: 'var(--blog-font-size, 18px)', margin: 0 }}>
+                        Archiwum wsi wokół Olszanki i Łosic: dokumenty, zdjęcia, nagrania i wspomnienia, ludzie i miejsca, o których pamięta coraz mniej osób.
+                    </p>
+                    <Link href="/o-projekcie" className="w-fit lowercase" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>o projekcie →</Link>
+                </div>
+                {dzis.length > 0 && (
+                    <aside className="border border-[#d1d5db] dark:border-[#4b5563] rounded-[8px] flex flex-col" style={{ padding: 14, gap: 10 }}>
+                        <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
+                            <b className="lowercase" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>ten dzień w historii</b>
+                            <span className="text-gray-500" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>{dz} {MIES[mies - 1]}</span>
+                        </div>
+                        {dzis.map((p) => (
+                            <div key={p.href} className="grid" style={{ gridTemplateColumns: '3.4rem minmax(0,1fr)', gap: 10 }}>
+                                <span className="font-bold" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{p.rok}</span>
+                                <span className="flex flex-col" style={{ gap: 2 }}>
+                                    <Link href={p.href} style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{p.tytul}</Link>
+                                    <span className="text-gray-500" style={{ fontSize: 'calc(12.5px * var(--font-scale, 1))' }}>{p.rodzaj} · {latTemu(p.rok)}</span>
+                                </span>
+                            </div>
+                        ))}
+                    </aside>
+                )}
+            </div>
 
             <Kreski />
 

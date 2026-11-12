@@ -117,6 +117,8 @@ export interface Opowiesc {
     widocznosc: Widocznosc
     tresc: Node | null
     zajawka: string
+    /** dzień, którego dotyczy wpis (RRRR-MM-DD) – do „ten dzień w historii” */
+    dzien: string | null
 }
 
 export const RODZAJE_MIEJSC: Record<string, string> = {
@@ -344,6 +346,7 @@ const wszystkieOpowiesciSurowe = cache(async (): Promise<Opowiesc[]> => {
                 id: slug,
                 tytul: entry.title,
                 data: entry.date,
+                dzien: (entry as { about?: string }).about || null,
                 rodzaj: entry.kind,
                 miejsca: [...entry.spatial],
                 tematy: [...entry.subject],
@@ -728,4 +731,44 @@ export const dlaEksportu = {
     materialy: wszystkieMaterialySurowe,
     parafie: wszystkieParafie,
     ksiegi: wszystkieKsiegiSurowe,
+}
+
+// ---------- ten dzień w historii ----------
+export interface PozycjaDnia { rok: number; tytul: string; href: string; rodzaj: string }
+
+/**
+ * Wydarzenia z tematów, materiały z dokładną datą i wpisy o konkretnym dniu, które przypadają na dany dzień i miesiąc.
+ * Bez urodzin, ślubów i zgonów z drzewa genealogicznego (ustalenie z 12.11.2026).
+ */
+export async function tenDzien(poziom: Widocznosc, miesiac: number, dzien: number): Promise<PozycjaDnia[]> {
+    const md = `-${String(miesiac).padStart(2, '0')}-${String(dzien).padStart(2, '0')}`
+    const trafia = (z: string | null | undefined) => {
+        const m = /^(\d{4})(-\d{2}-\d{2})/.exec(z ?? '')
+        return m && m[2] === md ? Number(m[1]) : null
+    }
+    const wyn: PozycjaDnia[] = []
+    for (const t of await tematy(poziom)) { const r = trafia(t.czas); if (r) wyn.push({ rok: r, tytul: t.nazwa, href: `/tematy/${t.id}`, rodzaj: `temat · ${RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj}` }) }
+    for (const m of await materialy(poziom)) { const r = trafia(m.czas); if (r) wyn.push({ rok: r, tytul: m.nazwa, href: `/archiwum/${m.id}`, rodzaj: `archiwum · ${RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj}` }) }
+    for (const o of await opowiesci(poziom)) { const r = trafia(o.dzien); if (r) wyn.push({ rok: r, tytul: o.tytul, href: `/wpisy/${o.id}`, rodzaj: 'wpis' }) }
+    return wyn.sort((a, b) => a.rok - b.rok)
+}
+
+// ---------- słownik ----------
+export const RODZAJE_HASEL: Record<string, string> = { pojecie: 'pojęcie historyczne', gwara: 'gwara, słowo miejscowe', urzad: 'urząd, urzędnik', miara: 'miara, waluta', wyznanie: 'wyznanie, obrzęd' }
+export interface Haslo { id: string; haslo: string; rodzaj: string; znaczenie: string; przyklad: string; zrodlo: string; formy: string[]; widocznosc: Widocznosc }
+
+const wszystkieHasla = cache(async (): Promise<Haslo[]> => {
+    const r = reader as unknown as { collections: { hasla?: { all: () => Promise<{ slug: string; entry: Record<string, unknown> }[]> } } }
+    if (!r.collections.hasla) return []
+    const wpisy = await r.collections.hasla.all().catch(() => [])
+    return wpisy
+        .map(({ slug, entry }) => ({
+            id: slug, haslo: String(entry.title ?? slug), rodzaj: String(entry.kind ?? 'pojecie'), znaczenie: String(entry.meaning ?? ''), przyklad: String(entry.example ?? ''),
+            zrodlo: String(entry.source ?? ''), formy: Array.isArray(entry.variants) ? (entry.variants as string[]) : [], widocznosc: (entry.visibility as Widocznosc) ?? 'publiczne',
+        }))
+        .sort((a, b) => porownajPl(a.haslo, b.haslo))
+})
+
+export async function hasla(poziom: Widocznosc): Promise<Haslo[]> {
+    return (await wszystkieHasla()).filter((h) => widoczne(h.widocznosc, poziom))
 }

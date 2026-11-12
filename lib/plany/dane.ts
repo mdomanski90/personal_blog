@@ -82,7 +82,7 @@ export async function zapiszUstawienia(u: UstawieniaPlanow) {
 // ---------- pliki (podkłady, zdjęcia, ikony) ----------
 export function sciezkaPliku(slug: string, plik: string): string | null {
     if (!(SLUG.test(slug) || slug === '_ikony') || !PLIK_OK.test(plik)) return null
-    const baza = PLIKI(), p = path.resolve(baza, slug, plik)
+    const baza = PLIKI(), p = path.resolve(/*turbopackIgnore: true*/ baza, slug, plik)
     return p.startsWith(baza + path.sep) ? p : null
 }
 

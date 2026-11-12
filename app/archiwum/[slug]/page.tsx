@@ -5,6 +5,12 @@ import { RODZAJE_MATERIALOW } from '@/lib/materialy'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
 import { typPliku } from '@/lib/pliki'
+import { rozdzielZrodla } from '@/lib/markdoc'
+import PodgladSkanu from '../../components/PodgladSkanu'
+import TekstyZrodla from '../../components/TekstyZrodla'
+import JakCytowac from '../../components/JakCytowac'
+import { ADRES_STRONY, AUTOR_STRONY } from '@/lib/strona'
+import Zgloszenie from '../../components/Zgloszenie'
 import { Kreski, Metki, RAMKA, Sekcja, Strona, Tresc, TytulStrony, Wiersz } from '../../components/Uklad'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania from '../../components/Powiazania'
@@ -37,29 +43,35 @@ export default async function MaterialStrona({ params }: Parametry) {
     const miejscaM = m.miejsca.filter((id) => n.miejsca.has(id))
     const tematyM = m.tematy.filter((id) => n.tematy.has(id))
     const obiektyM = m.obiekty.filter((id) => nazwyObiektow.has(id))
+    const ktx = await kontekstTresci(poziom)
+    const cz = rozdzielZrodla(m.opis)
+    const teksty = { transkrypcja: naHtml(cz.transkrypcja, ktx), tlumaczenie: naHtml(cz.tlumaczenie, ktx), oryginal: naHtml(cz.oryginal, ktx) }
+    const maTeksty = !!(teksty.transkrypcja || teksty.tlumaczenie || teksty.oryginal)
+    // skan obok tekstu: obraz z transkrypcją albo tłumaczeniem
+    const obok = typ === 'obraz' && maTeksty
+    const oryginal = [m.pochodzenie, m.sygnatura].filter(Boolean).join(', ')
 
     return (
-        <Strona>
+        <Strona szeroka={obok} akcje={<><Link href="/archiwum" className={`${RAMKA} lowercase !no-underline text-current hover:bg-muted inline-flex items-center`} style={{ fontSize: 'calc(14px * var(--font-scale, 1))', minHeight: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', borderRadius: 7 }}>← archiwum</Link><CopyLinkButton sciezka={`/archiwum/${m.id}`} /></>}>
             <TytulStrony
                 sciezka={[{ tekst: 'archiwum', href: '/archiwum' }]}
-                akcje={<><Link href="/archiwum" className={`${RAMKA} lowercase !no-underline text-current hover:bg-muted inline-flex items-center`} style={{ fontSize: 'calc(14px * var(--font-scale, 1))', minHeight: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', borderRadius: 7 }}>← archiwum</Link><CopyLinkButton sciezka={`/archiwum/${m.id}`} /></>}
             >
                 {m.nazwa}
             </TytulStrony>
             <Metki elementy={[RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj, m.czas ? formatujEdtf(m.czas) : null, m.widocznosc === 'bliscy' ? 'dla bliskich' : null]} />
 
-            {m.plik && (
+            {obok ? (
+                <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(20rem, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
+                    <section className="flex flex-col" style={{ gap: 6 }}><h2 className="font-bold lowercase" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>skan</h2><PodgladSkanu src={m.plik!} alt={m.nazwa} /></section>
+                    <section className="flex flex-col" style={{ gap: 6 }}><TekstyZrodla {...teksty} />{m.opracowal && <span className="text-gray-500" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>transkrypcja i tłumaczenie: {m.opracowal} · luki w nawiasach […] przygaszone</span>}</section>
+                </div>
+            ) : m.plik && (
                 <figure className="flex flex-col" style={{ gap: 6, margin: '0 0 0.5rem' }}>
-                    {typ === 'obraz' && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={m.plik} data-zoom-src={m.plik} alt={m.nazwa} className={`${RAMKA} w-full cursor-zoom-in`} style={{ borderRadius: 8 }} />
-                    )}
+                    {typ === 'obraz' && <PodgladSkanu src={m.plik} alt={m.nazwa} />}
                     {typ === 'dzwiek' && <audio controls preload="metadata" src={m.plik} className="w-full" />}
                     {typ === 'film' && <video controls preload="metadata" src={m.plik} className="w-full" style={{ borderRadius: 8 }} />}
                     {typ === 'pdf' && <iframe src={m.plik} title={m.nazwa} className={`${RAMKA} w-full`} style={{ height: '75vh', borderRadius: 8 }} />}
-                    <a href={m.plik} className="lowercase w-fit" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }} download>
-                        pobierz plik
-                    </a>
+                    {typ !== 'obraz' && <a href={m.plik} className="lowercase w-fit" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }} download>pobierz plik</a>}
                 </figure>
             )}
 
@@ -73,7 +85,10 @@ export default async function MaterialStrona({ params }: Parametry) {
                 {m.opracowal && <Wiersz etykieta="opracował(a)">{m.opracowal}</Wiersz>}
             </div>
 
-            <Tresc html={naHtml(m.opis, await kontekstTresci(poziom))} pusta={null} />
+            {!obok && maTeksty && <TekstyZrodla {...teksty} />}
+            <Tresc html={naHtml(cz.reszta, ktx)} pusta={null} />
+
+            <JakCytowac plik={m.id} dane={{ tytul: m.czas && !m.nazwa.includes(formatujEdtf(m.czas)) ? `${m.nazwa}, ${formatujEdtf(m.czas)}` : m.nazwa, adres: `${ADRES_STRONY}/archiwum/${m.id}`, opracowal: m.opracowal || AUTOR_STRONY, autor: m.tworca || undefined, rok: m.czas?.slice(0, 4), oryginal: oryginal || undefined, rodzaj: 'material' }} />
 
             {miejscaM.length > 0 && (
                 <Sekcja tytul="miejsca">
@@ -93,6 +108,11 @@ export default async function MaterialStrona({ params }: Parametry) {
 
             {(siec.odnosniki.length > 0 || siec.wzmianki.length > 0) && <Kreski />}
             <Powiazania dane={{ odnosniki: siec.odnosniki, wzmianki: [] }} />
+
+            <div className="border-t border-[#e5e7eb] dark:border-[#374151] flex flex-wrap items-center" style={{ paddingTop: '1rem', gap: '0.6rem 1rem' }}>
+                <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>Coś się nie zgadza w opisie albo transkrypcji? „To nie Piotr, tylko Paweł” wystarczy.</span>
+                <Zgloszenie rodzaj="poprawka" adres={`/archiwum/${m.id}`} tytul={m.nazwa} />
+            </div>
         </Strona>
     )
 }
