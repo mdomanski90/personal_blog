@@ -165,7 +165,7 @@ async function main() {
 
     zapiszCsv(
         'materialy.csv',
-        ['dcterms:identifier', 'o:resource_class', 'dcterms:title', 'dcterms:type', 'dcterms:date', 'numeric:interval', 'dcterms:creator', 'dcterms:source', 'dcterms:bibliographicCitation', 'dcterms:rights', 'dcterms:language', 'dcterms:spatial', 'dcterms:subject', 'dcterms:relation', 'file', 'dcterms:description', 'dcterms:dateSubmitted', 'o:is_public'],
+        ['dcterms:identifier', 'o:resource_class', 'dcterms:title', 'dcterms:type', 'dcterms:date', 'numeric:interval', 'dcterms:creator', 'dcterms:provenance', 'dcterms:contributor', 'dcterms:source', 'dcterms:bibliographicCitation', 'dcterms:rights', 'dcterms:language', 'dcterms:spatial', 'dcterms:subject', 'dcterms:relation', 'file', 'dcterms:description', 'dcterms:dateSubmitted', 'o:is_public'],
         materialy.map((m) => {
             const z = zakresIso(m.czas)
             return {
@@ -176,6 +176,8 @@ async function main() {
                 'dcterms:date': m.czas,
                 'numeric:interval': z ? `${z.od ?? ''}/${z.do ?? ''}` : '',
                 'dcterms:creator': m.tworca,
+                'dcterms:provenance': m.przekazal,
+                'dcterms:contributor': m.opracowal,
                 'dcterms:source': m.pochodzenie,
                 'dcterms:bibliographicCitation': m.sygnatura,
                 'dcterms:rights': m.prawa,

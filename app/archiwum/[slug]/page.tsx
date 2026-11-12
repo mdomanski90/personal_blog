@@ -69,6 +69,8 @@ export default async function MaterialStrona({ params }: Parametry) {
                 {m.sygnatura && <Wiersz etykieta="sygnatura">{m.sygnatura}</Wiersz>}
                 {m.jezyk && <Wiersz etykieta="język">{m.jezyk}</Wiersz>}
                 {m.prawa && <Wiersz etykieta="prawa">{m.prawa}</Wiersz>}
+                {m.przekazal && <Wiersz etykieta="przekazał(a)">{m.przekazal}</Wiersz>}
+                {m.opracowal && <Wiersz etykieta="opracował(a)">{m.opracowal}</Wiersz>}
             </div>
 
             <Tresc html={naHtml(m.opis, await kontekstTresci(poziom))} pusta={null} />

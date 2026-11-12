@@ -120,6 +120,10 @@ export interface Material {
     plik: string | null
     czas: string
     tworca: string
+    /** kto udostępnił materiał (dcterms:provenance) */
+    przekazal: string
+    /** kto opracował opis, transkrypcję, tłumaczenie (dcterms:contributor) */
+    opracowal: string
     pochodzenie: string
     sygnatura: string
     prawa: string
@@ -216,6 +220,8 @@ const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
             plik: typeof entry.file === 'string' && entry.file ? entry.file : null,
             czas: entry.temporal,
             tworca: entry.creator,
+            przekazal: entry.provenance ?? '',
+            opracowal: entry.contributor ?? '',
             pochodzenie: entry.source,
             sygnatura: entry.identifier,
             prawa: entry.rights,
