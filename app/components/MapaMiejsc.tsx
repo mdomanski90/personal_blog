@@ -366,41 +366,29 @@ export default function MapaMiejsc({
                     <div className="flex flex-wrap items-center" style={{ gap: '6px 10px' }}>
                         <span className="lowercase text-gray-600 dark:text-gray-400">granice historyczne:</span>
                         <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1, paddingTop: 1 }} role="group" aria-label="granice historyczne – rok">
-                            {[null, ...LATA_GRANIC.map((l) => l.rok)].map((r) => {
-                                const wl = rok === r
+                            {[null, ...LATA_GRANIC].map((l) => {
+                                const wl = l ? rok === l.rok : rok === null
                                 return (
                                     <button
-                                        key={r ?? 'brak'}
+                                        key={l?.etykieta ?? 'brak'}
                                         type="button"
                                         aria-pressed={wl}
-                                        title={r ? LATA_GRANIC.find((l) => l.rok === r)?.opis : 'bez granic historycznych'}
-                                        onClick={() => setRok(r)}
-                                        className={`border border-[#d1d5db] dark:border-[#4b5563] lowercase cursor-pointer ${wl ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
+                                        title={l ? l.opis : 'bez granic historycznych'}
+                                        onClick={() => setRok(l ? l.rok : null)}
+                                        className={`border border-[#d1d5db] dark:border-[#4b5563] lowercase cursor-pointer whitespace-nowrap ${wl ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
                                         style={{ margin: '-1px 0 0 -1px', padding: '0 8px', height: 26, fontSize: 'inherit', fontFamily: 'inherit' }}
                                     >
-                                        {r ?? 'brak'}
+                                        {l?.etykieta ?? 'brak'}
                                     </button>
                                 )
                             })}
                         </div>
                     </div>
                     {rok && (
-                        <div className="flex flex-wrap items-center" style={{ gap: '4px 10px' }}>
-                            <input
-                                type="range"
-                                min={1400}
-                                max={1950}
-                                step={1}
-                                value={rok}
-                                onChange={(e) => setRok(Number(e.target.value))}
-                                aria-label="rok"
-                                style={{ width: 'min(100%, 22rem)', accentColor: '#9a3b22' }}
-                            />
-                            <span className="font-bold">{rok}</span>
-                            <span className="text-gray-600 dark:text-gray-400 lowercase">
-                                {LATA_GRANIC.find((l) => l.rok === rok)?.opis ?? ''}
-                            </span>
-                        </div>
+                        <p style={{ margin: 0 }}>
+                            <span className="font-bold">{LATA_GRANIC.find((l) => l.rok === rok)?.etykieta ?? Math.floor(rok)}</span>{' '}
+                            <span className="text-gray-600 dark:text-gray-400">{LATA_GRANIC.find((l) => l.rok === rok)?.opis ?? ''}</span>
+                        </p>
                     )}
                     {rok && (
                         <div className="flex flex-wrap items-center text-gray-600 dark:text-gray-400" style={{ gap: '4px 14px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
@@ -416,14 +404,14 @@ export default function MapaMiejsc({
                     {rok && (
                         <div className="flex flex-wrap items-center text-gray-600 dark:text-gray-400" style={{ gap: '4px 14px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
                             <span className="inline-flex items-center" style={{ gap: 5 }}>
-                                <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="2.6" strokeDasharray="7 3.5" /></svg>
+                                <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="2.6" /></svg>
                                 granica państwa
                             </span>
                             <span className="inline-flex items-center" style={{ gap: 5 }}>
-                                <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="1.2" opacity="0.8" /></svg>
-                                województwo / gubernia (różne odcienie)
+                                <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="1.4" strokeDasharray="5 3" opacity="0.85" /></svg>
+                                województwo / departament / gubernia (różne odcienie)
                             </span>
-                            {czyRzeczpospolita(rok) && <span>· Rzeczpospolita Obojga Narodów = Korona + Litwa (wspólna granica przerywana)</span>}
+                            {czyRzeczpospolita(rok) && <span>· Rzeczpospolita Obojga Narodów = Korona + Litwa (wspólna granica zewnętrzna)</span>}
                         </div>
                     )}
                     {rok && (

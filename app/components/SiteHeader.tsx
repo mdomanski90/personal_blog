@@ -2,17 +2,19 @@
 
 import { Link } from 'next-view-transitions'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import ThemeToggle from './ThemeToggle'
 import Logowanie from './Logowanie'
 
-// Menu: tylko działy, które już istnieją. Kolejne (osoby, biblioteczka) dochodzą później.
+// Menu główne (docelowe). Na telefonie zwinięte pod jednym przyciskiem.
 const MENU: { href: string; tekst: string }[] = [
     { href: '/', tekst: 'strona główna' },
     { href: '/wpisy', tekst: 'wpisy' },
     { href: '/miejsca', tekst: 'miejsca' },
+    { href: '/osoby', tekst: 'osoby' },
     { href: '/tematy', tekst: 'tematy' },
     { href: '/archiwum', tekst: 'archiwum' },
+    { href: '/biblioteka', tekst: 'biblioteka' },
     { href: '/o-projekcie', tekst: 'o projekcie' },
 ]
 
@@ -59,6 +61,9 @@ function Wyszukiwarka() {
 
 export default function SiteHeader() {
     const pathname = usePathname()
+    const [otwarte, setOtwarte] = useState(false)
+    useEffect(() => setOtwarte(false), [pathname])
+    const biezacy = MENU.find((m) => aktywny(pathname, m.href))?.tekst ?? 'menu'
 
     return (
         <header>
@@ -81,9 +86,23 @@ export default function SiteHeader() {
             </div>
 
             <nav aria-label="menu główne" style={{ marginTop: '2rem' }}>
+                {/* telefon: jeden przycisk z nazwą bieżącego działu, po kliknięciu pełna lista */}
+                <div className="sm:hidden flex items-center justify-between gap-2" style={{ marginBottom: otwarte ? 6 : 0 }}>
+                <button
+                    type="button"
+                    className={`border ${RAMKA} bg-muted text-current cursor-pointer`}
+                    style={{ ...linkStyl, fontWeight: 700, fontFamily: 'inherit' }}
+                    aria-expanded={otwarte}
+                    aria-controls="menu-glowne"
+                    onClick={() => setOtwarte((o) => !o)}
+                >
+                    {biezacy} {otwarte ? '▴' : '▾'}
+                </button>
+                <Logowanie />
+                </div>
                 {/* każda pozycja ma pełną ramkę, a sąsiednie nachodzą na siebie o 1px –
                     po zawinięciu do drugiej linii kreski się nie dublują i nie zostaje pusta ramka */}
-                <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1, paddingTop: 1 }}>
+                <div id="menu-glowne" className={`${otwarte ? 'flex flex-col sm:flex-row' : 'hidden'} sm:flex flex-wrap w-fit`} style={{ paddingLeft: 1, paddingTop: 1 }}>
                     {MENU.map((m) => {
                         const akt = aktywny(pathname, m.href)
                         return (
@@ -110,7 +129,6 @@ export default function SiteHeader() {
                     <Wyszukiwarka />
                 </Suspense>
                 <div className="sm:hidden shrink-0 flex items-center gap-2">
-                    <Logowanie />
                     <ThemeToggle />
                 </div>
             </div>

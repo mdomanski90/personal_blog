@@ -9,19 +9,22 @@ export const ZRODLO_GRANIC: SourceSpecification = {
     attribution: '<a href="https://www.openhistoricalmap.org/copyright">OpenHistoricalMap</a>',
 }
 
-/** Lata do szybkiego wyboru z krótkim opisem tego, co było wtedy na tym terenie. */
-export const LATA_GRANIC: { rok: number; opis: string }[] = [
-    { rok: 1520, opis: 'Podlasie w Wielkim Księstwie Litewskim' },
-    { rok: 1600, opis: 'Rzeczpospolita Obojga Narodów – Podlasie w Koronie od 1569' },
-    { rok: 1700, opis: 'Rzeczpospolita Obojga Narodów' },
-    { rok: 1790, opis: 'Rzeczpospolita po I rozbiorze' },
-    { rok: 1796, opis: 'po III rozbiorze – Galicja Zachodnia (Austria)' },
-    { rok: 1810, opis: 'Księstwo Warszawskie' },
-    { rok: 1830, opis: 'Królestwo Polskie' },
-    { rok: 1880, opis: 'gubernia siedlecka (Imperium Rosyjskie)' },
-    { rok: 1913, opis: 'przed I wojną światową' },
-    { rok: 1917, opis: 'Królestwo Polskie Regencyjne (okupacja niemiecka)' },
-    { rok: 1930, opis: 'II Rzeczpospolita' },
+/**
+ * Okresy do wyboru: napis na przycisku, rok, dla którego rysujemy mapę (środek okresu), i opis –
+ * co było wtedy na terenie Łosic, Olszanki i Międzyrzeca.
+ */
+export const LATA_GRANIC: { etykieta: string; rok: number; opis: string }[] = [
+    { etykieta: '1520', rok: 1520, opis: 'Podlasie w Wielkim Księstwie Litewskim (przed unią lubelską)' },
+    { etykieta: '1600', rok: 1600, opis: 'Rzeczpospolita Obojga Narodów – Podlasie w Koronie od 1569, unia brzeska 1596' },
+    { etykieta: '1796', rok: 1796, opis: 'po III rozbiorze – na zachód od Bugu Austria (Galicja Zachodnia), za Bugiem Rosja' },
+    { etykieta: '1809–1815', rok: 1811, opis: 'Księstwo Warszawskie – departament siedlecki' },
+    { etykieta: '1815–1830', rok: 1825, opis: 'Królestwo Polskie – województwo podlaskie' },
+    { etykieta: '1875', rok: 1875, opis: 'kasata unii – gubernia siedlecka w Imperium Rosyjskim' },
+    { etykieta: '1913', rok: 1913, opis: 'przed wojną i bieżeństwem (1915)' },
+    { etykieta: '1921', rok: 1921, opis: 'II Rzeczpospolita po traktacie ryskim – województwo lubelskie' },
+    { etykieta: '1940', rok: 1940, opis: 'okupacja – granica niemiecko-sowiecka na Bugu, Generalne Gubernatorstwo' },
+    { etykieta: '1942', rok: 1942, opis: 'okupacja niemiecka – zagłada gmin żydowskich' },
+    { etykieta: '1945', rok: 1945.8, opis: 'nowe granice Polski – województwo lubelskie' },
 ]
 
 export function filtrGranic(rok: number, poziomy: number[] = [2, 3, 4, 5, 6]): FilterSpecification {
@@ -85,6 +88,7 @@ const ZASTEPCZE: { klucze: string[]; lata: [number, number]; panstwo: Panstwo; n
     // po 1867 OHM nie ma tu Imperium Rosyjskiego, po 1918 – II Rzeczypospolitej
     { klucze: ['gubern', 'губерн', 'governorate'], lata: [1867, 1915.6], panstwo: 'rosja', nazwa: 'Imperium Rosyjskie' },
     { klucze: ['wojew', 'voivod'], lata: [1918.86, 1939.75], panstwo: 'korona', nazwa: 'Rzeczpospolita Polska' },
+    { klucze: ['wojew', 'voivod'], lata: [1944.55, 1999], panstwo: 'korona', nazwa: 'Polska' },
 ]
 
 const nazwaWyrazenie = ['downcase', ['concat', ['coalesce', ['get', 'name_en'], ''], ' ', ['coalesce', ['get', 'name'], ''], ' ', ['coalesce', ['get', 'name_pl'], '']]]
@@ -133,7 +137,7 @@ export const czyRzeczpospolita = (rok: number) => rok >= 1569.5 && rok < 1795.82
 
 /**
  * Warstwy granic: tło państw (półprzezroczyste kolory), odcienie województw / guberni,
- * kreski granic (państwa przerywaną, województwa ciągłą) i podpisy. Podpisy liczy komponent mapy –
+ * kreski granic (państwa ciągłą, województwa i gubernie przerywaną) i podpisy. Podpisy liczy komponent mapy –
  * po jednym na każde państwo / województwo widoczne w kadrze (źródło GeoJSON „granice-napisy”).
  */
 export function warstwyGranic(rok: number, ciemny: boolean): LayerSpecification[] {
@@ -151,7 +155,7 @@ export function warstwyGranic(rok: number, ciemny: boolean): LayerSpecification[
     return [
         tlo('granice-tlo', WARSTWY_Z_ROKIEM['granice-tlo'], ciemny ? 0.24 : 0.17, kolorPanstwa()),
         tlo('granice-tlo-nizsze', WARSTWY_Z_ROKIEM['granice-tlo-nizsze'], przezroczystoscWojewodztw(rok, ciemny), kolorWojewodztw(rok)),
-        // województwa / gubernie ciągłą cienką kreską, powiaty jeszcze cieńszą
+        // województwa / ziemie / departamenty / gubernie przerywaną kreską, powiaty cieńszą
         {
             id: 'granice-hist-woj',
             type: 'line',
@@ -161,8 +165,9 @@ export function warstwyGranic(rok: number, ciemny: boolean): LayerSpecification[
             layout: { 'line-join': 'round' },
             paint: {
                 'line-color': kolor,
-                'line-width': ['match', ['get', 'admin_level'], 4, 1.2, 0.7],
-                'line-opacity': ['match', ['get', 'admin_level'], 4, 0.7, 0.4],
+                'line-width': ['match', ['get', 'admin_level'], 4, 1.4, 0.9],
+                'line-opacity': ['match', ['get', 'admin_level'], 4, 0.8, 0.5],
+                'line-dasharray': ['literal', [4, 2.5]],
             },
         },
         {
@@ -174,9 +179,8 @@ export function warstwyGranic(rok: number, ciemny: boolean): LayerSpecification[
             layout: { 'line-join': 'round' },
             paint: {
                 'line-color': kolor,
-                'line-width': ['match', ['get', 'admin_level'], 2, 2.8, 2.2],
+                'line-width': ['match', ['get', 'admin_level'], 2, 2.6, 2],
                 'line-opacity': 0.9,
-                'line-dasharray': ['literal', [5, 2.5]],
             },
         },
         {
