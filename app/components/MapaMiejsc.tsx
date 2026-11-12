@@ -108,7 +108,7 @@ export default function MapaMiejsc({
         } catch {}
         if (zapisany) {
             m.jumpTo({ center: zapisany.c, zoom: zapisany.z })
-            if (granice && zapisany.r) setRok(zapisany.r)
+            if (granice && zapisany.r && LATA_GRANIC.some((l) => l.rok === zapisany!.r)) setRok(zapisany.r)
         } else if (!srodek && punkty.length > 1) {
             const b = new LngLatBounds()
             punkty.forEach((p) => b.extend([p.lng, p.lat]))
