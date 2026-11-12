@@ -11,8 +11,11 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+    metadataBase: new URL('https://odniepamieci.pl'),
     title: 'odniepamieci.pl',
     description: 'Społeczne archiwum pamięci lokalnej: wsie wokół Olszanki i Łosic – dokumenty, zdjęcia, wspomnienia, ludzie i miejsca.',
+    openGraph: { siteName: 'odniepamieci.pl', locale: 'pl_PL', type: 'website' },
+    twitter: { card: 'summary_large_image' },
 }
 
 export default function RootLayout({
