@@ -24,7 +24,7 @@ export const LATA_GRANIC: { etykieta: string; rok: number; opis: string }[] = [
     { etykieta: '1921', rok: 1921, opis: 'II Rzeczpospolita po traktacie ryskim – województwo lubelskie' },
     { etykieta: '1940', rok: 1940, opis: 'okupacja – granica niemiecko-sowiecka na Bugu, Generalne Gubernatorstwo' },
     { etykieta: '1942', rok: 1942, opis: 'okupacja niemiecka – zagłada gmin żydowskich' },
-    { etykieta: '1945', rok: 1945.8, opis: 'nowe granice Polski – województwo lubelskie' },
+    { etykieta: '1946', rok: 1946.5, opis: 'Polska w granicach po umowie z ZSRR (VIII 1945) – województwo lubelskie, powiat siedlecki' },
 ]
 
 export function filtrGranic(rok: number, poziomy: number[] = [2, 3, 4, 5, 6]): FilterSpecification {
