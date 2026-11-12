@@ -132,7 +132,7 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
             </div>
 
             <div className="flex flex-wrap items-center gap-2" style={{ marginTop: '0.75rem' }}>
-                {akcje && <div className="flex flex-wrap items-center gap-2">{akcje}</div>}
+                {akcje && <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">{akcje}</div>}
                 <Suspense fallback={<div className="flex-1" style={{ height: 30 }} />}>
                     <Wyszukiwarka />
                 </Suspense>

@@ -25,7 +25,7 @@ export const LATA_GRANIC: { etykieta: string; rok: number; opis: string }[] = [
     { etykieta: '1940', rok: 1940, opis: 'okupacja – granica niemiecko-sowiecka na Bugu, Generalne Gubernatorstwo' },
     { etykieta: '1942', rok: 1942, opis: 'okupacja niemiecka – zagłada gmin żydowskich' },
     { etykieta: '1946', rok: 1946.5, opis: 'Polska w granicach po umowie z ZSRR (VIII 1945) – województwo lubelskie, powiat siedlecki' },
-    { etykieta: '1975', rok: 1980, opis: 'po reformie z 1975 r. – Łosice i Olszanka w województwie siedleckim, Międzyrzec w bialskopodlaskim' },
+    { etykieta: '1975', rok: 1980, opis: 'po reformie z 1975 r. – Łosice w województwie siedleckim, Olszanka i Międzyrzec w bialskopodlaskim' },
     { etykieta: '1999', rok: 2010, opis: 'po reformie z 1999 r. – Łosice i Olszanka w województwie mazowieckim, Międzyrzec w lubelskim' },
 ]
 
