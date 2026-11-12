@@ -10,7 +10,7 @@ import { useTheme } from 'next-themes'
 import { LngLatBounds, Map as MapaGL, NavigationControl, setWorkerUrl, type GeoJSONSource, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
-import { LATA_GRANIC, LEGENDA_PANSTW, nazwaNaMapie, WARSTWY_GRANIC, WARSTWY_ZIEM, ZRODLO_ZIEM, czyZiemie, warstwyZiem, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, czyRzeczpospolita, filtrGranic, kolorWojewodztw, panstwoWojewodztwa, przezroczystoscWojewodztw, warstwyGranic } from '@/lib/granice'
+import { LATA_GRANIC, LEGENDA_PANSTW, nazwaNaMapie, WARSTWY_KORONY, ZRODLO_KORONY, czyKorona, kolorKorony, panstwoObszaru, warstwyKorony, WARSTWY_GRANIC, WARSTWY_ZIEM, ZRODLO_ZIEM, czyZiemie, warstwyZiem, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, czyRzeczpospolita, filtrGranic, kolorWojewodztw, przezroczystoscWojewodztw, warstwyGranic } from '@/lib/granice'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
 
 export interface PunktMapy {
@@ -147,6 +147,11 @@ export default function MapaMiejsc({
                 for (const w of warstwyGranic(rokRef.current ?? 1600, ciemnyRef.current)) {
                     m.addLayer({ ...w, layout: { ...w.layout, visibility: rokRef.current ? 'visible' : 'none' } } as typeof w)
                 }
+                m.addSource('korona', ZRODLO_KORONY)
+                for (const w of warstwyKorony(rokRef.current ?? 1600, ciemnyRef.current)) {
+                    const widoczna = czyKorona(rokRef.current) && (w.id !== 'korona-granica-1569' || (rokRef.current ?? 9999) < 1569.5)
+                    m.addLayer({ ...w, layout: { ...w.layout, visibility: widoczna ? 'visible' : 'none' } } as typeof w, 'granice-napisy')
+                }
                 m.addSource('ziemie', ZRODLO_ZIEM)
                 for (const w of warstwyZiem(ciemnyRef.current)) {
                     m.addLayer({ ...w, layout: { ...w.layout, visibility: czyZiemie(rokRef.current) ? 'visible' : 'none' } } as typeof w, 'granice-napisy')
@@ -207,11 +212,13 @@ export default function MapaMiejsc({
                     for (let j = 0; j < WIER; j++) {
                         const x = (W * (i + 0.5)) / KOL
                         const y = (H * (j + 0.5)) / WIER
-                        for (const f of m.queryRenderedFeatures([x, y], { layers: ['granice-tlo', 'granice-tlo-nizsze', ...(czyZiemie(rokRef.current) ? ['ziemie-tlo'] : [])] })) {
+                        for (const f of m.queryRenderedFeatures([x, y], { layers: ['granice-tlo', 'granice-tlo-nizsze', ...(czyKorona(rokRef.current) ? ['korona-tlo'] : []), ...(czyZiemie(rokRef.current) ? ['ziemie-tlo'] : [])] })) {
                             const w = f.properties ?? {}
-                            const nazwa = nazwaNaMapie(String(w.name_pl || w.name || '').trim(), rokRef.current)
+                            // OHM ma np. name „Województwo podlaskie”, a name:pl tylko „Podlaskie” – pełna nazwa jest czytelniejsza
+                            const nazwa = nazwaNaMapie(String(/^województwo /i.test(String(w.name ?? '')) ? w.name : w.name_pl || w.name || '').trim(), rokRef.current)
                             if (!nazwa) continue
-                            const poziom = Number(w.admin_level)
+                            // Litwa przed 1569 to państwo (w OHM zapisana jako część RON – poziom 3)
+                            const poziom = Number(w.admin_level) === 3 && rokRef.current < 1569.5 && w.name_en === 'Grand Duchy of Lithuania' ? 2 : Number(w.admin_level)
                             const dodaj = (n: string, p: number) => {
                                 const klucz = `${p}|${n}`
                                 const o = obszary.get(klucz) ?? { nazwa: n, poziom: p, pkt: [] }
@@ -220,8 +227,9 @@ export default function MapaMiejsc({
                             }
                             dodaj(nazwa, poziom)
                             // lata bez danych o państwach: nazwa państwa z przynależności województwa
-                            const panstwo = poziom === 4 ? panstwoWojewodztwa(w, rokRef.current) : null
-                            if (panstwo) dodaj(panstwo, 2)
+                            const panstwo = poziom === 4 ? panstwoObszaru(w, rokRef.current) : null
+                            // w latach Rzeczypospolitej Obojga Narodów Korona i Litwa to jej części – podpis mniejszy
+                            if (panstwo) dodaj(panstwo, czyRzeczpospolita(rokRef.current) && /^(Korona|Wielkie Księstwo)/.test(panstwo) ? 3 : 2)
                         }
                     }
                 }
@@ -243,7 +251,7 @@ export default function MapaMiejsc({
             const waga = (p: number) => (p === 3 ? 0 : p === 2 ? 1 : p)
             // ta sama nazwa z dwóch źródeł (obszar państwa i przynależność województw) – jeden podpis
             const nazwy = new Set<string>()
-            const features = [...obszary.values()].sort((a, b) => waga(a.poziom) - waga(b.poziom)).filter((o) => !nazwy.has(o.nazwa) && !!nazwy.add(o.nazwa)).map((o) => {
+            const features = [...obszary.values()].sort((a, b) => waga(a.poziom) - waga(b.poziom)).filter((o) => !nazwy.has(o.nazwa.toLowerCase()) && !!nazwy.add(o.nazwa.toLowerCase())).map((o) => {
                 const sx = o.pkt.reduce((a, p) => a + p[0], 0) / o.pkt.length
                 const sy = o.pkt.reduce((a, p) => a + p[1], 0) / o.pkt.length
                 const odl = (p: [number, number]) => Math.hypot(p[0] - sx, p[1] - sy)
@@ -325,6 +333,12 @@ export default function MapaMiejsc({
             m.setPaintProperty('granice-tlo-nizsze', 'fill-opacity', przezroczystoscWojewodztw(rok, ciemnyRef.current) as number)
         }
         for (const id of WARSTWY_ZIEM) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', czyZiemie(rok) ? 'visible' : 'none')
+        for (const id of WARSTWY_KORONY) {
+            if (!m.getLayer(id)) continue
+            const widoczna = czyKorona(rok) && (id !== 'korona-granica-1569' || (rok ?? 9999) < 1569.5)
+            m.setLayoutProperty(id, 'visibility', widoczna ? 'visible' : 'none')
+        }
+        if (rok && m.getLayer('korona-tlo')) m.setPaintProperty('korona-tlo', 'fill-color', kolorKorony(rok) as string)
         odswiezNapisyRef.current()
         if (zapamietaj) {
             try {

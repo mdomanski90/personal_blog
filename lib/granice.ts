@@ -67,30 +67,35 @@ const PRZEZROCZYSTY = 'rgba(0,0,0,0)'
 // Rozpoznawanie po nazwie (angielska + oryginalna + polska, małymi literami).
 // Kolejność ma znaczenie: Rzeczpospolita Obojga Narodów nie dostaje własnego koloru – w środku
 // leżą Korona i Litwa (OHM: poziom 3), a granica zewnętrzna zostaje grubą kreską.
-const RZECZPOSPOLITA = ['obojga', 'poland-lithuania', 'polish-lithuanian']
+// bez własnego koloru: RON (w środku Korona i Litwa) i obszar Korony z OHM (w OHM bywa uszkodzony –
+// Koronę kolorujemy z województw: Atlas historyczny Polski XVI w. + wschodnie województwa z OHM)
+const RZECZPOSPOLITA = ['obojga', 'poland-lithuania', 'polish-lithuanian', 'crown of the kingdom']
 // Kolejność ma znaczenie: Prusy przed Rosją („Prussia” zawiera „russia”), Prusy Królewskie przy Koronie.
 const KLUCZE_PANSTW: [string[], Panstwo][] = [
     [['lithuan', 'litew', 'lietuv'], 'litwa'],
     [['polsk', 'poland', 'polish', 'polon', 'korona', 'warsaw', 'warszaw', 'rzeczpospolita', 'polen', 'royal prussia', 'prusy król'], 'korona'],
     [['prus', 'preu', 'german', 'niemc', 'niemie', 'deutsch', 'teuton', 'krzyżac', 'generalgouv', 'gubernatorstwo', 'bezirk', 'ober ost'], 'niemcy'],
     [['russia', 'rosyj', 'rossi', 'moscow', 'moskiew', 'moskov', 'росс', 'русск', 'soviet', 'radzieck', 'ссср', 'ssr', 'socjalistyczna'], 'rosja'],
-    [['austri', 'habsburg', 'galic', 'österr', 'oesterr', 'lodomer'], 'austria'],
+    [['austri', 'habsburg', 'galic', 'österr', 'oesterr', 'lodomer', 'royal hungary', 'królewskie węgry'], 'austria'],
 ]
 
 // Lata, dla których OHM nie ma tu państw, tylko województwa / gubernie – przynależność bierzemy z nich.
 const PRZED_UNIA: [number, number] = [-9999, 1569.5] // przed unią lubelską (1 VII 1569)
 const PO_I_ROZBIORZE: [number, number] = [1773.71, 1795.82] // Rzeczpospolita bez podziału w OHM
-const WOJ_ZMIANA = ['podlas', 'kijow', 'kijów', 'kyiv', 'kiev', 'wołyń', 'wolyn', 'volhyn', 'bracław', 'braclaw', 'bratslav']
-const WOJ_KORONY = ['lubelsk', 'lublin', 'krakow', 'krakó', 'cracow', 'sandomier', 'ruskie', 'ruthen', 'bełsk', 'belz', 'podolsk', 'podolia', 'kalisk', 'kalisz', 'poznań', 'poznan', 'sieradz', 'łęczyc', 'leczyc', 'rawsk', 'rawa', 'płock', 'plock', 'mazow', 'masov', 'mazov', 'inowrocław', 'inowroclaw', 'chełmiń', 'chelmin', 'chełmno', 'chelmno', 'malbor', 'pomorsk', 'prusy król', 'royal prussia', 'gnieźn', 'gniezn', 'czernihow', 'chernihiv', 'dobrzy', 'chełmsk', 'chelm']
+const WOJ_ZMIANA = ['kijow', 'kijów', 'kyiv', 'kiev', 'wołyń', 'wolyn', 'volhyn', 'bracław', 'braclaw', 'bratslav']
+const WOJ_KORONY = ['podlas', 'lubelsk', 'lublin', 'krakow', 'krakó', 'cracow', 'sandomier', 'ruskie', 'ruthen', 'bełsk', 'belz', 'podolsk', 'podolia', 'kalisk', 'kalisz', 'poznań', 'poznan', 'sieradz', 'łęczyc', 'leczyc', 'rawsk', 'rawa', 'płock', 'plock', 'mazow', 'masov', 'mazov', 'inowrocław', 'inowroclaw', 'chełmiń', 'chelmin', 'chełmno', 'chelmno', 'malbor', 'pomorsk', 'prusy król', 'royal prussia', 'gnieźn', 'gniezn', 'czernihow', 'chernihiv', 'dobrzy', 'chełmsk', 'chelm']
 const WOJ_LITWY = ['brzeskie lit', 'brześć lit', 'brest lit', 'brzesko-lit', 'wileń', 'wilen', 'vilni', 'vilnius', 'trock', 'trakai', 'trakų', 'nowogródz', 'nowogrodz', 'navahrud', 'naugard', 'połock', 'polock', 'polotsk', 'witebsk', 'vitebsk', 'mścisław', 'mscislaw', 'mstsislaw', 'mińsk', 'minsk', 'smoleń', 'smolensk', 'żmud', 'zmud', 'samogit', 'žemait']
+// wschód Korony (Ruś Czerwona, Podole) – poza Atlasem historycznym Polski, więc z województw OHM
+const WOJ_KORONY_WSCHOD = ['ruskie', 'ruthen', 'bełsk', 'belz', 'podolsk', 'podolia', 'czernihow', 'chernihiv', 'chełmsk']
+/** Lata, w których Koronę rysuje warstwa z Atlasu historycznego Polski XVI w. (do I rozbioru). */
+export const czyKorona = (rok: number | null) => rok !== null && rok < 1772.6
 const ZASTEPCZE: { klucze: string[]; lata: [number, number]; panstwo: Panstwo; nazwa?: string }[] = [
-    { klucze: ['brzesko-kuj', 'brześć kuj', 'brest kuj'], lata: PRZED_UNIA, panstwo: 'korona' },
+    { klucze: WOJ_KORONY_WSCHOD, lata: [-9999, 1795.82], panstwo: 'korona' },
     { klucze: ['brzesko-kuj', 'brześć kuj', 'brest kuj'], lata: PO_I_ROZBIORZE, panstwo: 'korona' },
     { klucze: WOJ_ZMIANA, lata: PRZED_UNIA, panstwo: 'litwa' },
-    { klucze: WOJ_ZMIANA, lata: PO_I_ROZBIORZE, panstwo: 'korona' },
+    { klucze: WOJ_ZMIANA, lata: [1569.5, 1795.82], panstwo: 'korona' },
     // reszta Litwy przed 1569 – z obszaru Wielkiego Księstwa z lat 1569–1773 (filtrGranic), nie z województw
     { klucze: WOJ_LITWY, lata: PO_I_ROZBIORZE, panstwo: 'litwa' },
-    { klucze: WOJ_KORONY, lata: PRZED_UNIA, panstwo: 'korona' },
     { klucze: WOJ_KORONY, lata: PO_I_ROZBIORZE, panstwo: 'korona' },
     // po 1867 OHM nie ma tu Imperium Rosyjskiego, po 1918 – II Rzeczypospolitej
     { klucze: ['gubern', 'губерн', 'governorate'], lata: [1867, 1915.6], panstwo: 'rosja', nazwa: 'Imperium Rosyjskie' },
@@ -199,17 +204,19 @@ export function warstwyGranic(rok: number, ciemny: boolean): LayerSpecification[
                 // pierwszeństwo: Korona / Litwa (3), państwa (2), województwa (4+)
                 'symbol-sort-key': ['match', ['get', 'poziom'], 3, 0, 2, 1, ['get', 'poziom']],
                 'text-field': ['get', 'nazwa'],
+                // wielkimi literami tylko państwa (2); części państw (3: Korona i Litwa w RON, Galicja, Węgry
+                // w Cesarstwie) zwykłym pogrubionym, województwa i ziemie kursywą
                 'text-font': ['case', ['<=', ['get', 'poziom'], 3], ['literal', ['Noto Sans Bold']], ['literal', ['Noto Sans Italic']]],
-                'text-size': ['case', ['<=', ['get', 'poziom'], 3], 14, 12],
-                'text-transform': ['case', ['<=', ['get', 'poziom'], 3], 'uppercase', 'none'],
-                'text-letter-spacing': ['case', ['<=', ['get', 'poziom'], 3], 0.18, 0.03],
+                'text-size': ['match', ['get', 'poziom'], 2, 14, 3, 12, 11.5],
+                'text-transform': ['case', ['==', ['get', 'poziom'], 2], 'uppercase', 'none'],
+                'text-letter-spacing': ['case', ['==', ['get', 'poziom'], 2], 0.18, 0.02],
                 'text-max-width': 12,
                 // podpis województwa trafia zwykle w ten sam punkt co państwa – wtedy schodzi pod lub nad nie
                 'text-variable-anchor': ['center', 'top', 'bottom'],
                 'text-radial-offset': ['case', ['<=', ['get', 'poziom'], 3], 0, 2.4],
                 'text-padding': 3,
             },
-            paint: { 'text-color': napis, 'text-halo-color': obwodka, 'text-halo-width': 2, 'text-opacity': ['case', ['<=', ['get', 'poziom'], 3], 0.9, 0.75] },
+            paint: { 'text-color': napis, 'text-halo-color': obwodka, 'text-halo-width': 2, 'text-opacity': ['match', ['get', 'poziom'], 2, 0.9, 3, 0.8, 0.75] },
         },
     ]
 }
@@ -251,5 +258,50 @@ export function warstwyZiem(ciemny: boolean): LayerSpecification[] {
 export function nazwaNaMapie(nazwa: string, rok: number): string {
     // Królestwo Polskie 1815–1831: osobne państwo, car Rosji królem polskim
     if (rok >= 1815.4 && rok < 1831.1 && /^królestwo polskie$/i.test(nazwa.trim())) return 'Królestwo Polskie w unii z Imperium Rosyjskim'
+    // „Królewskie Węgry” to tylko habsburska część Węgier w latach 1526–1699
+    if (rok >= 1699 && /^królewskie węgry$/i.test(nazwa.trim())) return 'Królestwo Węgier'
+    // Mazowsze do 1526 – księstwo, lenno Korony
+    if (rok < 1526 && /^województwo mazowieckie$/i.test(nazwa.trim())) return 'Księstwo Mazowieckie (lenno Korony)'
     return nazwa
+}
+
+// ---------- Korona w XVI w. (Atlas historyczny Polski XVI w., warstwa „Województwa”) ----------
+// public/granice/korona-xvi.geojson: województwa Korony (bez Rusi, Wołynia, Podola, Kijowszczyzny i Bracławszczyzny –
+// tych Atlas nie obejmuje, biorą się z OHM), linie granic województw i granica Podlasia z Koroną sprzed 1569.
+
+export const ZRODLO_KORONY: SourceSpecification = { ...ZRODLO_ZIEM, data: '/granice/korona-xvi.geojson' }
+export const WARSTWY_KORONY = ['korona-tlo', 'korona-linie', 'korona-granica-1569']
+
+/** Kolor województwa z Atlasu: Podlasie do 1569 litewskie, reszta – Korona. */
+export function kolorKorony(rok: number): unknown {
+    return rok < 1569.5 ? ['case', ['has', 'przed1569'], PANSTWA.litwa.kolor, PANSTWA.korona.kolor] : PANSTWA.korona.kolor
+}
+
+/** Państwo, do którego należał obszar (województwo z Atlasu albo z OHM) – do podpisu państwa. */
+export function panstwoObszaru(w: Record<string, unknown>, rok: number): string | null {
+    if (w.zrodlo === 'ahp') return rok < 1569.5 && w.przed1569 ? String(w.przed1569) : String(w.panstwo)
+    return panstwoWojewodztwa(w, rok)
+}
+
+export function warstwyKorony(rok: number, ciemny: boolean): LayerSpecification[] {
+    const kolor = ciemny ? '#c98a6a' : '#9a3b22'
+    return [
+        { id: 'korona-tlo', type: 'fill', source: 'korona', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': kolorKorony(rok) as string, 'fill-opacity': ciemny ? 0.28 : 0.22, 'fill-antialias': false } },
+        {
+            id: 'korona-linie',
+            type: 'line',
+            source: 'korona',
+            filter: ['==', ['get', 'linia'], 'wojewodztwa'],
+            layout: { 'line-join': 'round' },
+            paint: { 'line-color': kolor, 'line-width': 1.4, 'line-opacity': 0.8, 'line-dasharray': ['literal', [4, 2.5]] },
+        },
+        {
+            id: 'korona-granica-1569',
+            type: 'line',
+            source: 'korona',
+            filter: ['==', ['get', 'linia'], 'granica-1569'],
+            layout: { 'line-join': 'round', visibility: rok < 1569.5 ? 'visible' : 'none' },
+            paint: { 'line-color': kolor, 'line-width': 2.6, 'line-opacity': 0.9 },
+        },
+    ]
 }
