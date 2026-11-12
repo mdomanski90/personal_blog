@@ -241,7 +241,9 @@ export default function MapaMiejsc({
             }
             // kolejność: części państwa (Korona, Litwa – poziom 3), całe państwa, województwa
             const waga = (p: number) => (p === 3 ? 0 : p === 2 ? 1 : p)
-            const features = [...obszary.values()].sort((a, b) => waga(a.poziom) - waga(b.poziom)).map((o) => {
+            // ta sama nazwa z dwóch źródeł (obszar państwa i przynależność województw) – jeden podpis
+            const nazwy = new Set<string>()
+            const features = [...obszary.values()].sort((a, b) => waga(a.poziom) - waga(b.poziom)).filter((o) => !nazwy.has(o.nazwa) && !!nazwy.add(o.nazwa)).map((o) => {
                 const sx = o.pkt.reduce((a, p) => a + p[0], 0) / o.pkt.length
                 const sy = o.pkt.reduce((a, p) => a + p[1], 0) / o.pkt.length
                 const odl = (p: [number, number]) => Math.hypot(p[0] - sx, p[1] - sy)

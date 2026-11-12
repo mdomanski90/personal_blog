@@ -18,7 +18,7 @@ export const LATA_GRANIC: { etykieta: string; rok: number; opis: string }[] = [
     { etykieta: '1600', rok: 1600, opis: 'Rzeczpospolita Obojga Narodów – Podlasie w Koronie od 1569, unia brzeska 1596' },
     { etykieta: '1796', rok: 1796, opis: 'po III rozbiorze – na zachód od Bugu Austria (Galicja Zachodnia), za Bugiem Rosja' },
     { etykieta: '1809–1815', rok: 1811, opis: 'Księstwo Warszawskie – departament siedlecki' },
-    { etykieta: '1815–1830', rok: 1825, opis: 'Królestwo Polskie – województwo podlaskie' },
+    { etykieta: '1815–1830', rok: 1825, opis: 'Królestwo Polskie (w unii personalnej z Rosją, car królem polskim) – województwo podlaskie' },
     { etykieta: '1875', rok: 1875, opis: 'kasata unii – gubernia siedlecka w Imperium Rosyjskim' },
     { etykieta: '1913', rok: 1913, opis: 'przed wojną i bieżeństwem (1915)' },
     { etykieta: '1921', rok: 1921, opis: 'II Rzeczpospolita po traktacie ryskim – województwo lubelskie' },
@@ -28,12 +28,18 @@ export const LATA_GRANIC: { etykieta: string; rok: number; opis: string }[] = [
 ]
 
 export function filtrGranic(rok: number, poziomy: number[] = [2, 3, 4, 5, 6]): FilterSpecification {
-    return [
+    const wRoku: FilterSpecification = [
         'all',
         ['<=', ['coalesce', ['get', 'start_decdate'], -9999], rok],
         ['>', ['coalesce', ['get', 'end_decdate'], 9999], rok],
         ['in', ['get', 'admin_level'], ['literal', poziomy]],
     ]
+    // Przed unią lubelską OHM nie ma tu Wielkiego Księstwa jako całości – bierzemy jego obszar z lat 1569–1773.
+    // Ziemie przeniesione w 1569 do Korony (Podlasie, Wołyń, Kijów, Bracław) dochodzą z województw (ZASTEPCZE).
+    if (rok < 1569.5 && poziomy.includes(3)) {
+        return ['any', wRoku, ['all', ['==', ['get', 'admin_level'], 3], ['==', ['get', 'name_en'], 'Grand Duchy of Lithuania']]]
+    }
+    return wRoku
 }
 
 /** Warstwy, którym przy zmianie roku podmieniamy filtr (id → poziomy administracyjne). */
@@ -62,11 +68,12 @@ const PRZEZROCZYSTY = 'rgba(0,0,0,0)'
 // Kolejność ma znaczenie: Rzeczpospolita Obojga Narodów nie dostaje własnego koloru – w środku
 // leżą Korona i Litwa (OHM: poziom 3), a granica zewnętrzna zostaje grubą kreską.
 const RZECZPOSPOLITA = ['obojga', 'poland-lithuania', 'polish-lithuanian']
+// Kolejność ma znaczenie: Prusy przed Rosją („Prussia” zawiera „russia”), Prusy Królewskie przy Koronie.
 const KLUCZE_PANSTW: [string[], Panstwo][] = [
     [['lithuan', 'litew', 'lietuv'], 'litwa'],
-    [['polsk', 'poland', 'polish', 'polon', 'korona', 'warsaw', 'warszaw', 'rzeczpospolita', 'polen'], 'korona'],
+    [['polsk', 'poland', 'polish', 'polon', 'korona', 'warsaw', 'warszaw', 'rzeczpospolita', 'polen', 'royal prussia', 'prusy król'], 'korona'],
+    [['prus', 'preu', 'german', 'niemc', 'niemie', 'deutsch', 'teuton', 'krzyżac', 'generalgouv', 'gubernatorstwo', 'bezirk', 'ober ost'], 'niemcy'],
     [['russia', 'rosyj', 'rossi', 'moscow', 'moskiew', 'moskov', 'росс', 'русск', 'soviet', 'radzieck', 'ссср', 'ssr', 'socjalistyczna'], 'rosja'],
-    [['prus', 'german', 'niemc', 'niemie', 'deutsch', 'preu', 'generalgouv', 'gubernatorstwo', 'bezirk', 'ober ost'], 'niemcy'],
     [['austri', 'habsburg', 'galic', 'österr', 'oesterr', 'lodomer'], 'austria'],
 ]
 
@@ -81,7 +88,7 @@ const ZASTEPCZE: { klucze: string[]; lata: [number, number]; panstwo: Panstwo; n
     { klucze: ['brzesko-kuj', 'brześć kuj', 'brest kuj'], lata: PO_I_ROZBIORZE, panstwo: 'korona' },
     { klucze: WOJ_ZMIANA, lata: PRZED_UNIA, panstwo: 'litwa' },
     { klucze: WOJ_ZMIANA, lata: PO_I_ROZBIORZE, panstwo: 'korona' },
-    { klucze: WOJ_LITWY, lata: PRZED_UNIA, panstwo: 'litwa' },
+    // reszta Litwy przed 1569 – z obszaru Wielkiego Księstwa z lat 1569–1773 (filtrGranic), nie z województw
     { klucze: WOJ_LITWY, lata: PO_I_ROZBIORZE, panstwo: 'litwa' },
     { klucze: WOJ_KORONY, lata: PRZED_UNIA, panstwo: 'korona' },
     { klucze: WOJ_KORONY, lata: PO_I_ROZBIORZE, panstwo: 'korona' },
@@ -104,12 +111,12 @@ const zastepczeNaRok = (rok: number) => ZASTEPCZE.filter((z) => rok >= z.lata[0]
 
 // Każde województwo / gubernia dostaje jeden z trzech odcieni (wg numeru obiektu w OHM),
 // żeby sąsiednie dało się odróżnić. Przy znanym państwie – odcień jego koloru, poza tym
-// jaśniejsza / ciemniejsza nakładka na kolor państwa z warstwy niżej.
+// lekkie przyciemnienie koloru państwa z warstwy niżej.
 const odcien = ['%', ['floor', ['abs', ['to-number', ['coalesce', ['get', 'osm_id'], 0], 0]]], 3]
 
 /** Kolor województw / guberni (poziom 4) w danym roku. */
 export function kolorWojewodztw(rok: number): unknown {
-    const nakladka = ['match', odcien, 0, '#ffffff', 1, '#3a2a20', '#ffffff']
+    const nakladka = '#3a2a20'
     const reguly = zastepczeNaRok(rok)
     if (!reguly.length) return nakladka
     return ['case', ...reguly.flatMap((z) => [zawiera(z.klucze), PANSTWA[z.panstwo].kolor]), nakladka]
@@ -118,10 +125,11 @@ export function kolorWojewodztw(rok: number): unknown {
 /** Przezroczystość województw: odcień koloru państwa albo delikatna nakładka. */
 export function przezroczystoscWojewodztw(rok: number, ciemny: boolean): unknown {
     const k = ciemny ? 1.35 : 1
-    const nakladka = ['match', odcien, 0, 0.22 * k, 1, 0.06 * k, 0]
+    // tylko lekkie przyciemnienie – kolor państwa zostaje ten sam we wszystkich okresach
+    const nakladka = ['match', odcien, 0, 0, 1, 0.05 * k, 0.1 * k]
     const reguly = zastepczeNaRok(rok)
     if (!reguly.length) return nakladka
-    return ['case', ['any', ...reguly.map((z) => zawiera(z.klucze))], ['match', odcien, 0, 0.12 * k, 1, 0.24 * k, 0.18 * k], nakladka]
+    return ['case', ['any', ...reguly.map((z) => zawiera(z.klucze))], ['match', odcien, 0, 0.18 * k, 1, 0.24 * k, 0.21 * k], nakladka]
 }
 
 /** Do jakiego państwa należało województwo w danym roku (tylko lata bez danych o państwach). */
@@ -153,7 +161,7 @@ export function warstwyGranic(rok: number, ciemny: boolean): LayerSpecification[
         paint: { 'fill-color': kolorTla as string, 'fill-opacity': przezroczystosc as number, 'fill-antialias': false },
     })
     return [
-        tlo('granice-tlo', WARSTWY_Z_ROKIEM['granice-tlo'], ciemny ? 0.24 : 0.17, kolorPanstwa()),
+        tlo('granice-tlo', WARSTWY_Z_ROKIEM['granice-tlo'], ciemny ? 0.28 : 0.22, kolorPanstwa()),
         tlo('granice-tlo-nizsze', WARSTWY_Z_ROKIEM['granice-tlo-nizsze'], przezroczystoscWojewodztw(rok, ciemny), kolorWojewodztw(rok)),
         // województwa / ziemie / departamenty / gubernie przerywaną kreską, powiaty cieńszą
         {
