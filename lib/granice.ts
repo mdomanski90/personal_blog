@@ -246,3 +246,10 @@ export function warstwyZiem(ciemny: boolean): LayerSpecification[] {
         },
     ]
 }
+
+/** Podpis na mapie – w niektórych okresach dopowiadamy, czym było państwo (np. unia personalna). */
+export function nazwaNaMapie(nazwa: string, rok: number): string {
+    // Królestwo Polskie 1815–1831: osobne państwo, car Rosji królem polskim
+    if (rok >= 1815.4 && rok < 1831.1 && /^królestwo polskie$/i.test(nazwa.trim())) return 'Królestwo Polskie w unii z Imperium Rosyjskim'
+    return nazwa
+}

@@ -10,7 +10,7 @@ import { useTheme } from 'next-themes'
 import { LngLatBounds, Map as MapaGL, NavigationControl, setWorkerUrl, type GeoJSONSource, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
-import { LATA_GRANIC, LEGENDA_PANSTW, WARSTWY_GRANIC, WARSTWY_ZIEM, ZRODLO_ZIEM, czyZiemie, warstwyZiem, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, czyRzeczpospolita, filtrGranic, kolorWojewodztw, panstwoWojewodztwa, przezroczystoscWojewodztw, warstwyGranic } from '@/lib/granice'
+import { LATA_GRANIC, LEGENDA_PANSTW, nazwaNaMapie, WARSTWY_GRANIC, WARSTWY_ZIEM, ZRODLO_ZIEM, czyZiemie, warstwyZiem, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, czyRzeczpospolita, filtrGranic, kolorWojewodztw, panstwoWojewodztwa, przezroczystoscWojewodztw, warstwyGranic } from '@/lib/granice'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
 
 export interface PunktMapy {
@@ -209,7 +209,7 @@ export default function MapaMiejsc({
                         const y = (H * (j + 0.5)) / WIER
                         for (const f of m.queryRenderedFeatures([x, y], { layers: ['granice-tlo', 'granice-tlo-nizsze', ...(czyZiemie(rokRef.current) ? ['ziemie-tlo'] : [])] })) {
                             const w = f.properties ?? {}
-                            const nazwa = String(w.name_pl || w.name || '').trim()
+                            const nazwa = nazwaNaMapie(String(w.name_pl || w.name || '').trim(), rokRef.current)
                             if (!nazwa) continue
                             const poziom = Number(w.admin_level)
                             const dodaj = (n: string, p: number) => {
