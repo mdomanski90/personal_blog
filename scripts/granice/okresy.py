@@ -328,7 +328,17 @@ def atrybuty(komorki, J, rok):
         if r and r[0] == 'litwa' and rok < 1569.5:
             a.update(n2=WKL, n3=None, kolor=PANSTWA['litwa'][1])
         elif p3 and (kolor_panstwa(p3) or klucz_panstwa(p3) != 'ron'):
-            a['kolor'] = kolor_panstwa(p3)
+            # części jednego państwa (Austria i Węgry, kraje Rzeszy Niemieckiej) – kolor całego państwa;
+            # własny kolor części tylko w Rzeczypospolitej (Korona / Litwa) albo gdy państwo nie ma swojego klucza
+            kl2, kl3 = (klucz_panstwa(p2) if p2 else None), klucz_panstwa(p3)
+            if wkl_przed:
+                a['kolor'] = PANSTWA['litwa'][1]
+            elif kl2 not in (None, 'ron'):
+                a['kolor'] = PANSTWA[kl2][1]
+            elif kl3 not in (None, 'ron') or not p2:
+                a['kolor'] = kolor_panstwa(p3)
+            else:
+                a['kolor'] = kolor_panstwa(p2) or kolor_panstwa(p3)
             if wkl_przed:
                 a.update(n2=WKL, n3=None)
             else:

@@ -436,31 +436,18 @@ body {
 .mapa-wektor .maplibregl-ctrl-attrib { font-family: inherit; font-size: 10px; }
 .mapa-wektor .maplibregl-ctrl-group button { border-radius: 0; }
 
-/* Emblemat w nagłówku – kreski rysują się raz przy wczytaniu strony */
-.emblemat-rysuj path {
+/* Emblemat w nagłówku – raz przy wczytaniu strony: rysuje się rama, potem zawartość pojawia się w całości */
+.emblemat-rysuj .emblemat-rama {
   stroke-dasharray: 1 2;
   stroke-dashoffset: 1;
-  opacity: 0;
-  animation-name: emblemat-rysuj;
-  animation-timing-function: cubic-bezier(.4, 0, .3, 1);
-  animation-fill-mode: forwards;
+  animation: emblemat-rysuj 1.3s cubic-bezier(.4, 0, .3, 1) forwards;
 }
-@keyframes emblemat-rysuj {
-  0% { stroke-dashoffset: 1; opacity: 0; }
-  4% { opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 1; }
-}
-.emblemat-rysuj path.zanik {
-  stroke-dasharray: none;
-  stroke-dashoffset: 0;
-  animation-name: emblemat-zanik;
-  animation-timing-function: ease-in-out;
-}
-.emblemat-rysuj .emblemat-napis { opacity: 0; animation: emblemat-zanik .9s ease-in-out 4.9s forwards; }
+@keyframes emblemat-rysuj { to { stroke-dashoffset: 0; } }
+.emblemat-rysuj .emblemat-tresc { opacity: 0; animation: emblemat-zanik 1s ease-in-out 1.2s forwards; }
 @keyframes emblemat-zanik { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .emblemat-rysuj path { animation: none; stroke-dashoffset: 0; opacity: 1; }
-  .emblemat-rysuj .emblemat-napis { animation: none; opacity: 1; }
+  .emblemat-rysuj .emblemat-rama { animation: none; stroke-dashoffset: 0; }
+  .emblemat-rysuj .emblemat-tresc { animation: none; opacity: 1; }
 }
 header .emblemat { height: clamp(44px, 12vw, 64px); width: auto; display: block; }
 
