@@ -33,6 +33,21 @@ export async function POST(req: Request) {
         let slug = String(d.slug || wej.slug || '')
         if (!SLUG.test(slug)) return Response.json({ blad: 'Plik nie ma poprawnego identyfikatora planu.' }, { status: 400 })
         if ((await wczytajPlan(slug)) && !d.nadpisz) return Response.json({ blad: `Plan „${slug}” już jest. Zaznacz „zastąp”, żeby go nadpisać.` }, { status: 409 })
+        try {
+            return Response.json(await importuj(slug, wej))
+        } catch (e) {
+            // np. brak uprawnień do zapisu w content/plany albo pliki-archiwum/plany
+            const kod = (e as NodeJS.ErrnoException)?.code
+            const sciezka = (e as NodeJS.ErrnoException)?.path
+            console.error('import planu:', e)
+            return Response.json({ blad: kod === 'EACCES' || kod === 'EPERM' ? `Serwer nie może zapisać pliku (brak uprawnień): ${sciezka ?? ''}` : `Nie udało się zapisać planu: ${e instanceof Error ? e.message : String(e)}` }, { status: 500 })
+        }
+    }
+    return Response.json({ blad: 'nieznane polecenie' }, { status: 400 })
+}
+
+async function importuj(slug: string, wej: Plan & { podklady: (Plan['podklady'][number] & { dane?: string })[] }) {
+    {
         const podklady = []
         for (const p of wej.podklady ?? []) {
             if (p.dane && /^data:image\/(jpeg|png|webp);base64,/.test(p.dane)) {
@@ -43,7 +58,6 @@ export async function POST(req: Request) {
             } else if (p.plik) podklady.push(p)
         }
         const plan = popraw({ ...wej, slug, podklady })
-        return Response.json(await zapiszPlan(plan))
+        return zapiszPlan(plan)
     }
-    return Response.json({ blad: 'nieznane polecenie' }, { status: 400 })
 }

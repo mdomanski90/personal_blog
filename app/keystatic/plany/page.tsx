@@ -32,14 +32,31 @@ export default function Plany() {
         else ustawMsg(j.blad)
     }
     const importuj = async (f: File) => {
-        ustawMsg('wgrywam…')
+        ustawMsg(`wgrywam ${f.name} (${Math.round(f.size / 1024)} kB)…`)
+        let plan: unknown
         try {
-            const plan = JSON.parse(await f.text())
+            plan = JSON.parse(await f.text())
+        } catch {
+            ustawMsg(`„${f.name}” nie jest plikiem planu – to nie jest poprawny JSON (może zapisał się jako strona albo jest ucięty).`)
+            return
+        }
+        if (!plan || typeof plan !== 'object' || !('elementy' in plan)) {
+            ustawMsg(`„${f.name}” to JSON, ale nie plik planu (brak listy elementów).`)
+            return
+        }
+        try {
             const r = await fetch('/api/keystatic/plany', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ akcja: 'import', plan, nadpisz }) })
-            const j = await r.json()
-            ustawMsg(r.ok ? `Zaimportowano: ${j.tytul}` : j.blad)
+            const tekst = await r.text()
+            let j: { tytul?: string; blad?: string } = {}
+            try { j = JSON.parse(tekst) } catch { /* odpowiedź nie-JSON (nginx, błąd serwera) */ }
+            if (r.ok) ustawMsg(`Zaimportowano: ${j.tytul ?? f.name}`)
+            else if (r.status === 401) ustawMsg('Serwer odrzucił zapis (401): brak hasła panelu w zapytaniu. Odśwież stronę i zaloguj się ponownie.')
+            else if (r.status === 413) ustawMsg('Plik za duży dla serwera (413) – trzeba zwiększyć client_max_body_size w nginx.')
+            else ustawMsg(j.blad ?? `Błąd serwera ${r.status}: ${tekst.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200)}`)
             wczytaj()
-        } catch { ustawMsg('To nie jest plik planu (.plan.json).') }
+        } catch (e) {
+            ustawMsg(`Nie udało się wysłać pliku: ${e instanceof Error ? e.message : String(e)}`)
+        }
     }
     const usunPlan = async (p: Wiersz) => {
         if (!confirm(`Przenieść plan „${p.tytul}” do kosza (content/plany/_kosz)?`)) return
