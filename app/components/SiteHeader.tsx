@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import ThemeToggle from './ThemeToggle'
 import Logowanie from './Logowanie'
+import Emblemat from './Emblemat'
 
 // Menu główne (docelowe). Na telefonie zwinięte pod jednym przyciskiem.
 const MENU: { href: string; tekst: string }[] = [
@@ -68,7 +69,11 @@ export default function SiteHeader() {
     return (
         <header>
             <div className="flex items-center justify-between" style={{ gap: '0.5rem 1rem' }}>
-                <div className="min-w-0">
+                <div className="min-w-0 flex items-end" style={{ gap: '14px' }}>
+                    <Link href="/" className="!no-underline text-current shrink-0" aria-label="odniepamieci.pl – strona główna" style={{ marginTop: '0.6rem' }}>
+                        <Emblemat rozmiar={64} />
+                    </Link>
+                    <div className="min-w-0">
                     <Link href="/" className="!no-underline text-current">
                         <span className="block font-bold whitespace-nowrap" style={{ fontSize: 'clamp(1.5rem, 8vw, 2rem)', lineHeight: 1, marginTop: '1.34rem' }}>
                             odniepamieci.pl
@@ -77,6 +82,7 @@ export default function SiteHeader() {
                     <p className="lowercase" style={{ fontSize: '16px', lineHeight: 1.2, marginTop: '7px' }}>
                         społeczne archiwum pamięci lokalnej
                     </p>
+                    </div>
                 </div>
                 {/* na szerszym ekranie przyciski obok tytułu, na telefonie w linii z wyszukiwarką */}
                 <div className="hidden sm:flex shrink-0 items-center gap-2">

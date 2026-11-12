@@ -429,3 +429,22 @@ body {
 /* ============================================ */
 .mapa-wektor .maplibregl-ctrl-attrib { font-family: inherit; font-size: 10px; }
 .mapa-wektor .maplibregl-ctrl-group button { border-radius: 0; }
+
+/* Emblemat w nagłówku – kreski rysują się raz przy wczytaniu strony */
+.emblemat-rysuj path {
+  stroke-dasharray: 1 2;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  animation-name: emblemat-rysuj;
+  animation-timing-function: cubic-bezier(.45, .05, .35, 1);
+  animation-fill-mode: forwards;
+}
+@keyframes emblemat-rysuj {
+  0% { stroke-dashoffset: 1; opacity: 0; }
+  4% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .emblemat-rysuj path { animation: none; stroke-dashoffset: 0; opacity: 1; }
+}
+header .emblemat { height: clamp(44px, 12vw, 64px); width: auto; display: block; }
