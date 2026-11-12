@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
-import { miejsca, miejsce, nazwy, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, WYZNANIA_MIEJSC, materialyDla, powiazania, kontekstTresci } from '@/lib/archiwum'
+import { miejsca, miejsce, nazwy, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, WYZNANIA_MIEJSC, materialyDla, powiazania, kontekstTresci, ksiegiDlaMiejsca, parafie } from '@/lib/archiwum'
+import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { tarczaObiektu } from '@/lib/tarcze'
 import { formatujEdtf } from '@/lib/edtf'
@@ -13,6 +14,7 @@ import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania from '../../components/Powiazania'
 import ListaMaterialow from '../../components/ListaMaterialow'
 import PowrotDoMapy from '../../components/PowrotDoMapy'
+import { TabelaKsiag } from '../../components/Ksiegi'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,17 +46,40 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const obszar = OBSZARY.includes(m.rodzaj)
     const siec = await powiazania('miejsce', m.id, poziom)
     const mat = await materialyDla('miejsce', m.id, poziom)
+    const ksiegiWsi = await ksiegiDlaMiejsca(m, poziom)
+    const wszystkieParafie = await parafie()
+    // gmina: najbliższy nadrzędny obszar typu „gmina”
+    let gmina = nadrzedne
+    while (gmina && gmina.rodzaj !== 'gmina') gmina = gmina.nalezyDo ? wszystkie.find((x) => x.id === gmina!.nalezyDo) ?? null : null
+    // formy zapisu nazwy: bez form z przyimkiem („w Olszance”), które służą tylko wyszukiwarce
+    const formyZapisu = m.inneNazwy.filter((n) => !/^(w|we|na|z|ze|do|od)\s/i.test(n))
+    const zrodlo = m.zrodloOpisu
 
     return (
         <Strona>
             <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }]} akcje={<><PowrotDoMapy /><CopyLinkButton sciezka={`/miejsca/${m.id}`} /></>}>{m.nazwa}</TytulStrony>
-            <div className="flex flex-wrap items-center gap-2">
-                <Metki elementy={[RODZAJE_MIEJSC[m.rodzaj] ?? m.rodzaj, ...m.inneNazwy]} />
-            </div>
-
             <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))' }}>
                 <div>
-                    {nadrzedne && <Wiersz etykieta="należy do"><Link href={`/miejsca/${nadrzedne.id}`}>{nadrzedne.nazwa}</Link></Wiersz>}
+                    <Wiersz etykieta="typ">{RODZAJE_MIEJSC[m.rodzaj] ?? m.rodzaj}</Wiersz>
+                    {gmina && gmina.id !== m.id && <Wiersz etykieta="gmina"><Link href={`/miejsca/${gmina.id}`}>{gmina.nazwa}</Link></Wiersz>}
+                    {nadrzedne && (!gmina || nadrzedne.id !== gmina.id) && <Wiersz etykieta="należy do"><Link href={`/miejsca/${nadrzedne.id}`}>{nadrzedne.nazwa}</Link></Wiersz>}
+                    {m.parafie.length > 0 && (
+                        <Wiersz etykieta={m.parafie.length > 1 ? 'parafie' : 'parafia'}>
+                            {m.parafie.map((p, i) => {
+                                const par = wszystkieParafie.find((x) => x.id === p.parafia)
+                                if (!par) return null
+                                const okres = p.od != null || p.do != null ? ` (${p.od ?? '…'}–${p.do ?? '…'})` : ''
+                                return (
+                                    <span key={p.parafia + i} className="block">
+                                        <Link href={`/biblioteka/ksiegi#${par.id}`}>{par.nazwa}</Link>
+                                        <span className="text-gray-500" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}> {WYZNANIA_PARAFII[par.wyznanie] ?? par.wyznanie}{okres}</span>
+                                    </span>
+                                )
+                            })}
+                        </Wiersz>
+                    )}
+                    {m.wyznanie && <Wiersz etykieta="przeważające wyznanie przed 1875">{WYZNANIA_MIEJSC[m.wyznanie] ?? m.wyznanie}</Wiersz>}
+                    {formyZapisu.length > 0 && <Wiersz etykieta="formy zapisu nazwy">{formyZapisu.join(' · ')}</Wiersz>}
                     {podrzedne.length > 0 && (
                         <Wiersz etykieta="obejmuje">
                             {podrzedne.map((p, i) => (
@@ -62,18 +87,27 @@ export default async function MiejsceStrona({ params }: Parametry) {
                             ))}
                         </Wiersz>
                     )}
-                    {m.wyznanie && <Wiersz etykieta="wyznanie przed 1875">{WYZNANIA_MIEJSC[m.wyznanie] ?? m.wyznanie}</Wiersz>}
-                    {!obszar && (
-                        <Wiersz etykieta="współrzędne">
-                            {m.wspolrzedne ? `${m.wspolrzedne[0]}, ${m.wspolrzedne[1]}${m.przyblizone ? ' (przybliżone)' : ''}` : <span className="text-gray-500">brak</span>}
-                        </Wiersz>
-                    )}
                     {m.sameAs && <Wiersz etykieta="zobacz też"><a href={m.sameAs} target="_blank" rel="noopener noreferrer">{m.sameAs.replace(/^https?:\/\//, '')}</a></Wiersz>}
                 </div>
                 {m.wspolrzedne && <MapaMiejscLeniwa punkty={punkty} srodek={m.wspolrzedne} wysokosc={300} />}
             </div>
 
-            {opisHtml && <Tresc html={opisHtml} />}
+            <Sekcja tytul={obszar ? 'opis' : 'historia'}>
+                {opisHtml ? (
+                    <>
+                        <Tresc html={opisHtml} />
+                        {zrodlo && (
+                            <p className="text-gray-500" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>
+                                {zrodlo.split(/(https?:\/\/\S+)/).map((cz, i) => (/^https?:\/\//.test(cz) ? <a key={i} href={cz} target="_blank" rel="noopener noreferrer">{decodeURI(cz.replace(/^https?:\/\//, ''))}</a> : cz))}
+                            </p>
+                        )}
+                    </>
+                ) : (
+                    <p className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
+                        Opis historii {obszar ? 'tego obszaru' : 'tej miejscowości'} jest w przygotowaniu.
+                    </p>
+                )}
+            </Sekcja>
 
             {swiatynie.length > 0 && (
                 <Sekcja tytul="w terenie">
@@ -107,6 +141,21 @@ export default async function MiejsceStrona({ params }: Parametry) {
             {bezDaty.length > 0 && (
                 <Sekcja tytul="tematy">
                     <Metki elementy={bezDaty.map((t) => ({ tekst: t.nazwa, href: `/tematy/${t.id}` }))} />
+                </Sekcja>
+            )}
+
+            {ksiegiWsi.some((p) => p.ksiegi.length > 0) && (
+                <Sekcja tytul="księgi metrykalne">
+                    {ksiegiWsi.filter((p) => p.ksiegi.length > 0).map((p) => (
+                        <div key={p.parafia.id} className="flex flex-col" style={{ gap: 6 }}>
+                            <p style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>
+                                <Link href={`/biblioteka/ksiegi#${p.parafia.id}`}>{p.parafia.nazwa}</Link>
+                                <span className="text-gray-500"> · {WYZNANIA_PARAFII[p.parafia.wyznanie] ?? p.parafia.wyznanie}</span>
+                            </p>
+                            <TabelaKsiag ksiegi={p.ksiegi} />
+                        </div>
+                    ))}
+                    <Link href={`/biblioteka/ksiegi?miejsce=${m.id}`} style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>pełny spis z paskiem lat →</Link>
                 </Sekcja>
             )}
 

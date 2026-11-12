@@ -5,6 +5,7 @@ import { identyfikatorZNazwy } from './lib/tekst';
 import { NAZWY_OBIEKTOW } from './lib/tarcze';
 import { RODZAJE_MATERIALOW } from './lib/materialy';
 import { ADRES_PLIKOW, KATALOG_PLIKOW } from './lib/pliki';
+import { WYZNANIA_PARAFII, RODZAJE_KSIAG, DOSTEP_KSIAG } from './lib/ksiegi';
 
 // Model danych: claude/odniepamieci-model-danych.md (projekt „own www”).
 // Nazwy pól w plikach jak w Dublin Core – ułatwia późniejszy eksport do Omeka S.
@@ -140,6 +141,7 @@ export default config({
     navigation: {
       'Treści': ['posts', 'miejsca', 'obiekty', 'tematy'],
       'Archiwum': ['materialy'],
+      'Księgi metrykalne': ['parafie', 'ksiegi'],
       'Strony': ['oProjekcie'],
     },
   },
@@ -201,7 +203,7 @@ export default config({
         }),
         approximate: fields.checkbox({ label: 'Położenie przybliżone' }),
         religion: fields.select({
-          label: 'Wyznanie mieszkańców przed 1875',
+          label: 'Przeważające wyznanie mieszkańców przed 1875',
           description: 'Stan sprzed kasaty unii – od tego zależy znak wsi na mapie.',
           options: [
             { label: 'nieopisane', value: '' },
@@ -217,11 +219,24 @@ export default config({
           description: 'Wieś → gmina albo kraina, gmina → kraina (np. Olszanka → gmina Olszanka → ziemia łosicka). Na tej podstawie dzieli się spis miejscowości.',
           collection: 'miejsca',
         }),
+        parishes: fields.array(
+          fields.object({
+            parish: fields.relationship({ label: 'Parafia / urząd', collection: 'parafie' }),
+            from: fields.integer({ label: 'Od roku', description: 'Puste – od zawsze / nie wiadomo.' }),
+            to: fields.integer({ label: 'Do roku', description: 'Puste – do dziś / do końca istnienia parafii.' }),
+          }),
+          {
+            label: 'Parafie',
+            description: 'Parafie (i okręgi bóżnicze, USC), do których należała wieś. Na tej podstawie strona wsi pokazuje księgi metrykalne.',
+            itemLabel: (p) => [p.fields.parish.value ?? 'parafia', [p.fields.from.value, p.fields.to.value].filter((x) => x != null).join('–')].filter(Boolean).join(' '),
+          },
+        ),
         sameAs: fields.url({ label: 'Wikidata / GeoNames', description: 'Adres strony tego miejsca w Wikidata lub GeoNames (opcjonalnie).' }),
         visibility: widocznosc(),
         note: notatka(),
         dateSubmitted: dodano(),
-        description: opisMarkdoc('Opis', 'miejsca'),
+        descriptionSource: fields.text({ label: 'Źródło opisu', description: 'Np. „na podstawie: Wikipedia, hasło Olszanka (powiat łosicki), CC BY-SA 4.0 – https://pl.wikipedia.org/wiki/…”. Adresy zamieniają się w odnośniki.', multiline: true }),
+        description: opisMarkdoc('Historia i opis', 'miejsca'),
       },
     }),
     tematy: collection({
@@ -323,6 +338,55 @@ export default config({
         note: notatka(),
         dateSubmitted: dodano(),
         description: opisMarkdoc('Opis, transkrypcja, tłumaczenie', 'materialy'),
+      },
+    }),
+    parafie: collection({
+      label: 'Parafie i urzędy',
+      slugField: 'title',
+      path: 'content/parafie/*',
+      columns: ['title', 'religion'],
+      schema: {
+        title: nazwaIIdentyfikator('Nazwa'),
+        religion: fields.select({
+          label: 'Wyznanie',
+          options: Object.entries(WYZNANIA_PARAFII).map(([value, label]) => ({ label, value })),
+          defaultValue: 'rzymskokatolicka',
+        }),
+        seat: fields.relationship({ label: 'Siedziba', description: 'Miejscowość, w której była cerkiew, kościół, bóżnica, urząd.', collection: 'miejsca' }),
+        temporal: dataEdtf('Okres istnienia (EDTF)'),
+        diocese: fields.text({ label: 'Diecezja / dekanat', description: 'Np. diecezja chełmska (unicka), dekanat łosicki.' }),
+        sameAs: fields.url({ label: 'Strona w sieci', description: 'Np. hasło w Wikipedii, strona parafii.' }),
+        description: fields.text({ label: 'Opis', multiline: true }),
+        note: notatka(),
+      },
+    }),
+    ksiegi: collection({
+      label: 'Księgi metrykalne',
+      slugField: 'title',
+      path: 'content/ksiegi/*',
+      columns: ['title', 'years'],
+      schema: {
+        title: nazwaIIdentyfikator('Nazwa (np. Olszanka unicka – urodzenia 1826–1875)'),
+        parish: fields.relationship({ label: 'Parafia / urząd', collection: 'parafie', validation: { isRequired: true } }),
+        type: fields.select({
+          label: 'Rodzaj',
+          options: Object.entries(RODZAJE_KSIAG).map(([value, label]) => ({ label, value })),
+          defaultValue: 'urodzenia',
+        }),
+        years: fields.text({ label: 'Lata', description: 'Np. „1826–1875, 1880, 1885–1890”. Z tego powstaje pasek lat w inwentarzu.', validation: { isRequired: true } }),
+        gaps: fields.text({ label: 'Braki i uwagi do lat', description: 'Np. „brak 1863, rok 1870 uszkodzony”.' }),
+        language: fields.text({ label: 'Język', description: 'Np. polski, łacina, rosyjski (od 1868).' }),
+        repository: fields.text({ label: 'Gdzie przechowywane', description: 'Np. AP Siedlce, Archiwum Diecezjalne w Siedlcach, parafia, USC Łosice.' }),
+        identifier: fields.text({ label: 'Zespół i sygnatura', description: 'Np. 72/290/0/2/45.' }),
+        access: fields.select({
+          label: 'Dostęp',
+          options: Object.entries(DOSTEP_KSIAG).map(([value, label]) => ({ label, value })),
+          defaultValue: 'skany',
+        }),
+        scans: fields.url({ label: 'Skany', description: 'Np. szukajwarchiwach.gov.pl, metryki.genealodzy.pl, FamilySearch.' }),
+        index: fields.url({ label: 'Indeks', description: 'Np. Geneteka.' }),
+        visibility: widocznosc(),
+        note: notatka(),
       },
     }),
   },

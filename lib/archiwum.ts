@@ -12,6 +12,8 @@ import { zakresIso } from './edtf'
 import { bezNawiasow, fragment, ODNOSNIK, slownikOdnosnikow, wzorzecWzmianek, znajdzWzmianki, type Cel, type Fragment, type PozycjaSieci, type RodzajCelu, type Rozwiaz } from './odnosniki'
 import { normalizuj, porownajPl } from './tekst'
 
+import { zakresyLat, nakladaSie, KOLEJNOSC_KSIAG } from './ksiegi'
+
 const reader = createReader(process.cwd(), keystaticConfig)
 
 // React.cache (jeden odczyt na żądanie) działa w Next.js; w skryptach (eksport) go nie ma – wtedy bez pamięci.
@@ -54,10 +56,42 @@ export interface Miejsce {
     /** wyznanie mieszkańców przed 1875: '' | unicka | katolicka | mieszana | prawoslawna */
     wyznanie: string
     nalezyDo: string | null
+    /** parafie (okręgi bóżnicze, USC), do których należała wieś, z latami */
+    parafie: { parafia: string; od: number | null; do: number | null }[]
     sameAs: string | null
     widocznosc: Widocznosc
     dodano: string | null
+    /** skąd pochodzi opis (np. Wikipedia, CC BY-SA) */
+    zrodloOpisu: string
     opis: Node | null
+}
+
+export interface Parafia {
+    id: string
+    nazwa: string
+    wyznanie: string
+    siedziba: string | null
+    czas: string
+    diecezja: string
+    sameAs: string | null
+    opis: string
+}
+
+export interface Ksiega {
+    id: string
+    nazwa: string
+    parafia: string
+    rodzaj: string
+    lata: string
+    zakresy: [number, number][]
+    braki: string
+    jezyk: string
+    gdzie: string
+    sygnatura: string
+    dostep: string
+    skany: string | null
+    indeks: string | null
+    widocznosc: Widocznosc
 }
 
 export interface Temat {
@@ -164,13 +198,78 @@ const wszystkieMiejscaSurowe = cache(async (): Promise<Miejsce[]> => {
             przyblizone: entry.approximate,
             wyznanie: entry.religion ?? '',
             nalezyDo: entry.isPartOf,
+            parafie: (entry.parishes ?? [])
+                .filter((p) => p.parish)
+                .map((p) => ({ parafia: p.parish as string, od: p.from ?? null, do: p.to ?? null })),
             sameAs: entry.sameAs,
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
+            zrodloOpisu: entry.descriptionSource ?? '',
             opis: entry.description?.node ?? null,
         }))
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
+
+const wszystkieParafie = cache(async (): Promise<Parafia[]> => {
+    const wpisy = await reader.collections.parafie.all()
+    return wpisy
+        .map(({ slug, entry }) => ({
+            id: slug,
+            nazwa: entry.title,
+            wyznanie: entry.religion,
+            siedziba: entry.seat,
+            czas: entry.temporal ?? '',
+            diecezja: entry.diocese ?? '',
+            sameAs: entry.sameAs,
+            opis: entry.description ?? '',
+        }))
+        .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
+})
+
+const wszystkieKsiegiSurowe = cache(async (): Promise<Ksiega[]> => {
+    const wpisy = await reader.collections.ksiegi.all()
+    return wpisy.map(({ slug, entry }) => ({
+        id: slug,
+        nazwa: entry.title,
+        parafia: entry.parish ?? '',
+        rodzaj: entry.type,
+        lata: entry.years,
+        zakresy: zakresyLat(entry.years),
+        braki: entry.gaps ?? '',
+        jezyk: entry.language ?? '',
+        gdzie: entry.repository ?? '',
+        sygnatura: entry.identifier ?? '',
+        dostep: entry.access,
+        skany: entry.scans,
+        indeks: entry.index,
+        widocznosc: entry.visibility as Widocznosc,
+    }))
+})
+
+export async function parafie(): Promise<Parafia[]> {
+    return wszystkieParafie()
+}
+
+/** Księgi widoczne dla czytelnika, posortowane: parafia, rodzaj, pierwszy rok. */
+export async function ksiegi(poziom: Widocznosc): Promise<Ksiega[]> {
+    const kol = KOLEJNOSC_KSIAG
+    return (await wszystkieKsiegiSurowe())
+        .filter((k) => widoczne(k.widocznosc, poziom))
+        .sort((a, b) => a.parafia.localeCompare(b.parafia) || kol.indexOf(a.rodzaj) - kol.indexOf(b.rodzaj) || (a.zakresy[0]?.[0] ?? 0) - (b.zakresy[0]?.[0] ?? 0))
+}
+
+/** Księgi parafii, do których należała wieś, z lat jej przynależności. */
+export async function ksiegiDlaMiejsca(m: Miejsce, poziom: Widocznosc): Promise<{ parafia: Parafia; od: number | null; do: number | null; ksiegi: Ksiega[] }[]> {
+    const wszystkiePar = await wszystkieParafie()
+    const wszystkieKs = await ksiegi(poziom)
+    return m.parafie
+        .map((p) => {
+            const parafia = wszystkiePar.find((x) => x.id === p.parafia)
+            if (!parafia) return null
+            return { parafia, od: p.od, do: p.do, ksiegi: wszystkieKs.filter((k) => k.parafia === p.parafia && nakladaSie(k.zakresy, p.od, p.do)) }
+        })
+        .filter((x): x is NonNullable<typeof x> => x !== null)
+}
 
 const wszystkieTematySurowe = cache(async (): Promise<Temat[]> => {
     const wpisy = await reader.collections.tematy.all({ resolveLinkedFiles: true })
@@ -627,4 +726,6 @@ export const dlaEksportu = {
     tematy: wszystkieTematySurowe,
     opowiesci: wszystkieOpowiesciSurowe,
     materialy: wszystkieMaterialySurowe,
+    parafie: wszystkieParafie,
+    ksiegi: wszystkieKsiegiSurowe,
 }
