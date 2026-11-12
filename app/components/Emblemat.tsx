@@ -1,4 +1,4 @@
-// Emblemat: kapliczka w Olszance w owalu (na podstawie obrazka M. Domańskiego).
+// Emblemat: kapliczka w Olszance w ramie-łuku (na podstawie obrazka M. Domańskiego).
 // Kreski „rysują się” raz, przy pełnym wczytaniu strony (nagłówek nie jest
 // montowany ponownie przy przejściach między stronami). Bez animacji przy
 // prefers-reduced-motion. Kolor = currentColor, więc działa w trybie ciemnym.
@@ -8,7 +8,7 @@ type Kreska = { d: string; w?: number; o: number; t?: number; g?: string }
 // Współrzędne w viewBox 80×104. Kapliczka w kształcie z obrazu „Kapliczka
 // w Olszance” (dwuspadowy daszek, smukły słup), z detalami ze zdjęcia: wysoka
 // nisza z półokrągłym naświetlem i figurą, gzyms, niższa szersza część
-// z poziomą prostokątną tabliczką, cokół. Rysowana w małej skali i powiększona (KAP).
+// z kwadratową wnęką za szybą, cokół z tabliczką. Rysowana w małej skali i powiększona (KAP).
 // Za nią kościół (lewo) i cerkiew (prawo) na wzgórzach; od każdej świątyni
 // płynie strumień, oba schodzą się za kapliczką (dwa wyznania, jedna wiara). Pod linią ziemi napis „kapliczka w Olszance” (pojawia się na końcu animacji).
 
@@ -17,12 +17,13 @@ const LEWO = 'translate(-1 0)'
 
 // o – opóźnienie (s), t – czas rysowania (s), w – grubość (w KAP przed skalowaniem)
 const KRESKI: Kreska[] = [
-    // owal
-    { d: 'M40 2a38 50 0 1 0 0.01 0z', w: 2, o: 0, t: 1.1 },
+    // rama w kształcie łuku (jak nisza kapliczki)
+    { d: 'M2 102V40a38 38 0 0 1 76 0v62z', w: 2, o: 0, t: 1.1 },
     // kapliczka, od cokołu do krzyża
-    { d: 'M30.5 75v-4h19v4', g: KAP, w: 1.2, o: 0.55, t: 0.4 },
-    { d: 'M32 71V59h16v12', g: KAP, w: 1.2, o: 0.7, t: 0.5 },
-    { d: 'M35.8 62.4h8.4v5.8h-8.4zM36.9 63.5h6.2v3.6h-6.2z', g: KAP, w: 0.7, o: 0.9, t: 0.5 },
+    { d: 'M31.5 75v-4.5h17V75M34.5 71.6h11v2.3h-11z', g: KAP, w: 1.2, o: 0.55, t: 0.45 },
+    { d: 'M31 70.5l1-1.5h16l1 1.5z', g: KAP, w: 1.1, o: 0.65, t: 0.35 },
+    { d: 'M32 69V59h16v10', g: KAP, w: 1.2, o: 0.75, t: 0.5 },
+    { d: 'M36.8 60.8h6.4v6.4h-6.4zM37.8 61.8h4.4v4.4h-4.4zM38.6 65.2l2.2-2.2', g: KAP, w: 0.7, o: 0.9, t: 0.5 },
     { d: 'M30.8 59l1.4-2.5h15.6l1.4 2.5z', g: KAP, w: 1.2, o: 1.0, t: 0.45 },
     { d: 'M33.5 56.5V37h13v19.5', g: KAP, w: 1.2, o: 1.1, t: 0.55 },
     { d: 'M36.8 53.5V44a3.2 3.2 0 0 1 6.4 0v9.5zM36.8 44h6.4M40 44v-3.2M40 44l-2.3-2.3M40 44l2.3-2.3', g: KAP, w: 0.7, o: 1.3, t: 0.6 },
@@ -31,8 +32,8 @@ const KRESKI: Kreska[] = [
     { d: 'M31 35l9-8.5 9 8.5z', g: KAP, w: 1.2, o: 1.6, t: 0.5 },
     { d: 'M40 26.5v-8M37.2 21.3h5.6', g: KAP, w: 1.2, o: 1.8, t: 0.4 },
     // wzgórza za kapliczką
-    { d: 'M4 63q3-4 6.5-4.5H28.4', w: 1.1, o: 1.7, t: 0.5 },
-    { d: 'M51.6 58.5q2.2-3 4.4-3.5h13q2.5 0 5 1.5', w: 1.1, o: 1.7, t: 0.5 },
+    { d: 'M2 64.5q3.5-5.5 8.5-6H28.4', w: 1.1, o: 1.7, t: 0.5 },
+    { d: 'M51.6 58.5q2.2-3 4.4-3.5h13q2.5 0 5 1.5q2 1 4 2.5', w: 1.1, o: 1.7, t: 0.5 },
     // kościół po lewej: nawa, wieża z iglicą
     { d: 'M11 58.5V53h12v5.5M10 53l3-3.5h10M14 56.5v-2M17 56.5v-2M20 56.5v-2', g: LEWO, w: 1.1, o: 1.9, t: 0.5 },
     { d: 'M23 58.5V46h4v12.5M23 46l2-5 2 5M25 41v-3.2M24 39h2M24.3 52v-1.8a.7.7 0 0 1 1.4 0V52', g: LEWO, w: 1.1, o: 2.0, t: 0.5 },
@@ -43,7 +44,7 @@ const KRESKI: Kreska[] = [
     { d: 'M16 60.5c-3 2 1 3.5 4 4s6 1.5 4 3.5 2 3 5.6 3', w: 1.0, o: 2.2, t: 0.7 },
     { d: 'M60 56.5c3 2-1 3.5-4 4s-6 1.5-4 3.5-.5 3-1.6 3', w: 1.0, o: 2.2, t: 0.7 },
     // ziemia
-    { d: 'M8 80h21.2M50.8 80H72', w: 1.3, o: 1.5, t: 0.4 },
+    { d: 'M2 80h76', w: 1.3, o: 1.5, t: 0.5 },
     // ptaki
     { d: 'M51.5 18q1.6-1.6 3.2 0q1.6-1.6 3.2 0M57 13.5q1.3-1.3 2.6 0q1.3-1.3 2.6 0', w: 0.9, o: 2.6, t: 0.4 },
 ]
@@ -72,9 +73,9 @@ export default function Emblemat({ rozmiar = 56, animacja = true }: { rozmiar?: 
                     style={{ animationDelay: `${k.o}s`, animationDuration: `${k.t ?? 0.6}s` } as React.CSSProperties}
                 />
             ))}
-            <text className="emblemat-napis" fill="currentColor" stroke="none" fontSize={4.4} fontWeight={700} letterSpacing={0.5} textAnchor="middle" aria-hidden="true">
-                <tspan x={40} y={88.3}>KAPLICZKA</tspan>
-                <tspan x={40} y={94.3}>W OLSZANCE</tspan>
+            <text className="emblemat-napis" fill="currentColor" stroke="none" fontSize={5} fontWeight={700} letterSpacing={0.6} textAnchor="middle" aria-hidden="true">
+                <tspan x={40} y={89.5}>KAPLICZKA</tspan>
+                <tspan x={40} y={95.7}>W OLSZANCE</tspan>
             </text>
         </svg>
     )
