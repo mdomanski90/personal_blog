@@ -463,3 +463,35 @@ body {
   .emblemat-rysuj .emblemat-napis { animation: none; opacity: 1; }
 }
 header .emblemat { height: clamp(44px, 12vw, 64px); width: auto; display: block; }
+
+/* ---------- plany obiektów (cmentarze, wsie): kolory rysunku ---------- */
+:root {
+  --pl-papier:#f6f3ec; --pl-laka:#eef0e3; --pl-pole:#f3efe2; --pl-las:#dde7d0; --pl-korona1:#cfdcbf; --pl-korona2:#c6d5b3; --pl-korona3:#d7e2c9; --pl-las-brzeg:#b7c8a2;
+  --pl-woda:#d5e5ef; --pl-woda-brzeg:#8fb3cc; --pl-woda-wz:#a9c6da; --pl-rzeka:#8fb3cc; --pl-droga:#fffdf8; --pl-droga-obw:#cfc6b3; --pl-alejka:#fbf8f1; --pl-alejka-obw:#d8cfbc;
+  --pl-polna:#ad9a78; --pl-polna-tlo:#efe9db; --pl-bud:#4b4d52; --pl-gosp:#a9abaf; --pl-kw:#ebe4d4; --pl-kw-txt:#a4977c; --pl-plac:#ebe8e1; --pl-grob:#fbf9f4; --pl-grob-obw:#b4a98f;
+  --pl-plot:#3f4247; --pl-tekst:#2b2d31; --pl-szary:#6b7280; --pl-akcent:#1d4ed8; --pl-akcent-tlo:rgba(29,78,216,.16); --pl-pamiec:#8a3b2a; --pl-woda-txt:#4f7c9c; --pl-las-txt:#5a7449;
+  --pl-teren:#9c8f74; --pl-teren-txt:#7d7058; --pl-teren-cien:#ddd5c2; --pl-teren-jasny:#e9e3d4; --pl-teren-wzn:#8b9a78; --pl-teren-wzn-tlo:#e6ead9; --pl-teren-wzn-jasny:#eef1e4;
+  --pl-kat:#94702c; --pl-uni:#2b7a7e; --pl-pra:#6a4fa0; --pl-zyd:#6b6253; --pl-ewa:#56677a;
+  --pl-kat-tlo:#efe6d2; --pl-kat-wz:#b39760; --pl-uni-tlo:#dcebea; --pl-uni-wz:#5f9ea1; --pl-pra-tlo:#ebe5f4; --pl-pra-wz:#9480bb; --pl-zyd-tlo:#eae8e3; --pl-zyd-wz:#978e7e;
+  --pl-ewa-tlo:#e5e9ed; --pl-ewa-wz:#8190a0; --pl-woj-tlo:#e7e8de; --pl-woj-wz:#9b8f78; --pl-epi-tlo:#ece6d8; --pl-bagno-tlo:#e5ece4; --pl-bagno-wz:#86a395;
+}
+.dark {
+  --pl-papier:#1c1f24; --pl-laka:#20261f; --pl-pole:#24231d; --pl-las:#1f2b1d; --pl-korona1:#2c3d28; --pl-korona2:#33462d; --pl-korona3:#283823; --pl-las-brzeg:#46603d;
+  --pl-woda:#1d2c38; --pl-woda-brzeg:#3f6680; --pl-woda-wz:#36546a; --pl-rzeka:#4f7fa3; --pl-droga:#3a3d42; --pl-droga-obw:#555a61; --pl-alejka:#34363a; --pl-alejka-obw:#4a4d52;
+  --pl-polna:#8f8064; --pl-polna-tlo:#2a2a27; --pl-bud:#d6d3cb; --pl-gosp:#6b6e74; --pl-kw:#2a2925; --pl-kw-txt:#8a7f68; --pl-plac:#2b2c2e; --pl-grob:#2e2d2a; --pl-grob-obw:#8a7f68;
+  --pl-plot:#b8bcc4; --pl-tekst:#e5e7eb; --pl-szary:#9ca3af; --pl-akcent:#7aa2ff; --pl-akcent-tlo:rgba(122,162,255,.22); --pl-pamiec:#d38a74; --pl-woda-txt:#8fb7d3; --pl-las-txt:#9fbf8c;
+  --pl-teren:#8f8470; --pl-teren-txt:#b3a68a; --pl-teren-cien:#3a362d; --pl-teren-jasny:#2c2a24; --pl-teren-wzn:#7f8f6c; --pl-teren-wzn-tlo:#262b21; --pl-teren-wzn-jasny:#2d3327;
+  --pl-kat:#d1a95a; --pl-uni:#5fb8bc; --pl-pra:#a98ee0; --pl-zyd:#b0a68f; --pl-ewa:#9aaabd;
+  --pl-kat-tlo:#2e2a20; --pl-kat-wz:#8f7a4d; --pl-uni-tlo:#1e2c2c; --pl-uni-wz:#4f8f92; --pl-pra-tlo:#272336; --pl-pra-wz:#7d6ba6; --pl-zyd-tlo:#2a2926; --pl-zyd-wz:#7f7767;
+  --pl-ewa-tlo:#232830; --pl-ewa-wz:#6b7b8f; --pl-woj-tlo:#262721; --pl-woj-wz:#8a8068; --pl-epi-tlo:#2a2822; --pl-bagno-tlo:#1f2824; --pl-bagno-wz:#5e7f70;
+}
+.plan-ramka{border:1px solid #d1d5db;border-radius:8px;overflow:hidden;background:var(--pl-papier);position:relative;touch-action:none}
+.dark .plan-ramka{border-color:#4b5563}
+.plan-ramka svg{display:block;width:100%;height:100%;user-select:none}
+@media print{
+  .plan-bez-druku{display:none!important}
+  .plan-druk-tylko{display:block!important}
+  body.drukuj-plan *{visibility:hidden}
+  body.drukuj-plan .plan-do-druku,body.drukuj-plan .plan-do-druku *{visibility:visible}
+  body.drukuj-plan .plan-do-druku{position:absolute;left:0;top:0;width:100%}
+}

@@ -1,0 +1,38 @@
+// Wspólne dla stron i tras: plan widziany przez bieżącego czytelnika, wydawanie plików.
+import fs from 'node:fs'
+import { poziomCzytelnika } from '@/lib/archiwum'
+import { dlaCzytelnika, widoczne, type Plan } from './model'
+import { sciezkaPliku, wczytajPlan, wczytajUstawienia, listaPlanow } from './dane'
+import { mimePliku } from '@/lib/pliki'
+
+export async function planDlaCzytelnika(slug: string): Promise<{ plan: Plan; poziom: 'publiczne' | 'bliscy' } | null> {
+    const surowy = await wczytajPlan(slug)
+    if (!surowy) return null
+    const poziom = (await poziomCzytelnika()) === 'bliscy' ? 'bliscy' : 'publiczne'
+    if (!widoczne(surowy.widocznosc, poziom)) return null
+    return { plan: dlaCzytelnika(surowy, poziom, await wczytajUstawienia()), poziom }
+}
+
+/** Plany widoczne dla czytelnika, przypisane do miejsca albo obiektu. */
+export async function planyDlaCzytelnika(rodzaj: 'miejsce' | 'obiekt', id: string): Promise<Plan[]> {
+    const poziom = (await poziomCzytelnika()) === 'bliscy' ? 'bliscy' : 'publiczne'
+    return (await listaPlanow()).filter((p) => (rodzaj === 'miejsce' ? p.miejsce === id : p.obiekt === id) && widoczne(p.widocznosc, poziom))
+}
+
+export const nieMa = () => new Response('Nie znaleziono', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+
+export async function wydajPlik(katalog: string, plik: string, publiczny: boolean): Promise<Response> {
+    const p = sciezkaPliku(katalog, plik)
+    if (!p) return nieMa()
+    try {
+        const st = await fs.promises.stat(p)
+        if (!st.isFile()) return nieMa()
+        const dane = await fs.promises.readFile(p)
+        return new Response(new Uint8Array(dane), {
+            headers: {
+                'Content-Type': mimePliku(plik), 'Content-Length': String(st.size), 'X-Content-Type-Options': 'nosniff',
+                'Cache-Control': publiczny ? 'public, max-age=86400' : 'private, no-store', ...(publiczny ? {} : { 'X-Robots-Tag': 'noindex, nofollow' }),
+            },
+        })
+    } catch { return nieMa() }
+}

@@ -12,6 +12,8 @@ import ListaMaterialow from '../../components/ListaMaterialow'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import PowrotDoMapy from '../../components/PowrotDoMapy'
+import ListaPlanow from '../../components/plan/ListaPlanow'
+import { planyDlaCzytelnika } from '@/lib/plany/serwer'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +36,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     const rodzaj = RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj
     const siec = await powiazania('obiekt', o.id, poziom)
     const mat = await materialyDla('obiekt', o.id, poziom)
+    const planyObiektu = await planyDlaCzytelnika('obiekt', o.id)
 
     return (
         <Strona>
@@ -60,6 +63,12 @@ export default async function ObiektStrona({ params }: Parametry) {
             </div>
 
             <Tresc html={naHtml(o.opis, await kontekstTresci(poziom))} />
+
+            {planyObiektu.length > 0 && (
+                <Sekcja tytul="plan">
+                    <ListaPlanow plany={planyObiektu} />
+                </Sekcja>
+            )}
 
             {mat.length > 0 && (
                 <Sekcja tytul="materiały w archiwum">

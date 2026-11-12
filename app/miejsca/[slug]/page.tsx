@@ -15,6 +15,8 @@ import Powiazania from '../../components/Powiazania'
 import ListaMaterialow from '../../components/ListaMaterialow'
 import PowrotDoMapy from '../../components/PowrotDoMapy'
 import { TabelaKsiag } from '../../components/Ksiegi'
+import ListaPlanow from '../../components/plan/ListaPlanow'
+import { planyDlaCzytelnika } from '@/lib/plany/serwer'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +49,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const siec = await powiazania('miejsce', m.id, poziom)
     const mat = await materialyDla('miejsce', m.id, poziom)
     const ksiegiWsi = await ksiegiDlaMiejsca(m, poziom)
+    const planyWsi = await planyDlaCzytelnika('miejsce', m.id)
     const wszystkieParafie = await parafie()
     // gmina: najbliższy nadrzędny obszar typu „gmina”
     let gmina = nadrzedne
@@ -122,6 +125,12 @@ export default async function MiejsceStrona({ params }: Parametry) {
                             </li>
                         ))}
                     </ul>
+                </Sekcja>
+            )}
+
+            {planyWsi.length > 0 && (
+                <Sekcja tytul="plany i schematy">
+                    <ListaPlanow plany={planyWsi} />
                 </Sekcja>
             )}
 
