@@ -205,3 +205,36 @@ export function warstwyGranic(rok: number, ciemny: boolean): LayerSpecification[
         },
     ]
 }
+
+// ---------- ziemie województwa podlaskiego (drohicka, mielnicka, bielska) ----------
+// Granice z „Atlasu historycznego Polski. Mapy szczegółowe XVI wieku” (IH PAN, Atlas Fontium),
+// warstwa „Powiaty”, uproszczone – public/granice/ziemie-podlaskie-xvi.geojson. OpenHistoricalMap ich nie ma.
+// Atlas obejmuje tylko Koronę, więc ziemia brzeska (Międzyrzec, Wielkie Księstwo Litewskie) jest poza nim.
+
+export const ZRODLO_ZIEM: SourceSpecification = {
+    type: 'geojson',
+    data: '/granice/ziemie-podlaskie-xvi.geojson',
+    // CC BY 4.0 – wymaga podania autora, licencji i informacji o zmianach (granice uproszczone)
+    attribution: 'ziemie: <a href="https://data.atlasfontium.pl/layers/geonode:powiaty">Atlas historyczny Polski XVI w., IH PAN</a>, <a href="https://creativecommons.org/licenses/by/4.0/deed.pl">CC BY 4.0</a>, uproszczone',
+}
+
+export const WARSTWY_ZIEM = ['ziemie-tlo', 'ziemie-linie']
+
+/** Ziemie pokazujemy w czasach województwa podlaskiego (od początku XVI w. do III rozbioru). */
+export const czyZiemie = (rok: number | null) => rok !== null && rok >= 1500 && rok < 1795.82
+
+export function warstwyZiem(ciemny: boolean): LayerSpecification[] {
+    return [
+        // niewidoczne wypełnienie – tylko do podpisów (jak województwa)
+        { id: 'ziemie-tlo', type: 'fill', source: 'ziemie', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#000000', 'fill-opacity': 0 } },
+        // granice jako osobne linie (wspólny odcinek dwóch ziem tylko raz – inaczej przerywane kreski się nakładają)
+        {
+            id: 'ziemie-linie',
+            type: 'line',
+            source: 'ziemie',
+            filter: ['==', ['geometry-type'], 'LineString'],
+            layout: { 'line-join': 'round' },
+            paint: { 'line-color': ciemny ? '#c98a6a' : '#9a3b22', 'line-width': 1.1, 'line-opacity': 0.75, 'line-dasharray': ['literal', [2, 2]] },
+        },
+    ]
+}

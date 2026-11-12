@@ -10,7 +10,7 @@ import { useTheme } from 'next-themes'
 import { LngLatBounds, Map as MapaGL, NavigationControl, setWorkerUrl, type GeoJSONSource, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
-import { LATA_GRANIC, LEGENDA_PANSTW, WARSTWY_GRANIC, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, czyRzeczpospolita, filtrGranic, kolorWojewodztw, panstwoWojewodztwa, przezroczystoscWojewodztw, warstwyGranic } from '@/lib/granice'
+import { LATA_GRANIC, LEGENDA_PANSTW, WARSTWY_GRANIC, WARSTWY_ZIEM, ZRODLO_ZIEM, czyZiemie, warstwyZiem, WARSTWY_Z_ROKIEM, ZRODLO_GRANIC, czyRzeczpospolita, filtrGranic, kolorWojewodztw, panstwoWojewodztwa, przezroczystoscWojewodztw, warstwyGranic } from '@/lib/granice'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
 
 export interface PunktMapy {
@@ -147,6 +147,10 @@ export default function MapaMiejsc({
                 for (const w of warstwyGranic(rokRef.current ?? 1600, ciemnyRef.current)) {
                     m.addLayer({ ...w, layout: { ...w.layout, visibility: rokRef.current ? 'visible' : 'none' } } as typeof w)
                 }
+                m.addSource('ziemie', ZRODLO_ZIEM)
+                for (const w of warstwyZiem(ciemnyRef.current)) {
+                    m.addLayer({ ...w, layout: { ...w.layout, visibility: czyZiemie(rokRef.current) ? 'visible' : 'none' } } as typeof w, 'granice-napisy')
+                }
             }
             m.addSource('punkty', { type: 'geojson', data: dane })
             const wspolne: SymbolLayerSpecification['layout'] = {
@@ -203,7 +207,7 @@ export default function MapaMiejsc({
                     for (let j = 0; j < WIER; j++) {
                         const x = (W * (i + 0.5)) / KOL
                         const y = (H * (j + 0.5)) / WIER
-                        for (const f of m.queryRenderedFeatures([x, y], { layers: ['granice-tlo', 'granice-tlo-nizsze'] })) {
+                        for (const f of m.queryRenderedFeatures([x, y], { layers: ['granice-tlo', 'granice-tlo-nizsze', ...(czyZiemie(rokRef.current) ? ['ziemie-tlo'] : [])] })) {
                             const w = f.properties ?? {}
                             const nazwa = String(w.name_pl || w.name || '').trim()
                             if (!nazwa) continue
@@ -318,6 +322,7 @@ export default function MapaMiejsc({
             m.setPaintProperty('granice-tlo-nizsze', 'fill-color', kolorWojewodztw(rok) as string)
             m.setPaintProperty('granice-tlo-nizsze', 'fill-opacity', przezroczystoscWojewodztw(rok, ciemnyRef.current) as number)
         }
+        for (const id of WARSTWY_ZIEM) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', czyZiemie(rok) ? 'visible' : 'none')
         odswiezNapisyRef.current()
         if (zapamietaj) {
             try {
@@ -411,6 +416,12 @@ export default function MapaMiejsc({
                                 <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="1.4" strokeDasharray="5 3" opacity="0.85" /></svg>
                                 województwo / departament / gubernia (różne odcienie)
                             </span>
+                            {czyZiemie(rok) && (
+                                <span className="inline-flex items-center" style={{ gap: 5 }}>
+                                    <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="1.1" strokeDasharray="2.5 2.5" opacity="0.8" /></svg>
+                                    ziemia (drohicka, mielnicka, bielska – wg Atlasu historycznego Polski XVI w.)
+                                </span>
+                            )}
                             {czyRzeczpospolita(rok) && <span>· Rzeczpospolita Obojga Narodów = Korona + Litwa (wspólna granica zewnętrzna)</span>}
                         </div>
                     )}
