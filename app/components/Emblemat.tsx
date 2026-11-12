@@ -8,7 +8,7 @@ type Kreska = { d: string; w?: number; o: number; t?: number; g?: string }
 // Współrzędne w viewBox 80×104. Kapliczka w kształcie z obrazu „Kapliczka
 // w Olszance” (dwuspadowy daszek, smukły słup), z detalami ze zdjęcia: wysoka
 // nisza z półokrągłym naświetlem i figurą, gzyms, niższa szersza część
-// z prostokątną wnęką, cokół. Rysowana w małej skali i powiększona (KAP).
+// z poziomą prostokątną tabliczką, cokół. Rysowana w małej skali i powiększona (KAP).
 // Za nią kościół (lewo) i cerkiew (prawo) na wzgórzach; od każdej świątyni
 // płynie strumień, oba schodzą się za kapliczką (dwa wyznania, jedna wiara). Pod linią ziemi napis „kapliczka w Olszance” (pojawia się na końcu animacji).
 
@@ -22,7 +22,7 @@ const KRESKI: Kreska[] = [
     // kapliczka, od cokołu do krzyża
     { d: 'M30.5 75v-4h19v4', g: KAP, w: 1.2, o: 0.55, t: 0.4 },
     { d: 'M32 71V59h16v12', g: KAP, w: 1.2, o: 0.7, t: 0.5 },
-    { d: 'M37.3 61.2h5.4v7.6h-5.4zM38.3 62.2h3.4v5.6h-3.4z', g: KAP, w: 0.7, o: 0.9, t: 0.5 },
+    { d: 'M35.8 62.4h8.4v5.8h-8.4zM36.9 63.5h6.2v3.6h-6.2z', g: KAP, w: 0.7, o: 0.9, t: 0.5 },
     { d: 'M30.8 59l1.4-2.5h15.6l1.4 2.5z', g: KAP, w: 1.2, o: 1.0, t: 0.45 },
     { d: 'M33.5 56.5V37h13v19.5', g: KAP, w: 1.2, o: 1.1, t: 0.55 },
     { d: 'M36.8 53.5V44a3.2 3.2 0 0 1 6.4 0v9.5zM36.8 44h6.4M40 44v-3.2M40 44l-2.3-2.3M40 44l2.3-2.3', g: KAP, w: 0.7, o: 1.3, t: 0.6 },
