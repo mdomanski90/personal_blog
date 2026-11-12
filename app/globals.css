@@ -322,7 +322,7 @@ body {
   .odp a:where(:not(.post-content *)):hover {
     text-decoration: underline;
   }
-  .odp :where(button, input) {
+  .odp :where(button, input, select) {
     font-family: inherit;
   }
 
@@ -414,6 +414,15 @@ body {
 .dark .odp mark.powiazanie-odnosnik { background: #1e3a5f; }
 .dark .odp mark.powiazanie-wzmianka { background: #4a3b12; }
 .odp details#wzmianki > summary { list-style-position: inside; }
+
+/* materiał z archiwum wstawiony w tekst */
+.post-content figure.material-wstawka { margin: 1.5em 0; }
+.post-content figure.material-wstawka img,
+.post-content figure.material-wstawka video { border-radius: 8px; border: 1px solid #d1d5db; }
+.post-content figure.material-wstawka figcaption { font-size: 0.8em; color: #6b7280; margin-top: 0.4em; }
+.dark .post-content figure.material-wstawka img,
+.dark .post-content figure.material-wstawka video { border-color: #4b5563; }
+.dark .post-content figure.material-wstawka figcaption { color: #9ca3af; }
 
 /* ============================================ */
 /* MAPA (MapLibre)                              */

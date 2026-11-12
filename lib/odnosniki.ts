@@ -8,7 +8,7 @@
 
 import { normalizuj } from './tekst'
 
-export type RodzajCelu = 'miejsce' | 'temat' | 'obiekt' | 'wpis'
+export type RodzajCelu = 'miejsce' | 'temat' | 'obiekt' | 'wpis' | 'material'
 
 export interface Cel {
     rodzaj: RodzajCelu
@@ -30,7 +30,7 @@ export interface PozycjaSieci {
     nazwy: string[]
 }
 
-/** Słownik do rozwiązywania odnośników. Przy powtórzeniu wygrywa wcześniejsza pozycja (miejsca → tematy → obiekty → wpisy). */
+/** Słownik do rozwiązywania odnośników. Przy powtórzeniu wygrywa wcześniejsza pozycja (miejsca → tematy → obiekty → wpisy → materiały). */
 export function slownikOdnosnikow(pozycje: PozycjaSieci[]): Rozwiaz {
     const slownik = new Map<string, Cel>()
     const dodaj = (klucz: string, cel: Cel) => {

@@ -1,11 +1,12 @@
 import Markdoc, { Tag, type Node, type Config, type RenderableTreeNode, type RenderableTreeNodes } from '@markdoc/markdoc'
 import { bezNawiasow, ODNOSNIK, tekstOdnosnika, type Rozwiaz } from './odnosniki'
+import { typPliku } from './pliki'
 
 // Wspólne renderowanie treści Markdoc (wpisy, opisy miejsc i tematów).
 // Obrazki: miniatura WebP z katalogu thumbs/ (tworzy ją skrypt generate-thumbs przy buildzie),
 // pełna wersja pod data-zoom-src dla powiększenia.
 
-const KATALOGI_OBRAZOW = ['posts', 'miejsca', 'obiekty', 'tematy', 'o-projekcie']
+const KATALOGI_OBRAZOW = ['posts', 'miejsca', 'obiekty', 'tematy', 'materialy', 'o-projekcie']
 
 function miniatura(src: string): string {
     for (const k of KATALOGI_OBRAZOW) {
@@ -89,6 +90,15 @@ const config: Config = {
                 ])
             },
         },
+        // materiał z archiwum wstawiony w tekst – na razie znacznik; treść wstawia naHtml (zna widoczność)
+        material: {
+            render: 'figure',
+            selfClosing: true,
+            attributes: { id: { type: String }, podpis: { type: String } },
+            transform(node) {
+                return new Tag('figure', { 'data-material': String(node.attributes.id ?? ''), 'data-podpis': String(node.attributes.podpis ?? '') }, [])
+            },
+        },
         kolumna: {
             render: 'div',
             attributes: { etykieta: { type: String } },
@@ -133,12 +143,45 @@ const config: Config = {
     },
 }
 
+// ---------- materiały wstawione w tekst ----------
+
+export interface MaterialWstawki {
+    id: string
+    nazwa: string
+    rodzaj: string
+    plik: string | null
+}
+
+/** Podgląd materiału: obraz (z powiększeniem), odtwarzacz, PDF albo odnośnik – i podpis z linkiem do archiwum. */
+export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string): Tag {
+    const adres = `/archiwum/${m.id}`
+    const typ = typPliku(m.plik)
+    const podglad: RenderableTreeNode[] = []
+    if (m.plik && typ === 'obraz') {
+        podglad.push(new Tag('img', { src: m.plik, 'data-zoom-src': m.plik, alt: podpis || m.nazwa, loading: 'lazy', decoding: 'async', class: 'rounded-none w-full cursor-zoom-in' }))
+    } else if (m.plik && typ === 'dzwiek') {
+        podglad.push(new Tag('audio', { controls: true, preload: 'none', src: m.plik, class: 'w-full' }))
+    } else if (m.plik && typ === 'film') {
+        podglad.push(new Tag('video', { controls: true, preload: 'metadata', src: m.plik, class: 'w-full' }))
+    }
+    const opis: RenderableTreeNode[] = [new Tag('a', { href: adres }, [podpis || m.nazwa])]
+    if (m.plik && (typ === 'pdf' || typ === 'inny')) opis.push(' · ', new Tag('a', { href: m.plik }, [typ === 'pdf' ? 'otwórz PDF' : 'otwórz plik']))
+    return new Tag('figure', { class: 'material-wstawka' }, [...podglad, new Tag('figcaption', {}, opis)])
+}
+
 // ---------- odnośniki [[…]] ----------
 
 const BEZ_ODNOSNIKOW = new Set(['a', 'code', 'pre'])
 
 /** Zamienia [[…]] w tekście na linki (albo zwykły tekst, gdy celu nie ma lub jest niewidoczny). */
-function wstawOdnosniki(n: RenderableTreeNode, rozwiaz?: Rozwiaz): RenderableTreeNode | RenderableTreeNode[] {
+export interface KontekstTresci {
+    rozwiaz?: Rozwiaz
+    /** materiał po identyfikatorze – null, gdy go nie ma albo czytelnik go nie widzi */
+    material?: (id: string) => MaterialWstawki | null
+}
+
+function wstawOdnosniki(n: RenderableTreeNode, k: KontekstTresci): RenderableTreeNode | RenderableTreeNode[] {
+    const rozwiaz = k.rozwiaz
     if (typeof n === 'string') {
         if (!n.includes('[[')) return n
         const czesci: RenderableTreeNode[] = []
@@ -154,6 +197,10 @@ function wstawOdnosniki(n: RenderableTreeNode, rozwiaz?: Rozwiaz): RenderableTre
         return czesci
     }
     if (!Tag.isTag(n) || BEZ_ODNOSNIKOW.has(n.name)) return n
+    if (n.name === 'figure' && 'data-material' in n.attributes) {
+        const m = k.material?.(String(n.attributes['data-material']))
+        return m ? wstawkaMaterialu(m, String(n.attributes['data-podpis'] || '') || undefined) : []
+    }
     // tekst bywa podzielony na kilka sąsiednich kawałków – sklejamy, żeby [[…]] był w jednym
     const sklejone: RenderableTreeNode[] = []
     for (const c of n.children) {
@@ -161,17 +208,18 @@ function wstawOdnosniki(n: RenderableTreeNode, rozwiaz?: Rozwiaz): RenderableTre
         if (typeof c === 'string' && typeof ost === 'string') sklejone[sklejone.length - 1] = ost + c
         else sklejone.push(c)
     }
-    return new Tag(n.name, n.attributes, sklejone.flatMap((c) => wstawOdnosniki(c, rozwiaz)))
+    return new Tag(n.name, n.attributes, sklejone.flatMap((c) => wstawOdnosniki(c, k)))
 }
 
 /**
- * Treść do HTML. `rozwiaz` (z lib/archiwum: rozwiazOdnosniki) zamienia [[…]] na linki;
- * bez niego odnośniki zostają zwykłym tekstem.
+ * Treść do HTML. Kontekst (z lib/archiwum: kontekstTresci) zamienia [[…]] na linki i wstawia materiały;
+ * bez niego odnośniki zostają zwykłym tekstem, a materiały się nie pokazują.
  */
-export function naHtml(node: Node | null | undefined, rozwiaz?: Rozwiaz): string {
+export function naHtml(node: Node | null | undefined, kontekst?: KontekstTresci | Rozwiaz): string {
     if (!node) return ''
+    const k: KontekstTresci = typeof kontekst === 'function' ? { rozwiaz: kontekst } : (kontekst ?? {})
     const drzewo = Markdoc.transform(node, config)
-    const wynik = wstawOdnosniki(drzewo, rozwiaz)
+    const wynik = wstawOdnosniki(drzewo, k)
     return Markdoc.renderers.html(wynik as RenderableTreeNodes)
 }
 

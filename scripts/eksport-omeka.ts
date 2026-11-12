@@ -5,7 +5,7 @@
 //
 // Kolumny = nazwy właściwości Omeka (dcterms:…); wiele wartości rozdzielone „|”;
 // powiązania przez dcterms:identifier (w CSV Import: „Identifier” jako sposób dopasowania zasobów).
-// Kolejność importu: miejsca → obiekty → tematy → wpisy (później: osoby, obiekty, materiały).
+// Kolejność importu: miejsca → obiekty → tematy → wpisy → materiały (później: osoby).
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -13,6 +13,10 @@ import { dlaEksportu, OBSZARY, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, RODZAJE_OPOWIES
 import { czyPoprawnaEdtf, zakresIso } from '../lib/edtf'
 import { naTekst } from '../lib/markdoc'
 import { odmiana } from '../lib/tekst'
+import { ADRES_PLIKOW, KATALOG_PLIKOW } from '../lib/pliki'
+import { RODZAJE_MATERIALOW } from '../lib/materialy'
+
+const KLASY_MATERIALOW: Record<string, string> = { dokument: 'dctype:Text', akt: 'dctype:Text', zdjecie: 'dctype:StillImage', nagranie: 'dctype:Sound', mapa: 'dctype:StillImage' }
 
 const KATALOG = path.join(process.cwd(), 'eksport', 'omeka')
 const bledy: string[] = []
@@ -37,9 +41,11 @@ async function main() {
     const obiekty = await dlaEksportu.obiekty()
     const tematy = await dlaEksportu.tematy()
     const opowiesci = await dlaEksportu.opowiesci()
+    const materialy = await dlaEksportu.materialy()
 
     const idMiejsc = new Set(miejsca.map((m) => m.id))
     const idTematow = new Set(tematy.map((t) => t.id))
+    const idObiektow = new Set(obiekty.map((o) => o.id))
 
     // --- sprawdzanie spójności ---
     for (const m of miejsca) {
@@ -57,6 +63,13 @@ async function main() {
     for (const o of opowiesci) {
         for (const id of o.miejsca) if (!idMiejsc.has(id)) bledy.push(`wpis „${o.id}”: nieistniejące miejsce „${id}”`)
         for (const id of o.tematy) if (!idTematow.has(id)) bledy.push(`wpis „${o.id}”: nieistniejący temat „${id}”`)
+    }
+    for (const m of materialy) {
+        if (!czyPoprawnaEdtf(m.czas)) bledy.push(`materiał „${m.id}”: niepoprawna data „${m.czas}”`)
+        for (const id of m.miejsca) if (!idMiejsc.has(id)) bledy.push(`materiał „${m.id}”: nieistniejące miejsce „${id}”`)
+        for (const id of m.tematy) if (!idTematow.has(id)) bledy.push(`materiał „${m.id}”: nieistniejący temat „${id}”`)
+        for (const id of m.obiekty) if (!idObiektow.has(id)) bledy.push(`materiał „${m.id}”: nieistniejący obiekt „${id}”`)
+        if (m.plik && !fs.existsSync(path.join(process.cwd(), KATALOG_PLIKOW, m.plik.slice(ADRES_PLIKOW.length)))) ostrzezenia.push(`materiał „${m.id}”: brak pliku ${m.plik}`)
     }
     const bezWspolrzednych = miejsca.filter((m) => !m.wspolrzedne && !OBSZARY.includes(m.rodzaj)).map((m) => m.nazwa)
     if (bezWspolrzednych.length) ostrzezenia.push(`miejsca bez współrzędnych (nie ma ich na mapie): ${bezWspolrzednych.join(', ')}`)
@@ -150,8 +163,37 @@ async function main() {
         })),
     )
 
+    zapiszCsv(
+        'materialy.csv',
+        ['dcterms:identifier', 'o:resource_class', 'dcterms:title', 'dcterms:type', 'dcterms:date', 'numeric:interval', 'dcterms:creator', 'dcterms:source', 'dcterms:bibliographicCitation', 'dcterms:rights', 'dcterms:language', 'dcterms:spatial', 'dcterms:subject', 'dcterms:relation', 'file', 'dcterms:description', 'dcterms:dateSubmitted', 'o:is_public'],
+        materialy.map((m) => {
+            const z = zakresIso(m.czas)
+            return {
+                'dcterms:identifier': m.id,
+                'o:resource_class': KLASY_MATERIALOW[m.rodzaj] ?? 'dctype:Text',
+                'dcterms:title': m.nazwa,
+                'dcterms:type': RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj,
+                'dcterms:date': m.czas,
+                'numeric:interval': z ? `${z.od ?? ''}/${z.do ?? ''}` : '',
+                'dcterms:creator': m.tworca,
+                'dcterms:source': m.pochodzenie,
+                'dcterms:bibliographicCitation': m.sygnatura,
+                'dcterms:rights': m.prawa,
+                'dcterms:language': m.jezyk,
+                'dcterms:spatial': m.miejsca,
+                'dcterms:subject': m.tematy,
+                'dcterms:relation': m.obiekty,
+                // ścieżka względem katalogu bloga – do importu plików (moduł CSV Import: „media source: local”)
+                file: m.plik ? `${KATALOG_PLIKOW}/${m.plik.slice(ADRES_PLIKOW.length)}` : '',
+                'dcterms:description': naTekst(m.opis),
+                'dcterms:dateSubmitted': m.dodano,
+                'o:is_public': publiczne(m.widocznosc),
+            }
+        }),
+    )
+
     for (const o of ostrzezenia) console.warn('! ' + o)
-    console.log(`✓ Eksport dla Omeka S: ${odmiana(miejsca.length, ['miejsce', 'miejsca', 'miejsc'])}, ${odmiana(obiekty.length, ['obiekt', 'obiekty', 'obiektów'])}, ${odmiana(tematy.length, ['temat', 'tematy', 'tematów'])}, ${odmiana(opowiesci.length, ['wpis', 'wpisy', 'wpisów'])} → eksport/omeka/`)
+    console.log(`✓ Eksport dla Omeka S: ${odmiana(miejsca.length, ['miejsce', 'miejsca', 'miejsc'])}, ${odmiana(obiekty.length, ['obiekt', 'obiekty', 'obiektów'])}, ${odmiana(tematy.length, ['temat', 'tematy', 'tematów'])}, ${odmiana(opowiesci.length, ['wpis', 'wpisy', 'wpisów'])}, ${odmiana(materialy.length, ['materiał', 'materiały', 'materiałów'])} → eksport/omeka/`)
 }
 
 main().catch((e) => {

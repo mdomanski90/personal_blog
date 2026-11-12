@@ -6,7 +6,9 @@ import { createReader } from '@keystatic/core/reader'
 import type { Node } from '@markdoc/markdoc'
 import keystaticConfig from '../keystatic.config'
 import { kluczSortowania } from './edtf'
-import { naTekst, zajawka } from './markdoc'
+import { naTekst, zajawka, type KontekstTresci, type MaterialWstawki } from './markdoc'
+import { RODZAJE_MATERIALOW } from './materialy'
+import { zakresIso } from './edtf'
 import { bezNawiasow, fragment, ODNOSNIK, slownikOdnosnikow, wzorzecWzmianek, znajdzWzmianki, type Cel, type Fragment, type PozycjaSieci, type RodzajCelu, type Rozwiaz } from './odnosniki'
 import { normalizuj, porownajPl } from './tekst'
 
@@ -18,9 +20,19 @@ const cache: <T extends (...a: never[]) => unknown>(fn: T) => T =
 
 export type Widocznosc = 'publiczne' | 'bliscy' | 'ja'
 
-/** Poziom dostępu czytelnika. Etap 2: logowanie „dla bliskich”; na razie wszyscy widzą tylko publiczne. */
+/**
+ * Poziom dostępu czytelnika: „bliscy” po zalogowaniu wspólnym hasłem (lib/sesja), inaczej „publiczne”.
+ * „Tylko ja” widać wyłącznie w panelu.
+ */
 export async function poziomCzytelnika(): Promise<Widocznosc> {
-    return 'publiczne'
+    try {
+        const { cookies } = await import('next/headers')
+        const { CIASTECZKO, sesjaWazna } = await import('./sesja')
+        return sesjaWazna((await cookies()).get(CIASTECZKO)?.value) ? 'bliscy' : 'publiczne'
+    } catch {
+        // poza żądaniem (skrypty) – tylko publiczne
+        return 'publiczne'
+    }
 }
 
 export function widoczne(w: Widocznosc | string | null | undefined, poziom: Widocznosc): boolean {
@@ -98,6 +110,28 @@ export interface Obiekt {
     dodano: string | null
     opis: Node | null
 }
+export { RODZAJE_MATERIALOW }
+
+export interface Material {
+    id: string
+    nazwa: string
+    rodzaj: string
+    /** adres pliku: /pliki/<id>/file.<roz> (plik leży w pliki-archiwum/) */
+    plik: string | null
+    czas: string
+    tworca: string
+    pochodzenie: string
+    sygnatura: string
+    prawa: string
+    jezyk: string
+    miejsca: string[]
+    tematy: string[]
+    obiekty: string[]
+    widocznosc: Widocznosc
+    dodano: string | null
+    opis: Node | null
+}
+
 export const RODZAJE_TEMATOW: Record<string, string> = {
     zjawisko: 'zjawisko', wydarzenie: 'wydarzenie', instytucja: 'instytucja',
 }
@@ -172,6 +206,30 @@ const wszystkieObiektySurowe = cache(async (): Promise<Obiekt[]> => {
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
 
+const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
+    const wpisy = await reader.collections.materialy.all({ resolveLinkedFiles: true })
+    return wpisy
+        .map(({ slug, entry }) => ({
+            id: slug,
+            nazwa: entry.title,
+            rodzaj: entry.type,
+            plik: typeof entry.file === 'string' && entry.file ? entry.file : null,
+            czas: entry.temporal,
+            tworca: entry.creator,
+            pochodzenie: entry.source,
+            sygnatura: entry.identifier,
+            prawa: entry.rights,
+            jezyk: entry.language,
+            miejsca: [...entry.spatial].filter(Boolean) as string[],
+            tematy: [...entry.subject].filter(Boolean) as string[],
+            obiekty: [...entry.relation].filter(Boolean) as string[],
+            widocznosc: entry.visibility as Widocznosc,
+            dodano: entry.dateSubmitted,
+            opis: entry.description?.node ?? null,
+        }))
+        .sort((a, b) => kluczSortowania(a.czas) - kluczSortowania(b.czas) || porownajPl(a.nazwa, b.nazwa))
+})
+
 const wszystkieOpowiesciSurowe = cache(async (): Promise<Opowiesc[]> => {
     const wpisy = await reader.collections.posts.all({ resolveLinkedFiles: true })
     return wpisy
@@ -212,6 +270,52 @@ export async function obiekt(id: string, poziom: Widocznosc): Promise<Obiekt | n
 
 export async function obiektyDlaMiejsca(id: string, poziom: Widocznosc): Promise<Obiekt[]> {
     return (await obiekty(poziom)).filter((o) => o.miejsce === id)
+}
+
+export async function materialy(poziom: Widocznosc): Promise<Material[]> {
+    return (await wszystkieMaterialySurowe()).filter((m) => widoczne(m.widocznosc, poziom))
+}
+
+export async function material(id: string, poziom: Widocznosc): Promise<Material | null> {
+    return (await materialy(poziom)).find((m) => m.id === id) ?? null
+}
+
+/** Materiały powiązane w panelu z miejscem, tematem albo obiektem. */
+export async function materialyDla(rodzaj: 'miejsce' | 'temat' | 'obiekt', id: string, poziom: Widocznosc): Promise<Material[]> {
+    const pole = rodzaj === 'miejsce' ? 'miejsca' : rodzaj === 'temat' ? 'tematy' : 'obiekty'
+    return (await materialy(poziom)).filter((m) => m[pole].includes(id))
+}
+
+/** Lata (od, do) materiału – do filtra okresu; null, gdy bez daty. */
+export function lataMaterialu(m: Material): [number, number] | null {
+    const z = zakresIso(m.czas)
+    const rok = (s: string | null | undefined) => (s ? parseInt(s, 10) : NaN)
+    const od = rok(z?.od), dok = rok(z?.do)
+    if (Number.isNaN(od) && Number.isNaN(dok)) return null
+    return [Number.isNaN(od) ? dok : od, Number.isNaN(dok) ? od : dok]
+}
+
+export interface FiltrArchiwum {
+    rodzaj?: string
+    miejsce?: string
+    temat?: string
+    od?: number
+    do?: number
+}
+
+export async function archiwum(poziom: Widocznosc, f: FiltrArchiwum): Promise<Material[]> {
+    return (await materialy(poziom)).filter((m) => {
+        if (f.rodzaj && m.rodzaj !== f.rodzaj) return false
+        if (f.miejsce && !m.miejsca.includes(f.miejsce)) return false
+        if (f.temat && !m.tematy.includes(f.temat)) return false
+        if (f.od !== undefined || f.do !== undefined) {
+            const l = lataMaterialu(m)
+            if (!l) return false
+            if (f.od !== undefined && l[1] < f.od) return false
+            if (f.do !== undefined && l[0] > f.do) return false
+        }
+        return true
+    })
 }
 
 export interface GrupaMiejsc {
@@ -348,10 +452,17 @@ const pozycjeSieci = cache(async (poziom: Widocznosc): Promise<PozycjaSieci[]> =
     ...(await tematy(poziom)).map((t) => ({ cel: { rodzaj: 'temat' as const, id: t.id, nazwa: t.nazwa, adres: `/tematy/${t.id}` }, nazwy: [t.nazwa, ...t.inneNazwy, ...t.formy] })),
     ...(await obiekty(poziom)).map((o) => ({ cel: { rodzaj: 'obiekt' as const, id: o.id, nazwa: o.nazwa, adres: `/obiekty/${o.id}` }, nazwy: [o.nazwa, ...o.inneNazwy] })),
     ...(await opowiesci(poziom)).map((o) => ({ cel: { rodzaj: 'wpis' as const, id: o.id, nazwa: o.tytul, adres: `/wpisy/${o.id}` }, nazwy: [o.tytul] })),
+    ...(await materialy(poziom)).map((m) => ({ cel: { rodzaj: 'material' as const, id: m.id, nazwa: m.nazwa, adres: `/archiwum/${m.id}` }, nazwy: [m.nazwa] })),
 ])
 
 /** Zamiana [[…]] na cele – tylko pozycje widoczne dla czytelnika. Do naHtml(treść, rozwiaz). */
 export const rozwiazOdnosniki = cache(async (poziom: Widocznosc): Promise<Rozwiaz> => slownikOdnosnikow(await pozycjeSieci(poziom)))
+
+/** Wszystko, czego treść potrzebuje przy renderowaniu: odnośniki [[…]] i wstawione materiały. */
+export const kontekstTresci = cache(async (poziom: Widocznosc): Promise<KontekstTresci> => {
+    const mat = new Map<string, MaterialWstawki>((await materialy(poziom)).map((m) => [m.id, { id: m.id, nazwa: m.nazwa, rodzaj: m.rodzaj, plik: m.plik }]))
+    return { rozwiaz: await rozwiazOdnosniki(poziom), material: (id) => mat.get(id) ?? null }
+})
 
 const kluczCelu = (c: { rodzaj: string; id: string }) => `${c.rodzaj}:${c.id}`
 
@@ -378,6 +489,7 @@ export async function daneSieci(poziom: Widocznosc): Promise<{ pozycje: PozycjaS
     for (const t of await tematy(poziom)) dodaj('temat', t.id, 'tematy', t.opis, t.miejsca.map((id) => `miejsce:${id}`))
     for (const o of await obiekty(poziom)) dodaj('obiekt', o.id, 'obiekty', o.opis, o.miejsce ? [`miejsce:${o.miejsce}`] : [])
     for (const o of await opowiesci(poziom)) dodaj('wpis', o.id, 'posts', o.tresc, [...o.miejsca.map((id) => `miejsce:${id}`), ...o.tematy.map((id) => `temat:${id}`)])
+    for (const m of await materialy(poziom)) dodaj('material', m.id, 'materialy', m.opis, [...m.miejsca.map((id) => `miejsce:${id}`), ...m.tematy.map((id) => `temat:${id}`), ...m.obiekty.map((id) => `obiekt:${id}`)])
     return { pozycje, teksty }
 }
 
@@ -409,7 +521,7 @@ const indeksPowiazan = cache(async (poziom: Widocznosc): Promise<Map<string, Pow
         z.ile++
         if (z.fragmenty.length < MAKS_FRAGMENTOW) z.fragmenty.push(f)
     }
-    const wzorce = pozycje.filter((p) => p.cel.rodzaj !== 'wpis').map((p) => ({ klucz: kluczCelu(p.cel), wzorzec: wzorzecWzmianek(p.nazwy, p.cel.rodzaj === 'temat') }))
+    const wzorce = pozycje.filter((p) => p.cel.rodzaj !== 'wpis' && p.cel.rodzaj !== 'material').map((p) => ({ klucz: kluczCelu(p.cel), wzorzec: wzorzecWzmianek(p.nazwy, p.cel.rodzaj === 'temat') }))
     for (const t of teksty) {
         const wlasny = kluczCelu(t.zrodlo)
         const linie = t.tekst.split('\n')
@@ -430,7 +542,7 @@ const indeksPowiazan = cache(async (poziom: Widocznosc): Promise<Map<string, Pow
         }
     }
     // najpierw wpisy, potem reszta; w grupie alfabetycznie
-    const kolejnosc = (z: ZrodloPowiazania) => (z.zrodlo.rodzaj === 'wpis' ? 0 : 1)
+    const kolejnosc = (z: ZrodloPowiazania) => (z.zrodlo.rodzaj === 'wpis' ? 0 : z.zrodlo.rodzaj === 'material' ? 1 : 2)
     for (const p of indeks.values()) {
         for (const lista of [p.odnosniki, p.wzmianki]) lista.sort((a, b) => kolejnosc(a) - kolejnosc(b) || porownajPl(a.zrodlo.nazwa, b.zrodlo.nazwa))
     }
@@ -445,7 +557,7 @@ export async function powiazania(rodzaj: RodzajCelu, id: string, poziom: Widoczn
 // ---------- wyszukiwarka ----------
 
 export interface Wynik {
-    rodzaj: 'miejsce' | 'obiekt' | 'temat' | 'wpis'
+    rodzaj: 'miejsce' | 'obiekt' | 'temat' | 'wpis' | 'materiał'
     id: string
     tytul: string
     adres: string
@@ -493,6 +605,11 @@ export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wyn
         const waga = ocen([o.tytul], tekst)
         if (waga) wyniki.push({ rodzaj: 'wpis', id: o.id, tytul: o.tytul, adres: `/wpisy/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : o.zajawka, waga })
     }
+    for (const m of await materialy(poziom)) {
+        const tekst = bezNawiasow(naTekst(m.opis))
+        const waga = ocen([m.nazwa, m.sygnatura], tekst)
+        if (waga) wyniki.push({ rodzaj: 'materiał', id: m.id, tytul: m.nazwa, adres: `/archiwum/${m.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj, waga })
+    }
     return wyniki.sort((a, b) => b.waga - a.waga || porownajPl(a.tytul, b.tytul))
 }
 
@@ -503,4 +620,5 @@ export const dlaEksportu = {
     obiekty: wszystkieObiektySurowe,
     tematy: wszystkieTematySurowe,
     opowiesci: wszystkieOpowiesciSurowe,
+    materialy: wszystkieMaterialySurowe,
 }

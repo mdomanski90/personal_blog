@@ -4,13 +4,15 @@ import { Link } from 'next-view-transitions'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import ThemeToggle from './ThemeToggle'
+import Logowanie from './Logowanie'
 
-// Menu: tylko działy, które już istnieją. Kolejne (osoby, archiwum, biblioteczka) dochodzą z kolejnymi etapami.
+// Menu: tylko działy, które już istnieją. Kolejne (osoby, biblioteczka) dochodzą później.
 const MENU: { href: string; tekst: string }[] = [
     { href: '/', tekst: 'strona główna' },
     { href: '/wpisy', tekst: 'wpisy' },
     { href: '/miejsca', tekst: 'miejsca' },
     { href: '/tematy', tekst: 'tematy' },
+    { href: '/archiwum', tekst: 'archiwum' },
     { href: '/o-projekcie', tekst: 'o projekcie' },
 ]
 
@@ -72,7 +74,8 @@ export default function SiteHeader() {
                     </p>
                 </div>
                 {/* na szerszym ekranie przyciski obok tytułu, na telefonie w linii z wyszukiwarką */}
-                <div className="hidden sm:block shrink-0">
+                <div className="hidden sm:flex shrink-0 items-center gap-2">
+                    <Logowanie />
                     <ThemeToggle />
                 </div>
             </div>
@@ -106,7 +109,8 @@ export default function SiteHeader() {
                 <Suspense fallback={<div className="flex-1" style={{ height: 30 }} />}>
                     <Wyszukiwarka />
                 </Suspense>
-                <div className="sm:hidden shrink-0">
+                <div className="sm:hidden shrink-0 flex items-center gap-2">
+                    <Logowanie />
                     <ThemeToggle />
                 </div>
             </div>

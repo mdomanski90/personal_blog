@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { nazwy, opowiesciDlaTematu, powiazania, poziomCzytelnika, rozwiazOdnosniki, RODZAJE_TEMATOW, temat } from '@/lib/archiwum'
+import { nazwy, opowiesciDlaTematu, materialyDla, powiazania, poziomCzytelnika, kontekstTresci, RODZAJE_TEMATOW, temat } from '@/lib/archiwum'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
 import { Kreski, Metki, Sekcja, Strona, Tresc, TytulStrony } from '../../components/Uklad'
 import ListaOpowiesci from '../../components/ListaOpowiesci'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania from '../../components/Powiazania'
+import ListaMaterialow from '../../components/ListaMaterialow'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,7 @@ export default async function TematStrona({ params }: Parametry) {
     const opow = await opowiesciDlaTematu(t.id, poziom)
     const miejscaTematu = t.miejsca.filter((id) => n.miejsca.has(id))
     const siec = await powiazania('temat', t.id, poziom)
+    const mat = await materialyDla('temat', t.id, poziom)
 
     return (
         <Strona>
@@ -36,7 +38,7 @@ export default async function TematStrona({ params }: Parametry) {
                 <CopyLinkButton sciezka={`/tematy/${t.id}`} />
             </div>
 
-            <Tresc html={naHtml(t.opis, await rozwiazOdnosniki(poziom))} pusta="opis tematu nie został jeszcze dodany." />
+            <Tresc html={naHtml(t.opis, await kontekstTresci(poziom))} pusta="opis tematu nie został jeszcze dodany." />
 
             {miejscaTematu.length > 0 && (
                 <Sekcja tytul="miejsca">
@@ -51,6 +53,12 @@ export default async function TematStrona({ params }: Parametry) {
                         <ListaOpowiesci opowiesci={opow} nazwyMiejsc={n.miejsca} />
                     </Sekcja>
                 </>
+            )}
+
+            {mat.length > 0 && (
+                <Sekcja tytul="materiały w archiwum">
+                    <ListaMaterialow materialy={mat} />
+                </Sekcja>
             )}
 
             {(siec.odnosniki.length > 0 || siec.wzmianki.length > 0) && <Kreski />}

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { nazwy, opowiesc, powiazania, poziomCzytelnika, rozwiazOdnosniki } from '@/lib/archiwum'
+import { nazwy, opowiesc, powiazania, poziomCzytelnika, kontekstTresci } from '@/lib/archiwum'
 import { naHtml } from '@/lib/markdoc'
 import { Kreski, Strona, Tresc, TytulStrony } from '../../components/Uklad'
 import Powiazania from '../../components/Powiazania'
@@ -29,7 +29,7 @@ export default async function OpowiescStrona({ params }: Parametry) {
             <article className="flex flex-col" style={{ gap: 'calc(1rem * var(--font-scale, 1))' }}>
                 <TytulStrony sciezka={[{ tekst: 'wpisy', href: '/wpisy' }]}>{o.tytul}</TytulStrony>
                 <MetkiWpisu wpis={o} nazwy={n} />
-                <Tresc html={naHtml(o.tresc, await rozwiazOdnosniki(poziom))} />
+                <Tresc html={naHtml(o.tresc, await kontekstTresci(poziom))} />
             </article>
             {siec.odnosniki.length > 0 && <Kreski />}
             <Powiazania dane={{ odnosniki: siec.odnosniki, wzmianki: [] }} />

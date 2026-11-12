@@ -1,8 +1,10 @@
 import { config, collection, singleton, fields } from '@keystatic/core';
-import { wrapper, repeating } from '@keystatic/core/content-components';
+import { wrapper, repeating, block } from '@keystatic/core/content-components';
 import { EDTF_OPIS, EDTF_REGEX } from './lib/edtf';
 import { identyfikatorZNazwy } from './lib/tekst';
 import { NAZWY_OBIEKTOW } from './lib/tarcze';
+import { RODZAJE_MATERIALOW } from './lib/materialy';
+import { ADRES_PLIKOW, KATALOG_PLIKOW } from './lib/pliki';
 
 // Model danych: claude/odniepamieci-model-danych.md (projekt „own www”).
 // Nazwy pól w plikach jak w Dublin Core – ułatwia późniejszy eksport do Omeka S.
@@ -100,6 +102,14 @@ const komponenty = {
       opis: fields.text({ label: 'Skąd', description: 'Np. sygnatura księgi. Można zostawić puste.' }),
     },
   }),
+  material: block({
+    label: 'Materiał z archiwum',
+    description: 'Zdjęcie, nagranie, mapa albo dokument z archiwum, wstawione w tekst. Materiał niewidoczny dla czytelnika się nie pokaże.',
+    schema: {
+      id: fields.relationship({ label: 'Materiał', collection: 'materialy', validation: { isRequired: true } }),
+      podpis: fields.text({ label: 'Podpis', description: 'Puste – tytuł materiału.' }),
+    },
+  }),
   kolumna: wrapper({
     label: 'Kolumna',
     forSpecificLocations: true,
@@ -129,6 +139,7 @@ export default config({
     brand: { name: 'odniepamieci.pl' },
     navigation: {
       'Treści': ['posts', 'miejsca', 'obiekty', 'tematy'],
+      'Archiwum': ['materialy'],
       'Strony': ['oProjekcie'],
     },
   },
@@ -267,6 +278,49 @@ export default config({
         note: notatka(),
         dateSubmitted: dodano(),
         description: opisMarkdoc('Opis i historia', 'obiekty'),
+      },
+    }),
+    materialy: collection({
+      label: 'Materiały (archiwum)',
+      slugField: 'title',
+      path: 'content/materialy/*',
+      format: { contentField: 'description' },
+      columns: ['title', 'type', 'temporal'],
+      schema: {
+        title: nazwaIIdentyfikator('Tytuł'),
+        type: fields.select({
+          label: 'Rodzaj',
+          options: Object.entries(RODZAJE_MATERIALOW).map(([value, label]) => ({ label, value })),
+          defaultValue: 'dokument',
+        }),
+        file: fields.file({
+          label: 'Plik',
+          description: 'Skan, zdjęcie, nagranie (mp3, m4a), film (mp4) albo PDF. Plik nie trafia do public/ – strona wydaje go tylko tym, którzy mogą widzieć materiał.',
+          directory: KATALOG_PLIKOW,
+          publicPath: ADRES_PLIKOW,
+        }),
+        temporal: dataEdtf('Data powstania (EDTF)'),
+        creator: fields.text({ label: 'Autor / wytwórca', description: 'Np. fotograf, parafia, urząd, osoba nagrywana.' }),
+        source: fields.text({ label: 'Pochodzenie', description: 'Skąd pochodzi: archiwum i zespół, zbiory rodzinne, od kogo otrzymane.', multiline: true }),
+        identifier: fields.text({ label: 'Sygnatura', description: 'Np. AP Lublin 35/99/0/1/405, nr aktu, nr zdjęcia.' }),
+        rights: fields.text({ label: 'Prawa', description: 'Np. domena publiczna, CC BY 4.0, „za zgodą rodziny – tylko do wglądu”.' }),
+        language: fields.text({ label: 'Język', description: 'Np. polski, łacina, rosyjski.' }),
+        spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
+        subject: fields.multiRelationship({ label: 'Tematy', collection: 'tematy' }),
+        relation: fields.multiRelationship({ label: 'Przedstawia obiekty', description: 'Np. zdjęcie cerkwi, nagrobka.', collection: 'obiekty' }),
+        visibility: fields.select({
+          label: 'Widoczność',
+          description: 'Nagranie bez zgody osoby nagranej – „tylko ja”.',
+          options: [
+            { label: 'publiczne', value: 'publiczne' },
+            { label: 'dla bliskich', value: 'bliscy' },
+            { label: 'tylko ja', value: 'ja' },
+          ],
+          defaultValue: 'publiczne',
+        }),
+        note: notatka(),
+        dateSubmitted: dodano(),
+        description: opisMarkdoc('Opis, transkrypcja, tłumaczenie', 'materialy'),
       },
     }),
   },

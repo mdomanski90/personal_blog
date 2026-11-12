@@ -1,17 +1,21 @@
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
-import { nazwy, opowiesci, poziomCzytelnika, rozwiazOdnosniki } from '@/lib/archiwum'
+import { nazwy, opowiesci, poziomCzytelnika, kontekstTresci, materialy } from '@/lib/archiwum'
 import { naHtml } from '@/lib/markdoc'
 import { Kreski, Strona, Tresc } from './components/Uklad'
 import MetkiWpisu from './components/MetkiWpisu'
+import ListaMaterialow from './components/ListaMaterialow'
+import { Sekcja } from './components/Uklad'
 
 export const dynamic = 'force-dynamic'
 
 export default async function StronaGlowna() {
     const poziom = await poziomCzytelnika()
-    const rozwiaz = await rozwiazOdnosniki(poziom)
+    const kontekst = await kontekstTresci(poziom)
     const wpisy = await opowiesci(poziom)
     const n = await nazwy(poziom)
+    // ostatnio dodane materiały (najwyżej 4)
+    const nowe = [...(await materialy(poziom))].sort((a, b) => (b.dodano ?? '').localeCompare(a.dodano ?? '')).slice(0, 4)
 
     return (
         <Strona>
@@ -20,6 +24,16 @@ export default async function StronaGlowna() {
             </p>
 
             <Kreski />
+
+            {nowe.length > 0 && (
+                <>
+                    <Sekcja tytul="ostatnio w archiwum">
+                        <ListaMaterialow materialy={nowe} />
+                        <Link href="/archiwum" className="w-fit lowercase font-bold" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>całe archiwum →</Link>
+                    </Sekcja>
+                    <Kreski />
+                </>
+            )}
 
             {wpisy.length === 0 && <p className="text-gray-500 italic lowercase">brak wpisów.</p>}
 
@@ -30,7 +44,7 @@ export default async function StronaGlowna() {
                     <h2 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }}>
                         <Link href={`/wpisy/${w.id}`} className="!no-underline hover:underline">{w.tytul}</Link>
                     </h2>
-                    <Tresc html={naHtml(w.tresc, rozwiaz)} />
+                    <Tresc html={naHtml(w.tresc, kontekst)} />
                     <Kreski />
                 </article>
             ))}
