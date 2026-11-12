@@ -442,7 +442,7 @@ body {
   stroke-dashoffset: 1;
   opacity: 0;
   animation-name: emblemat-rysuj;
-  animation-timing-function: cubic-bezier(.45, .05, .35, 1);
+  animation-timing-function: cubic-bezier(.4, 0, .3, 1);
   animation-fill-mode: forwards;
 }
 @keyframes emblemat-rysuj {
@@ -450,8 +450,14 @@ body {
   4% { opacity: 1; }
   100% { stroke-dashoffset: 0; opacity: 1; }
 }
-.emblemat-rysuj .emblemat-napis { opacity: 0; animation: emblemat-napis .8s ease 2.3s forwards; }
-@keyframes emblemat-napis { to { opacity: 1; } }
+.emblemat-rysuj path.zanik {
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+  animation-name: emblemat-zanik;
+  animation-timing-function: ease-in-out;
+}
+.emblemat-rysuj .emblemat-napis { opacity: 0; animation: emblemat-zanik .9s ease-in-out 4.9s forwards; }
+@keyframes emblemat-zanik { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .emblemat-rysuj path { animation: none; stroke-dashoffset: 0; opacity: 1; }
   .emblemat-rysuj .emblemat-napis { animation: none; opacity: 1; }
