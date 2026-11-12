@@ -444,7 +444,10 @@ body {
   4% { opacity: 1; }
   100% { stroke-dashoffset: 0; opacity: 1; }
 }
+.emblemat-rysuj .emblemat-napis { opacity: 0; animation: emblemat-napis .8s ease 2.3s forwards; }
+@keyframes emblemat-napis { to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .emblemat-rysuj path { animation: none; stroke-dashoffset: 0; opacity: 1; }
+  .emblemat-rysuj .emblemat-napis { animation: none; opacity: 1; }
 }
 header .emblemat { height: clamp(44px, 12vw, 64px); width: auto; display: block; }

@@ -10,7 +10,7 @@ type Kreska = { d: string; w?: number; o: number; t?: number; g?: string }
 // nisza z półokrągłym naświetlem i figurą, gzyms, niższa szersza część
 // z prostokątną wnęką, cokół. Rysowana w małej skali i powiększona (KAP).
 // Za nią kościół (lewo) i cerkiew (prawo) na wzgórzach; od każdej świątyni
-// płynie strumień, oba schodzą się za kapliczką (dwa wyznania, jedna wiara). Z przodu ścieżka i bruzdy pola.
+// płynie strumień, oba schodzą się za kapliczką (dwa wyznania, jedna wiara). Pod linią ziemi napis „kapliczka w Olszance” (pojawia się na końcu animacji).
 
 const KAP = 'translate(40 80) scale(1.3) translate(-40 -75)'
 const LEWO = 'translate(-1 0)'
@@ -42,11 +42,8 @@ const KRESKI: Kreska[] = [
     // strumienie od świątyń, schodzą się za kapliczką
     { d: 'M16 60.5c-3 2 1 3.5 4 4s6 1.5 4 3.5 2 3 5.6 3', w: 1.0, o: 2.2, t: 0.7 },
     { d: 'M60 56.5c3 2-1 3.5-4 4s-6 1.5-4 3.5-.5 3-1.6 3', w: 1.0, o: 2.2, t: 0.7 },
-    // ziemia, ścieżka do kapliczki, bruzdy pola zbiegające się ku kapliczce
+    // ziemia
     { d: 'M8 80h21.2M50.8 80H72', w: 1.3, o: 1.5, t: 0.4 },
-    { d: 'M29.2 80l-3 17.5M50.8 80l3 17.5', w: 1.1, o: 2.3, t: 0.5 },
-    { d: 'M27 80.2q-7 2.3-14.6 6.6M27.8 80.4q-5 4.5-9.6 12.2M28.6 80.6q-2.6 6-4.4 15', w: 0.75, o: 2.45, t: 0.5 },
-    { d: 'M53 80.2q7 2.3 14.6 6.6M52.2 80.4q5 4.5 9.6 12.2M51.4 80.6q2.6 6 4.4 15', w: 0.75, o: 2.45, t: 0.5 },
     // ptaki
     { d: 'M51.5 18q1.6-1.6 3.2 0q1.6-1.6 3.2 0M57 13.5q1.3-1.3 2.6 0q1.3-1.3 2.6 0', w: 0.9, o: 2.6, t: 0.4 },
 ]
@@ -75,6 +72,10 @@ export default function Emblemat({ rozmiar = 56, animacja = true }: { rozmiar?: 
                     style={{ animationDelay: `${k.o}s`, animationDuration: `${k.t ?? 0.6}s` } as React.CSSProperties}
                 />
             ))}
+            <text className="emblemat-napis" fill="currentColor" stroke="none" fontSize={5} fontWeight={700} letterSpacing={0.6} textAnchor="middle" aria-hidden="true">
+                <tspan x={40} y={88.5}>KAPLICZKA</tspan>
+                <tspan x={40} y={95}>W OLSZANCE</tspan>
+            </text>
         </svg>
     )
 }
