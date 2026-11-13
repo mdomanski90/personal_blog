@@ -547,7 +547,7 @@ body {
 .drzewo .dr-wiersz:nth-child(odd) { background: #faf8f3; }
 .drzewo .dr-wiersz.dr-ostatni { border-bottom: 0; }
 /* etykieta pokolenia stoi w miejscu przy przewijaniu w bok (jak pierwsza kolumna tabeli) */
-.drzewo .dr-pokol { position: sticky; left: 0; z-index: 3; display: flex; align-items: center; width: 150px; height: calc(100% + 1px); box-sizing: border-box; padding-left: 14px; background: inherit; font-size: 13px; color: #6b665c; white-space: nowrap; }
+.drzewo .dr-pokol { position: sticky; left: 0; z-index: 3; display: flex; align-items: center; width: 150px; height: 100%; box-sizing: border-box; padding-left: 14px; background: inherit; font-size: 13px; color: #6b665c; white-space: nowrap; }
 /* treść wyśrodkowana w miejscu obok kolumny etykiet; przy szerokim drzewie – od kolumny etykiet, z przewijaniem */
 .drzewo .dr-tresc { position: absolute; top: 0; left: max(164px, calc(50% + 74px - var(--wc) / 2)); }
 .drzewo .dr-linie { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
@@ -709,13 +709,18 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .osoba-portret img{width:100%;border-radius:6px;border:1px solid #d6d1c6;display:block}
 .osoba-portret figcaption{font-size:calc(12px * var(--font-scale,1));color:#6b665c;line-height:1.4}
 
-.drzewo .dr-narzedzia { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 4px; }
+.drzewo .dr-narzedzia { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #e7e2d8; }
+/* doczytywanie pokoleń – tylko na pełnym ekranie; na karcie osoby cały pasek tylko tam (przycisk jest w nagłówku tabeli) */
+.drzewo:not(.drzewo-pelne) .dr-doczytaj, .drzewo.dr-w-tabeli:not(.drzewo-pelne) > .dr-narzedzia { display: none; }
+.drzewo .dr-narzedzia button:disabled { opacity: .45; cursor: default; }
+.drzewo.drzewo-pelne .dr-narzedzia { border-bottom: 0; padding: 0 0 8px; }
 .drzewo .dr-narzedzia button { border: 1px solid #d6d1c6; border-radius: 7px; background: #fdfcf9; color: inherit; font: inherit; font-size: calc(13px * var(--font-scale, 1)); min-height: calc(28px * var(--font-scale, 1)); padding: 0 10px; cursor: pointer; }
 .drzewo .dr-narzedzia button:hover { background: var(--muted); }
 .dark .drzewo .dr-narzedzia button { background: transparent; border-color: #4b5563; }
 .drzewo.drzewo-pelne { position: fixed; inset: 0; z-index: 130; margin: 0; border: 0; border-radius: 0; background: #fbfaf7; padding: 12px 16px; display: flex; flex-direction: column; }
 .dark .drzewo.drzewo-pelne { background: #0b1020; }
-.drzewo.drzewo-pelne .dr-przewijanie { flex: 1; min-height: 0; }
+.drzewo.drzewo-pelne .dr-przewijanie { flex: 1; min-height: 0; overflow: auto; border: 1px solid #d6d1c6; border-radius: 8px; scrollbar-gutter: stable; }
+.dark .drzewo.drzewo-pelne .dr-przewijanie { border-color: #4b5563; }
 
 /* księgi: rozwijana lista tomów zespołu */
 .ksiega-tomy { margin-top: 2px; }

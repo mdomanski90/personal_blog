@@ -33,6 +33,8 @@ export interface OpcjeDrzewa {
 // etykiety na karcie osoby). Para stoi obok siebie, łącznik z ⚭ pośrodku; od łącznika kreska do dzieci tej pary.
 // Wszystko liczone tu, na serwerze: położenie kart i linie (SVG) – przeglądarka tylko przewija i powiększa.
 
+/** najwięcej pokoleń w jedną stronę (doczytywanie na pełnym ekranie) */
+export const MAKS_POKOLEN = 15
 const KW = 116, KH = 52, MALZ = 22, RODZ = 12, GRUPA = 28, WIERSZ = 100, GORA = 24
 const LEWA = 164, PRAWA = 16
 
@@ -73,8 +75,8 @@ const srodek = (k: KartaU) => k.x + KW / 2
 export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Widocznosc): T | null {
     const o = s.drzewo.osoby.get(id)
     if (!o || !widoczne(s.widocznosc(id), poziom)) return null
-    const wstecz = Math.max(0, Math.min(4, Math.round(op.wstecz)))
-    const naprzod = Math.max(0, Math.min(3, Math.round(op.naprzod)))
+    const wstecz = Math.max(0, Math.min(MAKS_POKOLEN, Math.round(op.wstecz) || 0))
+    const naprzod = Math.max(0, Math.min(MAKS_POKOLEN, Math.round(op.naprzod) || 0))
     const widac = (x: string) => widoczne(s.widocznosc(x), poziom)
     const jest = (x: string | undefined): x is string => !!x && s.drzewo.osoby.has(x)
     const rodzice = (x: string) => s.relacje.get(x)?.rodzice[0]
@@ -130,6 +132,9 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
         dzieciNizej = dalej
     }
 
+    // czy są jeszcze dalsi przodkowie (do „wczytaj kolejne pokolenia” na pełnym ekranie)
+    const wiecejWstecz = wstecz === 0 ? !!(rodzinaGl && (jest(rodzinaGl.maz) || jest(rodzinaGl.zona))) : dzieciNizej.length > 0
+
     // potomkowie: rząd po rzędzie w dół; dzieci każdej pary pod jej łącznikiem
     const jGl = jednM.find((j) => j.karty.some((k) => k.id === id))!
     let osobyLinii: { k: KartaU; j: Jedn }[] = [{ k: kartaOsoby(jGl, id), j: jGl }]
@@ -175,6 +180,8 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
         osobyLinii = grupy.flatMap((x) => x.dzieci)
     }
 
+    const wiecejNaprzod = osobyLinii.some(({ k }) => !!k.id && widac(k.id) && malzenstwa(k.id).some((f) => f.dzieci.some(jest)))
+
     // przesunięcie do zera, wymiary
     const wszystkie = wiersze.flatMap((w) => (w ?? []).flatMap((g) => g.jedn.flatMap((j) => j.karty)))
     const minX = Math.min(...wszystkie.map((k) => k.x)) - 8
@@ -207,8 +214,8 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
     const nazwyPokolen = (r: number): string => {
         const g = rM - r
         if (g === 0) return wiersze[rM][0].jedn.some((j) => j.karty.length > 1) ? 'małżeństwo' : op.zakres === 'rodzenstwo' && jednM.length > 1 ? 'rodzeństwo' : 'osoba'
-        if (g > 0) return ['rodzice', 'dziadkowie', 'pradziadkowie', 'prapradziadkowie'][g - 1] ?? `${g}. pokolenie`
-        return ['dzieci', 'wnuki', 'prawnuki', 'praprawnuki'][-g - 1] ?? `${-g}. pokolenie`
+        if (g > 0) return ['rodzice', 'dziadkowie', 'pradziadkowie', 'prapradziadkowie'][g - 1] ?? `${g}. pokolenie ↑`
+        return ['dzieci', 'wnuki', 'prawnuki', 'praprawnuki'][-g - 1] ?? `${-g}. pokolenie ↓`
     }
     const kartaT = (k: KartaU): T => {
         const styl = `left:${ox(k.x)}px;top:${oy(yGory(k.r))}px`
@@ -269,7 +276,11 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
         ...(rodzT.length ? [new Tag('p', { class: 'dr-t-naglowek' }, ['rodzeństwo']), new Tag('ul', {}, rodzT.map((c) => new Tag('li', {}, [pozycja(c, s.drzewo.osoby.get(c)?.plec === 'K' ? 'siostra' : 'brat')])))] : []),
         ...(lpot ? [new Tag('p', { class: 'dr-t-naglowek' }, ['potomkowie']), lpot] : []),
     ])
-    return new Tag('figure', { class: `drzewo${op.wTabeli ? ' dr-w-tabeli' : ''}`, 'data-osoba': id, ...(op.idFigury ? { id: op.idFigury } : {}) }, [klepsydra, tekst])
+    return new Tag('figure', {
+        class: `drzewo${op.wTabeli ? ' dr-w-tabeli' : ''}`, 'data-osoba': id, ...(op.idFigury ? { id: op.idFigury } : {}),
+        'data-wstecz': String(wstecz), 'data-naprzod': String(naprzod), 'data-zakres': op.zakres,
+        'data-wiecej-wstecz': wiecejWstecz ? '1' : '0', 'data-wiecej-naprzod': wiecejNaprzod ? '1' : '0',
+    }, [klepsydra, tekst])
 }
 
 export function drzewoHtml(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Widocznosc): string {
