@@ -2,9 +2,13 @@
 
 // Przeglądarka skanów dokumentu (OpenSeadragon): strony ‹ ›, miniatury, przybliżanie (przyciski, dwa palce,
 // kółko na pełnym ekranie), obrót, dopasowanie. Kliknięcie w skan – pełny ekran; Esc albo ✕ zamyka.
+// Objaśnienia (odczyt, tłumaczenie, objaśnienie, pieczęć): na marginesie z kreską do miejsca na skanie (do 8 na stronie)
+// albo numerki + lista; „transkrypcja” – sam tekst odczytów strony; „ukryj” – sam skan.
 
 import * as React from 'react'
 import type OpenSeadragon from 'openseadragon'
+import type { ObjasnienieWidoku } from '@/lib/objasnienia-widok'
+import ObjasnieniaSkanu, { ListaObjasnien, TekstZrodla, type ApiWarstwy, type ObjasnienieNaStronie, type TrybObjasnien } from './ObjasnieniaSkanu'
 
 export interface StronaPodgladu { adres: string; podpis?: string }
 
@@ -18,8 +22,12 @@ export function ileStron(n: number): string {
     return d >= 2 && d <= 4 && (s < 12 || s > 14) ? `${n} strony` : `${n} stron`
 }
 
-export default function PrzegladarkaDokumentu({ strony, tytul, wysokosc = 'min(75vh, 720px)', pelnyNaStart = false, onZamknij, startStrona = 0 }: {
+const KLUCZ_TRYBU = 'dok-objasnienia'
+const MAKS_NA_MARGINESIE = 8
+
+export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul, wysokosc = 'min(75vh, 720px)', pelnyNaStart = false, onZamknij, startStrona = 0 }: {
     strony: StronaPodgladu[]
+    objasnienia?: ObjasnienieWidoku[]
     tytul: string
     wysokosc?: string
     /** otwarta od razu na pełnym ekranie (np. z wpisu) – zamknięcie wywołuje onZamknij */
@@ -30,6 +38,17 @@ export default function PrzegladarkaDokumentu({ strony, tytul, wysokosc = 'min(7
     const ramka = React.useRef<HTMLDivElement>(null)
     const pole = React.useRef<HTMLDivElement>(null)
     const widz = React.useRef<OpenSeadragon.Viewer | null>(null)
+    const osd = React.useRef<typeof OpenSeadragon | null>(null)
+    const obszar = React.useRef<HTMLDivElement>(null)
+    const warstwa = React.useRef<ApiWarstwy | null>(null)
+    const [wersja, ustawWersje] = React.useState(0)
+    const [aktywne, ustawAktywne] = React.useState<string | null>(null)
+    const [wskazane, ustawWskazane] = React.useState<string | null>(null)
+    const [wybranyTryb, ustawWybranyTryb] = React.useState<TrybObjasnien | null>(null)
+    const [transkrypcja, ustawTranskrypcje] = React.useState(false)
+    const [szerokosc, ustawSzerokosc] = React.useState(0)
+    const aktywneRef = React.useRef(aktywne)
+    aktywneRef.current = aktywne
     const [strona, ustawStrone] = React.useState(startStrona)
     const [skala, ustawSkale] = React.useState(100)
     const [obrot, ustawObrot] = React.useState(0)
@@ -52,6 +71,7 @@ export default function PrzegladarkaDokumentu({ strony, tytul, wysokosc = 'min(7
         let zywy = true
         import('openseadragon').then(({ default: OSD }) => {
             if (!zywy || !pole.current) return
+            osd.current = OSD
             const v = OSD({
                 element: pole.current,
                 tileSources: strony.map((s) => ({ type: 'image', url: obrazStrony(s.adres, 2400) })) as unknown as OpenSeadragon.Options['tileSources'],
@@ -72,10 +92,17 @@ export default function PrzegladarkaDokumentu({ strony, tytul, wysokosc = 'min(7
                 if (vp) ustawSkale(Math.round((vp.getZoom(true) / vp.getHomeZoom()) * 100))
             }
             v.addHandler('zoom', odswiezSkale)
-            v.addHandler('open', () => { odswiezSkale(); v.viewport.setRotation(0); ustawObrot(0) })
-            v.addHandler('page', (e) => ustawStrone((e as unknown as { page: number }).page))
-            // krótkie kliknięcie (nie przeciągnięcie) w skan – pełny ekran
-            v.addHandler('canvas-click', (e) => { if ((e as unknown as { quick: boolean }).quick && !pelnyRef.current) otworz() })
+            v.addHandler('open', () => { odswiezSkale(); v.viewport.setRotation(0); ustawObrot(0); ustawWersje((x) => x + 1) })
+            v.addHandler('page', (e) => { ustawStrone((e as unknown as { page: number }).page); ustawAktywne(null) })
+            // krótkie kliknięcie (nie przeciągnięcie): w objaśnienie – pokazuje je; gdzie indziej – pełny ekran
+            v.addHandler('canvas-click', (e) => {
+                const ev = e as unknown as { quick: boolean; position: { x: number; y: number }; preventDefaultAction: boolean }
+                if (!ev.quick) return
+                const id = warstwa.current?.trafienie(ev.position.x, ev.position.y)
+                if (id) { ev.preventDefaultAction = true; ustawAktywne(aktywneRef.current === id ? null : id); return }
+                if (aktywneRef.current) { ustawAktywne(null); return }
+                if (!pelnyRef.current) otworz()
+            })
             widz.current = v
         })
         return () => { zywy = false; widz.current?.destroy(); widz.current = null }
@@ -110,12 +137,33 @@ export default function PrzegladarkaDokumentu({ strony, tytul, wysokosc = 'min(7
         if (pelnyNaStart) ramka.current?.requestFullscreen?.().catch(() => {})
     }, [pelnyNaStart])
 
+    React.useEffect(() => {
+        try { const t = localStorage.getItem(KLUCZ_TRYBU); if (t === 'margines' || t === 'numery' || t === 'ukryj') ustawWybranyTryb(t) } catch { /* bez pamięci */ }
+        const el = ramka.current
+        if (!el) return
+        const ro = new ResizeObserver(() => ustawSzerokosc(Math.round(el.clientWidth / 40) * 40))
+        ro.observe(el)
+        return () => ro.disconnect()
+    }, [])
+    const wybierzTryb = (t: TrybObjasnien) => {
+        ustawWybranyTryb(t)
+        try { localStorage.setItem(KLUCZ_TRYBU, t) } catch { /* bez pamięci */ }
+    }
+
     const idz = (d: number) => { const v = widz.current; if (!v) return; const c = Math.min(n - 1, Math.max(0, v.currentPage() + d)); v.goToPage(c) }
     const naStrone = (i: number) => widz.current?.goToPage(i)
     const przybliz = (f: number) => { const vp = widz.current?.viewport; if (!vp) return; vp.zoomBy(f); vp.applyConstraints() }
     const obroc = () => { const vp = widz.current?.viewport; if (!vp) return; const r = (obrot + 90) % 360; vp.setRotation(r); ustawObrot(r) }
     const dopasuj = () => widz.current?.viewport.goHome()
     const podpis = strony[strona]?.podpis
+    const naStronie: ObjasnienieNaStronie[] = React.useMemo(() => objasnienia.filter((o) => o.strona === strona).map((o, i) => ({ ...o, nr: i + 1 })), [objasnienia, strona])
+    const sa = objasnienia.length > 0
+    // tryb: wybrany przez czytelnika albo automatycznie – margines, gdy mało notek i jest miejsce obok skanu
+    const tryb: TrybObjasnien = wybranyTryb ?? (naStronie.length <= MAKS_NA_MARGINESIE && szerokosc >= (pelny ? 900 : 640) ? 'margines' : 'numery')
+    const efTryb: TrybObjasnien = naStronie.length ? tryb : 'ukryj'
+    const doTranskrypcji = naStronie.filter((o) => o.rodzaj === 'odczyt' || o.rodzaj === 'tlumaczenie')
+    const klikListy = (id: string) => { if (aktywne === id) return ustawAktywne(null); ustawAktywne(id); warstwa.current?.pokaz(id) }
+    const uklad = efTryb === 'margines' || (efTryb === 'numery' && pelny) ? (pelny && efTryb === 'margines' ? 'obie' : 'prawa') : 'sam'
 
     return (
         <div ref={ramka} className={`dok${pelny ? ' dok-pelny' : ''}`}>
@@ -133,6 +181,14 @@ export default function PrzegladarkaDokumentu({ strony, tytul, wysokosc = 'min(7
                     <span className="dok-stan dok-skala">{skala}%</span>
                     <button type="button" onClick={() => przybliz(1.3)} aria-label="powiększ">+</button>
                 </span>
+                {sa && (
+                    <span className="dok-grupa" role="group" aria-label="objaśnienia">
+                        {([['margines', 'na marginesie'], ['numery', 'numery'], ['ukryj', 'sam skan']] as const).map(([t, n]) => (
+                            <button key={t} type="button" aria-pressed={tryb === t} onClick={() => wybierzTryb(t)}>{n}</button>
+                        ))}
+                        {doTranskrypcji.length > 0 && <button type="button" aria-pressed={transkrypcja} onClick={() => ustawTranskrypcje((x) => !x)}>transkrypcja</button>}
+                    </span>
+                )}
                 <span className="dok-grupa">
                     <button type="button" onClick={dopasuj}>dopasuj</button>
                     <button type="button" onClick={obroc}>obróć</button>
@@ -141,7 +197,21 @@ export default function PrzegladarkaDokumentu({ strony, tytul, wysokosc = 'min(7
                         : <button type="button" onClick={otworz}>pełny ekran ⤢</button>}
                 </span>
             </div>
-            <div ref={pole} className="dok-pole" style={pelny ? undefined : { height: wysokosc }} aria-label={`skan: ${tytul}${n > 1 ? `, strona ${strona + 1} z ${n}` : ''}`} role="img" />
+            <div ref={obszar} className={`dok-obszar dok-uklad-${uklad}`}>
+                <div ref={pole} className="dok-pole" style={{ gridArea: 'pole', ...(pelny ? {} : { height: wysokosc }) }} aria-label={`skan: ${tytul}${n > 1 ? `, strona ${strona + 1} z ${n}` : ''}`} role="img" />
+                {sa && (
+                    <ObjasnieniaSkanu widz={widz} osd={osd} pole={pole} obszar={obszar} lista={naStronie} tryb={efTryb} pelny={pelny} aktywne={aktywne} wskazane={wskazane}
+                        ustawAktywne={ustawAktywne} ustawWskazane={ustawWskazane} api={warstwa} wersja={wersja} />
+                )}
+            </div>
+            {efTryb === 'numery' && !pelny && <ListaObjasnien lista={naStronie} aktywne={aktywne} wskazane={wskazane} onKlik={klikListy} ustawWskazane={ustawWskazane} />}
+            {transkrypcja && doTranskrypcji.length > 0 && (
+                <div className="dok-transkrypcja" aria-label="transkrypcja tej strony">
+                    {doTranskrypcji.map((o) => (
+                        <p key={o.id} className={`dok-obj-${o.rodzaj}`}><span className="dok-obj-nr">{o.nr}</span> {o.rodzaj === 'tlumaczenie' && <span className="dok-transkrypcja-rodzaj">tłumaczenie: </span>}<TekstZrodla tekst={o.tekst} /></p>
+                    ))}
+                </div>
+            )}
             {(podpis || n > 1) && (
                 <div className="dok-dol">
                     {n > 1 && (

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "test": "tsx --test lib/edtf.test.ts lib/odmiana.test.ts lib/odnosniki.test.ts lib/sesja.test.ts lib/ksiegi.test.ts lib/plany/model.test.ts lib/osoby/gedcom.test.ts lib/mapa-rozsuwanie.test.ts",
+    "test": "tsx --test lib/edtf.test.ts lib/odmiana.test.ts lib/odnosniki.test.ts lib/sesja.test.ts lib/ksiegi.test.ts lib/plany/model.test.ts lib/osoby/gedcom.test.ts lib/mapa-rozsuwanie.test.ts lib/objasnienia.test.ts",
     "thumbs": "node scripts/generate-thumbs.mjs",
     "eksport:omeka": "tsx scripts/eksport-omeka.ts",
     "zasiej": "tsx scripts/zasiej.ts",
@@ -17,6 +17,7 @@
     "haslo": "tsx scripts/haslo.ts"
   },
   "dependencies": {
+    "@annotorious/openseadragon": "3.9.5",
     "@keystatic/core": "^0.5.48",
     "@keystatic/next": "^5.0.4",
     "@markdoc/markdoc": "^0.5.4",

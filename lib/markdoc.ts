@@ -1,4 +1,5 @@
 import Markdoc, { Tag, type Node, type Config, type RenderableTreeNode, type RenderableTreeNodes } from '@markdoc/markdoc'
+import type { ObjasnienieWidoku } from './objasnienia-widok'
 import { bezNawiasow, ODNOSNIK, tekstOdnosnika, type Rozwiaz } from './odnosniki'
 import { typPliku } from './pliki'
 
@@ -162,6 +163,8 @@ export interface MaterialWstawki {
     plik: string | null
     /** strony skanu (przeglądarka dokumentu) */
     strony?: { adres: string; podpis?: string }[]
+    /** objaśnienia na skanie (już przefiltrowane dla czytelnika) */
+    objasnienia?: ObjasnienieWidoku[]
 }
 
 /** Podgląd materiału: obraz (z powiększeniem), odtwarzacz, PDF albo odnośnik – i podpis z linkiem do archiwum. */
@@ -176,7 +179,7 @@ export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string): Tag {
         const n = m.strony.length
         const ile = n === 1 ? '' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? `${n} strony` : `${n} stron`
         const opis: RenderableTreeNode[] = [new Tag('a', { href: adres }, [podpis || m.nazwa]), ' · ', new Tag('button', { type: 'button', class: 'dok-otworz' }, [ile ? `przeglądaj ${ile} ⤢` : 'powiększ ⤢'])]
-        return new Tag('figure', { class: 'material-wstawka', 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony }) }, [
+        return new Tag('figure', { class: 'material-wstawka', 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony, ...(m.objasnienia?.length ? { objasnienia: m.objasnienia } : {}) }) }, [
             new Tag('img', { src: obraz, alt: podpis || m.nazwa, loading: 'lazy', decoding: 'async', class: 'rounded-none w-full', 'data-dokument-img': '' }),
             new Tag('figcaption', {}, opis),
         ])

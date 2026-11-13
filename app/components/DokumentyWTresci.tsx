@@ -6,9 +6,10 @@
 import * as React from 'react'
 import { createPortal } from 'react-dom'
 import PrzegladarkaDokumentu, { type StronaPodgladu } from './PrzegladarkaDokumentu'
+import type { ObjasnienieWidoku } from '@/lib/objasnienia-widok'
 
 export default function DokumentyWTresci() {
-    const [otwarty, ustawOtwarty] = React.useState<{ tytul: string; strony: StronaPodgladu[] } | null>(null)
+    const [otwarty, ustawOtwarty] = React.useState<{ tytul: string; strony: StronaPodgladu[]; objasnienia?: ObjasnienieWidoku[] } | null>(null)
     React.useEffect(() => {
         const klik = (e: MouseEvent) => {
             const cel = e.target as HTMLElement | null
@@ -22,5 +23,5 @@ export default function DokumentyWTresci() {
         return () => document.removeEventListener('click', klik)
     }, [])
     if (!otwarty) return null
-    return createPortal(<PrzegladarkaDokumentu strony={otwarty.strony} tytul={otwarty.tytul} pelnyNaStart onZamknij={() => ustawOtwarty(null)} />, document.body)
+    return createPortal(<PrzegladarkaDokumentu strony={otwarty.strony} objasnienia={otwarty.objasnienia} tytul={otwarty.tytul} pelnyNaStart onZamknij={() => ustawOtwarty(null)} />, document.body)
 }

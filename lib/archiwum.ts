@@ -12,6 +12,8 @@ import { formatujEdtf, zakresIso } from './edtf'
 import { bezNawiasow, fragment, ODNOSNIK, slownikOdnosnikow, wzorzecWzmianek, znajdzWzmianki, type Cel, type Fragment, type PozycjaSieci, type RodzajCelu, type Rozwiaz } from './odnosniki'
 import { normalizuj, porownajPl } from './tekst'
 import { adresStrony, stronyMaterialu } from './strony-materialow'
+import { JEZYKI, objasnieniaMaterialu, wKolejnosci } from './objasnienia'
+import type { ObjasnienieWidoku } from './objasnienia-widok'
 import { typPliku } from './pliki'
 
 import { zakresyLat, nakladaSie, scalZakresy, zakresyTekst, KOLEJNOSC_KSIAG } from './ksiegi'
@@ -624,12 +626,32 @@ async function osobyWSieci(poziom: Widocznosc): Promise<PozycjaSieci[]> {
     return wyn
 }
 
+/** Wszystkie cele sieci (miejsca, tematy, obiekty, wpisy, materiały, osoby) – podpowiedzi powiązań w panelu. */
+export async function celeSieci(poziom: Widocznosc): Promise<Cel[]> {
+    return (await pozycjeSieci(poziom)).map((p) => p.cel)
+}
+
+/** Objaśnienia skanu materiału do pokazania czytelnikowi: tylko widoczne, w kolejności czytania, strona jako numer,
+ *  powiązania zamienione na nazwy i adresy (niewidoczne cele pominięte). */
+export async function objasnieniaDoWidoku(id: string, poziom: Widocznosc): Promise<ObjasnienieWidoku[]> {
+    const strony = stronyMaterialu(id).map((s) => s.plik)
+    if (!strony.length) return []
+    const rozwiaz = await rozwiazOdnosniki(poziom)
+    return wKolejnosci(objasnieniaMaterialu(id).filter((o) => widoczne(o.widocznosc, poziom) && strony.includes(o.strona)), strony).map((o) => ({
+        id: o.id, strona: strony.indexOf(o.strona), x: o.x, y: o.y, w: o.w, h: o.h, rodzaj: o.rodzaj, tekst: o.tekst,
+        ...(o.jezyk ? { jezyk: JEZYKI[o.jezyk] ?? o.jezyk } : {}),
+        powiazania: o.powiazania.map((p) => rozwiaz(p)).filter((c): c is Cel => !!c).map((c) => ({ nazwa: c.nazwa, adres: c.adres })),
+        opracowal: o.opracowal,
+        ...(o.weryfikacja ? { weryfikacja: o.weryfikacja } : {}),
+    }))
+}
+
 /** Zamiana [[…]] na cele – tylko pozycje widoczne dla czytelnika. Do naHtml(treść, rozwiaz). */
 export const rozwiazOdnosniki = cache(async (poziom: Widocznosc): Promise<Rozwiaz> => slownikOdnosnikow(await pozycjeSieci(poziom)))
 
 /** Wszystko, czego treść potrzebuje przy renderowaniu: odnośniki [[…]] i wstawione materiały. */
 export const kontekstTresci = cache(async (poziom: Widocznosc): Promise<KontekstTresci> => {
-    const mat = new Map<string, MaterialWstawki>((await materialy(poziom)).map((m) => [m.id, { id: m.id, nazwa: m.nazwa, rodzaj: m.rodzaj, plik: m.plik, strony: m.strony }]))
+    const mat = new Map<string, MaterialWstawki>(await Promise.all((await materialy(poziom)).map(async (m) => [m.id, { id: m.id, nazwa: m.nazwa, rodzaj: m.rodzaj, plik: m.plik, strony: m.strony, objasnienia: await objasnieniaDoWidoku(m.id, poziom) }] as const)))
     const { stanOsob } = await import('./osoby/dane')
     const { drzewoOsoby } = await import('./osoby/drzewo')
     const stan = await stanOsob()

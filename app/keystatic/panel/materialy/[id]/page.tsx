@@ -76,6 +76,7 @@ export default function StronyMaterialu() {
                     <span className="pn-maly">{dane.strony.length ? odmiana(dane.strony.length, ['strona', 'strony', 'stron']) : 'brak stron'}{dane.plik && !dane.strony.length ? ' · na stronie pokazuje się teraz plik z pola „Plik” w Keystatic – po dodaniu stron zastąpią go one' : ''}</span>
                 </div>
                 <span className="pn-rzad">
+                    {dane.strony.length > 0 && <a className="pn-btn pn-btn-gl" href={`/keystatic/panel/materialy/${dane.id}/objasnienia`}>objaśnienia na skanach →</a>}
                     <a className="pn-btn" href={`/keystatic/collection/materialy/item/${dane.id}`}>opis w Keystatic →</a>
                     <a className="pn-btn" href={`/archiwum/${dane.id}`} target="_blank" rel="noreferrer">na stronie ↗</a>
                 </span>

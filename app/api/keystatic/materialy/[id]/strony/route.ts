@@ -25,13 +25,15 @@ const lista = (id: string) => stronyMaterialu(id).map((s) => ({ ...s, adres: adr
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const r = await sprawdz(req, params); if (r.b) return r.b
-    // ?podglad=<plik> – miniatura dla panelu (bez względu na widoczność materiału; panel jest za hasłem)
+    // ?podglad=<plik> – podgląd dla panelu (bez względu na widoczność materiału; panel jest za hasłem)
     const q = new URL(req.url).searchParams
     const podglad = q.get('podglad')
     if (podglad) {
         if (!NAZWA_STRONY.test(podglad) || !stronyMaterialu(r.id!).some((s) => s.plik === podglad)) return new Response('Nie znaleziono', { status: 404 })
         try {
-            const bufor = await sharp(path.join(/*turbopackIgnore: true*/ katalogStron(r.id!), podglad)).rotate().resize({ width: 480, withoutEnlargement: true }).webp({ quality: 78 }).toBuffer()
+            // ?w=2400 – duży podgląd do rysowania objaśnień
+            const szer = q.get('w') === '2400' ? 2400 : 480
+            const bufor = await sharp(path.join(/*turbopackIgnore: true*/ katalogStron(r.id!), podglad)).rotate().resize({ width: szer, withoutEnlargement: true }).webp({ quality: szer > 480 ? 85 : 78 }).toBuffer()
             return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': 'image/webp', 'Cache-Control': 'private, max-age=3600' } })
         } catch { return new Response('Nie znaleziono', { status: 404 }) }
     }

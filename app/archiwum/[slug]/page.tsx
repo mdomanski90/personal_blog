@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { kontekstTresci, material, nazwy, obiekty, powiazania, poziomCzytelnika } from '@/lib/archiwum'
+import { kontekstTresci, material, nazwy, obiekty, objasnieniaDoWidoku, powiazania, poziomCzytelnika } from '@/lib/archiwum'
 import { RODZAJE_MATERIALOW } from '@/lib/materialy'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
@@ -48,6 +48,7 @@ export default async function MaterialStrona({ params }: Parametry) {
     const maTeksty = !!(teksty.transkrypcja || teksty.tlumaczenie || teksty.oryginal)
     // skan obok tekstu: strony skanu z transkrypcją albo tłumaczeniem
     const skan = m.strony.length > 0
+    const obj = skan ? await objasnieniaDoWidoku(m.id, poziom) : []
     const obok = skan && maTeksty
     const oryginal = [m.pochodzenie, m.sygnatura].filter(Boolean).join(', ')
 
@@ -62,11 +63,11 @@ export default async function MaterialStrona({ params }: Parametry) {
 
             {obok ? (
                 <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(20rem, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
-                    <section className="flex flex-col" style={{ gap: 6 }}><h2 className="font-bold lowercase" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{m.strony.length > 1 ? `skan · ${m.strony.length} str.` : 'skan'}</h2><PrzegladarkaDokumentu strony={m.strony} tytul={m.nazwa} /></section>
+                    <section className="flex flex-col" style={{ gap: 6 }}><h2 className="font-bold lowercase" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{m.strony.length > 1 ? `skan · ${m.strony.length} str.` : 'skan'}</h2><PrzegladarkaDokumentu strony={m.strony} objasnienia={obj} tytul={m.nazwa} /></section>
                     <section className="flex flex-col" style={{ gap: 6 }}><TekstyZrodla {...teksty} />{m.opracowal && <span className="text-gray-500" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>transkrypcja i tłumaczenie: {m.opracowal}</span>}</section>
                 </div>
             ) : skan ? (
-                <PrzegladarkaDokumentu strony={m.strony} tytul={m.nazwa} />
+                <PrzegladarkaDokumentu strony={m.strony} objasnienia={obj} tytul={m.nazwa} />
             ) : m.plik && (
                 <figure className="flex flex-col" style={{ gap: 6, margin: '0 0 0.5rem' }}>
                     {typ === 'dzwiek' && <audio controls preload="metadata" src={m.plik} className="w-full" />}
