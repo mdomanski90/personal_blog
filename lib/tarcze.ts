@@ -2,23 +2,36 @@
 // Wieś: kolor obwódki = wyznanie mieszkańców przed kasatą unii (1875), w środku krzyż.
 // Miasto: ciemna tarcza z blankami. Obiekty w terenie: tarcza ze schematycznym znakiem, kolor wg grupy.
 
-export type Wyznanie = '' | 'unicka' | 'katolicka' | 'mieszana' | 'prawoslawna'
+/** Wyznanie mieszkańców wsi (przed 1875). */
+export type Wyznanie = 'unickie' | 'rzymskokatolickie' | 'prawoslawne' | 'mojzeszowe' | 'ewangelickie'
 
 export const KOLORY = {
     unicka: '#2f4a7a',
     katolicka: '#8a2f2a',
     prawoslawna: '#6b3a5a',
     boznica: '#5c5a2e',
+    ewangelicka: '#4a5a6e',
     nieopisane: '#5f5b52',
     miasto: '#2b2a26',
     tlo: '#fbf8f1',
 }
 
-export const WYZNANIA: Record<Exclude<Wyznanie, ''>, string> = {
-    unicka: 'wieś unicka',
-    katolicka: 'wieś katolicka',
-    mieszana: 'wieś mieszana',
-    prawoslawna: 'wieś prawosławna',
+/** nazwa w polu wyboru i na stronie, kolor znaku, jasne tło pasa na tarczy */
+export const WYZNANIA: Record<Wyznanie, { nazwa: string; kolor: string; tlo: string }> = {
+    unickie: { nazwa: 'unickie', kolor: KOLORY.unicka, tlo: '#e6ecf5' },
+    rzymskokatolickie: { nazwa: 'rzymskokatolickie', kolor: KOLORY.katolicka, tlo: '#f5e6e4' },
+    prawoslawne: { nazwa: 'prawosławne', kolor: KOLORY.prawoslawna, tlo: '#f1e7ee' },
+    mojzeszowe: { nazwa: 'mojżeszowe', kolor: KOLORY.boznica, tlo: '#eeede0' },
+    ewangelickie: { nazwa: 'ewangelickie', kolor: KOLORY.ewangelicka, tlo: '#e7eaee' },
+}
+export const KOLEJNOSC_WYZNAN = Object.keys(WYZNANIA) as Wyznanie[]
+
+/** „unickie (przeważające), rzymskokatolickie” albo „unickie i rzymskokatolickie (równorzędnie)” */
+export function opisWyznan(wyznania: string[], rowne = false): string {
+    const n = wyznania.map((w) => WYZNANIA[w as Wyznanie]?.nazwa ?? w)
+    if (n.length <= 1) return n[0] ?? ''
+    const lista = n.length === 2 ? `${n[0]} i ${n[1]}` : `${n.slice(0, -1).join(', ')} i ${n[n.length - 1]}`
+    return rowne ? `${lista} (równorzędnie)` : `${n[0]} (przeważające), ${n.slice(1).join(', ')}`
 }
 
 const TARCZA = 'M-16-18H16V2C16 12 8 18 0 21C-8 18-16 12-16 2Z'
@@ -30,6 +43,16 @@ const krzyzLacinski = (x: number, kolor: string, s = 1) =>
 const krzyzWschodni = (x: number, kolor: string, s = 1) =>
     `<path transform="translate(${x} -1) scale(${s})" d="M0-8V8M-2.5-5.5H2.5M-4.5-2.5H4.5M-3 4.5L3 2" stroke="${kolor}" stroke-width="1.9" fill="none" stroke-linecap="round"/>`
 
+// tablice Dekalogu – znak wyznania mojżeszowego
+const tablice = (x: number, kolor: string, s = 1) =>
+    `<path transform="translate(${x} -1) scale(${s})" d="M-6 7V-3.5Q-6-7.5-3.2-7.5Q-0.6-7.5-0.6-3.5V7ZM0.6 7V-3.5Q0.6-7.5 3.2-7.5Q6-7.5 6-3.5V7Z" stroke="${kolor}" stroke-width="1.6" fill="none" stroke-linejoin="round"/>`
+const znakWyznania = (w: Wyznanie, x: number, s = 1) => {
+    const k = WYZNANIA[w].kolor
+    if (w === 'unickie' || w === 'prawoslawne') return krzyzWschodni(x, k, s)
+    if (w === 'mojzeszowe') return tablice(x, k, s)
+    return krzyzLacinski(x, k, s)
+}
+
 const esc = (t: string) => t.replace(/[&<>"]/g, (z) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[z]!)
 
 function svg(wnetrze: string, rozmiar: number, tytul: string): string {
@@ -38,8 +61,12 @@ function svg(wnetrze: string, rozmiar: number, tytul: string): string {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -22 40 44" width="${w}" height="${rozmiar}" role="img" aria-label="${tytul}"><title>${tytul}</title>${wnetrze}</svg>`
 }
 
-/** Tarcza miejscowości. */
-export function tarczaMiejsca(rodzaj: string, wyznanie: Wyznanie, nazwa: string, rozmiar = 30, przyblizone = false): string {
+/**
+ * Tarcza miejscowości. Jedno wyznanie: obwódka i znak w jego kolorze. Kilka: tarcza w pionowe pasy
+ * (każdy z własnym znakiem); przy wyznaniu przeważającym jego pas jest szerszy, a obwódka w jego kolorze,
+ * przy równorzędnych – pasy równe, obwódka ciemna.
+ */
+export function tarczaMiejsca(rodzaj: string, wyznania: string[], nazwa: string, rozmiar = 30, przyblizone = false, rowne = false): string {
     const kreska = przyblizone ? ' stroke-dasharray="4 3"' : ''
     if (rodzaj === 'miasto') {
         return svg(
@@ -49,24 +76,33 @@ export function tarczaMiejsca(rodzaj: string, wyznanie: Wyznanie, nazwa: string,
             nazwa,
         )
     }
-    if (wyznanie === 'mieszana') {
+    const ws = wyznania.filter((w): w is Wyznanie => w in WYZNANIA).slice(0, 4)
+    if (ws.length >= 2) {
+        // szerokości pasów: równe albo pierwszy (przeważający) dwa razy szerszy
+        const wagi = ws.map((_, i) => (!rowne && i === 0 ? 2 : 1))
+        const suma = wagi.reduce((a, b) => a + b, 0)
+        let x = -16
+        const id = `tw-${ws.join('-')}-${rowne ? 1 : 0}`
+        let pasy = ''
+        let znaki = ''
+        const skala = ws.length === 2 ? 0.85 : ws.length === 3 ? 0.62 : 0.5
+        ws.forEach((w, i) => {
+            const szer = (32 * wagi[i]) / suma
+            pasy += `<rect x="${x.toFixed(2)}" y="-18" width="${(szer + 0.3).toFixed(2)}" height="40" fill="${WYZNANIA[w].tlo}"/>`
+            znaki += znakWyznania(w, +(x + szer / 2).toFixed(2), i === 0 && !rowne ? Math.min(1, skala + 0.15) : skala)
+            x += szer
+        })
+        const obwodka = rowne ? KOLORY.miasto : WYZNANIA[ws[0]].kolor
         return svg(
-            `<path d="${LEWA}" fill="#e6ecf5"/><path d="${PRAWA}" fill="#f5e6e4"/>` +
-                `<path d="${TARCZA}" fill="none" stroke="${KOLORY.miasto}" stroke-width="2.4" stroke-linejoin="round"${kreska}/>` +
-                krzyzWschodni(-7, KOLORY.unicka, 0.9) +
-                krzyzLacinski(7, KOLORY.katolicka, 0.9),
+            `<defs><clipPath id="${id}"><path d="${TARCZA}"/></clipPath></defs><g clip-path="url(#${id})">${pasy}</g>` +
+                `<path d="${TARCZA}" fill="none" stroke="${obwodka}" stroke-width="2.4" stroke-linejoin="round"${kreska}/>${znaki}`,
             rozmiar,
             nazwa,
         )
     }
-    const kolor =
-        wyznanie === 'unicka' ? KOLORY.unicka : wyznanie === 'katolicka' ? KOLORY.katolicka : wyznanie === 'prawoslawna' ? KOLORY.prawoslawna : KOLORY.nieopisane
-    const znak =
-        wyznanie === 'unicka' || wyznanie === 'prawoslawna'
-            ? krzyzWschodni(0, kolor)
-            : wyznanie === 'katolicka'
-              ? krzyzLacinski(0, kolor)
-              : `<circle cy="-1" r="4.5" fill="${kolor}"/>`
+    const w = ws[0]
+    const kolor = w ? WYZNANIA[w].kolor : KOLORY.nieopisane
+    const znak = w ? znakWyznania(w, 0) : `<circle cy="-1" r="4.5" fill="${kolor}"/>`
     return svg(`<path d="${TARCZA}" fill="${KOLORY.tlo}" stroke="${kolor}" stroke-width="2.4" stroke-linejoin="round"${kreska}/>${znak}`, rozmiar, nazwa)
 }
 

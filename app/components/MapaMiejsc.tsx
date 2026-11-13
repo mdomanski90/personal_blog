@@ -12,7 +12,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
 import { ATRYBUCJA_GRANIC, LATA_GRANIC, LEGENDA_PANSTW, PUSTE, WARSTWY_OKRESU, czyRzeczpospolita, czyZiemie, etykietaOkresu, nazwaNaMapie, wczytajOkres, warstwyOkresu } from '@/lib/granice'
 import type { PlanNaMapie } from '@/lib/plany/serwer'
-import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
+import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu } from '@/lib/tarcze'
 import { ileObiektow, rozsun } from '@/lib/mapa-rozsuwanie'
 
 export interface PunktMapy {
@@ -21,7 +21,8 @@ export interface PunktMapy {
     href: string
     typ: 'miejsce' | 'obiekt'
     rodzaj: string
-    wyznanie?: string
+    wyznania?: string[]
+    wyznaniaRowne?: boolean
     przyblizone?: boolean
     istnieje?: boolean
     lat: number
@@ -47,8 +48,8 @@ function ikona(p: PunktMapy): { id: string; svg: string } {
         return { id, svg: plan ? zZnaczkiem(svg) : svg }
     }
     const miasto = p.rodzaj === 'miasto'
-    const id = `m-${miasto ? 'miasto' : p.wyznanie || 'brak'}-${p.przyblizone ? 1 : 0}${plan}`
-    const svg = tarczaMiejsca(miasto ? 'miasto' : 'wies', (p.wyznanie || '') as Wyznanie, '', (miasto ? 32 : 27) * SKALA, p.przyblizone)
+    const id = `m-${miasto ? 'miasto' : p.wyznania?.join('+') || 'brak'}-${p.wyznaniaRowne ? 'r' : ''}${p.przyblizone ? 1 : 0}${plan}`
+    const svg = tarczaMiejsca(miasto ? 'miasto' : 'wies', p.wyznania ?? [], '', (miasto ? 32 : 27) * SKALA, p.przyblizone, p.wyznaniaRowne)
     return { id, svg: plan ? zZnaczkiem(svg) : svg }
 }
 

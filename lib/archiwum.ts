@@ -53,8 +53,9 @@ export interface Miejsce {
     rodzaj: string
     wspolrzedne: [number, number] | null
     przyblizone: boolean
-    /** wyznanie mieszkańców przed 1875: '' | unicka | katolicka | mieszana | prawoslawna */
-    wyznanie: string
+    /** wyznania mieszkańców przed 1875 (pierwsze = przeważające, chyba że wyznaniaRowne) */
+    wyznania: string[]
+    wyznaniaRowne: boolean
     nalezyDo: string | null
     /** parafie (okręgi bóżnicze, USC), do których należała wieś, z latami */
     parafie: { parafia: string; od: number | null; do: number | null }[]
@@ -129,9 +130,7 @@ export const RODZAJE_MIEJSC: Record<string, string> = {
 export const OBSZARY = ['kraina', 'gmina']
 export { NAZWY_OBIEKTOW as RODZAJE_OBIEKTOW } from './tarcze'
 import { NAZWY_OBIEKTOW } from './tarcze'
-export const WYZNANIA_MIEJSC: Record<string, string> = {
-    unicka: 'unickie', katolicka: 'katolickie', mieszana: 'mieszane (unici i katolicy)', prawoslawna: 'prawosławne',
-}
+export { opisWyznan } from './tarcze'
 
 export interface Obiekt {
     id: string
@@ -201,7 +200,8 @@ const wszystkieMiejscaSurowe = cache(async (): Promise<Miejsce[]> => {
             rodzaj: entry.type,
             wspolrzedne: parsujWspolrzedne(entry.coordinates),
             przyblizone: entry.approximate,
-            wyznanie: entry.religion ?? '',
+            wyznania: [...(entry.religions ?? [])].filter((w, i, a) => w && a.indexOf(w) === i),
+            wyznaniaRowne: entry.religionsEqual ?? false,
             nalezyDo: entry.isPartOf,
             parafie: (entry.parishes ?? [])
                 .filter((p) => p.parish)

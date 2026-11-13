@@ -18,7 +18,7 @@ export function punktyMapy(miejsca: Miejsce[], obiekty: Obiekt[]): PunktMapy[] {
             .filter((m) => m.wspolrzedne && !OBSZARY.includes(m.rodzaj))
             .map((m) => ({
                 id: m.id, nazwa: m.nazwa, href: `/miejsca/${m.id}`, typ: 'miejsce' as const, rodzaj: m.rodzaj,
-                wyznanie: m.wyznanie, przyblizone: m.przyblizone, lat: m.wspolrzedne![0], lng: m.wspolrzedne![1],
+                wyznania: m.wyznania, wyznaniaRowne: m.wyznaniaRowne, przyblizone: m.przyblizone, lat: m.wspolrzedne![0], lng: m.wspolrzedne![1],
                 obiekty: wWsi.get(m.id),
             })),
         ...obiekty

@@ -2,7 +2,7 @@ import { config, collection, singleton, fields } from '@keystatic/core';
 import { wrapper, repeating, block } from '@keystatic/core/content-components';
 import { EDTF_OPIS, EDTF_REGEX } from './lib/edtf';
 import { identyfikatorZNazwy } from './lib/tekst';
-import { NAZWY_OBIEKTOW } from './lib/tarcze';
+import { NAZWY_OBIEKTOW, WYZNANIA } from './lib/tarcze';
 import { RODZAJE_MATERIALOW } from './lib/materialy';
 import { ADRES_PLIKOW, KATALOG_PLIKOW } from './lib/pliki';
 import { WYZNANIA_PARAFII, RODZAJE_KSIAG, DOSTEP_KSIAG } from './lib/ksiegi';
@@ -218,17 +218,21 @@ export default config({
           validation: { pattern: { regex: WSPOLRZEDNE_REGEX, message: 'Zapis: 52.1860, 22.5627' } },
         }),
         approximate: fields.checkbox({ label: 'Położenie przybliżone' }),
-        religion: fields.select({
-          label: 'Przeważające wyznanie mieszkańców przed 1875',
-          description: 'Stan sprzed kasaty unii – od tego zależy znak wsi na mapie.',
-          options: [
-            { label: 'nieopisane', value: '' },
-            { label: 'unickie', value: 'unicka' },
-            { label: 'katolickie', value: 'katolicka' },
-            { label: 'mieszane (unici i katolicy)', value: 'mieszana' },
-            { label: 'prawosławne', value: 'prawoslawna' },
-          ],
-          defaultValue: '',
+        religions: fields.array(
+          fields.select({
+            label: 'Wyznanie',
+            options: Object.entries(WYZNANIA).map(([value, w]) => ({ label: w.nazwa, value })),
+            defaultValue: 'unickie',
+          }),
+          {
+            label: 'Wyznania mieszkańców przed 1875',
+            description: 'Stan sprzed kasaty unii – od tego zależy znak wsi na mapie. Pierwsze na liście = przeważające (kolejność zmienisz przeciągając). Puste = nieopisane.',
+            itemLabel: (p) => WYZNANIA[p.value as keyof typeof WYZNANIA]?.nazwa ?? p.value,
+          },
+        ),
+        religionsEqual: fields.checkbox({
+          label: 'Wyznania równorzędne',
+          description: 'Zaznacz, gdy żadne nie przeważało (np. miasteczko z parafią, cerkwią i bóżnicą). Na mapie pasy tej samej szerokości.',
         }),
         isPartOf: fields.relationship({
           label: 'Należy do',

@@ -1,6 +1,8 @@
 // Jednorazowe przeróbki zapisu treści po zmianach w schemacie Keystatic. Uruchamiane przy każdym
-// budowaniu (npm run build) – każda migracja sprawdza, czy jest jeszcze potrzebna, więc ponowne
-// uruchomienie niczego nie zmienia. Zmienia tylko pojedyncze wiersze, reszta pliku zostaje bez zmian.
+// budowaniu (npm run build) zaraz po „next build”, tuż przed ponownym uruchomieniem strony – Keystatic
+// odrzuca pliki z nieznanymi polami, więc stara wersja strony nie powinna długo widzieć nowego zapisu.
+// Każda migracja sprawdza, czy jest jeszcze potrzebna, więc ponowne uruchomienie niczego nie zmienia.
+// Zmienia tylko pojedyncze wiersze, reszta pliku zostaje bez zmian.
 
 import fs from 'node:fs'
 import path from 'node:path'

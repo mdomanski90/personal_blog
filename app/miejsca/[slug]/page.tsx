@@ -3,7 +3,7 @@ import OtworzWMapach from '../../components/OtworzWMapach'
 import InfoZMapa from '../../components/InfoZMapa'
 import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
-import { licznikiMiejsc, materialy, miejsca, miejsce, nazwy, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, WYZNANIA_MIEJSC, materialyDla, powiazania, kontekstTresci, ksiegiDlaMiejsca, parafie } from '@/lib/archiwum'
+import { licznikiMiejsc, materialy, miejsca, miejsce, nazwy, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, opisWyznan, materialyDla, powiazania, kontekstTresci, ksiegiDlaMiejsca, parafie } from '@/lib/archiwum'
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
@@ -105,7 +105,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                                 })}
                             </Wiersz>
                         )}
-                        {!obszar && <Wiersz etykieta="przeważające wyznanie przed 1875">{m.wyznanie ? (WYZNANIA_MIEJSC[m.wyznanie] ?? m.wyznanie) : brak}</Wiersz>}
+                        {!obszar && <Wiersz etykieta={m.wyznania.length > 1 ? 'wyznania przed 1875' : 'wyznanie przed 1875'}>{m.wyznania.length ? opisWyznan(m.wyznania, m.wyznaniaRowne) : brak}</Wiersz>}
                         {(!obszar || formyZapisu.length > 0) && <Wiersz etykieta="formy zapisu nazwy">{formyZapisu.length > 0 ? formyZapisu.join(' · ') : brak}</Wiersz>}
                         {m.rodzaj === 'gmina' && potomkowie.length > 0 && <Wiersz etykieta="wsie">{potomkowie.length}</Wiersz>}
                         {podrzedne.length > 0 && m.rodzaj !== 'gmina' && (

@@ -5,7 +5,7 @@ export const WYZNANIA_PARAFII: Record<string, string> = {
     rzymskokatolicka: 'rzymskokatolicka',
     prawoslawna: 'prawosławna',
     ewangelicka: 'ewangelicka',
-    zydowska: 'żydowska (okręg bóżniczy)',
+    zydowska: 'mojżeszowa (okręg bóżniczy)',
     cywilna: 'urząd stanu cywilnego',
 }
 

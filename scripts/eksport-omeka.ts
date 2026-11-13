@@ -9,7 +9,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { dlaEksportu, OBSZARY, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, RODZAJE_OPOWIESCI, RODZAJE_TEMATOW, WYZNANIA_MIEJSC, type Widocznosc } from '../lib/archiwum'
+import { dlaEksportu, OBSZARY, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, RODZAJE_OPOWIESCI, RODZAJE_TEMATOW, opisWyznan, type Widocznosc } from '../lib/archiwum'
 import { czyPoprawnaEdtf, normalizujEdtf, zakresIso } from '../lib/edtf'
 import { naTekst } from '../lib/markdoc'
 import { odmiana } from '../lib/tekst'
@@ -97,7 +97,7 @@ async function main() {
             'mapping:longitude': m.wspolrzedne?.[1],
             'mapping:approximate': m.przyblizone ? '1' : '',
             'dcterms:isPartOf': m.nalezyDo,
-            'dcterms:subject': m.wyznanie ? `wyznanie przed 1875: ${WYZNANIA_MIEJSC[m.wyznanie] ?? m.wyznanie}` : '',
+            'dcterms:subject': m.wyznania.length ? `wyznania przed 1875: ${opisWyznan(m.wyznania, m.wyznaniaRowne)}` : '',
             'owl:sameAs': m.sameAs,
             'dcterms:description': naTekst(m.opis),
             'dcterms:dateSubmitted': m.dodano,
