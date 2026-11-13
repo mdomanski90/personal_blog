@@ -221,7 +221,7 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
         const styl = `left:${ox(k.x)}px;top:${oy(yGory(k.r))}px`
         const p = k.id ? s.drzewo.osoby.get(k.id) : undefined
         if (!p) return new Tag('span', { class: 'dr-karta dr-brak', style: styl }, ['?'])
-        if (!widac(p.id)) return new Tag('span', { class: 'dr-karta dr-ukryta', style: styl, title: 'dane osoby żyjącej – dla zalogowanych' }, [new Tag('span', { class: 'dr-imie' }, ['osoba żyjąca']), new Tag('span', { class: 'dr-lata' }, ['dla zalogowanych'])])
+        if (!widac(p.id)) return new Tag('span', { class: 'dr-karta dr-ukryta', style: styl, title: 'dane tej osoby widzą tylko zalogowani bliscy' }, [new Tag('span', { class: 'dr-imie' }, ['widoczne dla zalogowanych'])])
         const tresc = [new Tag('span', { class: 'dr-imie' }, [nazwaOsoby(p)]), new Tag('span', { class: 'dr-lata' }, [lataZycia(p)])]
         return k.glowna
             ? new Tag('span', { class: `dr-karta dr-${p.plec} dr-glowna`, style: styl }, tresc)
@@ -242,7 +242,7 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
     const pozycja = (x: string | undefined, rola: string): T => {
         const p = x ? s.drzewo.osoby.get(x) : undefined
         if (!p) return new Tag('span', {}, [`${rola}: nieznany`])
-        if (!widac(p.id)) return new Tag('span', {}, [`${rola}: `, new Tag('span', { class: 'dr-t-ukryta' }, ['osoba żyjąca (dla zalogowanych)'])])
+        if (!widac(p.id)) return new Tag('span', {}, [`${rola}: `, new Tag('span', { class: 'dr-t-ukryta' }, ['widoczne dla zalogowanych'])])
         const l = lataZycia(p)
         return new Tag('span', {}, [`${rola}: `, new Tag('a', { href: `/osoby/${p.id}`, class: `dr-t-${p.plec}` }, [nazwaOsoby(p)]), l ? ` (${l})` : ''])
     }

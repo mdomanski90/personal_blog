@@ -98,7 +98,7 @@ export interface Osoba {
     przydomek?: string
     plec: Plec
     zdarzenia: Zdarzenie[]
-    /** auto – z dat (osoba żyjąca, gdy nic nie wskazuje na śmierć i mogła urodzić się w ostatnich 100 latach); widoczność auto – patrz widocznoscOsoby */
+    /** auto – z dat (osoba żyjąca, gdy nic nie wskazuje na śmierć i mogła urodzić się w ostatnich 105 latach); widoczność auto – patrz widocznoscOsoby */
     zyje: 'auto' | 'tak' | 'nie'
     widocznosc: WidocznoscOsoby
     notatki?: string
@@ -245,7 +245,24 @@ export function czyZyje(o: Osoba, szacowany: number | undefined, rokTeraz = new 
     if (o.zyje === 'nie') return false
     if (o.zdarzenia.some((z) => z.rodzaj === 'zgon' || z.rodzaj === 'pogrzeb')) return false
     if (szacowany == null) return true // brak danych – ostrożnie: jak żyjąca
-    return szacowany > rokTeraz - 100
+    return szacowany > rokTeraz - PROG_ZYCIA
+}
+
+/** Nikt nie żyje dłużej niż ~105 lat: starszy „auto” nie żyje; od 95 lat bez daty zgonu – do sprawdzenia. */
+export const PROG_ZYCIA = 105
+export const WIEK_DO_SPRAWDZENIA = 95
+
+/**
+ * Czy warto sprawdzić, czy osoba żyje: wg dat żyłaby 95–104 lata i nic nie wskazuje na śmierć (przy „auto”),
+ * albo oznaczona jako żyjąca, choć miałaby 105 lat i więcej. Zwraca wiek (null – nie trzeba sprawdzać).
+ */
+export function wiekDoSprawdzenia(o: Osoba, szacowany: number | undefined, rokTeraz = new Date().getFullYear()): number | null {
+    if (o.zyje === 'nie' || szacowany == null) return null
+    if (o.zdarzenia.some((z) => z.rodzaj === 'zgon' || z.rodzaj === 'pogrzeb')) return null
+    const wiek = rokTeraz - szacowany
+    if (o.zyje === 'auto' && wiek >= WIEK_DO_SPRAWDZENIA && wiek < PROG_ZYCIA) return wiek
+    if (o.zyje === 'tak' && wiek >= PROG_ZYCIA) return wiek
+    return null
 }
 
 /** Progi widoczności „auto”: karta publiczna, gdy osoba urodziła się co najmniej 100 lat temu albo zmarła co najmniej 25 lat temu. */

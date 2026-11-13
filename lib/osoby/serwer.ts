@@ -1,7 +1,7 @@
 // Wspólne kawałki API panelu osób i stron czytelnika.
 
 import { miejsca as wszystkieMiejsca } from '../archiwum'
-import { lataZycia, nazwaOsoby, ostrzezenia, zdarzenie, type Osoba } from './model'
+import { lataZycia, nazwaOsoby, ostrzezenia, rokUrodzenia, wiekDoSprawdzenia, zdarzenie, type Osoba } from './model'
 export { lataZycia }
 import type { StanOsob } from './dane'
 
@@ -33,5 +33,18 @@ export async function miejscaDoDopasowania() {
 export function ostrzezeniaWgOsob(s: StanOsob): Map<string, string[]> {
     const m = new Map<string, string[]>()
     for (const w of ostrzezenia(s.drzewo, s.relacje)) m.set(w.osoba, [...(m.get(w.osoba) ?? []), w.tekst])
+    for (const z of doSprawdzeniaZycia(s)) m.set(z.id, [...(m.get(z.id) ?? []), z.zyje === 'tak'
+        ? `oznaczona jako żyjąca, a miałaby ${z.wiek} lat – sprawdź`
+        : `${z.szacowany ? 'około ' : ''}${z.wiek} lat i brak daty zgonu – czy żyje?`])
     return m
+}
+
+/** Osoby, przy których trzeba sprawdzić, czy żyją (95–104 lata bez daty zgonu albo „żyje” przy 105+). */
+export function doSprawdzeniaZycia(s: StanOsob) {
+    const wyn: { id: string; nazwa: string; lata: string; wiek: number; szacowany: boolean; zyje: Osoba['zyje'] }[] = []
+    for (const o of s.drzewo.osoby.values()) {
+        const wiek = wiekDoSprawdzenia(o, s.lata.get(o.id))
+        if (wiek != null) wyn.push({ id: o.id, nazwa: nazwaOsoby(o), lata: lataZycia(o), wiek, szacowany: rokUrodzenia(o) == null, zyje: o.zyje })
+    }
+    return wyn.sort((a, b) => b.wiek - a.wiek)
 }

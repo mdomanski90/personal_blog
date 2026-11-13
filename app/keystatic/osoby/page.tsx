@@ -6,10 +6,11 @@ import { btn, pole, wyslij } from './wspolne'
 
 type Skrot = { id: string; nazwa: string; imiona: string; nazwisko: string; plec: string; lata: string; miejsce: string; zyje: boolean; widocznosc: string; uwagi: number }
 type Pods = {
-    osoby: number; rodziny: number; zdarzenia: number; zrodla: number; cytaty: number; multimedia: number; zyjace: number; chrzty: number; chrzestni: number; chrzestniPowiazani: number; obrzadki: number
+    osoby: number; rodziny: number; zdarzenia: number; zrodla: number; cytaty: number; multimedia: number; zyjace: number; doSprawdzeniaZycia?: number; doSprawdzeniaZyciaOsoby?: { id: string; nazwa: string; lata: string; wiek: number; szacowany: boolean }[]; chrzty: number; chrzestni: number; chrzestniPowiazani: number; obrzadki: number
     datyNieodczytane: string[]; miejscaDopasowane: { tekst: string; miejsce: string; ile: number }[]; miejscaNiedopasowane: { tekst: string; ile: number }[]; imionaZDopiskami: number; slubyScalone: number; pominieteZnaczniki: string[]
 }
-type Dane = { osoby: Skrot[]; import: { data: string; plik: string; podsumowanie: Partial<Pods> } | null; ostrzezenia: { osoba: string; tekst: string }[] }
+type DoSprawdzenia = { id: string; nazwa: string; lata: string; wiek: number; szacowany: boolean; zyje: string }
+type Dane = { osoby: Skrot[]; import: { data: string; plik: string; podsumowanie: Partial<Pods> } | null; ostrzezenia: { osoba: string; tekst: string }[]; doSprawdzeniaZycia?: DoSprawdzenia[] }
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
 const WID: Record<string, string> = { publiczne: 'publiczna', bliscy: 'dla bliskich', ja: 'tylko ja' }
@@ -47,12 +48,14 @@ export default function Osoby() {
         ustawPracuje(true)
         const r = await wyslij('/api/keystatic/osoby', { akcja: 'podglad', gedcom: tekst })
         ustawPracuje(false)
-        if (r.ok) { ustawPods(r.j.podsumowanie as Pods); ustawMsg('') } else ustawMsg(r.j.blad ?? 'błąd')
+        if (r.ok) { ustawPods(r.j.podsumowanie as Pods); ustawZmarlych(new Set()); ustawMsg('') } else ustawMsg(r.j.blad ?? 'błąd')
     }
+    const [zmarli, ustawZmarlych] = React.useState<Set<string>>(new Set())
+    const przelaczZmarlego = (id: string) => ustawZmarlych((z) => { const n = new Set(z); if (n.has(id)) n.delete(id); else n.add(id); return n })
     const zapiszImport = async () => {
         if (!plik) return
         ustawPracuje(true)
-        const r = await wyslij('/api/keystatic/osoby', { akcja: 'import', gedcom: plik.tekst, plik: plik.nazwa, potwierdzenie: potw })
+        const r = await wyslij('/api/keystatic/osoby', { akcja: 'import', gedcom: plik.tekst, plik: plik.nazwa, potwierdzenie: potw, zmarli: [...zmarli] })
         ustawPracuje(false)
         if (r.ok) { ustawMsg(`Zapisano drzewo: ${(r.j.podsumowanie as Pods).osoby} osób.`); ustawPlik(null); ustawPods(null); wczytaj() } else ustawMsg(r.j.blad ?? 'błąd')
     }
@@ -61,6 +64,12 @@ export default function Osoby() {
         const r = await wyslij('/api/keystatic/osoby', { akcja: 'nowa', ...nowa })
         if (r.ok) location.href = `/keystatic/osoby/${r.j.id}`
         else ustawMsg(r.j.blad ?? 'błąd')
+    }
+    const oznaczZycie = async (ids: string[], zyje: 'tak' | 'nie', pytaj = false) => {
+        if (!ids.length || (pytaj && !confirm(`Oznaczyć ${ids.length} ${ids.length === 1 ? 'osobę' : 'osób'} jako zmarłe?`))) return
+        const r = await wyslij('/api/keystatic/osoby', { akcja: 'zyje', ids, zyje })
+        if (!r.ok) ustawMsg(r.j.blad ?? 'błąd')
+        wczytaj()
     }
     const ostrzWgOsob = React.useMemo(() => new Map((dane?.osoby ?? []).map((o) => [o.id, o])), [dane])
 
@@ -79,6 +88,25 @@ export default function Osoby() {
                         <span style={{ color: '#6b665c', fontSize: 12 }}>{lista.length} z {dane.osoby.length}</span>
                         {dane.ostrzezenia.length > 0 && <button onClick={() => ustawPokazOstrz((x) => !x)} style={{ ...btn, background: '#fef3c7' }}>do sprawdzenia: {dane.ostrzezenia.length}</button>}
                     </div>
+                    {(dane.doSprawdzeniaZycia?.length ?? 0) > 0 && (
+                        <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                                <b>czy te osoby jeszcze żyją? ({dane.doSprawdzeniaZycia!.length})</b>
+                                <button style={{ ...btn, height: 26, fontSize: 12 }} onClick={() => oznaczZycie(dane.doSprawdzeniaZycia!.filter((x) => x.zyje !== 'tak').map((x) => x.id), 'nie', true)}>wszystkie z listy: nie żyją</button>
+                            </div>
+                            <span style={{ fontSize: 12, color: '#6b665c' }}>Wg dat miałyby 95–104 lata, a w drzewie nie ma daty zgonu – dlatego na razie liczą się jako żyjące (dane tylko dla bliskich). Osoby, które miałyby 105 lat i więcej, strona uznaje za zmarłe sama.</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 260, overflow: 'auto' }}>
+                                {dane.doSprawdzeniaZycia!.map((x) => (
+                                    <span key={x.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '3px 0', borderBottom: '1px solid #fde68a', fontSize: 13 }}>
+                                        <a href={`/keystatic/osoby/${x.id}`} style={{ flex: '1 1 auto' }}>{x.nazwa}</a>
+                                        <span style={{ color: '#6b665c', fontSize: 12 }}>{x.lata || '—'} · {x.szacowany ? 'ok. ' : ''}{x.wiek} lat{x.zyje === 'tak' ? ' · oznaczona: żyje' : ''}</span>
+                                        <button style={{ ...btn, height: 24, fontSize: 12 }} onClick={() => oznaczZycie([x.id], 'nie')}>nie żyje</button>
+                                        {x.zyje !== 'tak' && <button style={{ ...btn, height: 24, fontSize: 12 }} onClick={() => oznaczZycie([x.id], 'tak')}>żyje</button>}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {pokazOstrz && (
                         <div style={{ border: '1px solid #fcd34d', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 320, overflow: 'auto' }}>
                             {dane.ostrzezenia.map((w, i) => <span key={i} style={{ fontSize: 13 }}><a href={`/keystatic/osoby/${w.osoba}`}>{ostrzWgOsob.get(w.osoba)?.nazwa ?? w.osoba}</a> – {w.tekst}</span>)}
@@ -124,6 +152,28 @@ export default function Osoby() {
                         <b>podgląd importu (nic jeszcze nie zapisano)</b>
                         <span>{pods.osoby} osób ({pods.zyjace} prawdopodobnie żyjących – widocznych tylko dla bliskich) · {pods.rodziny} rodzin · {pods.zdarzenia} zdarzeń · {pods.zrodla} {pods.zrodla === 1 ? 'źródło' : 'źródeł'}, {pods.cytaty} cytowań · {pods.multimedia} opisów zdjęć i dokumentów (same pliki trzeba pobrać z Ancestry osobno)</span>
                         <span>chrzty: {pods.chrzty} · chrzestni: {pods.chrzestni}, w tym {pods.chrzestniPowiazani} połączonych z osobami z drzewa · obrządek rozpoznany w {pods.obrzadki} zdarzeniach · śluby zdublowane przy osobach scalone: {pods.slubyScalone}</span>
+                        {(pods.doSprawdzeniaZyciaOsoby?.length ?? 0) > 0 && (
+                            <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                                    <b>sprawdź, czy żyją: {pods.doSprawdzeniaZyciaOsoby!.length}</b>
+                                    <span style={{ display: 'flex', gap: 6 }}>
+                                        <button style={{ ...btn, height: 26, fontSize: 12 }} onClick={() => ustawZmarlych(new Set(pods.doSprawdzeniaZyciaOsoby!.map((x) => x.id)))}>zaznacz wszystkie</button>
+                                        <button style={{ ...btn, height: 26, fontSize: 12 }} onClick={() => ustawZmarlych(new Set())}>odznacz</button>
+                                    </span>
+                                </div>
+                                <span style={{ fontSize: 12, color: '#6b665c' }}>Wg dat mają 95–104 lata, a w pliku nie ma daty zgonu – bez zaznaczenia zostaną zapisane jako żyjące (dane tylko dla bliskich). Zaznacz te, które nie żyją. Osoby, które miałyby 105 lat i więcej, strona uznaje za zmarłe sama.</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 260, overflow: 'auto' }}>
+                                    {pods.doSprawdzeniaZyciaOsoby!.map((x) => (
+                                        <label key={x.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '3px 0', borderBottom: '1px solid #fde68a', fontSize: 13, cursor: 'pointer' }}>
+                                            <input type="checkbox" checked={zmarli.has(x.id)} onChange={() => przelaczZmarlego(x.id)} />
+                                            <span style={{ flex: '1 1 auto' }}>{x.nazwa}</span>
+                                            <span style={{ color: '#6b665c', fontSize: 12 }}>{x.lata || '—'} · {x.szacowany ? 'ok. ' : ''}{x.wiek} lat</span>
+                                            <span style={{ fontSize: 12, color: zmarli.has(x.id) ? '#92400e' : '#6b665c', minWidth: 64, textAlign: 'right' }}>{zmarli.has(x.id) ? 'nie żyje' : 'żyje?'}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         {pods.imionaZDopiskami > 0 && <span style={{ color: '#92400e' }}>imiona lub nazwiska z dopiskami (np. cM z DNA): {pods.imionaZDopiskami} – trafią na listę „do sprawdzenia”</span>}
                         {pods.datyNieodczytane.length > 0 && <span style={{ color: '#92400e' }}>daty nieodczytane ({pods.datyNieodczytane.length}, zostaną jako tekst): {pods.datyNieodczytane.slice(0, 12).join(' · ')}</span>}
                         <details><summary>miejsca dopasowane do miejscowości strony: {pods.miejscaDopasowane.length}</summary><div style={{ fontSize: 12, display: 'flex', flexDirection: 'column' }}>{pods.miejscaDopasowane.map((m) => <span key={m.tekst}>{m.tekst} → <b>{m.miejsce}</b> ({m.ile})</span>)}</div></details>

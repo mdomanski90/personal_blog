@@ -5,7 +5,7 @@ import { czyPoprawnaEdtf, parsujEdtf, rokPoczatku, type Punkt } from '../edtf'
 import { normalizuj } from '../tekst'
 import {
     chrzestniZOpisu, dopasujChrzestnego, idZNazwy, indeksNazwisk, indeksRelacji, noweIdZdarzenia, obrzadekZTekstu, OBRZADKI, poprawOsobe, poprawRodzine,
-    szacowaneLata, ZDARZENIA_Z_OBRZADKIEM,
+    szacowaneLata, ZDARZENIA_Z_OBRZADKIEM, czyZyje, wiekDoSprawdzenia, nazwaOsoby, lataZycia, rokUrodzenia,
     type Cytat, type Drzewo, type Multimedium, type Osoba, type RodzajZdarzenia, type Rodzina, type Zdarzenie, type Zrodlo,
 } from './model'
 
@@ -130,6 +130,10 @@ export interface PodsumowanieImportu {
     cytaty: number
     multimedia: number
     zyjace: number
+    /** osoby w wieku 95–104 lat bez daty zgonu – do sprawdzenia, czy żyją */
+    doSprawdzeniaZycia: number
+    /** te osoby z nazwą, latami i wiekiem – w podglądzie importu do zaznaczenia „nie żyje” */
+    doSprawdzeniaZyciaOsoby: { id: string; nazwa: string; lata: string; wiek: number; szacowany: boolean }[]
     chrzty: number
     chrzestni: number
     chrzestniPowiazani: number
@@ -196,7 +200,7 @@ export function importujGedcom(tekst: string, miejsca: MiejsceDoDopasowania[]): 
     const mIdx = indeksMiejsc(miejsca)
     const nazwaMiejsca = new Map(miejsca.map((x) => [x.id, x.nazwa]))
     const pods: PodsumowanieImportu = {
-        osoby: 0, rodziny: 0, zdarzenia: 0, zrodla: 0, cytaty: 0, multimedia: 0, zyjace: 0, chrzty: 0, chrzestni: 0, chrzestniPowiazani: 0, obrzadki: 0,
+        osoby: 0, rodziny: 0, zdarzenia: 0, zrodla: 0, cytaty: 0, multimedia: 0, zyjace: 0, doSprawdzeniaZycia: 0, doSprawdzeniaZyciaOsoby: [], chrzty: 0, chrzestni: 0, chrzestniPowiazani: 0, obrzadki: 0,
         datyNieodczytane: [], miejscaDopasowane: [], miejscaNiedopasowane: [], imionaZDopiskami: 0, slubyScalone: 0, pominieteZnaczniki: [],
     }
     const licznikMiejsc = new Map<string, { miejsce?: string; ile: number }>()
@@ -388,8 +392,12 @@ export function importujGedcom(tekst: string, miejsca: MiejsceDoDopasowania[]): 
                 }
             }
         }
-        const zyje = !o.zdarzenia.some((z) => z.rodzaj === 'zgon' || z.rodzaj === 'pogrzeb') && (lata.get(o.id) == null || lata.get(o.id)! > new Date().getFullYear() - 100)
-        if (zyje) pods.zyjace++
+        if (czyZyje(o, lata.get(o.id))) pods.zyjace++
+        const wiek = wiekDoSprawdzenia(o, lata.get(o.id))
+        if (wiek != null) {
+            pods.doSprawdzeniaZycia++
+            pods.doSprawdzeniaZyciaOsoby.push({ id: o.id, nazwa: nazwaOsoby(o), lata: lataZycia(o), wiek, szacowany: rokUrodzenia(o) == null })
+        }
     }
     for (const f of rodziny.values()) for (const z of f.zdarzenia) if (z.obrzadek) pods.obrzadki++
 

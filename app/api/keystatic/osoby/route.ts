@@ -3,7 +3,7 @@ import { importujGedcom } from '@/lib/osoby/gedcom'
 import { sladImportu, stanOsob, zapiszImport, zapiszOsobe } from '@/lib/osoby/dane'
 import { polacz } from '@/lib/osoby/relacje'
 import { idZNazwy, poprawOsobe, ID_OSOBY } from '@/lib/osoby/model'
-import { miejscaDoDopasowania, ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
+import { doSprawdzeniaZycia, miejscaDoDopasowania, ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
 import { porownajPl } from '@/lib/tekst'
 
 // Panel osób: lista, import z GEDCOM (podgląd i zapis, jednorazowy), nowa osoba.
@@ -18,6 +18,7 @@ export async function GET(req: Request) {
     return Response.json({
         osoby,
         import: await sladImportu(),
+        doSprawdzeniaZycia: doSprawdzeniaZycia(s),
         ostrzezenia: [...ostrz].flatMap(([id, t]) => t.map((tekst) => ({ osoba: id, tekst }))).slice(0, 300),
         miejsca: (await miejscaDoDopasowania()).map((m) => ({ id: m.id, nazwa: m.nazwa })),
     })
@@ -38,8 +39,22 @@ export async function POST(req: Request) {
             const slad = await sladImportu()
             if (slad && d.potwierdzenie !== 'ZASTĄP') return Response.json({ blad: `Drzewo zostało już wczytane (${new Date(slad.data).toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' })}). Ponowny import zastąpiłby zmiany z panelu – wpisz ZASTĄP, jeśli naprawdę tego chcesz.` }, { status: 409 })
             const p = wynik.podsumowanie
+            // zaznaczeni w podglądzie jako zmarli (95–104 lata bez daty zgonu)
+            const zmarli = new Set<string>((Array.isArray(d.zmarli) ? d.zmarli : []).map(String))
+            for (const id of zmarli) { const o = wynik.drzewo.osoby.get(id); if (o) o.zyje = 'nie' }
             await zapiszImport(wynik.drzewo, { data: new Date().toISOString(), plik: String(d.plik ?? '').slice(0, 200), podsumowanie: { osoby: p.osoby, rodziny: p.rodziny, zdarzenia: p.zdarzenia, zrodla: p.zrodla, cytaty: p.cytaty, multimedia: p.multimedia } })
             return Response.json({ podsumowanie: p, zapisano: true })
+        }
+        // szybkie oznaczenie z listy „czy jeszcze żyją?”: nie żyje / żyje (lista zawiera wtedy tylko osoby „tak” 105+)
+        if (d?.akcja === 'zyje') {
+            const s = await stanOsob()
+            const ids: string[] = (Array.isArray(d.ids) ? d.ids : [d.id]).map(String).filter((x: string) => ID_OSOBY.test(x) && s.drzewo.osoby.has(x)).slice(0, 2000)
+            const zyje = d.zyje === 'tak' ? 'tak' : 'nie'
+            for (const id of ids) {
+                const o = s.drzewo.osoby.get(id)!
+                await zapiszOsobe(poprawOsobe({ ...o, zyje }), o.wersja)
+            }
+            return Response.json({ zmieniono: ids.length })
         }
         if (d?.akcja === 'nowa') {
             const s = await stanOsob()

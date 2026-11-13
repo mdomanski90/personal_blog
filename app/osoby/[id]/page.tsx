@@ -68,7 +68,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
         return (
             <Strona>
                 <TytulStrony sciezka={[{ tekst: 'osoby', href: '/osoby' }]}>dane niedostępne</TytulStrony>
-                <p>Karta tej osoby jest widoczna tylko dla zalogowanych bliskich (dane osób żyjących nie są publiczne).</p>
+                <p>Karta tej osoby jest widoczna tylko dla zalogowanych bliskich (dane osób urodzonych w ostatnich 100 latach i zmarłych w ostatnich 25 latach nie są publiczne).</p>
                 {logowanieWlaczone() && poziom === 'publiczne' && <p><Link href={`/zaloguj?wroc=/osoby/${id}`}>zaloguj się →</Link></p>}
             </Strona>
         )
@@ -80,7 +80,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
 
     const Osobka = ({ x, rola }: { x?: string; rola?: string }) => {
         if (!x || !s.drzewo.osoby.has(x)) return <span className="text-gray-500">{rola ? `${rola} nieznany` : 'nieznany'}</span>
-        if (!widac(x)) return <span className="osoba-ukryta">osoba żyjąca</span>
+        if (!widac(x)) return <span className="osoba-ukryta">widoczne dla zalogowanych</span>
         const p = s.drzewo.osoby.get(x)!
         return <span><Link href={`/osoby/${p.id}`} className={`osoba-link osoba-${p.plec}`}>{nazwaOsoby(p)}</Link>{lataZycia(p) && <span className="text-gray-600 dark:text-gray-400"> {lataZycia(p)}</span>}</span>
     }

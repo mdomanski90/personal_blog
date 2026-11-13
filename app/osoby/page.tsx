@@ -51,11 +51,11 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
             <div className="flex flex-col leading-relaxed" style={{ gap: '0.8rem', fontSize: 'calc(16px * var(--font-scale, 1))' }}>
                 <p>Ludzie z tych wsi: przodkowie, sąsiedzi, księża, wójtowie – każdy ze swoją stroną, drzewem przodków i potomków oraz dokumentami, które potwierdzają daty i więzi.</p>
                 {s.drzewo.osoby.size === 0 ? (
-                    <p className="text-gray-600 dark:text-gray-400">Ten dział jest w przygotowaniu – osoby pojawią się po wczytaniu drzewa genealogicznego. Dane osób żyjących będą widoczne tylko dla bliskich.</p>
+                    <p className="text-gray-600 dark:text-gray-400">Ten dział jest w przygotowaniu – osoby pojawią się po wczytaniu drzewa genealogicznego. Dane osób urodzonych w ostatnich 100 latach (i zmarłych w ostatnich 25) będą widoczne tylko dla zalogowanych bliskich.</p>
                 ) : (
                     <p className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>
                         {odmiana(wszystkie.length, ['osoba', 'osoby', 'osób'])}
-                        {ukryte > 0 && poziom === 'publiczne' && <> · dane {odmiana(ukryte, ['osoby żyjącej', 'osób żyjących', 'osób żyjących'])} widzą tylko <Link href="/zaloguj?wroc=/osoby">zalogowani bliscy</Link></>}
+                        {ukryte > 0 && poziom === 'publiczne' && <> · dane {odmiana(ukryte, ['osoby', 'osób', 'osób'])} widzą tylko <Link href="/zaloguj?wroc=/osoby">zalogowani bliscy</Link></>}
                     </p>
                 )}
             </div>

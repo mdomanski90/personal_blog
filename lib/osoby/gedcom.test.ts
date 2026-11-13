@@ -235,3 +235,16 @@ test('inne zapisy imienia i nazwiska, przydomek: import i eksport', () => {
     assert.equal(o2.przydomek, 'Sowa')
     assert.ok(o2.inneZapisy?.includes('Joannes Testowski'))
 })
+
+test('czy żyje: próg 105 lat, 95–104 do sprawdzenia', async () => {
+    const { wiekDoSprawdzenia } = await import('./model')
+    const os = (zyje: 'auto' | 'tak' | 'nie', zgon = false) => ({ id: 'x', imiona: 'X', nazwisko: 'Y', plec: 'M' as const, zdarzenia: zgon ? [{ id: 'z', rodzaj: 'zgon' as const }] : [], zyje, widocznosc: 'auto' as const, wersja: 1 })
+    assert.equal(czyZyje(os('auto'), 1925, 2026), true)
+    assert.equal(czyZyje(os('auto'), 1921, 2026), false)
+    assert.equal(wiekDoSprawdzenia(os('auto'), 1929, 2026), 97)
+    assert.equal(wiekDoSprawdzenia(os('auto'), 1935, 2026), null)
+    assert.equal(wiekDoSprawdzenia(os('auto'), 1915, 2026), null)
+    assert.equal(wiekDoSprawdzenia(os('auto', true), 1929, 2026), null)
+    assert.equal(wiekDoSprawdzenia(os('tak'), 1915, 2026), 111)
+    assert.equal(wiekDoSprawdzenia(os('nie'), 1929, 2026), null)
+})
