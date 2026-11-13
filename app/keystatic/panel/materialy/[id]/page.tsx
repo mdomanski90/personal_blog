@@ -8,7 +8,8 @@ type Strona = { plik: string; podpis?: string; adres: string }
 type Dane = { id: string; nazwa: string; plik: string | null; widocznosc: string; strony: Strona[] }
 
 export default function StronyMaterialu() {
-    const { id } = useParams<{ id: string }>()
+    // na serwerze typy Next.js dopuszczają null (strona poza trasą dynamiczną)
+    const id = useParams<{ id: string }>()?.id ?? ''
     const [dane, ustawDane] = React.useState<Dane | null>(null)
     const [kom, ustawKom] = React.useState('')
     const [wysylanie, ustawWysylanie] = React.useState<{ z: number; n: number } | null>(null)
