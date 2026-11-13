@@ -21,9 +21,9 @@ export default async function Szukaj({ searchParams }: { searchParams: Promise<{
                     „{q}”: {wyniki.length === 0 ? 'nic nie znaleziono.' : odmiana(wyniki.length, ['wynik', 'wyniki', 'wyników'])}
                 </p>
             )}
-            <ul className="flex flex-col border-t border-[#e5e7eb] dark:border-[#374151]">
+            <ul className="flex flex-col border-t border-[#e7e2d8] dark:border-[#374151]">
                 {wyniki.map((w) => (
-                    <li key={w.adres} className="flex flex-col gap-1 py-3 border-b border-[#e5e7eb] dark:border-[#374151]">
+                    <li key={w.adres} className="flex flex-col gap-1 py-3 border-b border-[#e7e2d8] dark:border-[#374151]">
                         <div className="flex flex-wrap items-baseline gap-x-3">
                             <Link href={w.adres} className="font-bold" style={{ fontSize: 'calc(17px * var(--font-scale, 1))' }}>{w.tytul}</Link>
                             <span className="text-gray-500" style={{ fontSize: '13px' }}>{w.rodzaj}</span>

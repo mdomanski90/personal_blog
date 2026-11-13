@@ -2,7 +2,7 @@
 // Skan obok tekstu: przybliżanie (przyciski, kółko z Ctrl, dwa palce), przesuwanie, obrót, dopasowanie, pełny ekran.
 import * as React from 'react'
 
-const RAMKA = 'border border-[#d1d5db] dark:border-[#4b5563]'
+const RAMKA = 'border border-[#d6d1c6] dark:border-[#4b5563]'
 const przycisk: React.CSSProperties = { height: 'calc(28px * var(--font-scale, 1))', padding: '0 9px', fontSize: 'calc(13px * var(--font-scale, 1))', background: 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit' }
 
 export default function PodgladSkanu({ src, alt }: { src: string; alt: string }) {
@@ -47,7 +47,7 @@ export default function PodgladSkanu({ src, alt }: { src: string; alt: string })
             <div className="flex flex-wrap items-center" style={{ gap: 6 }}>
                 <span className={`inline-flex rounded-[7px] overflow-hidden ${RAMKA}`}>
                     <button type="button" style={przycisk} onClick={() => zoom(1 / 1.25)} aria-label="pomniejsz">−</button>
-                    <span style={{ ...przycisk, display: 'inline-flex', alignItems: 'center', borderLeft: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', minWidth: 52, justifyContent: 'center' }}>{Math.round(skala * 100)}%</span>
+                    <span style={{ ...przycisk, display: 'inline-flex', alignItems: 'center', borderLeft: '1px solid #d6d1c6', borderRight: '1px solid #d6d1c6', minWidth: 52, justifyContent: 'center' }}>{Math.round(skala * 100)}%</span>
                     <button type="button" style={przycisk} onClick={() => zoom(1.25)} aria-label="powiększ">+</button>
                 </span>
                 <button type="button" className={`rounded-[7px] ${RAMKA}`} style={przycisk} onClick={dopasuj}>dopasuj</button>

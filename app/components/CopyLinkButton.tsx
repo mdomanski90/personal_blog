@@ -26,7 +26,7 @@ export default function CopyLinkButton({ sciezka }: CopyLinkButtonProps) {
             type="button"
             onClick={handleCopy}
             aria-label="kopiuj link do tej strony"
-            className={`border border-[#d1d5db] dark:border-[#4b5563] lowercase whitespace-nowrap cursor-pointer transition-colors ${copied ? 'bg-muted text-accent-foreground' : 'bg-transparent text-current hover:bg-muted'}`}
+            className={`border border-[#d6d1c6] dark:border-[#4b5563] lowercase whitespace-nowrap cursor-pointer transition-colors ${copied ? 'bg-muted text-accent-foreground' : 'bg-transparent text-current hover:bg-muted'}`}
             style={{
                 fontFamily: 'inherit',
                 fontSize: 'calc(14px * var(--font-scale, 1))',

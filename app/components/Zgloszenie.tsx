@@ -1,7 +1,7 @@
 'use client'
 // Przycisk z rozwijanym formularzem zgłoszenia (poprawka, nowe miejsce, materiał). Nic nie publikuje – trafia do panelu.
 import * as React from 'react'
-const RAMKA = 'border border-[#d1d5db] dark:border-[#4b5563]'
+const RAMKA = 'border border-[#d6d1c6] dark:border-[#4b5563]'
 
 const OPISY = {
     poprawka: { przycisk: 'zgłoś poprawkę lub dodaj informację', podpowiedz: 'Co się nie zgadza albo co wiesz więcej o tym miejscu?' },

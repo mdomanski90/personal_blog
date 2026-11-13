@@ -3,7 +3,7 @@
 import type { Ksiega } from '@/lib/archiwum'
 import { RODZAJE_KSIAG, DOSTEP_KSIAG, KOLEJNOSC_KSIAG } from '@/lib/ksiegi'
 
-const LINIA = 'border-[#d1d5db] dark:border-[#4b5563]'
+const LINIA = 'border-[#d6d1c6] dark:border-[#4b5563]'
 const male = { fontSize: 'calc(13px * var(--font-scale, 1))' }
 
 /** Zakres osi: od pełnej dekady przed najstarszą księgą do pełnej dekady po najmłodszej. */
@@ -72,7 +72,7 @@ export function TabelaKsiag({ ksiegi }: { ksiegi: Ksiega[] }) {
                 </thead>
                 <tbody>
                     {ksiegi.map((k) => (
-                        <tr key={k.id} className="border-b border-[#e5e7eb] dark:border-[#374151] align-top">
+                        <tr key={k.id} className="border-b border-[#e7e2d8] dark:border-[#374151] align-top">
                             <td className="py-1.5 pr-3 whitespace-nowrap">{RODZAJE_KSIAG[k.rodzaj] ?? k.rodzaj}</td>
                             <td className="py-1.5 pr-3">
                                 <span className="font-bold">{k.lata}</span>

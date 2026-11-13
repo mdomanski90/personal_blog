@@ -109,7 +109,7 @@ export default async function MaterialStrona({ params }: Parametry) {
             {(siec.odnosniki.length > 0 || siec.wzmianki.length > 0) && <Kreski />}
             <Powiazania dane={{ odnosniki: siec.odnosniki, wzmianki: [] }} />
 
-            <div className="border-t border-[#e5e7eb] dark:border-[#374151] flex flex-wrap items-center" style={{ paddingTop: '1rem', gap: '0.6rem 1rem' }}>
+            <div className="border-t border-[#e7e2d8] dark:border-[#374151] flex flex-wrap items-center" style={{ paddingTop: '1rem', gap: '0.6rem 1rem' }}>
                 <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>Coś się nie zgadza w opisie albo transkrypcji? „To nie Piotr, tylko Paweł” wystarczy.</span>
                 <Zgloszenie rodzaj="poprawka" adres={`/archiwum/${m.id}`} tytul={m.nazwa} />
             </div>

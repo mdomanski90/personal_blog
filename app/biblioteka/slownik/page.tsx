@@ -9,7 +9,7 @@ import Zgloszenie from '../../components/Zgloszenie'
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'słownik · biblioteka · odniepamieci.pl' }
 
-const segment = 'border border-[#d1d5db] dark:border-[#4b5563] lowercase !no-underline text-current'
+const segment = 'border border-[#d6d1c6] dark:border-[#4b5563] lowercase !no-underline text-current'
 
 export default async function Slownik({ searchParams }: { searchParams: Promise<{ q?: string; rodzaj?: string }> }) {
     const { q = '', rodzaj = '' } = await searchParams
@@ -40,7 +40,7 @@ export default async function Slownik({ searchParams }: { searchParams: Promise<
                     <h2 className="font-bold" style={{ fontSize: 'calc(18px * var(--font-scale, 1))' }}>{l}</h2>
                     <dl style={{ margin: 0 }}>
                         {L.map((h) => (
-                            <div key={h.id} id={h.id} className="border-b border-[#e5e7eb] dark:border-[#374151] py-3 flex flex-col scroll-mt-6" style={{ gap: 4 }}>
+                            <div key={h.id} id={h.id} className="border-b border-[#e7e2d8] dark:border-[#374151] py-3 flex flex-col scroll-mt-6" style={{ gap: 4 }}>
                                 <dt className="flex flex-wrap items-baseline" style={{ gap: 10 }}>
                                     <b style={{ fontSize: 'calc(16px * var(--font-scale, 1))' }}>{h.haslo}</b>
                                     <span className="text-gray-500" style={{ fontSize: 'calc(12.5px * var(--font-scale, 1))' }}>{RODZAJE_HASEL[h.rodzaj] ?? h.rodzaj}</span>
@@ -53,7 +53,7 @@ export default async function Slownik({ searchParams }: { searchParams: Promise<
                     </dl>
                 </section>
             ))}
-            <div className="border-t border-[#e5e7eb] dark:border-[#374151] flex flex-wrap items-center" style={{ paddingTop: '1rem', gap: '0.6rem 1rem' }}>
+            <div className="border-t border-[#e7e2d8] dark:border-[#374151] flex flex-wrap items-center" style={{ paddingTop: '1rem', gap: '0.6rem 1rem' }}>
                 <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>Znasz słowo, którego tu brakuje, albo inne jego znaczenie?</span>
                 <Zgloszenie rodzaj="poprawka" adres="/biblioteka/slownik" tytul="słownik" />
             </div>

@@ -35,7 +35,7 @@ function aktywny(pathname: string | null, href: string) {
     return pathname === href || pathname.startsWith(href + '/')
 }
 
-const RAMKA = 'border-[#d1d5db] dark:border-[#4b5563]'
+const RAMKA = 'border-[#d6d1c6] dark:border-[#4b5563]'
 
 // Dwie rzeki – Toczna i Liwiec – dwie spokojne fale tą samą kreską co emblemat (currentColor).
 // Płyną obok siebie, nie łączą się (obie uchodzą osobno do Bugu).
@@ -88,7 +88,7 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
                     </Link>
                     <div className="min-w-0">
                     <Link href="/" className="!no-underline text-current">
-                        <span className="block font-bold whitespace-nowrap" style={{ fontSize: 'clamp(1.5rem, 8vw, 2rem)', lineHeight: 1 }}>
+                        <span className="block font-bold whitespace-nowrap" style={{ fontSize: 'clamp(1.5rem, 8vw, 2rem)', lineHeight: 1, letterSpacing: '-0.02em' }}>
                             odniepamieci.pl
                         </span>
                     </Link>

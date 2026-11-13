@@ -104,7 +104,7 @@ export default async function ObiektStrona({ params }: Parametry) {
             {(siec.odnosniki.length > 0 || siec.wzmianki.length > 0) && <Kreski />}
             <Powiazania dane={siec} />
 
-            <div className="border-t border-[#e5e7eb] dark:border-[#374151] flex flex-wrap items-center" style={{ paddingTop: '1rem', gap: '0.6rem 1rem' }}>
+            <div className="border-t border-[#e7e2d8] dark:border-[#374151] flex flex-wrap items-center" style={{ paddingTop: '1rem', gap: '0.6rem 1rem' }}>
                 <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>Coś się nie zgadza albo wiesz więcej o tym miejscu?</span>
                 <Zgloszenie rodzaj="poprawka" adres={`/obiekty/${o.id}`} tytul={o.nazwa} />
             </div>

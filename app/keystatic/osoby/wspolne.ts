@@ -1,7 +1,7 @@
 // Wspólne dla panelu osób: style pól i wysyłka z czytelnym błędem.
 import type * as React from 'react'
 
-export const pole: React.CSSProperties = { font: 'inherit', fontSize: 14, height: 30, padding: '0 8px', border: '1px solid #d1d5db', borderRadius: 7, background: 'transparent', color: 'inherit', minWidth: 0 }
+export const pole: React.CSSProperties = { font: 'inherit', fontSize: 14, height: 30, padding: '0 8px', border: '1px solid #d6d1c6', borderRadius: 7, background: 'transparent', color: 'inherit', minWidth: 0 }
 export const btn: React.CSSProperties = { ...pole, cursor: 'pointer', background: 'var(--muted, #f2f0eb)' }
 
 export async function wyslij(url: string, body: unknown, metoda = 'POST'): Promise<{ ok: boolean; status: number; j: Record<string, unknown> & { blad?: string } }> {

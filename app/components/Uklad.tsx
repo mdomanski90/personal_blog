@@ -7,8 +7,8 @@ import ImageZoom from './ImageZoom'
 
 // Wspólne elementy wyglądu: obramowane „segmenty”, linia z kresek, nagłówki sekcji.
 
-export const RAMKA = 'border border-[#d1d5db] dark:border-[#4b5563]'
-export const RAMKA_L = 'border-l border-[#d1d5db] dark:border-[#4b5563]'
+export const RAMKA = 'border border-[#d6d1c6] dark:border-[#4b5563]'
+export const RAMKA_L = 'border-l border-[#d6d1c6] dark:border-[#4b5563]'
 
 const segmentStyl: React.CSSProperties = {
     margin: '-1px 0 0 -1px',
@@ -120,7 +120,7 @@ export function Tresc({ html, pusta = 'treść nie została jeszcze dodana.' }: 
 /** Wiersz metryczki: etykieta – wartość. */
 export function Wiersz({ etykieta, children }: { etykieta: string; children: React.ReactNode }) {
     return (
-        <div className="flex gap-3 border-b border-[#e5e7eb] dark:border-[#374151] py-2" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
+        <div className="flex gap-3 border-b border-[#e7e2d8] dark:border-[#374151] py-2" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
             <span className="text-gray-600 dark:text-gray-400 shrink-0" style={{ width: '9rem', fontSize: 'calc(13px * var(--font-scale, 1))' }}>{etykieta}</span>
             <span className="min-w-0 break-words">{children}</span>
         </div>

@@ -33,7 +33,7 @@ export default async function StronaGlowna() {
                     <Link href="/o-projekcie" className="w-fit lowercase" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>o projekcie →</Link>
                 </div>
                 {dzis.length > 0 && (
-                    <aside className="border border-[#d1d5db] dark:border-[#4b5563] rounded-[8px] flex flex-col" style={{ padding: 14, gap: 10 }}>
+                    <aside className="border border-[#d6d1c6] dark:border-[#4b5563] rounded-[8px] flex flex-col" style={{ padding: 14, gap: 10 }}>
                         <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
                             <b className="lowercase" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>ten dzień w historii</b>
                             <span className="text-gray-500" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>{dz} {MIES[mies - 1]}</span>

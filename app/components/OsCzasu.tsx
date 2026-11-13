@@ -26,7 +26,7 @@ export default function OsCzasu({ pozycje }: { pozycje: PozycjaOsi[] }) {
                 <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1 }}>
                     {FILTRY.map((f) => (
                         <button key={f.id} type="button" aria-pressed={wl.has(f.id)} onClick={() => ustawWl((s) => { const n = new Set(s); if (n.has(f.id)) n.delete(f.id); else n.add(f.id); return n })}
-                            className={`border border-[#d1d5db] dark:border-[#4b5563] lowercase ${wl.has(f.id) ? 'bg-muted font-bold' : ''}`}
+                            className={`border border-[#d6d1c6] dark:border-[#4b5563] lowercase ${wl.has(f.id) ? 'bg-muted font-bold' : ''}`}
                             style={{ margin: '0 0 0 -1px', height: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', background: wl.has(f.id) ? undefined : 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 'inherit' }}>
                             {wl.has(f.id) ? '✓ ' : ''}{f.nazwa}
                         </button>

@@ -33,7 +33,7 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
         }
     }
     const zakladka = (id: 'lista' | 'os', tekst: string) => (
-        <Link href={id === 'os' ? '/tematy?widok=os' : '/tematy'} className={`border border-[#d1d5db] dark:border-[#4b5563] lowercase !no-underline text-current ${widok === id ? 'bg-muted font-bold' : ''}`}
+        <Link href={id === 'os' ? '/tematy?widok=os' : '/tematy'} className={`border border-[#d6d1c6] dark:border-[#4b5563] lowercase !no-underline text-current ${widok === id ? 'bg-muted font-bold' : ''}`}
             style={{ margin: '0 0 0 -1px', height: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', display: 'inline-flex', alignItems: 'center', fontSize: 'calc(14px * var(--font-scale, 1))' }}>{tekst}</Link>
     )
 
@@ -47,9 +47,9 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
 
             {widok === 'lista' && lista.length > 0 && (
                 <Sekcja tytul="wszystkie tematy">
-                    <ul className="flex flex-col border-t border-[#e5e7eb] dark:border-[#374151]">
+                    <ul className="flex flex-col border-t border-[#e7e2d8] dark:border-[#374151]">
                         {lista.map((t) => (
-                            <li key={t.id} className="flex flex-col gap-1 py-3 border-b border-[#e5e7eb] dark:border-[#374151]">
+                            <li key={t.id} className="flex flex-col gap-1 py-3 border-b border-[#e7e2d8] dark:border-[#374151]">
                                 <div className="flex flex-wrap items-baseline gap-x-3">
                                     <Link href={`/tematy/${t.id}`} className="font-bold" style={{ fontSize: 'calc(17px * var(--font-scale, 1))' }}>{t.nazwa}</Link>
                                     <span className="text-gray-500" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>
@@ -67,7 +67,7 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
                 <>
                     <Kreski />
                     <Sekcja tytul="w skrócie – oś czasu" id="os-czasu">
-                        <ol className="border-l-2 border-[#d1d5db] dark:border-[#4b5563] ml-1">
+                        <ol className="border-l-2 border-[#d6d1c6] dark:border-[#4b5563] ml-1">
                             {os.map((t) => (
                                 <li key={t.id} className="flex flex-wrap gap-x-4 py-1 pl-4" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
                                     <span className="font-bold" style={{ minWidth: '7rem' }}>{formatujEdtf(t.czas)}</span>

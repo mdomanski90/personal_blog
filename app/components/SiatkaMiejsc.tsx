@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
 
-const RAMKA = 'border-[#d1d5db] dark:border-[#4b5563]'
+const RAMKA = 'border-[#d6d1c6] dark:border-[#4b5563]'
 // Komórki wchodzą 1px pod zaokrągloną ramkę, więc ich kreski na brzegach się chowają.
 const KOMORKA: React.CSSProperties = { margin: '0 -1px -1px 0' }
 const ODNOSNIK: React.CSSProperties = { fontSize: 'calc(15px * var(--font-scale, 1))' }

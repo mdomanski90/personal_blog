@@ -5,7 +5,7 @@ export default function PowrotDoMapy() {
     return (
         <Link
             href="/miejsca"
-            className="border border-[#d1d5db] dark:border-[#4b5563] lowercase whitespace-nowrap !no-underline text-current hover:bg-muted transition-colors inline-flex items-center"
+            className="border border-[#d6d1c6] dark:border-[#4b5563] lowercase whitespace-nowrap !no-underline text-current hover:bg-muted transition-colors inline-flex items-center"
             style={{ fontSize: 'calc(14px * var(--font-scale, 1))', minHeight: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', borderRadius: '7px' }}
         >
             ← mapa

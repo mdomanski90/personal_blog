@@ -63,7 +63,7 @@ export default function Plany() {
         wczytaj()
     }
     const czekaZg = [...zgP, ...zgS].filter((z) => !z.stan || z.stan === 'nowe' || z.stan === 'odlozone').length
-    const pole: React.CSSProperties = { font: 'inherit', fontSize: 14, height: 30, padding: '0 8px', border: '1px solid #d1d5db', borderRadius: 7, background: 'transparent', color: 'inherit' }
+    const pole: React.CSSProperties = { font: 'inherit', fontSize: 14, height: 30, padding: '0 8px', border: '1px solid #d6d1c6', borderRadius: 7, background: 'transparent', color: 'inherit' }
     const btn: React.CSSProperties = { ...pole, cursor: 'pointer', background: 'var(--muted, #f2f0eb)' }
     return (
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '28px 20px 60px', fontFamily: 'var(--font-jetbrains), monospace', display: 'flex', flexDirection: 'column', gap: 18, fontSize: 14 }}>
@@ -73,11 +73,11 @@ export default function Plany() {
             </div>
             {msg && <p style={{ margin: 0, padding: '8px 10px', borderRadius: 7, background: '#fef3c7', color: '#78350f' }}>{msg}</p>}
             <section style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {dane?.plany.length === 0 && <p style={{ color: '#6b7280', margin: 0 }}>Nie ma jeszcze planów.</p>}
+                {dane?.plany.length === 0 && <p style={{ color: '#6b665c', margin: 0 }}>Nie ma jeszcze planów.</p>}
                 {dane?.plany.map((p) => (
-                    <div key={p.slug} style={{ display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap', borderBottom: '1px solid #e5e7eb', padding: '6px 0' }}>
+                    <div key={p.slug} style={{ display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap', borderBottom: '1px solid #e7e2d8', padding: '6px 0' }}>
                         <a href={`/keystatic/plany/${p.slug}`} style={{ fontWeight: 700 }}>{p.tytul}</a>
-                        <span style={{ color: '#6b7280', fontSize: 12 }}>{WID[p.widocznosc] ?? p.widocznosc} · {p.elementow} elementów · zmieniono {new Date(p.zmieniono).toLocaleString('pl-PL')}</span>
+                        <span style={{ color: '#6b665c', fontSize: 12 }}>{WID[p.widocznosc] ?? p.widocznosc} · {p.elementow} elementów · zmieniono {new Date(p.zmieniono).toLocaleString('pl-PL')}</span>
                         <span style={{ flex: 1 }} />
                         {p.widocznosc !== 'ja' && <a href={`/plany/${p.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>na stronie ↗</a>}
                         <button onClick={() => usunPlan(p)} style={{ ...btn, height: 26, fontSize: 12, background: 'none' }}>do kosza</button>
@@ -89,7 +89,7 @@ export default function Plany() {
                 <input required value={tytul} onChange={(e) => ustawTytul(e.target.value)} placeholder="tytuł, np. cmentarz w Mszannie" style={{ ...pole, flex: '1 1 260px' }} />
                 <select value={miejsce} onChange={(e) => ustawMiejsce(e.target.value)} style={pole}><option value="">miejscowość…</option>{dane?.miejsca.map((m) => <option key={m.id} value={m.id}>{m.nazwa}</option>)}</select>
                 <button type="submit" style={btn}>utwórz</button>
-                {tytul && <span style={{ color: '#6b7280', fontSize: 12, width: '100%' }}>adres: /plany/{slugify(tytul)}</span>}
+                {tytul && <span style={{ color: '#6b665c', fontSize: 12, width: '100%' }}>adres: /plany/{slugify(tytul)}</span>}
             </form>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                 <b style={{ width: '100%' }}>import pliku planu</b>

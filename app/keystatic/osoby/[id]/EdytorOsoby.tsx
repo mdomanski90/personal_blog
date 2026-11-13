@@ -19,9 +19,9 @@ type Dane = {
 }
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
-const sek: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #e5e7eb', paddingTop: 14 }
-const maly: React.CSSProperties = { color: '#6b7280', fontSize: 12 }
-const kolorPlci = (p?: string) => (p === 'K' ? '#f1d9e2' : p === 'M' ? '#d5e3f3' : '#e5e7eb')
+const sek: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #e7e2d8', paddingTop: 14 }
+const maly: React.CSSProperties = { color: '#6b665c', fontSize: 12 }
+const kolorPlci = (p?: string) => (p === 'K' ? '#f1d9e2' : p === 'M' ? '#d5e3f3' : '#e7e2d8')
 
 function LinkOsoby({ o }: { o: Skrot | null | undefined }) {
     if (!o) return <span style={maly}>—</span>
@@ -41,7 +41,7 @@ function WyborOsoby({ wszystkie, bez, onWybor, onNowa, etykieta }: { wszystkie: 
     if (!otwarte) return <button onClick={() => ustawOtwarte(true)} style={{ ...btn, height: 26, fontSize: 12, alignSelf: 'flex-start' }}>+ {etykieta}</button>
     const czesci = q.trim().split(/\s+/)
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, border: '1px solid #e5e7eb', borderRadius: 8, padding: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, border: '1px solid #e7e2d8', borderRadius: 8, padding: 8 }}>
             <div style={{ display: 'flex', gap: 6 }}>
                 <input autoFocus value={q} onChange={(e) => ustawQ(e.target.value)} placeholder={`${etykieta}: wpisz imię i nazwisko`} style={{ ...pole, flex: 1 }} />
                 <button onClick={() => { ustawOtwarte(false); ustawQ('') }} style={{ ...btn, height: 30 }} aria-label="zamknij">×</button>
@@ -68,7 +68,7 @@ function EdycjaZdarzenia({ z, zmien, usun, miejsca, zParafii, wszystkie, osoby, 
     }
     const ob = z.obrzadek ? OBRZADKI[z.obrzadek] : null
     return (
-        <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ border: '1px solid #e7e2d8', borderRadius: 8, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap', cursor: 'pointer' }} onClick={() => ustawRozwin((x) => !x)}>
                 <b>{z.rodzaj === 'inne' ? z.nazwa || 'zdarzenie' : RODZAJE_ZDARZEN[z.rodzaj]}</b>
                 <span>{z.data ? formatujEdtf(z.data) : z.dataTekst ?? ''}</span>
@@ -83,8 +83,8 @@ function EdycjaZdarzenia({ z, zmien, usun, miejsca, zParafii, wszystkie, osoby, 
                         <select value={z.rodzaj} onChange={(e) => zmien({ ...z, rodzaj: e.target.value as RodzajZdarzenia })} style={pole}>{rodzajeDozwolone.map((r) => <option key={r} value={r}>{RODZAJE_ZDARZEN[r]}</option>)}</select></label>
                     {(z.rodzaj === 'inne' || z.nazwa) && <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>nazwa</span><input value={z.nazwa ?? ''} onChange={(e) => zmien({ ...z, nazwa: e.target.value || undefined })} style={pole} /></label>}
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>data (np. 1862-03-05, 1862, 1862~, ../1900)</span>
-                        <input value={z.data ?? ''} onChange={(e) => zmien({ ...z, data: e.target.value.trim() || undefined, ...(e.target.value ? { dataTekst: undefined } : {}) })} style={{ ...pole, borderColor: dataOk ? '#d1d5db' : '#dc2626' }} placeholder={z.dataTekst ? `z Ancestry: ${z.dataTekst}` : ''} />
-                        <span style={{ ...maly, color: dataOk ? '#6b7280' : '#dc2626' }}>{z.data ? (dataOk ? formatujEdtf(z.data) : 'nieczytelna data') : z.dataTekst ? `w Ancestry: „${z.dataTekst}”` : ''}</span></label>
+                        <input value={z.data ?? ''} onChange={(e) => zmien({ ...z, data: e.target.value.trim() || undefined, ...(e.target.value ? { dataTekst: undefined } : {}) })} style={{ ...pole, borderColor: dataOk ? '#d6d1c6' : '#dc2626' }} placeholder={z.dataTekst ? `z Ancestry: ${z.dataTekst}` : ''} />
+                        <span style={{ ...maly, color: dataOk ? '#6b665c' : '#dc2626' }}>{z.data ? (dataOk ? formatujEdtf(z.data) : 'nieczytelna data') : z.dataTekst ? `w Ancestry: „${z.dataTekst}”` : ''}</span></label>
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>miejsce {z.miejsceId && '· połączone z miejscowością'}</span>
                         <input list="miejsca-strony" value={z.miejsce ?? ''} onChange={(e) => zmienMiejsce(e.target.value)} style={pole} /></label>
                     {ZDARZENIA_Z_OBRZADKIEM.includes(z.rodzaj) && (
@@ -131,7 +131,7 @@ function Cytat({ c, zrodla, usun }: { c: NonNullable<Zdarzenie['cytaty']>[number
             <span>{z?.tytul ?? 'źródło'}{c.strona && ` – ${c.strona}`}</span>
             {a && <a href={a} target="_blank" rel="noreferrer">rekord w Ancestry ↗</a>}
             {c.www && <a href={c.www} target="_blank" rel="noreferrer">link ↗</a>}
-            <button onClick={usun} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }} aria-label="usuń źródło">×</button>
+            <button onClick={usun} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#a39d91' }} aria-label="usuń źródło">×</button>
         </span>
     )
 }
@@ -192,14 +192,14 @@ export default function EdytorOsoby({ id }: { id: string }) {
     return (
         <div style={{ maxWidth: 960, margin: '0 auto', padding: '20px 20px 80px', fontFamily: 'var(--font-jetbrains), monospace', display: 'flex', flexDirection: 'column', gap: 16, fontSize: 14 }}>
             <datalist id="miejsca-strony">{miejsca.map((m) => <option key={m.id} value={m.nazwa} />)}</datalist>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap', position: 'sticky', top: 0, background: 'var(--background, #fbfaf7)', padding: '8px 0', zIndex: 2, borderBottom: '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap', position: 'sticky', top: 0, background: 'var(--background, #fbfaf7)', padding: '8px 0', zIndex: 2, borderBottom: '1px solid #e7e2d8' }}>
                 <a href="/keystatic/osoby">← osoby</a>
                 <h1 style={{ fontSize: 20, margin: 0 }}>{`${o.imiona} ${o.nazwisko}`.trim() || 'bez imienia'}</h1>
                 <span style={maly}>{zyje ? 'żyjąca' : 'nie żyje'}</span>
                 <span style={{ flex: 1 }} />
                 {msg && <span style={{ fontSize: 12, color: msg === 'zapisano' ? '#15803d' : '#b45309' }}>{msg}</span>}
                 <a href={`/osoby/${id}`} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>na stronie ↗</a>
-                <button onClick={zapisz} disabled={!brudne} style={{ ...btn, background: brudne ? '#1f2937' : undefined, color: brudne ? '#fff' : undefined }}>{brudne ? 'zapisz (Ctrl+S)' : 'zapisane'}</button>
+                <button onClick={zapisz} disabled={!brudne} style={{ ...btn, background: brudne ? '#262420' : undefined, color: brudne ? '#fff' : undefined }}>{brudne ? 'zapisz (Ctrl+S)' : 'zapisane'}</button>
             </div>
 
             {dane.ostrzezenia.length > 0 && (
@@ -252,7 +252,7 @@ export default function EdytorOsoby({ id }: { id: string }) {
                 {dane.malzenstwa.map((m) => {
                     const slub = m.rodzina.zdarzenia
                     return (
-                        <div key={m.rodzina.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div key={m.rodzina.id} style={{ border: '1px solid #e7e2d8', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
                                 <span style={maly}>{o.plec === 'K' ? 'mąż' : o.plec === 'M' ? 'żona' : 'małżonek'}</span><LinkOsoby o={m.malzonek} />
                                 {!m.malzonek && <WyborOsoby wszystkie={wszyscyBezMnie} bez={[id]} etykieta="małżonek" onWybor={(x) => relacja({ akcja: 'polacz', osoba: x, z: id, jako: 'malzonek' })} onNowa={(i, n) => nowaWRodzinie(i, n, 'malzonek', m.rodzina.id, o.plec === 'K' ? 'M' : o.plec === 'M' ? 'K' : 'U')} />}
@@ -298,7 +298,7 @@ export default function EdytorOsoby({ id }: { id: string }) {
                         <details key={i} style={{ fontSize: 13 }}>
                             <summary>{m.tytul} <span style={maly}>{[m.data, m.miejsce].filter(Boolean).join(' · ')}</span></summary>
                             {m.opis && <p style={{ margin: '4px 0' }}>{m.opis}</p>}
-                            {m.transkrypcja && <p style={{ margin: '4px 0', whiteSpace: 'pre-wrap', color: '#374151' }}>{m.transkrypcja}</p>}
+                            {m.transkrypcja && <p style={{ margin: '4px 0', whiteSpace: 'pre-wrap', color: '#3b3731' }}>{m.transkrypcja}</p>}
                             <button onClick={() => zmien({ multimedia: o.multimedia!.filter((_, j) => j !== i) })} style={{ ...btn, height: 24, fontSize: 11 }}>pobrane do archiwum – usuń z listy</button>
                         </details>
                     ))}

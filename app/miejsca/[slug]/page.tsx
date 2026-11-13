@@ -134,7 +134,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                             const l = liczniki.get(w.id), ob = wszystkieObiekty.filter((o) => o.miejsce === w.id).length
                             const meta = [l?.opowiesci ? `${l.opowiesci} ${l.opowiesci === 1 ? 'wpis' : l.opowiesci < 5 ? 'wpisy' : 'wpisów'}` : '', ob ? `${ob} ${ob === 1 ? 'obiekt' : ob < 5 ? 'obiekty' : 'obiektów'}` : ''].filter(Boolean).join(' · ')
                             return (
-                                <div key={w.id} className="flex justify-between border-b border-[#e5e7eb] dark:border-[#374151] py-2" style={{ gap: 8, fontSize: 'calc(15px * var(--font-scale, 1))' }}>
+                                <div key={w.id} className="flex justify-between border-b border-[#e7e2d8] dark:border-[#374151] py-2" style={{ gap: 8, fontSize: 'calc(15px * var(--font-scale, 1))' }}>
                                     <Link href={`/miejsca/${w.id}`}>{w.nazwa}</Link>
                                     <span className="text-gray-500" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>{meta || '—'}</span>
                                 </div>
@@ -197,7 +197,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
 
             {zData.length > 0 && (
                 <Sekcja tytul="oś czasu">
-                    <ol className="border-l-2 border-[#d1d5db] dark:border-[#4b5563] ml-1">
+                    <ol className="border-l-2 border-[#d6d1c6] dark:border-[#4b5563] ml-1">
                         {zData.map((t) => (
                             <li key={t.id} className="flex flex-wrap gap-x-4 py-1 pl-4" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
                                 <span className="font-bold" style={{ minWidth: '7rem' }}>{formatujEdtf(t.czas)}</span>
@@ -245,7 +245,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
             {(siec.odnosniki.length > 0 || siec.wzmianki.length > 0) && <Kreski />}
             <Powiazania dane={siec} />
 
-            <div className="border-t border-[#e5e7eb] dark:border-[#374151] flex flex-wrap items-center" style={{ paddingTop: '1rem', gap: '0.6rem 1rem' }}>
+            <div className="border-t border-[#e7e2d8] dark:border-[#374151] flex flex-wrap items-center" style={{ paddingTop: '1rem', gap: '0.6rem 1rem' }}>
                 <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>Coś się nie zgadza albo wiesz więcej o tym miejscu?</span>
                 <Zgloszenie rodzaj="poprawka" adres={`/miejsca/${m.id}`} tytul={m.nazwa} />
             </div>

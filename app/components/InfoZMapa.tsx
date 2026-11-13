@@ -5,7 +5,7 @@
 
 import * as React from 'react'
 
-const przycisk = 'border border-[#d1d5db] dark:border-[#4b5563] bg-white dark:bg-[#111827] text-current rounded-[7px]'
+const przycisk = 'border border-[#d6d1c6] dark:border-[#4b5563] bg-[#fdfcf9] dark:bg-[#111827] text-current rounded-[7px]'
 const KLUCZ = 'mapa-rozszerzona'
 
 export default function InfoZMapa({ info, mapa, wysokosc = 320 }: { info: React.ReactNode; mapa: React.ReactNode; wysokosc?: number }) {

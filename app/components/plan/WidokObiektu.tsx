@@ -10,7 +10,7 @@ import type { OsobaNaPlanie } from '@/lib/plany/rodzina'
 import PlanInteraktywny from './PlanInteraktywny'
 import ListaPochowanych from './ListaPochowanych'
 
-const przycisk = 'border border-[#d1d5db] dark:border-[#4b5563] bg-white dark:bg-[#111827] text-current rounded-[7px]'
+const przycisk = 'border border-[#d6d1c6] dark:border-[#4b5563] bg-[#fdfcf9] dark:bg-[#111827] text-current rounded-[7px]'
 type Zakladka = 'plan' | 'lista' | 'mapa'
 
 export default function WidokObiektu({ info, plan, ustawienia, zalogowany, mapa, osoby }: {

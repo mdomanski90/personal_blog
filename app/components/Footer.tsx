@@ -56,7 +56,7 @@ export default function Footer() {
         <footer>
             <div aria-hidden="true" className="whitespace-nowrap overflow-hidden opacity-50">------------------------------------------------------------------------------------------------------------------------</div>
             <MiejscaStopki />
-            <div className="flex items-center border border-[#d1d5db] dark:border-[#4b5563] w-fit">
+            <div className="flex items-center border border-[#d6d1c6] dark:border-[#4b5563] w-fit">
                 <div
                     style={linkStyle}
                     className="bg-muted text-current whitespace-nowrap font-semibold"
@@ -68,7 +68,7 @@ export default function Footer() {
                     target="_blank"
                     rel="noopener noreferrer"
                     style={linkStyle}
-                    className="text-current whitespace-nowrap !no-underline border-l border-[#d1d5db] dark:border-[#4b5563] hover:opacity-80 transition-opacity"
+                    className="text-current whitespace-nowrap !no-underline border-l border-[#d6d1c6] dark:border-[#4b5563] hover:opacity-80 transition-opacity"
                 >
                     github
                 </a>
@@ -77,7 +77,7 @@ export default function Footer() {
                     target="_blank"
                     rel="noopener noreferrer"
                     style={linkStyle}
-                    className="text-current whitespace-nowrap !no-underline border-l border-[#d1d5db] dark:border-[#4b5563] hover:opacity-80 transition-opacity"
+                    className="text-current whitespace-nowrap !no-underline border-l border-[#d6d1c6] dark:border-[#4b5563] hover:opacity-80 transition-opacity"
                 >
                     fediverse
                 </a>

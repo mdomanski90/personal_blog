@@ -7,7 +7,7 @@ const FONT_SIZES = [14, 16, 18, 20, 22]
 const DEFAULT_SIZE = 18
 const ZDARZENIE = 'odp:rozmiar-czcionki'
 
-const RAMKA = 'border-[#d1d5db] dark:border-[#4b5563]'
+const RAMKA = 'border-[#d6d1c6] dark:border-[#4b5563]'
 
 // Ten sam wygląd co menu i wyszukiwarka: obramowane segmenty, czcionka strony.
 // Kolory, tło i obramowanie w klasach (styl wpisany w element miałby pierwszeństwo przed hover/disabled).

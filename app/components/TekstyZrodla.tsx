@@ -14,7 +14,7 @@ export default function TekstyZrodla({ transkrypcja, tlumaczenie, oryginal }: { 
                 <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1 }}>
                     {opcje.map((o) => (
                         <button key={o} type="button" onClick={() => ustawWidok(o)} aria-pressed={widok === o}
-                            className={`border border-[#d1d5db] dark:border-[#4b5563] lowercase ${widok === o ? 'bg-muted font-bold' : ''}`}
+                            className={`border border-[#d6d1c6] dark:border-[#4b5563] lowercase ${widok === o ? 'bg-muted font-bold' : ''}`}
                             style={{ margin: '0 0 0 -1px', height: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', fontSize: 'calc(14px * var(--font-scale, 1))', background: widok === o ? undefined : 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit' }}>{o}</button>
                     ))}
                 </div>

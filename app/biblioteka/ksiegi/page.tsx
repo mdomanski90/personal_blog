@@ -58,11 +58,11 @@ export default async function KsiegiMetrykalne({ searchParams }: Parametry) {
                     <form action="/biblioteka/ksiegi" method="get" className="flex flex-wrap items-center" style={{ gap: 10, fontSize: 'calc(14px * var(--font-scale, 1))' }}>
                         {wyznanie && <input type="hidden" name="wyznanie" value={wyznanie} />}
                         <label htmlFor="ks-miejsce" className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>miejscowość:</label>
-                        <select id="ks-miejsce" name="miejsce" defaultValue={miejsce ?? ''} className="border border-[#d1d5db] dark:border-[#4b5563] bg-transparent text-current" style={{ height: 28, borderRadius: 7, padding: '0 8px', fontSize: 'inherit' }}>
+                        <select id="ks-miejsce" name="miejsce" defaultValue={miejsce ?? ''} className="border border-[#d6d1c6] dark:border-[#4b5563] bg-transparent text-current" style={{ height: 28, borderRadius: 7, padding: '0 8px', fontSize: 'inherit' }}>
                             <option value="">wszystkie</option>
                             {miejscaZParafiami.map((m) => <option key={m.id} value={m.id}>{m.nazwa}</option>)}
                         </select>
-                        <button type="submit" className="border border-[#d1d5db] dark:border-[#4b5563]" style={{ height: 28, borderRadius: 7, padding: '0 10px', fontSize: 'inherit' }}>pokaż</button>
+                        <button type="submit" className="border border-[#d6d1c6] dark:border-[#4b5563]" style={{ height: 28, borderRadius: 7, padding: '0 10px', fontSize: 'inherit' }}>pokaż</button>
                     </form>
                 )}
             </div>

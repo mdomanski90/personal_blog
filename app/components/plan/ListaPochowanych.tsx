@@ -11,7 +11,7 @@ import PoleSzukania from '../PoleSzukania'
 import { numerKrotki } from './PlanInteraktywny'
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
-const pole = 'border border-[#d1d5db] dark:border-[#4b5563] bg-transparent text-current rounded-[7px]'
+const pole = 'border border-[#d6d1c6] dark:border-[#4b5563] bg-transparent text-current rounded-[7px]'
 
 interface Wiersz { klucz: string; el: Element; nazwisko: string; imie: string; lata: string; zm: number | null; razem: string[]; idOsoby?: string; zNapisu: boolean }
 
@@ -101,7 +101,7 @@ export default function ListaPochowanych({ plan, ustawienia, osoby, naPlanie }: 
                     {litery.map((l) => <button key={l} type="button" onClick={() => ustawLitere(litera === l ? '' : l)} aria-pressed={litera === l} className="lista-litera">{l}</button>)}
                 </nav>
             )}
-            <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: 8 }} className="lista-pochowanych">
+            <div style={{ overflowX: 'auto', border: '1px solid #e7e2d8', borderRadius: 8 }} className="lista-pochowanych">
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
                     <thead><tr><th>nazwisko i imię</th><th>lata</th><th>grób</th><th>razem w grobie</th><th>zdjęcie</th><th>drzewo</th><th><span className="sr-only">plan</span></th></tr></thead>
                     <tbody>

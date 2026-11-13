@@ -6,7 +6,7 @@ import type { PlanNaMapie } from '@/lib/plany/serwer'
 
 const MapaMiejsc = dynamic(() => import('./MapaMiejsc'), {
     ssr: false,
-    loading: () => <div className="border border-[#d1d5db] dark:border-[#4b5563] bg-muted" style={{ height: '100%', minHeight: 300, borderRadius: 8 }} />,
+    loading: () => <div className="border border-[#d6d1c6] dark:border-[#4b5563] bg-muted" style={{ height: '100%', minHeight: 300, borderRadius: 8 }} />,
 })
 
 /** Mapa ładowana dopiero w przeglądarce (MapLibre nie działa po stronie serwera). */

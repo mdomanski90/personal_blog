@@ -14,7 +14,7 @@ import PoleSzukania from '../PoleSzukania'
 
 type VB = [number, number, number, number]
 
-const przycisk = 'border border-[#d1d5db] dark:border-[#4b5563] bg-white dark:bg-[#111827] text-current'
+const przycisk = 'border border-[#d6d1c6] dark:border-[#4b5563] bg-[#fdfcf9] dark:bg-[#111827] text-current'
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
 export const numerTekst = (n?: Numer) => (n ? `${n.kwatera ? `kwatera ${n.kwatera} · ` : ''}rząd ${n.rzad} · miejsce ${n.miejsce}` : '')
 export const numerKrotki = (n?: Numer) => (n ? `${n.kwatera ? n.kwatera + '/' : ''}${n.rzad}/${n.miejsce}` : '')
@@ -314,7 +314,7 @@ function Legenda({ uzyte, prefix, wylaczone, przelacz, wszystkie, rodzina }: { u
         <div className="flex flex-col" style={{ gap: 6 }}>
             <div className="flex items-baseline" style={{ gap: 12 }}>
                 <span className="text-gray-500 uppercase" style={{ fontSize: 11, letterSpacing: '0.08em' }}>legenda</span>
-                {wylaczone.size > 0 && <button type="button" onClick={wszystkie} className="plan-bez-druku text-blue-700 dark:text-blue-400" style={{ fontSize: 12, background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>pokaż wszystko</button>}
+                {wylaczone.size > 0 && <button type="button" onClick={wszystkie} className="plan-bez-druku text-[#1d4ed8] dark:text-[#7aa2ff]" style={{ fontSize: 12, background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>pokaż wszystko</button>}
                 <span className="plan-bez-druku text-gray-500" style={{ fontSize: 11 }}>kliknij, żeby ukryć albo pokazać</span>
             </div>
             <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(13rem, 1fr))', gap: '4px 16px' }}>
@@ -395,7 +395,7 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
     const grob = typGrobu(typ)
     const naglowek = numer ? numerTekst(numer) : typ?.nazwa
     const ileGrobowRodziny = rodzinaIle.krewni.filter((k) => k.grob).length
-    const pole: React.CSSProperties = { font: 'inherit', fontSize: 13, padding: '6px 8px', borderRadius: 7, border: '1px solid #d1d5db', background: 'transparent', color: 'inherit' }
+    const pole: React.CSSProperties = { font: 'inherit', fontSize: 13, padding: '6px 8px', borderRadius: 7, border: '1px solid #d6d1c6', background: 'transparent', color: 'inherit' }
 
     return (
         <aside className="plan-karta plan-bez-druku" aria-label={grob ? 'karta grobu' : 'opis elementu'}>
@@ -470,7 +470,7 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
                     </>
                 )}
                 {grob && (
-                    <div className="flex flex-col" style={{ gap: 6, borderTop: '1px solid #e5e7eb', paddingTop: 10, marginTop: 2 }}>
+                    <div className="flex flex-col" style={{ gap: 6, borderTop: '1px solid #e7e2d8', paddingTop: 10, marginTop: 2 }}>
                         {stanWysylki === 'wyslana' && <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 13 }}>Dziękuję – wiadomość trafiła do autora strony.</span>}
                         {stanWysylki === 'blad' && <span style={{ fontSize: 13, color: '#b91c1c' }}>Nie udało się wysłać. Spróbuj za chwilę.</span>}
                         {forma === null && <>
@@ -484,7 +484,7 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
                                 <input value={kontakt} onChange={(e) => ustawKontakt(e.target.value)} maxLength={200} placeholder="kontakt do Ciebie (nieobowiązkowy, nie będzie pokazany)" style={pole} />
                                 <div className="flex" style={{ gap: 8 }}>
                                     <button type="button" onClick={wyslij} disabled={tresc.trim().length < 3} className={`${przycisk} rounded-[7px]`} style={{ height: 28, padding: '0 10px', fontSize: 13 }}>wyślij</button>
-                                    <button type="button" onClick={() => ustawForme(null)} className="border border-[#d1d5db] dark:border-[#4b5563] rounded-[7px] text-current" style={{ height: 28, padding: '0 10px', fontSize: 13, background: 'transparent', cursor: 'pointer' }}>anuluj</button>
+                                    <button type="button" onClick={() => ustawForme(null)} className="border border-[#d6d1c6] dark:border-[#4b5563] rounded-[7px] text-current" style={{ height: 28, padding: '0 10px', fontSize: 13, background: 'transparent', cursor: 'pointer' }}>anuluj</button>
                                 </div>
                             </div>
                         )}

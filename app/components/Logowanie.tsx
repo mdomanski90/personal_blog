@@ -15,7 +15,7 @@ const styl = {
     alignItems: 'center',
     borderRadius: '7px',
 }
-const KLASY = 'border border-[#d1d5db] dark:border-[#4b5563] lowercase whitespace-nowrap !no-underline text-current hover:bg-muted transition-colors bg-transparent cursor-pointer'
+const KLASY = 'border border-[#d6d1c6] dark:border-[#4b5563] lowercase whitespace-nowrap !no-underline text-current hover:bg-muted transition-colors bg-transparent cursor-pointer'
 
 export default function Logowanie() {
     const sciezka = usePathname() ?? '/'
