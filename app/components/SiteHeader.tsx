@@ -37,6 +37,17 @@ function aktywny(pathname: string | null, href: string) {
 
 const RAMKA = 'border-[#d1d5db] dark:border-[#4b5563]'
 
+// Dwie rzeki – Toczna i Liwiec – dwie spokojne fale tą samą kreską co emblemat (currentColor).
+// Płyną obok siebie, nie łączą się (obie uchodzą osobno do Bugu).
+function Fale() {
+    return (
+        <svg width="46" height="12" viewBox="0 0 46 12" aria-hidden="true" focusable="false">
+            <path d="M1 3.6c3.6-2.4 7.2-2.4 10.8 0s7.2 2.4 10.8 0 7.2-2.4 10.8 0 7.2 2.4 10.8 0" />
+            <path d="M5 9.2c3.1-2 6.2-2 9.3 0s6.2 2 9.3 0 6.2-2 9.3 0 4.7 1.6 7.8.6" opacity=".55" />
+        </svg>
+    )
+}
+
 function Wyszukiwarka() {
     const params = useSearchParams()
     return (
@@ -72,17 +83,21 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
         <header>
             <div className="flex items-center justify-between" style={{ gap: '0.5rem 1rem' }}>
                 <div className="min-w-0 flex items-end" style={{ gap: '14px' }}>
-                    <Link href="/" className="!no-underline text-current shrink-0" aria-label="odniepamieci.pl – strona główna" style={{ marginTop: '0.6rem' }}>
-                        <Emblemat rozmiar={64} />
+                    <Link href="/" className="!no-underline text-current shrink-0 naglowek-emblemat" aria-label="odniepamieci.pl – strona główna">
+                        <Emblemat rozmiar={100} />
                     </Link>
                     <div className="min-w-0">
                     <Link href="/" className="!no-underline text-current">
-                        <span className="block font-bold whitespace-nowrap" style={{ fontSize: 'clamp(1.5rem, 8vw, 2rem)', lineHeight: 1, marginTop: '1.34rem' }}>
+                        <span className="block font-bold whitespace-nowrap" style={{ fontSize: 'clamp(1.5rem, 8vw, 2rem)', lineHeight: 1 }}>
                             odniepamieci.pl
                         </span>
                     </Link>
                     <p className="lowercase" style={{ fontSize: '16px', lineHeight: 1.2, marginTop: '7px' }}>
                         społeczne archiwum pamięci lokalnej
+                    </p>
+                    <p className="naglowek-rzeki">
+                        <Fale />
+                        <span>opowieści znad Tocznej i Liwca</span>
                     </p>
                     </div>
                 </div>
@@ -93,7 +108,7 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
                 </div>
             </div>
 
-            <nav aria-label="menu główne" style={{ marginTop: '2rem' }}>
+            <nav aria-label="menu główne" style={{ marginTop: '1.6rem' }}>
                 {/* telefon: jeden przycisk z nazwą bieżącego działu, po kliknięciu pełna lista */}
                 <div className="sm:hidden flex items-center justify-between gap-2" style={{ marginBottom: otwarte ? 6 : 0 }}>
                 <button

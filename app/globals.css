@@ -598,3 +598,14 @@ header .emblemat { height: clamp(44px, 12vw, 64px); width: auto; display: block;
 .galeria-miniatura{display:block;padding:0;border:0;background:none;cursor:zoom-in;border-radius:6px;overflow:hidden;aspect-ratio:4/3}
 .galeria-miniatura img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .2s}
 .galeria-miniatura:hover img{transform:scale(1.03)}
+.naglowek-rzeki{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px;line-height:1.2;opacity:.72}
+.naglowek-rzeki svg{flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.15;stroke-linecap:round}
+.stopka-miejsca{font-size:calc(13px * var(--font-scale, 1));line-height:1.85;display:flex;flex-direction:column;gap:6px;padding-top:.9rem;margin-bottom:1rem}
+.stopka-miejsca p{margin:0}
+.stopka-miejsca .kropka{opacity:.45;padding-left:.45em}
+.stopka-miejsca a{color:inherit;text-decoration:none;border-bottom:1px dotted rgba(127,127,127,.55)}
+.stopka-miejsca a:hover{border-bottom-style:solid}
+.stopka-miejsca .bez-strony{opacity:.6}
+.stopka-miejsca .miasto{font-weight:700}
+.naglowek-emblemat svg{display:block;height:100px;width:auto}
+@media (max-width:640px){.naglowek-emblemat svg{height:72px}}
