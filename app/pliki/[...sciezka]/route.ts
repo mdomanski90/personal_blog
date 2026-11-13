@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
-import { material, poziomCzytelnika } from '@/lib/archiwum'
+import sharp from 'sharp'
+import { material, obiekt, poziomCzytelnika } from '@/lib/archiwum'
 import { ADRES_PLIKOW, KATALOG_PLIKOW, mimePliku } from '@/lib/pliki'
 
 // Pliki materiałów: /pliki/<materiał>/<plik>. Wydawane tylko, gdy czytelnik widzi materiał
@@ -13,6 +14,7 @@ const nieMa = () => new Response('Nie znaleziono', { status: 404, headers: { 'Co
 
 export async function GET(req: Request, { params }: { params: Promise<{ sciezka: string[] }> }) {
     const { sciezka } = await params
+    if (sciezka[0] === 'obiekty') return zdjecieObiektu(req, sciezka)
     if (sciezka.length !== 2) return nieMa()
     const [id, nazwa] = sciezka
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) || !/^[\w-]+(\.[\w-]+)*$/.test(nazwa)) return nieMa()
@@ -59,4 +61,27 @@ export async function GET(req: Request, { params }: { params: Promise<{ sciezka:
     }
     const strumien = Readable.toWeb(fs.createReadStream(plik)) as ReadableStream
     return new Response(strumien, { headers: { ...naglowki, 'Content-Length': String(rozmiar) } })
+}
+
+/** Fotografie obiektów: /pliki/obiekty/<obiekt>/…; ?w=480|1200|1800 – pomniejszona kopia WebP (bez danych EXIF/GPS). */
+async function zdjecieObiektu(req: Request, sciezka: string[]): Promise<Response> {
+    if (sciezka.length < 3 || !sciezka.every((x) => /^[\w-]+(\.[\w-]+)*$/.test(x))) return nieMa()
+    const o = await obiekt(sciezka[1], await poziomCzytelnika())
+    const adres = `${ADRES_PLIKOW}${sciezka.join('/')}`
+    if (!o || !o.zdjecia.some((z) => z.plik === adres)) return nieMa()
+    const katalog = path.resolve(/*turbopackIgnore: true*/ process.cwd(), KATALOG_PLIKOW)
+    const plik = path.resolve(/*turbopackIgnore: true*/ katalog, ...sciezka)
+    if (!plik.startsWith(katalog + path.sep)) return nieMa()
+    const publiczny = o.widocznosc === 'publiczne'
+    const cache = publiczny ? 'public, max-age=86400' : 'private, no-store'
+    const w = Number(new URL(req.url).searchParams.get('w'))
+    try {
+        if ([480, 1200, 1800].includes(w)) {
+            const bufor = await sharp(plik).rotate().resize({ width: w, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer()
+            return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': 'image/webp', 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' } })
+        }
+        // oryginał też bez metadanych (GPS z telefonu)
+        const bufor = await sharp(plik).rotate().toBuffer()
+        return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': mimePliku(plik), 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' } })
+    } catch { return nieMa() }
 }

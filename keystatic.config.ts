@@ -305,6 +305,21 @@ export default config({
         approximate: fields.checkbox({ label: 'Położenie przybliżone' }),
         temporal: dataEdtf('Lata istnienia (EDTF)'),
         exists: fields.checkbox({ label: 'Istnieje do dziś', defaultValue: true }),
+        photos: fields.array(
+          fields.object({
+            image: fields.image({
+              label: 'Zdjęcie',
+              description: 'Prawdziwa fotografia obiektu (JPG/PNG). Plik nie trafia do public/ – strona wydaje go tylko, gdy obiekt jest widoczny; dane GPS z pliku są usuwane przy wyświetlaniu.',
+              directory: `${KATALOG_PLIKOW}/obiekty`,
+              publicPath: `${ADRES_PLIKOW}obiekty/`,
+            }),
+            caption: fields.text({ label: 'Podpis', description: 'Co widać, np. „cerkiew od strony południowej”.' }),
+            date: fields.text({ label: 'Data zdjęcia', description: 'Np. 2024, 1938 (EDTF albo opisowo).' }),
+            creator: fields.text({ label: 'Autor zdjęcia' }),
+            rights: fields.text({ label: 'Prawa / źródło', description: 'Np. CC BY 4.0, zbiory rodziny Kowalskich, NAC sygn. …' }),
+          }),
+          { label: 'Fotografie', itemLabel: (p) => p.fields.caption.value || 'zdjęcie' },
+        ),
         visibility: widocznosc(),
         note: notatka(),
         dateSubmitted: dodano(),

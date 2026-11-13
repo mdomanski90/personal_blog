@@ -145,7 +145,9 @@ export interface Obiekt {
     widocznosc: Widocznosc
     dodano: string | null
     opis: Node | null
+    zdjecia: ZdjecieObiektu[]
 }
+export interface ZdjecieObiektu { plik: string; podpis: string; data: string; autor: string; prawa: string }
 export { RODZAJE_MATERIALOW }
 
 export interface Material {
@@ -307,6 +309,7 @@ const wszystkieObiektySurowe = cache(async (): Promise<Obiekt[]> => {
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
             opis: entry.description?.node ?? null,
+            zdjecia: (entry.photos ?? []).filter((z) => z.image).map((z) => ({ plik: String(z.image), podpis: z.caption, data: z.date, autor: z.creator, prawa: z.rights })),
         }))
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })

@@ -19,6 +19,8 @@ import { planDlaCzytelnika, planyDlaCzytelnika } from '@/lib/plany/serwer'
 import { wczytajUstawienia } from '@/lib/plany/dane'
 import WidokObiektu from '../../components/plan/WidokObiektu'
 import { osobyPlanu } from '@/lib/plany/rodzina'
+import InfoZMapa from '../../components/InfoZMapa'
+import GaleriaZdjec from '../../components/GaleriaZdjec'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,13 +62,8 @@ export default async function ObiektStrona({ params }: Parametry) {
                 <Metki elementy={[rodzaj, o.czas ? formatujEdtf(o.czas) : null, o.istnieje ? null : 'nie istnieje', ...o.inneNazwy]} />
             </div>
 
-            <WidokObiektu
-                plan={glowny?.plan}
-                ustawienia={ustawienia}
-                zalogowany={glowny?.poziom === 'bliscy'}
-                osoby={osobyGlownego}
-                mapa={o.wspolrzedne ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={glowny ? 16 : 14} wysokosc="100%" /> : undefined}
-                info={
+            {(() => {
+                const info = (
                     <div>
                         {wies && <Wiersz etykieta="miejscowość"><Link href={`/miejsca/${wies.id}`}>{wies.nazwa}</Link></Wiersz>}
                         {o.czas && <Wiersz etykieta="lata istnienia">{formatujEdtf(o.czas)}</Wiersz>}
@@ -74,11 +71,22 @@ export default async function ObiektStrona({ params }: Parametry) {
                         <Wiersz etykieta="współrzędne">
                             {o.wspolrzedne ? `${o.wspolrzedne[0]}, ${o.wspolrzedne[1]}${o.przyblizone ? ' (przybliżone)' : ''}` : <span className="text-gray-500">brak</span>}
                         </Wiersz>
+                        {o.zdjecia.length > 0 && <Wiersz etykieta="fotografie"><a href="#fotografie">{o.zdjecia.length}</a></Wiersz>}
                     </div>
-                }
-            />
+                )
+                const mapa = o.wspolrzedne ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={glowny ? 16 : 14} wysokosc="100%" /> : undefined
+                // z planem: plan na całą szerokość (zakładki plan · lista · mapa); bez planu: dane obok mapy z „rozszerz”
+                if (glowny) return <WidokObiektu plan={glowny.plan} ustawienia={ustawienia} zalogowany={glowny.poziom === 'bliscy'} osoby={osobyGlownego} mapa={mapa} info={info} />
+                return mapa ? <InfoZMapa info={info} mapa={mapa} wysokosc={300} /> : info
+            })()}
 
             <Tresc html={naHtml(o.opis, await kontekstTresci(poziom))} />
+
+            {o.zdjecia.length > 0 && (
+                <Sekcja tytul="fotografie" id="fotografie">
+                    <GaleriaZdjec zdjecia={o.zdjecia} tytul={o.nazwa} />
+                </Sekcja>
+            )}
 
             {planyObiektu.length > 1 && (
                 <Sekcja tytul="plany">

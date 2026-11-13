@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import InfoZMapa from '../../components/InfoZMapa'
 import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
 import { licznikiMiejsc, materialy, miejsca, miejsce, nazwy, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, WYZNANIA_MIEJSC, materialyDla, powiazania, kontekstTresci, ksiegiDlaMiejsca, parafie } from '@/lib/archiwum'
@@ -81,9 +82,9 @@ export default async function MiejsceStrona({ params }: Parametry) {
 
     return (
         <Strona akcje={<><PowrotDoMapy /><CopyLinkButton sciezka={`/miejsca/${m.id}`} /></>}>
-            <div className="grid" style={{ gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(17rem, 1fr))', alignItems: 'stretch' }}>
-                <div className="flex flex-col" style={{ gap: '0.9rem' }}>
-                    <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...przodkowie.map((p) => ({ tekst: p.nazwa, href: `/miejsca/${p.id}` }))]}>{m.nazwa}</TytulStrony>
+            <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...przodkowie.map((p) => ({ tekst: p.nazwa, href: `/miejsca/${p.id}` }))]}>{m.nazwa}</TytulStrony>
+            {(() => {
+                const info = (
                     <div>
                         <Wiersz etykieta="typ">{RODZAJE_MIEJSC[m.rodzaj] ?? m.rodzaj}</Wiersz>
                         {!obszar && <Wiersz etykieta="gmina">{gmina && gmina.id !== m.id ? <Link href={`/miejsca/${gmina.id}`}>{gmina.nazwa.replace(/^gmina /i, '')}</Link> : brak}</Wiersz>}
@@ -115,13 +116,12 @@ export default async function MiejsceStrona({ params }: Parametry) {
                         )}
                         {m.sameAs && <Wiersz etykieta="zobacz też"><a href={m.sameAs} target="_blank" rel="noopener noreferrer">{m.sameAs.replace(/^https?:\/\//, '')}</a></Wiersz>}
                     </div>
-                </div>
-                {(m.wspolrzedne || (m.rodzaj === 'gmina' && punkty.length > 0)) && <div style={{ position: 'relative', minHeight: m.rodzaj === 'gmina' ? 340 : 300 }}><div style={{ position: 'absolute', inset: 0 }}>
-                    {m.rodzaj === 'gmina'
-                        ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} wysokosc="100%" obrys={{ url: '/granice/gminy-okolic.geojson', nazwa: m.nazwa.replace(/^gmina /i, '') }} wyroznione={[...idsGminy]} />
-                        : <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={m.wspolrzedne ?? undefined} wysokosc="100%" />}
-                </div></div>}
-            </div>
+                )
+                const mapa = !(m.wspolrzedne || (m.rodzaj === 'gmina' && punkty.length > 0)) ? null : m.rodzaj === 'gmina'
+                    ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} wysokosc="100%" obrys={{ url: '/granice/gminy-okolic.geojson', nazwa: m.nazwa.replace(/^gmina /i, '') }} wyroznione={[...idsGminy]} />
+                    : <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={m.wspolrzedne ?? undefined} wysokosc="100%" />
+                return mapa ? <InfoZMapa info={info} mapa={mapa} wysokosc={m.rodzaj === 'gmina' ? 340 : 300} /> : info
+            })()}
 
             <Kreski />
 
