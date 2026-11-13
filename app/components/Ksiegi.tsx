@@ -1,5 +1,6 @@
 // Inwentarz ksiąg metrykalnych: pasek lat (które roczniki zachowały się dla danego
 // rodzaju ksiąg) i tabela z miejscem przechowania, sygnaturą i odnośnikami.
+import * as React from 'react'
 import type { Ksiega } from '@/lib/archiwum'
 import { RODZAJE_KSIAG, DOSTEP_KSIAG, KOLEJNOSC_KSIAG } from '@/lib/ksiegi'
 
@@ -13,44 +14,48 @@ export function zakresOsi(ks: Ksiega[]): [number, number] {
     return [Math.floor(Math.min(...lata) / 10) * 10, Math.ceil((Math.max(...lata) + 1) / 10) * 10]
 }
 
+/** Podziałka osi: przy krótkim zakresie co 5 lat, dłuższym co 10, długim co 25. */
+const krokOsi = (dl: number) => (dl <= 40 ? 5 : dl <= 100 ? 10 : 25)
+
 export function PasekLat({ ksiegi, os }: { ksiegi: Ksiega[]; os?: [number, number] }) {
     const [od, doRoku] = os ?? zakresOsi(ksiegi)
     const dl = doRoku - od
     const rodzaje = KOLEJNOSC_KSIAG.filter((r) => ksiegi.some((k) => k.rodzaje.includes(r) && k.zakresy.length))
     if (!rodzaje.length) return null
+    const krok = krokOsi(dl)
     const kreski: number[] = []
-    for (let r = Math.ceil(od / 25) * 25; r <= doRoku; r += 25) kreski.push(r)
+    for (let r = Math.ceil(od / krok) * krok; r <= doRoku; r += krok) kreski.push(r)
     const proc = (r: number) => `${((r - od) / dl) * 100}%`
+    // jedna siatka dla wszystkich wierszy – podpisy w kolumnie o szerokości najdłuższego, paski zawsze w jednej linii
     return (
-        <div className="flex flex-col" style={{ gap: 4 }} role="img" aria-label={`zachowane roczniki ksiąg w latach ${od}–${doRoku}`}>
+        <div className="pasek-lat" role="img" aria-label={`zachowane roczniki ksiąg w latach ${od}–${doRoku}`}>
             {rodzaje.map((r) => (
-                <div key={r} className="grid items-center" style={{ gridTemplateColumns: '9rem minmax(0, 1fr)', gap: 12 }}>
-                    <span className="text-gray-600 dark:text-gray-400 truncate" style={male}>{RODZAJE_KSIAG[r]}</span>
-                    <div className={`relative h-3 border-b ${LINIA}`}>
+                <React.Fragment key={r}>
+                    <span className="pasek-lat-podpis">{RODZAJE_KSIAG[r]}</span>
+                    <div className="pasek-lat-os">
+                        {kreski.map((x) => <span key={x} className="pasek-lat-kreska" style={{ left: proc(x) }} />)}
                         {ksiegi
                             .filter((k) => k.rodzaje.includes(r))
                             .flatMap((k) => k.zakresy.map((z, i) => (
                                 <span
                                     key={`${k.id}-${i}`}
                                     title={`${RODZAJE_KSIAG[r]}: ${z[0] === z[1] ? z[0] : `${z[0]}–${z[1]}`}`}
-                                    className="absolute bottom-0 bg-current"
-                                    style={{ left: proc(z[0]), width: `max(2px, ${((z[1] - z[0] + 1) / dl) * 100}%)`, height: 8, opacity: k.dostep === 'zaginione' ? 0.25 : 0.75 }}
+                                    className="pasek-lat-odcinek"
+                                    style={{ left: proc(z[0]), width: `max(3px, calc(${((z[1] - z[0] + 1) / dl) * 100}% - 1px))`, opacity: k.dostep === 'zaginione' ? 0.25 : undefined }}
                                 />
                             )))}
                     </div>
-                </div>
+                </React.Fragment>
             ))}
-            <div className="grid" style={{ gridTemplateColumns: '9rem minmax(0, 1fr)', gap: 12 }}>
-                <span />
-                <div className="relative text-gray-500" style={{ height: 16, fontSize: 'calc(11px * var(--font-scale, 1))' }}>
-                    {kreski.map((r) => (
-                        <span key={r} className="absolute" style={{ left: proc(r), transform: 'translateX(-50%)' }}>{r}</span>
-                    ))}
-                </div>
+            <span className="pasek-lat-podpis pasek-lat-objasnienie">zachowane roczniki</span>
+            <div className="pasek-lat-lata">
+                {kreski.map((x) => <span key={x} style={{ left: proc(x), transform: x === od ? 'none' : x === doRoku ? 'translateX(-100%)' : 'translateX(-50%)' }}>{x}</span>)}
             </div>
         </div>
     )
 }
+
+const ileTomow = (n: number) => `${n} ${n === 1 ? 'tom' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'tomy' : 'tomów'}`
 
 function Odnosnik({ href, children }: { href: string; children: React.ReactNode }) {
     return <a href={href} target="_blank" rel="noopener noreferrer">{children} ↗</a>
@@ -72,7 +77,8 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc }: { ksiegi: Ksiega[]; /** id 
                 </thead>
                 <tbody>
                     {ksiegi.map((k) => (
-                        <tr key={k.id} className="border-b border-[#e7e2d8] dark:border-[#374151] align-top">
+                        <React.Fragment key={k.id}>
+                        <tr className={`${k.jednostki.length ? '' : 'border-b '}border-[#e7e2d8] dark:border-[#374151] align-top`}>
                             <td className="py-1.5 pr-3">
                                 {k.rodzaje.map((r) => RODZAJE_KSIAG[r] ?? r).join(', ')}
                                 {k.miejsca.length > 0 && <span className="block text-gray-500" style={male}>dotyczy: {k.miejsca.map((m) => nazwyMiejsc?.[m] ?? m).join(', ')}</span>}
@@ -80,21 +86,6 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc }: { ksiegi: Ksiega[]; /** id 
                             <td className="py-1.5 pr-3">
                                 <span className="font-bold">{k.lata}</span>
                                 {(k.braki || k.jezyk) && <span className="block text-gray-500" style={male}>{[k.braki, k.jezyk].filter(Boolean).join(' · ')}</span>}
-                                {k.jednostki.length > 0 && (
-                                    <details className="ksiega-tomy" style={male}>
-                                        <summary>{k.jednostki.length} {k.jednostki.length === 1 ? 'tom' : k.jednostki.length % 10 >= 2 && k.jednostki.length % 10 <= 4 && (k.jednostki.length % 100 < 12 || k.jednostki.length % 100 > 14) ? 'tomy' : 'tomów'}</summary>
-                                        <ul>
-                                            {k.jednostki.map((j, i) => (
-                                                <li key={i}>
-                                                    <b>{j.lata}</b>
-                                                    {j.sygnatura && <span className="text-gray-500"> · {j.sygnatura}</span>}
-                                                    {j.uwagi && <span className="text-gray-500"> · {j.uwagi}</span>}
-                                                    {j.skany && <> · <Odnosnik href={j.skany}>skany</Odnosnik></>}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </details>
-                                )}
                             </td>
                             <td className="py-1.5 pr-3">
                                 {k.gdzie || <span className="text-gray-500">—</span>}
@@ -108,6 +99,26 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc }: { ksiegi: Ksiega[]; /** id 
                                 </span>
                             </td>
                         </tr>
+                        {k.jednostki.length > 0 && (
+                            <tr className="border-b border-[#e7e2d8] dark:border-[#374151]">
+                                <td colSpan={4} className="pb-2">
+                                    <details className="ksiega-tomy" style={male}>
+                                        <summary>{ileTomow(k.jednostki.length)}: roczniki, sygnatury, skany</summary>
+                                        <ul>
+                                            {k.jednostki.map((j, i) => (
+                                                <li key={i}>
+                                                    <b>{j.lata}</b>
+                                                    {j.sygnatura && <span className="text-gray-500"> {j.sygnatura}</span>}
+                                                    {j.skany && <> <Odnosnik href={j.skany}>skany</Odnosnik></>}
+                                                    {j.uwagi && <span className="block text-gray-500">{j.uwagi}</span>}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </details>
+                                </td>
+                            </tr>
+                        )}
+                        </React.Fragment>
                     ))}
                 </tbody>
             </table>

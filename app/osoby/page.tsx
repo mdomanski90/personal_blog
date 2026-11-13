@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import PoleSzukania from '../components/PoleSzukania'
+import ListaOsob, { type KragNaLiscie, type OsobaNaLiscie } from './ListaOsob'
 import { Link } from 'next-view-transitions'
 import { biogramy, miejsca, poziomCzytelnika, rozwiazOdnosniki, widoczne } from '@/lib/archiwum'
 import { KREGI, kluczMiejsca } from '@/lib/kregi'
@@ -7,14 +7,13 @@ import { bezNawiasow } from '@/lib/odnosniki'
 import { stanOsob } from '@/lib/osoby/dane'
 import { lataZycia, nazwaOsoby, zdarzenie, type Osoba } from '@/lib/osoby/model'
 import { normalizuj, odmiana, porownajPl } from '@/lib/tekst'
-import { RAMKA, Strona, TytulStrony } from '../components/Uklad'
+import { Strona, TytulStrony } from '../components/Uklad'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'osoby · odniepamieci.pl' }
 
 export default async function Osoby({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
     const sp = await searchParams
-    const q = normalizuj(sp.q ?? '')
     const poziom = await poziomCzytelnika()
     const s = await stanOsob()
     const rozwiaz = await rozwiazOdnosniki(poziom)
@@ -31,15 +30,21 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
     const wKregu = (o: Osoba, k: (typeof kregi)[number]) => miejscaOsoby(o).some((z) => (z.miejsceId && k.ids.has(z.miejsceId)) || (z.miejsce && k.nazwy.has(kluczMiejsca(z.miejsce.split(',')[0]))))
     const krag = sp.krag === 'wszystkie' ? 'wszystkie' : kregi.find((k) => k.id === sp.krag)?.id ?? '1'
     const ileWKregu = Object.fromEntries(kregi.map((k) => [k.id, wszystkie.filter((o) => wKregu(o, k)).length]))
-    const lista = wszystkie
+    // cała lista kręgu idzie do przeglądarki – wyszukiwanie zawęża ją na żywo (ListaOsob)
+    const lista: OsobaNaLiscie[] = wszystkie
         .filter((o) => krag === 'wszystkie' || wKregu(o, kregi.find((k) => k.id === krag)!))
-        .filter((o) => !q || q.split(' ').every((w) => normalizuj(`${o.imiona} ${o.nazwisko} ${(o.inneNazwiska ?? []).join(' ')} ${lataZycia(o)} ${zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce ?? ''} ${bio.get(o.id)?.lead ?? ''}`).includes(w)))
         .sort((a, b) => porownajPl(a.nazwisko, b.nazwisko) || porownajPl(a.imiona, b.imiona))
-    const grupy = new Map<string, typeof lista>()
-    for (const o of lista) {
-        const k = (o.nazwisko || '?').charAt(0).toLocaleUpperCase('pl')
-        grupy.set(k, [...(grupy.get(k) ?? []), o])
-    }
+        .map((o) => {
+            const miejsce = zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce?.split(',')[0] ?? ''
+            const b = bio.get(o.id)
+            return {
+                id: o.id, nazwa: nazwaOsoby(o), plec: o.plec, litera: (o.nazwisko || '?').charAt(0).toLocaleUpperCase('pl'),
+                opis: `${lataZycia(o)}${miejsce ? ` · ${miejsce}` : ''}`,
+                ...(b ? { biogram: b.lead } : {}),
+                szukaj: normalizuj(`${o.imiona} ${o.nazwisko} ${(o.inneNazwiska ?? []).join(' ')} ${lataZycia(o)} ${miejsce} ${b?.lead ?? ''}`),
+            }
+        })
+    const kregiListy: KragNaLiscie[] = [...kregi.map((k) => ({ id: k.id, nazwa: k.nazwa, opis: k.opis, ile: ileWKregu[k.id] })), { id: 'wszystkie', nazwa: 'wszyscy', opis: 'całe drzewo', ile: wszystkie.length }]
     return (
         <Strona>
             <TytulStrony>osoby</TytulStrony>
@@ -54,38 +59,7 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
                     </p>
                 )}
             </div>
-            {wszystkie.length > 0 && (
-                <div className="flex flex-col" style={{ gap: 10 }}>
-                    <div className="flex flex-wrap items-center" style={{ gap: 8 }} role="group" aria-label="krąg miejscowości">
-                        {[...kregi.map((k) => ({ id: k.id, nazwa: k.nazwa, opis: k.opis, ile: ileWKregu[k.id] })), { id: 'wszystkie', nazwa: 'wszyscy', opis: 'całe drzewo', ile: wszystkie.length }].map((k) => (
-                            <Link key={k.id} href={`/osoby?krag=${k.id}${sp.q ? `&q=${encodeURIComponent(sp.q)}` : ''}`} aria-current={krag === k.id ? 'true' : undefined} className={`osoby-krag ${RAMKA}`} title={k.opis}>
-                                <b>{k.nazwa}</b> <span className="text-gray-600 dark:text-gray-400">· {k.opis} · {k.ile}</span>
-                            </Link>
-                        ))}
-                    </div>
-                    <div className="flex flex-wrap gap-2 items-center">
-                        <PoleSzukania action="/osoby" defaultValue={sp.q ?? ''} ukryte={{ krag }} placeholder="nazwisko, imię, wieś, rok…" style={{ flex: '1 1 16rem', maxWidth: 480 }} />
-                        {q && <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 13 }}>{odmiana(lista.length, ['wynik', 'wyniki', 'wyników'])}</span>}
-                    </div>
-                </div>
-            )}
-            {wszystkie.length > 0 && lista.length === 0 && <p className="text-gray-600 dark:text-gray-400">Nikogo tu nie ma{q ? ' dla tego wyszukiwania' : ''} – spróbuj „wszyscy”.</p>}
-            <div className="osoby-litery">
-                {[...grupy].map(([litera, os], i) => (
-                    <details key={litera} className="osoby-litera" open={!!q || i === 0}>
-                        <summary><b>{litera}</b> <span className="text-gray-600 dark:text-gray-400">· {odmiana(os.length, ['osoba', 'osoby', 'osób'])}</span></summary>
-                        <ul className="osoby-lista">
-                            {os.map((o) => (
-                                <li key={o.id}>
-                                    <Link href={`/osoby/${o.id}`} className={`osoba-link osoba-${o.plec}`}>{nazwaOsoby(o)}</Link>
-                                    <span className="text-gray-600 dark:text-gray-400"> {lataZycia(o)}{zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce ? ` · ${zdarzenie(o, 'urodzenie', 'chrzest')!.miejsce!.split(',')[0]}` : ''}</span>
-                                    {bio.has(o.id) && <span className="osoba-biogram"> · {bio.get(o.id)!.lead || 'biogram'}</span>}
-                                </li>
-                            ))}
-                        </ul>
-                    </details>
-                ))}
-            </div>
+            {wszystkie.length > 0 && <ListaOsob key={krag} osoby={lista} kregi={kregiListy} krag={krag} poczatek={sp.q ?? ''} />}
         </Strona>
     )
 }

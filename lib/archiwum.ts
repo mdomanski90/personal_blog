@@ -247,7 +247,8 @@ const wszystkieKsiegiSurowe = cache(async (): Promise<Ksiega[]> => {
         const jednostki = (entry.volumes ?? [])
             .map((j) => ({ lata: j.years, zakresy: zakresyLat(j.years), sygnatura: j.identifier ?? '', skany: j.scans || null, uwagi: j.gaps ?? '' }))
             .sort((a, b) => (a.zakresy[0]?.[0] ?? 0) - (b.zakresy[0]?.[0] ?? 0))
-        const zakresy = scalZakresy([...zakresyLat(entry.years), ...jednostki.flatMap((j) => j.zakresy)])
+        // przy tomach pasek lat z samych tomów (widać brakujące roczniki); „Lata” zostaje jako podpis
+        const zakresy = scalZakresy(jednostki.some((j) => j.zakresy.length) ? jednostki.flatMap((j) => j.zakresy) : zakresyLat(entry.years))
         return {
             id: slug,
             nazwa: entry.title,
