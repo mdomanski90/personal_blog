@@ -23,7 +23,7 @@ async function zapiszAtomowo(plik: string, dane: string) {
 async function znacznikCzasu(): Promise<string> {
     const czasy: number[] = []
     for (const p of [KATALOG(), RODZINY(), path.join(KATALOG(), '_zrodla.json')]) {
-        try { czasy.push((await fs.promises.stat(p)).mtimeMs) } catch { czasy.push(0) }
+        try { czasy.push((await fs.promises.stat(/*turbopackIgnore: true*/ p)).mtimeMs) } catch { czasy.push(0) }
     }
     return czasy.join('|')
 }

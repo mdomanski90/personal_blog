@@ -203,7 +203,7 @@ export async function stanSerwera(): Promise<StanSerwera> {
     let zbudowano: string | null = null
     try { zbudowano = (await fs.promises.stat(path.join(process.cwd(), '.next', 'BUILD_ID'))).mtime.toISOString() } catch { /* dev */ }
     let kopia: string | null = null
-    try { kopia = (await fs.promises.readFile(PLIK_KOPII(), 'utf8')).trim().slice(0, 40) || null } catch { /* brak kopii */ }
+    try { kopia = (await fs.promises.readFile(/*turbopackIgnore: true*/ PLIK_KOPII(), 'utf8')).trim().slice(0, 40) || null } catch { /* brak kopii */ }
     return {
         dziala: Math.round(process.uptime()), node: process.version, commit: await commit(), zbudowano, dysk,
         pamiec: { wolna: os.freemem(), calosc: os.totalmem() },
@@ -284,7 +284,7 @@ export async function indeksPanelu(): Promise<PozycjaIndeksu[]> {
 // ---------- kosz ----------
 export interface PozycjaKosza { rodzaj: 'plan' | 'osoba' | 'rodzina' | 'import'; plik: string; nazwa: string; czas: string }
 
-const KOSZE = { plan: () => path.join(CONTENT(), 'plany', '_kosz'), osoby: () => path.join(CONTENT(), 'osoby', '_kosz') }
+const KOSZE = { plan: () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'plany', '_kosz'), osoby: () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'osoby', '_kosz') }
 const PLIK_KOSZA = /^[\w.-]+-\d{12,}\.json$/
 
 export async function kosz(): Promise<PozycjaKosza[]> {
@@ -293,7 +293,7 @@ export async function kosz(): Promise<PozycjaKosza[]> {
     for (const w of await czytaj(KOSZE.plan())) {
         if (!w.isFile() || !PLIK_KOSZA.test(w.name)) continue
         let nazwa = w.name.replace(/-\d+\.json$/, '')
-        try { nazwa = JSON.parse(await fs.promises.readFile(path.join(KOSZE.plan(), w.name), 'utf8')).tytul || nazwa } catch { /* nic */ }
+        try { nazwa = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KOSZE.plan(), w.name), 'utf8')).tytul || nazwa } catch { /* nic */ }
         wyn.push({ rodzaj: 'plan', plik: w.name, nazwa, czas: new Date(+w.name.match(/-(\d+)\.json$/)![1]).toISOString() })
     }
     for (const w of await czytaj(KOSZE.osoby())) {
@@ -302,7 +302,7 @@ export async function kosz(): Promise<PozycjaKosza[]> {
         const czas = new Date(+w.name.match(/-(\d+)\.json$/)![1]).toISOString()
         if (w.name.startsWith('rodzina-')) { wyn.push({ rodzaj: 'rodzina', plik: w.name, nazwa: w.name.replace(/^rodzina-|-\d+\.json$/g, ''), czas }); continue }
         let nazwa = w.name.replace(/-\d+\.json$/, '')
-        try { const o = JSON.parse(await fs.promises.readFile(path.join(KOSZE.osoby(), w.name), 'utf8')); nazwa = nazwaOsoby(o) || nazwa } catch { /* nic */ }
+        try { const o = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KOSZE.osoby(), w.name), 'utf8')); nazwa = nazwaOsoby(o) || nazwa } catch { /* nic */ }
         wyn.push({ rodzaj: 'osoba', plik: w.name, nazwa, czas })
     }
     return wyn.sort((a, b) => b.czas.localeCompare(a.czas))
@@ -313,9 +313,9 @@ export async function przywrocZKosza(rodzaj: string, plik: string): Promise<stri
     if (!PLIK_KOSZA.test(plik)) return 'zła nazwa pliku'
     const id = plik.replace(/-\d+\.json$/, '')
     let zr: string, cel: string
-    if (rodzaj === 'plan') { zr = path.join(KOSZE.plan(), plik); cel = path.join(CONTENT(), 'plany', `${id}.json`) }
-    else if (rodzaj === 'osoba') { zr = path.join(KOSZE.osoby(), plik); cel = path.join(CONTENT(), 'osoby', `${id}.json`) }
-    else if (rodzaj === 'rodzina') { zr = path.join(KOSZE.osoby(), plik); cel = path.join(CONTENT(), 'osoby', '_rodziny', `${id.replace(/^rodzina-/, '')}.json`) }
+    if (rodzaj === 'plan') { zr = path.join(/*turbopackIgnore: true*/ KOSZE.plan(), plik); cel = path.join(CONTENT(), 'plany', `${id}.json`) }
+    else if (rodzaj === 'osoba') { zr = path.join(/*turbopackIgnore: true*/ KOSZE.osoby(), plik); cel = path.join(CONTENT(), 'osoby', `${id}.json`) }
+    else if (rodzaj === 'rodzina') { zr = path.join(/*turbopackIgnore: true*/ KOSZE.osoby(), plik); cel = path.join(CONTENT(), 'osoby', '_rodziny', `${id.replace(/^rodzina-/, '')}.json`) }
     else return 'tego nie da się przywrócić z panelu'
     if (!(await istnieje(zr))) return 'nie ma już tego pliku'
     if (await istnieje(cel)) return 'pod tym adresem jest już inna pozycja – najpierw ją przenieś albo zmień nazwę'
