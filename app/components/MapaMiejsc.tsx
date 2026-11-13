@@ -7,12 +7,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { LngLatBounds, Map as MapaGL, NavigationControl, setWorkerUrl, type GeoJSONSource, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
+import { LngLatBounds, Map as MapaGL, MercatorCoordinate, NavigationControl, Popup, setWorkerUrl, type GeoJSONSource, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { stylMapy } from '@/lib/mapa-styl'
 import { ATRYBUCJA_GRANIC, LATA_GRANIC, LEGENDA_PANSTW, PUSTE, WARSTWY_OKRESU, czyRzeczpospolita, czyZiemie, etykietaOkresu, nazwaNaMapie, wczytajOkres, warstwyOkresu } from '@/lib/granice'
 import type { PlanNaMapie } from '@/lib/plany/serwer'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu, type Wyznanie } from '@/lib/tarcze'
+import { ileObiektow, rozsun } from '@/lib/mapa-rozsuwanie'
 
 export interface PunktMapy {
     id: string
@@ -27,6 +28,8 @@ export interface PunktMapy {
     lng: number
     /** plany obiektu / wsi zrobione w edytorze – po kliknięciu plakietki podgląd w panelu */
     plany?: { slug: string; tytul: string }[]
+    /** wieś: publiczne obiekty w terenie przypisane do niej (plakietka z liczbą przy oddalonej mapie) */
+    obiekty?: { nazwa: string; href: string }[]
 }
 
 // znaczek „jest plan” w prawym górnym rogu tarczy (układ tarczy: viewBox -20 -22 40 44)
@@ -47,6 +50,15 @@ function ikona(p: PunktMapy): { id: string; svg: string } {
     const id = `m-${miasto ? 'miasto' : p.wyznanie || 'brak'}-${p.przyblizone ? 1 : 0}${plan}`
     const svg = tarczaMiejsca(miasto ? 'miasto' : 'wies', (p.wyznanie || '') as Wyznanie, '', (miasto ? 32 : 27) * SKALA, p.przyblizone)
     return { id, svg: plan ? zZnaczkiem(svg) : svg }
+}
+
+// plakietka z liczbą obiektów na tarczy wsi (atrament na papierze; w ciemnym motywie odwrotnie)
+function plakietka(n: number, ciemny: boolean): { id: string; svg: string } {
+    const tekst = n > 99 ? '99+' : String(n)
+    const w = tekst.length > 1 ? 22 + (tekst.length - 2) * 6 : 18
+    const [tlo, pismo] = ciemny ? ['#e7e2d6', '#1c1d1f'] : ['#1c1b18', '#fbfaf7']
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${(w + 4) * SKALA}" height="${22 * SKALA}" viewBox="-2 -2 ${w + 4} 22"><rect x="0" y="0" width="${w}" height="18" rx="9" fill="${tlo}" stroke="${pismo}" stroke-width="1.5"/><text x="${w / 2}" y="13" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" font-weight="700" fill="${pismo}">${tekst}</text></svg>`
+    return { id: `licznik-${tekst}-${ciemny ? 1 : 0}`, svg }
 }
 
 const obrazy = new Map<string, HTMLImageElement>()
@@ -114,6 +126,7 @@ export default function MapaMiejsc({
     const odswiezNapisyRef = useRef<() => void>(() => {})
     const pokazOkresRef = useRef<(r: number | null) => void>(() => {})
     rokRef.current = rok
+    const przeliczRef = useRef<() => void>(() => {})
     const filtrObiektow = (a: string[]) => ['all', ['==', ['get', 'typ'], 'obiekt'], ['in', ['get', 'grupa'], ['literal', a]]] as never
 
     useEffect(() => {
@@ -141,29 +154,75 @@ export default function MapaMiejsc({
             m.fitBounds(b, { padding: 50, duration: 0 })
         }
 
+        const wlasciwosci = (p: PunktMapy) => ({
+            nazwa: p.nazwa,
+            href: p.href,
+            typ: p.typ,
+            grupa: p.typ === 'obiekt' ? grupaObiektu(p.rodzaj) : '',
+            ikona: ikona(p).id,
+            plany: p.plany?.length ? JSON.stringify(p.plany) : '',
+            przygas: !!wyroznione && !wyroznione.includes(p.id),
+            // niższa wartość = pierwszeństwo przy nachodzeniu podpisów
+            kolejnosc: p.typ === 'miejsce' ? (p.rodzaj === 'miasto' ? 0 : 1) : 2,
+        })
         const dane: GeoJSONSourceSpecification['data'] = {
             type: 'FeatureCollection',
             features: punkty.map((p) => ({
                 type: 'Feature',
                 geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-                properties: {
-                    nazwa: p.nazwa,
-                    href: p.href,
-                    typ: p.typ,
-                    grupa: p.typ === 'obiekt' ? grupaObiektu(p.rodzaj) : '',
-                    ikona: ikona(p).id,
-                    plany: p.plany?.length ? JSON.stringify(p.plany) : '',
-                    przygas: !!wyroznione && !wyroznione.includes(p.id),
-                    // niższa wartość = pierwszeństwo przy nachodzeniu podpisów
-                    kolejnosc: p.typ === 'miejsce' ? (p.rodzaj === 'miasto' ? 0 : 1) : 2,
-                },
+                properties: wlasciwosci(p),
             })),
         }
         const ikony = punkty.map(ikona)
+        // wsie z publicznymi obiektami – plakietka z liczbą przy oddalonej mapie
+        const zObiektami = punkty.filter((p) => p.typ === 'miejsce' && p.obiekty?.length)
+        const liczniki = (): GeoJSONSourceSpecification['data'] => ({
+            type: 'FeatureCollection',
+            features: zObiektami.map((p) => ({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+                properties: { ikona: plakietka(p.obiekty!.length, ciemnyRef.current).id, nazwa: p.nazwa, n: p.obiekty!.length, lista: JSON.stringify(p.obiekty), przygas: !!wyroznione && !wyroznione.includes(p.id) },
+            })),
+        })
+        // obiekty w miejscu wyliczonym przez rozsuwanie (nachodzące na siebie – obok siebie, z kreską do prawdziwego punktu)
+        const obiektyPkt = punkty.filter((p) => p.typ === 'obiekt')
+        const wsiePkt = punkty.filter((p) => p.typ === 'miejsce')
+        const PUSTA: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
+        const przelicz = () => {
+            const zrP = m.getSource('obiekty-poz') as GeoJSONSource | undefined
+            const zrL = m.getSource('rozsuniecia') as GeoJSONSource | undefined
+            if (!zrP || !zrL) return
+            const z = m.getZoom()
+            const swiat = 512 * Math.pow(2, z)
+            const merc = (p: PunktMapy) => MercatorCoordinate.fromLngLat([p.lng, p.lat])
+            const widoczne = obiektyPkt.filter((p) => aktywneRef.current.includes(grupaObiektu(p.rodzaj)))
+            const przes = z < PROG_OBIEKTOW ? new Map() : rozsun([
+                ...wsiePkt.map((p) => { const c = merc(p); return { id: 'w:' + p.id, x: c.x * swiat, y: c.y * swiat, staly: true } }),
+                ...widoczne.map((p) => { const c = merc(p); return { id: p.id, x: c.x * swiat, y: c.y * swiat } }),
+            ])
+            const linie: GeoJSON.Feature[] = []
+            const obiekty: GeoJSON.Feature[] = obiektyPkt.map((p) => {
+                const r = przes.get(p.id)
+                let wsp: [number, number] = [p.lng, p.lat]
+                if (r) {
+                    const c = merc(p)
+                    const ll = new MercatorCoordinate(c.x + r.dx / swiat, c.y + r.dy / swiat).toLngLat()
+                    wsp = [ll.lng, ll.lat]
+                    linie.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [wsp, [p.lng, p.lat]] }, properties: {} })
+                    linie.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: {} })
+                }
+                return { type: 'Feature', geometry: { type: 'Point', coordinates: wsp }, properties: { ...wlasciwosci(p), strona: r?.strona ?? 'p' } }
+            })
+            zrP.setData({ type: 'FeatureCollection', features: obiekty })
+            zrL.setData({ type: 'FeatureCollection', features: linie })
+        }
+        przeliczRef.current = przelicz
+        let klatka = 0
+        const zaplanujPrzeliczenie = () => { if (!klatka) klatka = requestAnimationFrame(() => { klatka = 0; przelicz() }) }
 
         // po każdej zmianie stylu (np. motywu) warstwy i obrazy trzeba dodać na nowo
         const dodajWarstwy = async () => {
-            for (const { id, svg } of ikony) {
+            for (const { id, svg } of [...ikony, ...zObiektami.map((p) => plakietka(p.obiekty!.length, ciemnyRef.current))]) {
                 const img = await wczytajObraz(id, svg)
                 if (!m.hasImage(id)) m.addImage(id, img, { pixelRatio: SKALA })
             }
@@ -215,15 +274,29 @@ export default function MapaMiejsc({
                 m.addLayer({ id, type: 'raster', source: id, minzoom: 14, layout: { visibility: pokazPlanyRef.current ? 'visible' : 'none' }, paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.6, 0.92], 'raster-fade-duration': 0 } })
             }
             // obiekty dopiero po przybliżeniu (przy oddaleniu zasłaniałyby tarcze miejscowości), nazwy od 13
+            m.addSource('obiekty-poz', { type: 'geojson', data: PUSTA })
+            m.addSource('rozsuniecia', { type: 'geojson', data: PUSTA })
+            const kreska = ciemnyRef.current ? '#b8b2a6' : '#4f4a41'
+            m.addLayer({ id: 'rozsuniecia-linie', type: 'line', source: 'rozsuniecia', minzoom: PROG_OBIEKTOW, filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': kreska, 'line-width': 1, 'line-opacity': 0.8 } })
+            m.addLayer({ id: 'rozsuniecia-punkty', type: 'circle', source: 'rozsuniecia', minzoom: PROG_OBIEKTOW, filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 2.5, 'circle-color': kreska, 'circle-stroke-color': ciemnyRef.current ? '#1c1d1f' : '#fbfaf7', 'circle-stroke-width': 1 } })
             m.addLayer({
                 id: 'obiekty',
                 type: 'symbol',
-                source: 'punkty',
+                source: 'obiekty-poz',
                 minzoom: PROG_OBIEKTOW,
                 filter: filtrObiektow(aktywneRef.current),
-                layout: { ...wspolne, 'text-field': ['step', ['zoom'], '', 13, ['get', 'nazwa']], 'text-font': ['Noto Sans Regular'], 'text-size': 11 },
+                layout: {
+                    ...wspolne,
+                    'text-field': ['step', ['zoom'], '', 13, ['get', 'nazwa']],
+                    'text-font': ['Noto Sans Regular'],
+                    'text-size': 11,
+                    // rozsunięta para: podpis lewego z lewej, prawego z prawej
+                    'text-anchor': ['match', ['get', 'strona'], 'l', 'right', 'left'],
+                    'text-offset': ['match', ['get', 'strona'], 'l', ['literal', [-1.1, 0]], ['literal', [1.1, 0]]],
+                },
                 paint: farby,
             })
+            przelicz()
             m.addLayer({
                 id: 'miejsca',
                 type: 'symbol',
@@ -237,6 +310,16 @@ export default function MapaMiejsc({
                     'text-size': ['case', ['==', ['get', 'kolejnosc'], 0], 13, 12],
                 },
                 paint: farby,
+            })
+            // liczba obiektów w terenie na tarczy wsi – tylko dopóki samych obiektów nie widać
+            m.addSource('liczniki', { type: 'geojson', data: liczniki() })
+            m.addLayer({
+                id: 'liczniki',
+                type: 'symbol',
+                source: 'liczniki',
+                maxzoom: PROG_OBIEKTOW,
+                layout: { 'icon-image': ['get', 'ikona'], 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'icon-offset': [-13, -14] },
+                paint: { 'icon-opacity': ['case', ['get', 'przygas'], 0.4, 1] as unknown as number },
             })
         }
         // Podpisy państw i województw: próbkujemy kadr siatką punktów i każdemu obszarowi dajemy
@@ -339,6 +422,35 @@ export default function MapaMiejsc({
         }
         m.on('style.load', () => void dodajWarstwy())
         m.on('zoomend', () => setZoom(m.getZoom()))
+        m.on('zoom', zaplanujPrzeliczenie)
+        // plakietka z liczbą: po najechaniu lista obiektów, kliknięcie przybliża do wsi
+        const dymek = new Popup({ closeButton: false, closeOnClick: false, offset: { center: [0, 0], top: [-13, 0], 'top-left': [-13, 0], 'top-right': [-13, 0], bottom: [-13, -26], 'bottom-left': [-13, -26], 'bottom-right': [-13, -26], left: [0, -14], right: [-28, -14] }, className: 'mapa-dymek', maxWidth: '280px' })
+        m.on('mouseenter', 'liczniki', (e) => {
+            const w = e.features?.[0]
+            if (!w) return
+            m.getCanvas().style.cursor = 'pointer'
+            let lista: { nazwa: string }[] = []
+            try { lista = JSON.parse(String(w.properties?.lista ?? '[]')) } catch {}
+            const el = document.createElement('div')
+            const b = document.createElement('b')
+            b.textContent = `${w.properties?.nazwa}: ${ileObiektow(lista.length)} w terenie`
+            el.appendChild(b)
+            const ul = document.createElement('ul')
+            for (const o of lista.slice(0, 8)) { const li = document.createElement('li'); li.textContent = o.nazwa; ul.appendChild(li) }
+            if (lista.length > 8) { const li = document.createElement('li'); li.textContent = `i ${lista.length - 8} więcej…`; ul.appendChild(li) }
+            el.appendChild(ul)
+            const s = document.createElement('span')
+            s.textContent = 'kliknij, żeby przybliżyć'
+            el.appendChild(s)
+            dymek.setLngLat((w.geometry as GeoJSON.Point).coordinates as [number, number]).setDOMContent(el).addTo(m)
+        })
+        m.on('mouseleave', 'liczniki', () => { m.getCanvas().style.cursor = ''; dymek.remove() })
+        m.on('click', 'liczniki', (e) => {
+            const w = e.features?.[0]
+            if (!w) return
+            dymek.remove()
+            m.flyTo({ center: (w.geometry as GeoJSON.Point).coordinates as [number, number], zoom: Math.max(14, m.getZoom()), duration: 900 })
+        })
         m.on('moveend', () => {
             if (!zapamietaj) return
             try {
@@ -350,6 +462,7 @@ export default function MapaMiejsc({
             m.on('click', warstwa, (e) => {
                 const w = e.features?.[0]?.properties
                 if (!w) return
+                if (m.getLayer('liczniki') && m.queryRenderedFeatures(e.point, { layers: ['liczniki'] }).length) return
                 // plakietka z planem: panel z podglądem zamiast przejścia na stronę
                 if (w.plany) { try { setPanel({ nazwa: String(w.nazwa), href: String(w.href), plany: JSON.parse(String(w.plany)) }); return } catch {} }
                 if (w.href) routerRef.current.push(String(w.href))
@@ -359,6 +472,7 @@ export default function MapaMiejsc({
         }
 
         mapa.current = m
+        if (process.env.NODE_ENV === 'development') (window as unknown as { __mapa?: MapaGL }).__mapa = m // do testów w przeglądarce
         return () => {
             m.remove()
             mapa.current = null
@@ -381,6 +495,7 @@ export default function MapaMiejsc({
     useEffect(() => {
         const m = mapa.current
         if (m?.getLayer('obiekty')) m.setFilter('obiekty', filtrObiektow(aktywne))
+        przeliczRef.current()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [aktywne])
 
