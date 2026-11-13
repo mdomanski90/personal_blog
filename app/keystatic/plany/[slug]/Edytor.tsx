@@ -90,6 +90,8 @@ export default function Edytor({ slug }: { slug: string }) {
     const wTrakcie = React.useRef(false)
     const [kopiaPrz, ustawKopiaPrz] = React.useState<{ czas: string; plan: Plan } | null>(null)
     const [ponownie, ustawPonownie] = React.useState(0)
+    const [ostatniZapis, ustawOstatniZapis] = React.useState<Date | null>(null)
+    const natychmiast = React.useRef(false)
     const planRef = React.useRef<Plan | null>(null)
     planRef.current = plan
     const schowek = React.useRef<Element[] | null>(null)
@@ -106,6 +108,7 @@ export default function Edytor({ slug }: { slug: string }) {
         Promise.all([fetch(API(slug)).then((r) => (r.ok ? r.json() : Promise.reject(r.status))), fetch('/api/keystatic/plany').then((r) => r.json())])
             .then(([p, l]) => {
                 wersjaRef.current = p.wersja
+                if (p.zmieniono) ustawOstatniZapis(new Date(p.zmieniono))
                 ustawPlanSurowo(p)
                 // niezapisane zmiany z poprzedniej sesji (kopia w tej przeglądarce)
                 try {
@@ -164,6 +167,8 @@ export default function Edytor({ slug }: { slug: string }) {
         if (!plan || !brudny.current || zapis === 'konflikt' || wTrakcie.current) return
         // kopia w przeglądarce od razu – na wypadek zamknięcia karty albo awarii zapisu
         const tk = window.setTimeout(zapiszKopie, 300)
+        const zwloka = natychmiast.current ? 0 : 1200
+        natychmiast.current = false
         const t = window.setTimeout(async () => {
             const doZapisu = { ...planRef.current!, wersja: wersjaRef.current }
             brudny.current = false
@@ -175,13 +180,14 @@ export default function Edytor({ slug }: { slug: string }) {
             if (!r?.ok) { brudny.current = true; zapiszKopie(); ustawZapis('blad'); window.setTimeout(() => ustawPonownie((x) => x + 1), 4000); return }
             const j = await r.json()
             wersjaRef.current = j.wersja
+            ustawOstatniZapis(j.zmieniono ? new Date(j.zmieniono) : new Date())
             ustawPlanSurowo((p) => (p ? { ...p, wersja: j.wersja, zmieniono: j.zmieniono } : p))
             if (brudny.current) ustawPonownie((x) => x + 1) // zmiany w trakcie zapisu – kolejny zapis
             else {
                 ustawZapis('ok')
                 try { localStorage.removeItem(KLUCZ_KOPII(slug)) } catch { /* nic */ }
             }
-        }, 1200)
+        }, zwloka)
         return () => { window.clearTimeout(t); window.clearTimeout(tk) }
     }, [plan, slug, zapis, ponownie, zapiszKopie])
     React.useEffect(() => {
@@ -189,6 +195,18 @@ export default function Edytor({ slug }: { slug: string }) {
         window.addEventListener('beforeunload', ostrz)
         return () => window.removeEventListener('beforeunload', ostrz)
     }, [zapiszKopie])
+    /** „zapisz teraz” (Ctrl+S): zapis od razu, także bez zmian – dla pewności, że serwer ma aktualny plan */
+    const zapiszTeraz = () => {
+        if (zapisRef.current === 'konflikt') { pokaz('Plan zmieniono w innym oknie – wybierz „zachowaj moją wersję” albo „wczytaj z serwera”.'); return }
+        brudny.current = true
+        natychmiast.current = !wTrakcie.current
+        ustawZapis('zmiany')
+        ustawPonownie((x) => x + 1)
+    }
+    const zapisRef = React.useRef(zapis)
+    zapisRef.current = zapis
+    const zapiszTerazRef = React.useRef(zapiszTeraz)
+    zapiszTerazRef.current = zapiszTeraz
     /** konflikt: zachowaj wersję z tego okna (nadpisz serwer) */
     const zachowajMoja = async () => {
         const r = await fetch(API(slug)).then((x) => (x.ok ? x.json() : null)).catch(() => null)
@@ -536,6 +554,7 @@ export default function Edytor({ slug }: { slug: string }) {
     // ---------- klawiatura ----------
     React.useEffect(() => {
         const dol = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); zapiszTerazRef.current(); return }
             if ((e.target as HTMLElement).closest('input,textarea,select')) return
             const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey
             if (e.key === ' ') { spacja.current = true; return }
@@ -658,6 +677,8 @@ export default function Edytor({ slug }: { slug: string }) {
                     <button className="ed-btn" onClick={zachowajMoja} title="Zapisz plan z tego okna na serwerze (zastąpi wersję z innego okna)">zachowaj moją wersję</button>
                     <button className="ed-btn" onClick={() => { if (confirm('Wczytać plan z serwera? Zmiany z tego okna przepadną (kopia zostaje w pliku, jeśli najpierw klikniesz „pobierz”).')) { brudny.current = false; try { localStorage.removeItem(KLUCZ_KOPII(slug)) } catch { /* nic */ } location.reload() } }}>wczytaj z serwera</button>
                 </>}
+                <span className="ed-ostatni" title={ostatniZapis ? `ostatni udany zapis na serwerze: ${ostatniZapis.toLocaleString('pl-PL')}` : 'ten plan nie był jeszcze zapisany z edytora'}>{ostatniZapis ? `zapis: ${ostatniZapis.toLocaleTimeString('pl-PL')}${ostatniZapis.toDateString() !== new Date().toDateString() ? ` (${ostatniZapis.toLocaleDateString('pl-PL')})` : ''}` : 'zapis: —'}</span>
+                <button className="ed-btn" onClick={zapiszTeraz} disabled={zapis === 'zapisuje'} title="Zapisz na serwerze teraz (Ctrl+S)">zapisz teraz</button>
                 <button className="ed-btn" onClick={pobierzPlik} title="Pobierz plan z tego okna jako plik .plan.json (kopia na komputer; można go zaimportować na liście planów)">pobierz</button>
                 <span className="ed-sep" />
                 <div className="ed-seg">{NARZEDZIA.map((n) => <button key={n.id} aria-pressed={narz === n.id} title={`${n.nazwa} (${n.klawisz})`} onClick={() => { ustawNarz(n.id); ustawRys([]) }}>{n.nazwa}</button>)}</div>
@@ -1174,7 +1195,7 @@ p.ed-maly,span.ed-maly{cursor:default}
 .ed-dop-zr{fill:#db2777;stroke:#fff;stroke-width:1.5;vector-effect:non-scaling-stroke}.ed-dop-cel{fill:#059669;stroke:#fff;stroke-width:1.5;vector-effect:non-scaling-stroke}
 .ed-dop-l{stroke:#db2777;stroke-width:1.5;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
 .ed-siatka{stroke:#9ca3af;stroke-opacity:.35;stroke-width:1;vector-effect:non-scaling-stroke;fill:none}
-.ed-zapis{font-size:12px;color:#6b7280}.ed-kopia{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;background:#fef3c7;color:#78350f;padding:2px 8px;border-radius:7px}.ed-zapis-blad,.ed-zapis-konflikt{color:#b91c1c}.ed-zapis-ok{color:#15803d}
+.ed-zapis{font-size:12px;color:#6b7280}.ed-ostatni{font-size:12px;color:#6b7280;white-space:nowrap;font-variant-numeric:tabular-nums}.ed-kopia{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;background:#fef3c7;color:#78350f;padding:2px 8px;border-radius:7px}.ed-zapis-blad,.ed-zapis-konflikt{color:#b91c1c}.ed-zapis-ok{color:#15803d}
 @media (max-width:900px){.ed-glowna{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto minmax(55vh,1fr) auto}.ed-paleta{border-right:0;border-bottom:1px solid #d1d5db;max-height:30vh}.ed-panel{border-left:0;border-top:1px solid #d1d5db;max-height:45vh}}
 @media (pointer:coarse){.ed-btn,.ed-seg button,.ed-zakl button,.ed-akcje button,.ed-in{height:36px}.ed-uch{stroke-width:3}}
 `
