@@ -565,7 +565,24 @@ const pozycjeSieci = cache(async (poziom: Widocznosc): Promise<PozycjaSieci[]> =
     ...(await obiekty(poziom)).map((o) => ({ cel: { rodzaj: 'obiekt' as const, id: o.id, nazwa: o.nazwa, adres: `/obiekty/${o.id}` }, nazwy: [o.nazwa, ...o.inneNazwy] })),
     ...(await opowiesci(poziom)).map((o) => ({ cel: { rodzaj: 'wpis' as const, id: o.id, nazwa: o.tytul, adres: `/wpisy/${o.id}` }, nazwy: [o.tytul] })),
     ...(await materialy(poziom)).map((m) => ({ cel: { rodzaj: 'material' as const, id: m.id, nazwa: m.nazwa, adres: `/archiwum/${m.id}` }, nazwy: [m.nazwa] })),
+    ...(await osobyWSieci(poziom)),
 ])
+
+/** Osoby w sieci powiązań: z biogramem – z wzmiankami (pełne imię i nazwisko); pozostałe widoczne – tylko odnośnik [[identyfikator]]. */
+async function osobyWSieci(poziom: Widocznosc): Promise<PozycjaSieci[]> {
+    const { stanOsob } = await import('./osoby/dane')
+    const { nazwaOsoby } = await import('./osoby/model')
+    const s = await stanOsob()
+    const zBiogramem = new Set((await biogramy(poziom)).map((b) => b.id))
+    const wyn: PozycjaSieci[] = []
+    for (const o of s.drzewo.osoby.values()) {
+        if (!widoczne(s.widocznosc(o.id), poziom)) continue
+        const nazwa = nazwaOsoby(o)
+        const nazwy = zBiogramem.has(o.id) && nazwa.includes(' ') ? [nazwa] : []
+        wyn.push({ cel: { rodzaj: 'osoba', id: o.id, nazwa, adres: `/osoby/${o.id}` }, nazwy })
+    }
+    return wyn
+}
 
 /** Zamiana [[…]] na cele – tylko pozycje widoczne dla czytelnika. Do naHtml(treść, rozwiaz). */
 export const rozwiazOdnosniki = cache(async (poziom: Widocznosc): Promise<Rozwiaz> => slownikOdnosnikow(await pozycjeSieci(poziom)))
@@ -605,6 +622,7 @@ export async function daneSieci(poziom: Widocznosc): Promise<{ pozycje: PozycjaS
     for (const o of await obiekty(poziom)) dodaj('obiekt', o.id, 'obiekty', o.opis, o.miejsce ? [`miejsce:${o.miejsce}`] : [])
     for (const o of await opowiesci(poziom)) dodaj('wpis', o.id, 'posts', o.tresc, [...o.miejsca.map((id) => `miejsce:${id}`), ...o.tematy.map((id) => `temat:${id}`)])
     for (const m of await materialy(poziom)) dodaj('material', m.id, 'materialy', m.opis, [...m.miejsca.map((id) => `miejsce:${id}`), ...m.tematy.map((id) => `temat:${id}`), ...m.obiekty.map((id) => `obiekt:${id}`)])
+    for (const b of await biogramy(poziom)) dodaj('osoba', b.id, 'biogramy', b.tresc, [])
     return { pozycje, teksty }
 }
 
@@ -636,7 +654,7 @@ const indeksPowiazan = cache(async (poziom: Widocznosc): Promise<Map<string, Pow
         z.ile++
         if (z.fragmenty.length < MAKS_FRAGMENTOW) z.fragmenty.push(f)
     }
-    const wzorce = pozycje.filter((p) => p.cel.rodzaj !== 'wpis' && p.cel.rodzaj !== 'material').map((p) => ({ klucz: kluczCelu(p.cel), wzorzec: wzorzecWzmianek(p.nazwy, p.cel.rodzaj === 'temat') }))
+    const wzorce = pozycje.filter((p) => p.cel.rodzaj !== 'wpis' && p.cel.rodzaj !== 'material' && p.nazwy.length > 0).map((p) => ({ klucz: kluczCelu(p.cel), wzorzec: wzorzecWzmianek(p.nazwy, p.cel.rodzaj === 'temat') }))
     for (const t of teksty) {
         const wlasny = kluczCelu(t.zrodlo)
         const linie = t.tekst.split('\n')
@@ -783,7 +801,7 @@ export async function hasla(poziom: Widocznosc): Promise<Haslo[]> {
 /** Pozycja do losowej karty na stronie głównej. */
 export interface PozycjaLosowa { klucz: string; rodzaj: string; tytul: string; href: string; tekst: string; zdjecie?: string }
 
-/** Publiczne miejsca, obiekty i tematy z opisem – do „wylosuj” na stronie głównej (osoby z biogramem dokłada strona). */
+/** Publiczne miejsca, obiekty, tematy i osoby z biogramem – do „wylosuj” na stronie głównej. */
 export async function pozycjeLosowe(): Promise<PozycjaLosowa[]> {
     const poziom: Widocznosc = 'publiczne'
     const rozwiaz = slownikOdnosnikow(await pozycjeSieci(poziom))
@@ -801,5 +819,32 @@ export async function pozycjeLosowe(): Promise<PozycjaLosowa[]> {
         const t = opis(tm.opis)
         if (t.length > 40) wyn.push({ klucz: `temat:${tm.id}`, rodzaj: `temat · ${RODZAJE_TEMATOW[tm.rodzaj] ?? tm.rodzaj}`, tytul: tm.nazwa, href: `/tematy/${tm.id}`, tekst: t })
     }
+    for (const b of await biogramy(poziom)) {
+        const t = (bezNawiasow(b.lead, rozwiaz).trim() || opis(b.tresc)).trim()
+        if (t.length > 20) wyn.push({ klucz: `osoba:${b.id}`, rodzaj: `osoba${b.lata ? ` · ${b.lata}` : ''}`, tytul: b.nazwa, href: `/osoby/${b.id}`, tekst: t })
+    }
     return wyn
+}
+
+// ---------- biogramy osób (kolekcja „Osoby – biogramy”, plik = identyfikator osoby z drzewa) ----------
+
+export interface Biogram { id: string; podpis: string; lead: string; tresc: Node | null }
+
+const wszystkieBiogramy = cache(async (): Promise<Biogram[]> => {
+    const wpisy = await reader.collections.biogramy.all({ resolveLinkedFiles: true })
+    return wpisy.map(({ slug, entry }) => ({ id: slug, podpis: entry.title, lead: entry.lead ?? '', tresc: entry.content?.node ?? null }))
+})
+
+/** Biogramy osób, które istnieją w drzewie i są widoczne dla czytelnika (widoczność = widoczność osoby). */
+export const biogramy = cache(async (poziom: Widocznosc): Promise<(Biogram & { nazwa: string; lata: string })[]> => {
+    const { stanOsob } = await import('./osoby/dane')
+    const { nazwaOsoby, lataZycia } = await import('./osoby/model')
+    const s = await stanOsob()
+    return (await wszystkieBiogramy())
+        .filter((b) => s.drzewo.osoby.has(b.id) && widoczne(s.widocznosc(b.id), poziom))
+        .map((b) => ({ ...b, nazwa: nazwaOsoby(s.drzewo.osoby.get(b.id)!), lata: lataZycia(s.drzewo.osoby.get(b.id)!) }))
+})
+
+export async function biogram(id: string, poziom: Widocznosc) {
+    return (await biogramy(poziom)).find((b) => b.id === id) ?? null
 }

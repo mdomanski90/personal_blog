@@ -8,7 +8,7 @@
 
 import { normalizuj } from './tekst'
 
-export type RodzajCelu = 'miejsce' | 'temat' | 'obiekt' | 'wpis' | 'material'
+export type RodzajCelu = 'miejsce' | 'temat' | 'obiekt' | 'wpis' | 'material' | 'osoba'
 
 export interface Cel {
     rodzaj: RodzajCelu

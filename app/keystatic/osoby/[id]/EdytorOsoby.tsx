@@ -8,6 +8,7 @@ import { btn, pole, wyslij } from '../wspolne'
 type Skrot = { id: string; nazwa: string; imiona: string; nazwisko: string; plec: string; lata: string; miejsce: string; zyje: boolean; widocznosc: string }
 type Dane = {
     osoba: Osoba
+    biogram?: boolean
     zyjeAuto: boolean
     rodzice: { rodzina: Rodzina; maz: Skrot | null; zona: Skrot | null; rodzenstwo: Skrot[] }[]
     malzenstwa: { rodzina: Rodzina; malzonek: Skrot | null; dzieci: Skrot[] }[]
@@ -198,6 +199,9 @@ export default function EdytorOsoby({ id }: { id: string }) {
                 <span style={maly}>{zyje ? 'żyjąca' : 'nie żyje'}</span>
                 <span style={{ flex: 1 }} />
                 {msg && <span style={{ fontSize: 12, color: msg === 'zapisano' ? '#15803d' : '#b45309' }}>{msg}</span>}
+                {dane.biogram
+                    ? <a href={`/keystatic/collection/biogramy/item/${id}`} style={{ fontSize: 12 }}>biogram →</a>
+                    : <button onClick={async () => { const r = await fetch(`/api/keystatic/osoby/${id}/biogram`, { method: 'POST' }); const d = await r.json().catch(() => null); if (d?.adres) location.href = d.adres; else ustawMsg(d?.blad ?? 'nie udało się założyć biogramu') }} style={{ ...btn, height: 26, fontSize: 12 }} title="biogram w Keystatic – pokaże się na karcie osoby">napisz biogram →</button>}
                 <a href={`/osoby/${id}`} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>na stronie ↗</a>
                 <button onClick={zapisz} disabled={!brudne} style={{ ...btn, background: brudne ? '#262420' : undefined, color: brudne ? '#fff' : undefined }}>{brudne ? 'zapisz (Ctrl+S)' : 'zapisane'}</button>
             </div>
@@ -307,6 +311,11 @@ export default function EdytorOsoby({ id }: { id: string }) {
 
             <section style={{ ...sek, flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                 <span style={maly}>identyfikator: {id}{o.gedcomId && ` · z Ancestry: ${o.gedcomId}`}{o.zmieniono && ` · zmieniono ${new Date(o.zmieniono).toLocaleString('pl-PL')}`}</span>
+                <span style={{ ...maly, display: 'inline-flex', gap: 8, alignItems: 'center' }} title="krewni tej osoby (przodkowie i ich potomkowie) oraz ich małżonkowie">
+                    GEDCOM tylko z rodziną tej osoby:
+                    <a href={`/api/keystatic/osoby/eksport?rodzina=${id}&zyjace=ukryte`}>bez żyjących</a>
+                    <a href={`/api/keystatic/osoby/eksport?rodzina=${id}&zyjace=pelne`}>pełny</a>
+                </span>
                 <button onClick={async () => { if (!confirm('Przenieść tę osobę do kosza? Zostanie wypisana z rodzin.')) return; await fetch(`/api/keystatic/osoby/${id}`, { method: 'DELETE' }); location.href = '/keystatic/osoby' }} style={{ ...btn, height: 26, fontSize: 12, background: 'none', color: '#b91c1c' }}>do kosza</button>
             </section>
         </div>

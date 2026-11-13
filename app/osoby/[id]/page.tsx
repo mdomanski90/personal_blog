@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { Link } from 'next-view-transitions'
 import { notFound } from 'next/navigation'
-import { miejsca, parafie, poziomCzytelnika, widoczne } from '@/lib/archiwum'
+import { biogram, kontekstTresci, miejsca, parafie, poziomCzytelnika, powiazania, widoczne } from '@/lib/archiwum'
+import { naHtml } from '@/lib/markdoc'
+import { bezNawiasow } from '@/lib/odnosniki'
 import { formatujEdtf } from '@/lib/edtf'
 import { obrzadekZdarzenia, stanOsob } from '@/lib/osoby/dane'
 import { drzewoHtml } from '@/lib/osoby/drzewo'
@@ -10,7 +12,8 @@ import { pochowkiOsoby } from '@/lib/plany/serwer'
 import { logowanieWlaczone } from '@/lib/sesja'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Zgloszenie from '../../components/Zgloszenie'
-import { Sekcja, Strona, TytulStrony, Wiersz } from '../../components/Uklad'
+import { Kreski, Sekcja, Strona, Tresc, TytulStrony, Wiersz } from '../../components/Uklad'
+import Powiazania from '../../components/Powiazania'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,7 +49,7 @@ export default async function KartaOsoby({ params }: { params: Promise<{ id: str
             </Strona>
         )
     }
-    const [par, msc, pochowki] = await Promise.all([parafie(), miejsca(poziom), pochowkiOsoby(id)])
+    const [par, msc, pochowki, bio, siec, kontekst] = await Promise.all([parafie(), miejsca(poziom), pochowkiOsoby(id), biogram(id, poziom), powiazania('osoba', id, poziom), kontekstTresci(poziom)])
     const miejsceId = new Map(msc.map((m) => [m.id, m.nazwa]))
     const rel = s.relacje.get(id) ?? { rodzice: [], malzenstwa: [] }
     const widac = (x?: string) => !!x && s.drzewo.osoby.has(x) && widoczne(s.widocznosc(x), poziom)
@@ -96,6 +99,9 @@ export default async function KartaOsoby({ params }: { params: Promise<{ id: str
                     {lataZycia(o)}{o.inneNazwiska?.length ? `${lataZycia(o) ? ' · ' : ''}${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}` : ''}
                 </p>
             ) : null}
+
+            {bio?.lead && <p style={{ fontSize: 'var(--blog-font-size, 18px)', lineHeight: 1.6, margin: 0 }}>{bezNawiasow(bio.lead, kontekst.rozwiaz)}</p>}
+            {bio?.tresc && <Tresc html={naHtml(bio.tresc, kontekst)} pusta={null} />}
 
             <Sekcja tytul="życie">
                 <div className="flex flex-col">
@@ -174,6 +180,9 @@ export default async function KartaOsoby({ params }: { params: Promise<{ id: str
                     </ul>
                 </Sekcja>
             )}
+
+            {(siec.odnosniki.length > 0 || siec.wzmianki.length > 0) && <Kreski />}
+            <Powiazania dane={siec} />
 
             <Zgloszenie rodzaj="poprawka" adres={`/osoby/${id}`} tytul={tytul} />
         </Strona>

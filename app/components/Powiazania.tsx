@@ -4,7 +4,7 @@ import type { Powiazania as DanePowiazan, ZrodloPowiazania } from '@/lib/archiwu
 import { odmiana } from '@/lib/tekst'
 import { RAMKA, Sekcja } from './Uklad'
 
-const RODZAJ: Record<string, string> = { wpis: 'wpis', miejsce: 'miejsce', temat: 'temat', obiekt: 'obiekt', material: 'materiał' }
+const RODZAJ: Record<string, string> = { wpis: 'wpis', miejsce: 'miejsce', temat: 'temat', obiekt: 'obiekt', material: 'materiał', osoba: 'biogram' }
 
 function Lista({ zrodla, wyroznienie }: { zrodla: ZrodloPowiazania[]; wyroznienie: 'odnosnik' | 'wzmianka' }) {
     return (

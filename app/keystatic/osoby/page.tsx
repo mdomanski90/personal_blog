@@ -141,6 +141,7 @@ export default function Osoby() {
                 <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <a href="/api/keystatic/osoby/eksport?zyjace=ukryte" style={{ ...btn, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>pobierz bez danych osób żyjących</a>
                     <a href="/api/keystatic/osoby/eksport?zyjace=pelne" style={{ ...btn, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>pobierz pełne</a>
+                    <span style={{ fontSize: 12, color: '#6b665c' }}>samą rodzinę jednej osoby pobierzesz z jej karty</span>
                 </span>
             </section>
         </div>

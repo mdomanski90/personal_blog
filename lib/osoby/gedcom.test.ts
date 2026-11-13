@@ -192,3 +192,22 @@ test('eksport GEDCOM: żyjący ukryci, chrzestni w opisie, ponowny import daje t
     assert.equal(adresAncestry('1480::48528'), 'https://search.ancestry.com/cgi-bin/sse.dll?indiv=1&dbid=1480&h=48528')
     assert.equal(adresAncestry('1480::0'), null)
 })
+
+test('wycinek „tylko moja rodzina”: krewni i ich małżonkowie, bez rodzin małżonków', async () => {
+    const { wycinekRodziny } = await import('./model')
+    const o = (id: string) => [id, { id, imiona: id, nazwisko: 'T', plec: 'M', zdarzenia: [], wersja: 1 }] as const
+    const f = (id: string, maz: string | undefined, zona: string | undefined, dzieci: string[]) => [id, { id, maz, zona, dzieci, zdarzenia: [], wersja: 1 }] as const
+    // dziadek+babcia → ojciec, ciotka; ojciec+matka → ja; ciotka+wujek → kuzyn; teść+teściowa → matka (rodzina matki)
+    const d = {
+        osoby: new Map([o('dziadek'), o('babcia'), o('ojciec'), o('ciotka'), o('wujek'), o('kuzyn'), o('matka'), o('ja'), o('dziadekM'), o('obcy')]),
+        rodziny: new Map([f('f1', 'dziadek', 'babcia', ['ojciec', 'ciotka']), f('f2', 'ojciec', 'matka', ['ja']), f('f3', 'wujek', 'ciotka', ['kuzyn']), f('f4', 'dziadekM', undefined, ['matka'])]),
+        zrodla: new Map(),
+    } as unknown as Parameters<typeof wycinekRodziny>[0]
+    const w = wycinekRodziny(d, 'ja')
+    assert.deepEqual([...w.osoby.keys()].sort(), ['babcia', 'ciotka', 'dziadek', 'dziadekM', 'ja', 'kuzyn', 'matka', 'ojciec', 'wujek'].sort())
+    // dziadek ze strony matki jest przodkiem (krewny), „obcy” nie
+    assert.ok(!w.osoby.has('obcy'))
+    const wk = wycinekRodziny(d, 'kuzyn')
+    assert.ok(wk.osoby.has('ojciec') && wk.osoby.has('ja') && wk.osoby.has('matka'), 'kuzyn: wujostwo, kuzyni i ich małżonkowie')
+    assert.ok(!wk.osoby.has('dziadekM'), 'bez rodziny małżonki stryja')
+})

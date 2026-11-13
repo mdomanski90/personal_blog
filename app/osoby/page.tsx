@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import PoleSzukania from '../components/PoleSzukania'
 import { Link } from 'next-view-transitions'
-import { poziomCzytelnika, widoczne } from '@/lib/archiwum'
+import { biogramy, poziomCzytelnika, rozwiazOdnosniki, widoczne } from '@/lib/archiwum'
+import { bezNawiasow } from '@/lib/odnosniki'
 import { stanOsob } from '@/lib/osoby/dane'
 import { lataZycia, nazwaOsoby, zdarzenie } from '@/lib/osoby/model'
 import { normalizuj, odmiana, porownajPl } from '@/lib/tekst'
@@ -15,10 +16,12 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
     const q = normalizuj(sp.q ?? '')
     const poziom = await poziomCzytelnika()
     const s = await stanOsob()
+    const rozwiaz = await rozwiazOdnosniki(poziom)
+    const bio = new Map((await biogramy(poziom)).map((b) => [b.id, { ...b, lead: bezNawiasow(b.lead, rozwiaz) }]))
     const wszystkie = [...s.drzewo.osoby.values()].filter((o) => widoczne(s.widocznosc(o.id), poziom))
     const ukryte = s.drzewo.osoby.size - wszystkie.length
     const lista = wszystkie
-        .filter((o) => !q || q.split(' ').every((w) => normalizuj(`${o.imiona} ${o.nazwisko} ${(o.inneNazwiska ?? []).join(' ')} ${lataZycia(o)} ${zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce ?? ''}`).includes(w)))
+        .filter((o) => !q || q.split(' ').every((w) => normalizuj(`${o.imiona} ${o.nazwisko} ${(o.inneNazwiska ?? []).join(' ')} ${lataZycia(o)} ${zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce ?? ''} ${bio.get(o.id)?.lead ?? ''}`).includes(w)))
         .sort((a, b) => porownajPl(a.nazwisko, b.nazwisko) || porownajPl(a.imiona, b.imiona))
     const grupy = new Map<string, typeof lista>()
     for (const o of lista) {
@@ -54,6 +57,7 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
                                 <li key={o.id}>
                                     <Link href={`/osoby/${o.id}`} className={`osoba-link osoba-${o.plec}`}>{nazwaOsoby(o)}</Link>
                                     <span className="text-gray-600 dark:text-gray-400"> {lataZycia(o)}{zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce ? ` · ${zdarzenie(o, 'urodzenie', 'chrzest')!.miejsce!.split(',')[0]}` : ''}</span>
+                                    {bio.has(o.id) && <span className="osoba-biogram"> · {bio.get(o.id)!.lead || 'biogram'}</span>}
                                 </li>
                             ))}
                         </ul>

@@ -149,7 +149,7 @@ export default config({
   ui: {
     brand: { name: 'odniepamieci.pl' },
     navigation: {
-      'Treści': ['posts', 'miejsca', 'obiekty', 'tematy'],
+      'Treści': ['posts', 'miejsca', 'obiekty', 'tematy', 'biogramy'],
       'Archiwum': ['materialy'],
       'Księgi metrykalne': ['parafie', 'ksiegi'],
       'Słownik': ['hasla'],
@@ -419,6 +419,29 @@ export default config({
         variants: fields.array(fields.text({ label: 'Forma' }), { label: 'Inne formy i odmiana', description: 'Do wyszukiwania, np. „rubla”, „rublach”.', itemLabel: (p) => p.value }),
         visibility: widocznosc(),
         note: notatka(),
+      },
+    }),
+    biogramy: collection({
+      label: 'Osoby – biogramy',
+      slugField: 'title',
+      path: 'content/biogramy/*',
+      format: { contentField: 'content' },
+      entryLayout: 'content',
+      columns: ['title'],
+      schema: {
+        title: fields.slug({
+          name: { label: 'Osoba', description: 'Jak na karcie w drzewie, np. Jan Kowalski (1862–1931). Widoczność biogramu = widoczność osoby w drzewie.' },
+          slug: {
+            label: 'Identyfikator osoby z drzewa',
+            description: 'Taki sam jak w „Osoby i drzewo” (np. jan-kowalski-1862) – po nim biogram łączy się z kartą osoby. Najprościej założyć biogram przyciskiem „napisz biogram →” na karcie osoby w panelu.',
+          },
+        }),
+        lead: fields.text({
+          label: 'Jednym zdaniem',
+          multiline: true,
+          description: 'Kim była ta osoba – pod nazwiskiem na karcie, na liście osób i w losowej karcie na stronie głównej.',
+        }),
+        content: opisMarkdoc('Biogram', 'biogramy'),
       },
     }),
     ksiegi: collection({

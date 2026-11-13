@@ -396,3 +396,41 @@ export function poprawRodzine(f: Partial<Rodzina> & { id: string }): Rodzina {
         ...(f.zmieniono ? { zmieniono: f.zmieniono } : {}),
     }
 }
+
+/**
+ * Wycinek drzewa „tylko moja rodzina”: krewni wybranej osoby (przodkowie i wszyscy ich potomkowie –
+ * pokrewieństwo w linii prostej i bocznej) oraz ich małżonkowie; bez dalszych rodzin małżonków.
+ * Źródła – tylko te, na które powołują się zostawione osoby i rodziny.
+ */
+export function wycinekRodziny(d: Drzewo, id: string): Drzewo {
+    const rel = indeksRelacji(d)
+    const przodkowie = new Set<string>()
+    const doGory = [id]
+    while (doGory.length) {
+        const x = doGory.pop()!
+        if (przodkowie.has(x) || !d.osoby.has(x)) continue
+        przodkowie.add(x)
+        for (const f of rel.get(x)?.rodzice ?? []) for (const r of [f.maz, f.zona]) if (r) doGory.push(r)
+    }
+    const krewni = new Set<string>()
+    const wDol = [...przodkowie]
+    while (wDol.length) {
+        const x = wDol.pop()!
+        if (krewni.has(x) || !d.osoby.has(x)) continue
+        krewni.add(x)
+        for (const f of rel.get(x)?.malzenstwa ?? []) wDol.push(...f.dzieci)
+    }
+    const osoby = new Set(krewni)
+    for (const x of krewni) for (const f of rel.get(x)?.malzenstwa ?? []) for (const m of [f.maz, f.zona]) if (m) osoby.add(m)
+    const rodziny = new Map<string, Rodzina>()
+    for (const f of d.rodziny.values()) {
+        if (![f.maz, f.zona, ...f.dzieci].some((x) => x && krewni.has(x))) continue
+        rodziny.set(f.id, { ...f, maz: f.maz && osoby.has(f.maz) ? f.maz : undefined, zona: f.zona && osoby.has(f.zona) ? f.zona : undefined, dzieci: f.dzieci.filter((c) => osoby.has(c)) })
+    }
+    const wybraneOsoby = new Map([...d.osoby].filter(([k]) => osoby.has(k)))
+    const uzyte = new Set<string>()
+    const zbierz = (c?: { zrodlo?: string }[]) => c?.forEach((x) => x.zrodlo && uzyte.add(x.zrodlo))
+    for (const o of wybraneOsoby.values()) { zbierz(o.cytaty); o.zdarzenia.forEach((z) => zbierz(z.cytaty)) }
+    for (const f of rodziny.values()) f.zdarzenia.forEach((z) => zbierz(z.cytaty))
+    return { osoby: wybraneOsoby, rodziny, zrodla: new Map([...d.zrodla].filter(([k]) => uzyte.has(k))) }
+}

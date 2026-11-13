@@ -3,6 +3,7 @@ import { Konflikt, obrzadekZdarzenia, stanOsob, usunOsobe, zapiszOsobe } from '@
 import { ID_OSOBY, poprawOsobe, type Osoba } from '@/lib/osoby/model'
 import { ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
 import { parafie } from '@/lib/archiwum'
+import { maBiogram } from '@/lib/osoby/biogramy'
 
 // Jedna osoba w panelu: dane, rodzina, ostrzeżenia; zapis z kontrolą wersji; usunięcie do kosza.
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const potrzebneOsoby = new Set(o.zdarzenia.flatMap((z) => (z.chrzestni ?? []).map((c) => c.osoba).filter(Boolean) as string[]))
     return Response.json({
         osoba: o,
+        biogram: maBiogram(id),
         zyjeAuto: s.zyje(id),
         rodzice: rel.rodzice.map((f) => ({ rodzina: f, maz: sk(f.maz), zona: sk(f.zona), rodzenstwo: f.dzieci.filter((c) => c !== id).map(sk).filter(Boolean) })),
         malzenstwa: rel.malzenstwa.map((f) => ({ rodzina: f, malzonek: sk(f.maz === id ? f.zona : f.maz), dzieci: f.dzieci.map(sk).filter(Boolean) })),
