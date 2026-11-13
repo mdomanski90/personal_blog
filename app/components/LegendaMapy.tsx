@@ -15,7 +15,7 @@ export default function LegendaMapy({ rodzajeObiektow = [] }: { rodzajeObiektow?
     const obecne = Object.keys(NAZWY_OBIEKTOW).filter((r) => rodzajeObiektow.includes(r))
     return (
         <details className="lowercase" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>
-            <summary className="cursor-pointer text-gray-600 dark:text-gray-400 w-fit">objaśnienie znaków</summary>
+            <summary className="cursor-pointer text-gray-600 dark:text-gray-400 w-fit">legenda</summary>
             <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(12rem, 1fr))', gap: '6px 16px', marginTop: 8 }}>
                 <Pozycja html={tarczaMiejsca('miasto', [], 'miasto', 24)}>miasto</Pozycja>
                 {KOLEJNOSC_WYZNAN.map((w) => (

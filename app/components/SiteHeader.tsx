@@ -7,6 +7,7 @@ import { Suspense, useEffect, useState } from 'react'
 import ThemeToggle from './ThemeToggle'
 import Logowanie from './Logowanie'
 import Emblemat from './Emblemat'
+import Wroc from './Wroc'
 
 // Menu główne (docelowe). Na telefonie zwinięte pod jednym przyciskiem.
 const MENU: { href: string; tekst: string }[] = [
@@ -148,7 +149,7 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
             </div>
 
             <div className="flex flex-wrap items-center gap-2" style={{ marginTop: '0.75rem' }}>
-                {akcje && <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">{akcje}</div>}
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto empty:hidden"><Wroc />{akcje}</div>
                 <Suspense fallback={<div className="flex-1" style={{ height: 30 }} />}>
                     <Wyszukiwarka />
                 </Suspense>

@@ -12,7 +12,6 @@ import Powiazania from '../../components/Powiazania'
 import ListaMaterialow from '../../components/ListaMaterialow'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
-import PowrotDoMapy from '../../components/PowrotDoMapy'
 import Zgloszenie from '../../components/Zgloszenie'
 import ListaPlanow from '../../components/plan/ListaPlanow'
 import { planDlaCzytelnika, planyDlaCzytelnika } from '@/lib/plany/serwer'
@@ -52,7 +51,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     const osobyGlownego = glowny ? await osobyPlanu(glowny.plan, poziom) : undefined
 
     return (
-        <Strona akcje={<><PowrotDoMapy /><CopyLinkButton sciezka={`/obiekty/${o.id}`} /></>}>
+        <Strona akcje={<><CopyLinkButton sciezka={`/obiekty/${o.id}`} /></>}>
             <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]}>
                 <span className="inline-flex items-center" style={{ gap: 10 }}>
                     <span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaObiektu(o.rodzaj, rodzaj, 36, o.istnieje) }} />

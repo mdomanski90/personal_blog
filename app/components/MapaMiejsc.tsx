@@ -112,7 +112,10 @@ export default function MapaMiejsc({
     const pierwszyMotyw = useRef(true)
     const nazwyMiejsc = punkty.filter((p) => p.typ === 'miejsce').map((p) => p.nazwa)
     const grupy = Object.keys(GRUPY_OBIEKTOW).filter((g) => punkty.some((p) => p.typ === 'obiekt' && grupaObiektu(p.rodzaj) === g))
-    const [aktywne, setAktywne] = useState<string[]>(grupy)
+    // wybrane grupy obiektów: puste = wszystkie; kliknięcie grupy pokazuje tylko ją (i inne wybrane)
+    const [wybrane, setWybrane] = useState<string[]>([])
+    const aktywne = wybrane.length ? wybrane.filter((g) => grupy.includes(g)) : grupy
+    const kluczAktywnych = aktywne.join('|')
     const [pokazPlany, setPokazPlany] = useState(true)
     const pokazPlanyRef = useRef(pokazPlany)
     pokazPlanyRef.current = pokazPlany
@@ -498,7 +501,7 @@ export default function MapaMiejsc({
         if (m?.getLayer('obiekty')) m.setFilter('obiekty', filtrObiektow(aktywne))
         przeliczRef.current()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [aktywne])
+    }, [kluczAktywnych])
 
     useEffect(() => {
         const m = mapa.current
@@ -520,7 +523,7 @@ export default function MapaMiejsc({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rok])
 
-    const przelacz = (g: string) => setAktywne((a) => (a.includes(g) ? a.filter((x) => x !== g) : [...a, g]))
+    const przelacz = (g: string) => setWybrane((a) => (a.includes(g) ? a.filter((x) => x !== g) : [...a, g]))
 
     // wysokość w procentach (np. mapa wypełniająca kolumnę obok metryczki): całość wypełnia rodzica, mapa bierze resztę miejsca
     const wypelnij = typeof wysokosc === 'string'
@@ -528,9 +531,20 @@ export default function MapaMiejsc({
         <div className="flex flex-col" style={{ gap: 6, height: wypelnij ? wysokosc : undefined }}>
             {(grupy.length > 0 || (planyGeo?.length ?? 0) > 0) && (
                 <div className="flex flex-wrap items-center" style={{ gap: '6px 12px', fontSize: 'calc(13px * var(--font-scale, 1))' }}>
-                    <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1, paddingTop: 1 }} role="group" aria-label="pokaż na mapie">
+                    <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1, paddingTop: 1 }} role="group" aria-label="pokaż na mapie tylko">
+                        {grupy.length > 1 && (
+                            <button
+                                type="button"
+                                aria-pressed={!wybrane.length}
+                                onClick={() => setWybrane([])}
+                                className={`border border-[#d6d1c6] dark:border-[#4b5563] lowercase cursor-pointer ${!wybrane.length ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
+                                style={{ margin: '-1px 0 0 -1px', padding: '0 10px', height: 26, fontSize: 'inherit', fontFamily: 'inherit' }}
+                            >
+                                wszystkie
+                            </button>
+                        )}
                         {grupy.map((g) => {
-                            const wl = aktywne.includes(g)
+                            const wl = wybrane.includes(g)
                             return (
                                 <button
                                     key={g}

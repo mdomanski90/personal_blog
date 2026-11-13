@@ -17,7 +17,6 @@ import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania from '../../components/Powiazania'
 import ListaMaterialow from '../../components/ListaMaterialow'
-import PowrotDoMapy from '../../components/PowrotDoMapy'
 import { TabelaKsiag } from '../../components/Ksiegi'
 import ListaPlanow from '../../components/plan/ListaPlanow'
 import { planyDlaCzytelnika } from '@/lib/plany/serwer'
@@ -82,7 +81,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const tematyGminy = m.rodzaj === 'gmina' ? [...new Map((await Promise.all([...idsGminy].map((id) => tematyDlaMiejsca(id, poziom)))).flat().map((t) => [t.id, t])).values()] : []
 
     return (
-        <Strona akcje={<><PowrotDoMapy /><CopyLinkButton sciezka={`/miejsca/${m.id}`} /></>}>
+        <Strona akcje={<><CopyLinkButton sciezka={`/miejsca/${m.id}`} /></>}>
             <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...przodkowie.map((p) => ({ tekst: p.nazwa, href: `/miejsca/${p.id}` }))]}>{m.nazwa}</TytulStrony>
             {(() => {
                 const info = (

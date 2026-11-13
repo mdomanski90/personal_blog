@@ -311,13 +311,14 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
 function Legenda({ uzyte, prefix, wylaczone, przelacz, wszystkie, rodzina }: { uzyte: { t: TypElementu; n: number }[]; prefix: string; wylaczone: Set<string>; przelacz: (id: string) => void; wszystkie: () => void; rodzina: boolean }) {
     if (!uzyte.length) return null
     return (
-        <div className="flex flex-col" style={{ gap: 6 }}>
-            <div className="flex items-baseline" style={{ gap: 12 }}>
-                <span className="text-gray-500 uppercase" style={{ fontSize: 11, letterSpacing: '0.08em' }}>legenda</span>
-                {wylaczone.size > 0 && <button type="button" onClick={wszystkie} className="plan-bez-druku text-[#1d4ed8] dark:text-[#7aa2ff]" style={{ fontSize: 12, background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>pokaż wszystko</button>}
-                <span className="plan-bez-druku text-gray-500" style={{ fontSize: 11 }}>kliknij, żeby ukryć albo pokazać</span>
-            </div>
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(13rem, 1fr))', gap: '4px 16px' }}>
+        // zwinięta – rozwija się po kliknięciu w „legenda”; przy ukrytych typach od razu widać „pokaż wszystko”
+        <details className="plan-legenda flex flex-col" style={{ gap: 6 }}>
+            <summary className="flex items-baseline" style={{ gap: 12 }}>
+                <span className="plan-legenda-tytul">legenda</span>
+                {wylaczone.size > 0 && <button type="button" onClick={(e) => { e.preventDefault(); wszystkie() }} className="plan-bez-druku text-[#1d4ed8] dark:text-[#7aa2ff]" style={{ fontSize: 12, background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>pokaż wszystko</button>}
+            </summary>
+            <span className="plan-bez-druku text-gray-500" style={{ fontSize: 11, marginTop: 6 }}>kliknij, żeby ukryć albo pokazać</span>
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(13rem, 1fr))', gap: '4px 16px', marginTop: 6 }}>
                 {uzyte.map(({ t, n }) => (
                     <button key={t.id} type="button" onClick={() => przelacz(t.id)} aria-pressed={!wylaczone.has(t.id)} className="flex items-center text-left text-current" style={{ gap: 9, fontSize: 13, opacity: wylaczone.has(t.id) ? 0.38 : 1, minHeight: 24, background: 'none', border: 0, padding: 0, font: 'inherit', cursor: 'pointer' }}>
                         <Probka typ={t} prefix={prefix} />
@@ -326,7 +327,7 @@ function Legenda({ uzyte, prefix, wylaczone, przelacz, wszystkie, rodzina }: { u
                 ))}
                 {rodzina && <span className="flex items-center" style={{ gap: 9, fontSize: 13 }}><span className="plan-rodzina-probka" aria-hidden="true" />grób rodziny</span>}
             </div>
-        </div>
+        </details>
     )
 }
 

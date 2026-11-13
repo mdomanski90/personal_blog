@@ -1,6 +1,6 @@
 'use client'
 
-// Karta „z archiwum, na chybił trafił” na stronie głównej: losowa miejscowość, obiekt, temat albo osoba
+// Karta „z archiwum” na stronie głównej: losowa miejscowość, obiekt, temat albo osoba
 // (tylko publiczne i z opisem). Pierwszą losuje serwer, „wylosuj inne” przechodzi przez całą pulę bez powtórek.
 
 import * as React from 'react'
@@ -25,7 +25,7 @@ export default function LosowaKarta({ pozycje, start }: { pozycje: PozycjaLosowa
     return (
         <aside className="karta-losowa" aria-live="polite">
             <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
-                <b className="lowercase" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>z archiwum, na chybił trafił</b>
+                <b className="lowercase" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>z archiwum</b>
                 {pozycje.length > 1 && (
                     <button type="button" onClick={wylosuj} className="karta-losowa-los" title="pokaż inną pozycję">wylosuj inne ↻</button>
                 )}

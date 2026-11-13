@@ -640,3 +640,9 @@ html[data-emblemat] .emblemat-rysuj .emblemat-rama{animation:none;stroke-dashoff
 html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .osoba-biogram{color:#4f4a41;font-size:.92em}
 .dark .osoba-biogram{color:#d6d1c6}
+.plan-legenda>summary{cursor:pointer;list-style:none;width:fit-content}
+.plan-legenda>summary::-webkit-details-marker{display:none}
+.plan-legenda-tytul{font-size:13px;color:#4f4a41;text-decoration:underline dotted;text-underline-offset:3px}
+.plan-legenda-tytul::before{content:'▸ ';text-decoration:none;display:inline-block;margin-right:4px}
+.plan-legenda[open] .plan-legenda-tytul::before{content:'▾ '}
+.dark .plan-legenda-tytul{color:#d6d1c6}
