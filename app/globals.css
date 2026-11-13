@@ -402,7 +402,7 @@ body {
 .post-content .zrodlo-tresc > :first-child { margin-top: 0; }
 .post-content .zrodlo-tresc > :last-child { margin-bottom: 0; }
 .post-content .zrodlo-tresc p { margin: 0.5em 0; }
-.post-content .zrodlo .uzupelnienie { color: #a39d91; }
+.post-content .zrodlo .uzupelnienie { color: #736d63; }
 .post-content .zrodlo-kolumny {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
@@ -420,7 +420,7 @@ body {
 .dark .post-content .zrodlo-kolumna { border-color: #4b5563; }
 .dark .post-content .zrodlo-naglowek { background: #1f2937; }
 .dark .post-content .zrodlo-opis { color: #9ca3af; }
-.dark .post-content .zrodlo .uzupelnienie { color: #6b7280; }
+.dark .post-content .zrodlo .uzupelnienie { color: #9ca3af; }
 
 /* ============================================ */
 /* SIEĆ POWIĄZAŃ – odnośniki [[…]] i wzmianki   */
@@ -525,8 +525,9 @@ body {
 
 /* Osoby: lista, odnośniki w kolorach płci, obrządek, drzewo (klepsydra na komputerze, lista na telefonie) */
 .osoby-lista { display: flex; flex-direction: column; gap: 2px; list-style: none; padding: 0; margin: 0; font-size: calc(15px * var(--font-scale, 1)); }
-.osoba-link { text-decoration: none !important; padding: 0 4px; border-radius: 4px; }
-.osoba-link:hover { text-decoration: underline !important; }
+.osoba-link { text-decoration: underline !important; text-decoration-color: rgb(28 27 24 / .3) !important; text-underline-offset: 3px; padding: 0 4px; border-radius: 4px; }
+.osoba-link:hover { text-decoration-color: currentColor !important; }
+.dark .osoba-link { text-decoration-color: rgb(229 231 235 / .35) !important; }
 .osoba-K { background: #fcf3f6; box-shadow: inset 0 0 0 1px #f1d9e2; }
 .osoba-M { background: #f2f7fc; box-shadow: inset 0 0 0 1px #d5e3f3; }
 .osoba-U { background: #f4f3f0; box-shadow: inset 0 0 0 1px #e2e0da; }
@@ -552,10 +553,18 @@ body {
 .drzewo .dr-tresc { position: absolute; top: 0; left: max(164px, calc(50% + 74px - var(--wc) / 2)); }
 .drzewo .dr-linie { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
 .drzewo .dr-linie path { fill: none; stroke: #8a847a; stroke-width: 1.25; }
-.drzewo .dr-karta { position: absolute; z-index: 1; width: 116px; height: 52px; box-sizing: border-box; padding: 0 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 7px; text-decoration: none !important; color: inherit; line-height: 1.2; overflow: hidden; transition: transform .15s ease; }
-.drzewo .dr-imie { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.drzewo .dr-grupa { list-style: none; margin: 0; padding: 0; }
+.drzewo .dr-grupa > li { display: contents; }
+.drzewo .dr-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.drzewo .dr-karta { position: absolute; z-index: 1; width: 124px; height: 60px; box-sizing: border-box; padding: 0 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 7px; text-decoration: none !important; color: inherit; line-height: 1.2; overflow: hidden; transition: transform .15s ease; }
+.drzewo .dr-imie { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+/* pełna nazwa po najechaniu i przy przejściu klawiaturą: karta rośnie w dół, nad sąsiadami */
+.drzewo .dr-karta:is(:hover, :focus-visible) { height: auto; min-height: 60px; padding-top: 6px; padding-bottom: 6px; z-index: 6; overflow: visible; box-shadow: 0 2px 8px rgb(0 0 0 / .12); }
+.drzewo .dr-karta:is(:hover, :focus-visible) .dr-imie { display: block; -webkit-line-clamp: unset; }
+.drzewo .dr-karta:focus-visible { outline: 2px solid #1d4ed8; outline-offset: 2px; }
+.dark .drzewo .dr-karta:focus-visible { outline-color: #7aa2ff; }
 .drzewo .dr-lata { color: #6b665c; font-size: 11px; margin-top: 2px; }
-.drzewo a.dr-karta:hover { transform: scale(1.04); }
+
 .drzewo .dr-K { background: #fdf2f6; border: 1px solid #f3d3df; }
 .drzewo .dr-M { background: #eff4fb; border: 1px solid #cfdcef; }
 .drzewo .dr-U { background: #f4f3f0; border: 1px solid #e2e0da; }
@@ -575,8 +584,8 @@ body {
 .dark .drzewo .dr-glowna { border-color: #e5e7eb; }
 .dark .drzewo .dr-slub { background: #111827; border-color: #8b93a0; color: #d1d5db; }
 .drzewo { position: relative; }
-/* lista dostępna dla czytników ekranu także na komputerze (klepsydra jest aria-hidden) */
-.drzewo .dr-tekst { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* wersja tekstowa drzewa – tylko na telefonie; na komputerze czytnik i klawiatura korzystają z wersji graficznej */
+.drzewo .dr-tekst { display: none; }
 .drzewo .dr-tekst ul { list-style: none; margin: 0; padding-left: 1rem; border-left: 1px solid #d6d1c6; }
 .drzewo .dr-tekst li { margin: 2px 0; }
 .drzewo .dr-t-osoba { font-weight: 700; margin: 0 0 4px; }
@@ -588,7 +597,8 @@ body {
 .dark .drzewo .dr-t-M { background: #233040; }
 @media (max-width: 640px) {
   .drzewo .dr-przewijanie, .drzewo .dr-narzedzia { display: none; }
-  .drzewo .dr-tekst { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
+  .drzewo .dr-tekst { display: block; padding: 10px 14px; white-space: normal; overflow-wrap: anywhere; }
+  .drzewo .dr-tekst li { white-space: normal; }
 }
 
 /* strona obiektu: plan / lista / mapa na całą szerokość, dane pod spodem; pełny ekran */
@@ -628,7 +638,8 @@ body {
 .stopka-miejsca .kropka{opacity:.45;padding-left:.45em}
 .stopka-miejsca a{color:inherit;text-decoration:none;border-bottom:1px dotted rgba(127,127,127,.55)}
 .stopka-miejsca a:hover{border-bottom-style:solid}
-.stopka-miejsca .bez-strony{opacity:.6}
+.stopka-miejsca .bez-strony{color:#6b665c}
+.dark .stopka-miejsca .bez-strony{color:#9ca3af}
 .stopka-miejsca .miasto{font-weight:700}
 .naglowek-emblemat svg{display:block;height:100px;width:auto}
 @media (max-width:640px){.naglowek-emblemat svg{height:72px}}
@@ -774,7 +785,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dok-obj-wiecej{display:flex;flex-direction:column;gap:3px;margin-top:6px;font-size:calc(11.5px * var(--font-scale,1));color:#6b665c}
 .dok-obj-weryfikacja>summary{cursor:pointer;width:fit-content}
 .dok-obj-weryfikacja>div{white-space:pre-wrap;margin-top:2px;color:#4f4a41}
-.dok-obj-notka .uzupelnienie,.dok-transkrypcja .uzupelnienie{color:#a39d91}
+.dok-obj-notka .uzupelnienie,.dok-transkrypcja .uzupelnienie{color:#736d63}
 .dok-obj-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:8px;align-items:start}
 .dok-obj-lista-boczna .dok-obj-lista{grid-template-columns:minmax(0,1fr)}
 .dok-transkrypcja{border:1px solid #e7e2d8;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:calc(14px * var(--font-scale,1));line-height:1.6}
@@ -794,7 +805,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dok-pelny .dok-obj-notka.wskazana,.dark .dok-obj-notka.wskazana{border-color:#5d78b8}
 .dok-pelny .dok-obj-glowka,.dok-pelny .dok-obj-wiecej,.dok-pelny .dok-transkrypcja-rodzaj,.dark .dok-obj-glowka,.dark .dok-obj-wiecej{color:#b8b2a6}
 .dok-pelny .dok-obj-weryfikacja>div,.dark .dok-obj-weryfikacja>div{color:#d6d1c6}
-.dok-pelny .dok-obj-notka .uzupelnienie,.dok-pelny .dok-transkrypcja .uzupelnienie,.dark .dok-obj-notka .uzupelnienie{color:#7d786e}
+.dok-pelny .dok-obj-notka .uzupelnienie,.dok-pelny .dok-transkrypcja .uzupelnienie,.dark .dok-obj-notka .uzupelnienie{color:#a8a296}
 .dok-pelny .dok-obj-notka a,.dark .dok-obj-notka a{color:#8fb0ff}
 .dark .dok-transkrypcja{border-color:#374151}
 
@@ -804,6 +815,9 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .osoba-karta-opis{display:flex;flex-direction:column;gap:10px;min-width:0}
 .osoba-lead{margin:6px 0 0;font-size:var(--blog-font-size,18px);line-height:1.6}
 .osoba-tabela{border:1px solid #d6d1c6;border-radius:8px;overflow:hidden;background:#fdfcf9;font-size:calc(15px * var(--font-scale,1))}
+.osoba-tabela>.ot-nagl h2{margin:0;font-size:inherit;font-weight:700}
+.osoba-tabela>.ot-w dt,.osoba-tabela>.ot-w dd{margin:0}
+.osoba-tabela>.ot-w{margin:0}
 .osoba-tabela>.ot-nagl{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;min-height:calc(38px * var(--font-scale,1));box-sizing:border-box;padding:4px 14px;background:#f2f0eb;border-bottom:1px solid #d6d1c6;font-size:calc(14px * var(--font-scale,1))}
 .ot-nagl-prawa{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:calc(12px * var(--font-scale,1));color:#6b665c}
 .osoba-tabela>.ot-w{display:grid;grid-template-columns:150px minmax(0,1fr);column-gap:16px;padding:10px 14px;border-bottom:1px solid #e7e2d8;line-height:1.5}
@@ -829,7 +843,9 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dark .ot-seg a,.dark .ot-przycisk{background:transparent;border-color:#4b5563;color:inherit}
 .dark .ot-seg a[aria-current=true]{background:#e5e7eb;color:#111827}
 @media (max-width:640px){.osoba-karta.z-portretem{grid-template-columns:1fr}.osoba-karta .osoba-portret{max-width:200px}.osoba-tabela>.ot-w{grid-template-columns:1fr;row-gap:2px}.ot-seg,.ot-przycisk{display:none}}
-.osoba-bez-zdjecia{min-height:calc(260px * var(--font-scale,1));box-sizing:border-box;padding:16px 14px;border:1px dashed #c9c3b7;border-radius:6px;background:#f2f0eb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+.osoba-bez-zdjecia-krotko{display:none;margin:0;font-size:calc(14px * var(--font-scale,1));color:#6b665c}
+@media (max-width:640px){.osoba-bez-zdjecia{display:none!important}.osoba-bez-zdjecia-krotko{display:block}}
+.osoba-bez-zdjecia{min-height:calc(200px * var(--font-scale,1));box-sizing:border-box;padding:16px 14px;border:1px dashed #c9c3b7;border-radius:6px;background:#f2f0eb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
 .osoba-bez-zdjecia-napis{font-size:calc(13px * var(--font-scale,1));color:#6b665c}
 .osoba-bez-zdjecia-prosba{font-size:calc(12.5px * var(--font-scale,1));line-height:1.45;color:#4f4a41}
 .osoba-bez-zdjecia form,.osoba-bez-zdjecia textarea,.osoba-bez-zdjecia input{width:100%;box-sizing:border-box;text-align:left}

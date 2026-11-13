@@ -91,7 +91,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                         {nadrzedne && (!gmina || nadrzedne.id !== gmina.id) && obszar && <Wiersz etykieta="należy do"><Link href={`/miejsca/${nadrzedne.id}`}>{nadrzedne.nazwa}</Link></Wiersz>}
                         {!obszar && (
                             <Wiersz etykieta={m.parafie.length > 1 ? 'parafie' : 'parafia'}>
-                                {m.parafie.length === 0 ? brak : m.parafie.map((p, i) => {
+                                {m.parafie.length === 0 ? <span className="text-gray-600 dark:text-gray-400">przynależność parafialna w opracowaniu</span> : m.parafie.map((p, i) => {
                                     const par = wszystkieParafie.find((x) => x.id === p.parafia)
                                     if (!par) return null
                                     const okres = p.od != null || p.do != null ? `${p.od ? `od ${p.od}` : ''}${p.od && p.do ? ' ' : ''}${p.do ? `do ${p.do}` : ''}` : ''
@@ -104,7 +104,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                                 })}
                             </Wiersz>
                         )}
-                        {!obszar && <Wiersz etykieta={m.wyznania.length > 1 ? 'wyznania przed 1875' : 'wyznanie przed 1875'}>{m.wyznania.length ? opisWyznan(m.wyznania, m.wyznaniaRowne) : brak}</Wiersz>}
+                        {!obszar && <Wiersz etykieta={m.wyznania.length > 1 ? 'wyznania przed 1875' : 'wyznanie przed 1875'}>{m.wyznania.length ? opisWyznan(m.wyznania, m.wyznaniaRowne) : <span className="text-gray-600 dark:text-gray-400">w opracowaniu</span>}</Wiersz>}
                         {(!obszar || formyZapisu.length > 0) && <Wiersz etykieta="formy zapisu nazwy">{formyZapisu.length > 0 ? formyZapisu.join(' · ') : brak}</Wiersz>}
                         {m.rodzaj === 'gmina' && potomkowie.length > 0 && <Wiersz etykieta="wsie">{potomkowie.length}</Wiersz>}
                         {podrzedne.length > 0 && m.rodzaj !== 'gmina' && (

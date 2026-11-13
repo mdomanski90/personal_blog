@@ -35,10 +35,11 @@ export interface OpcjeDrzewa {
 
 /** najwięcej pokoleń w jedną stronę (doczytywanie na pełnym ekranie) */
 export const MAKS_POKOLEN = 15
-const KW = 116, KH = 52, MALZ = 22, RODZ = 12, GRUPA = 28, WIERSZ = 100, GORA = 24
+// karta 124×60 (do trzech wierszy imienia i nazwiska), w wierszu 100 px – środek karty na wysokości 50
+const KW = 124, KH = 60, MALZ = 22, RODZ = 12, GRUPA = 28, WIERSZ = 100, GORA = 20
 const LEWA = 164, PRAWA = 16
 
-interface KartaU { id: string | null; glowna?: boolean; x: number; r: number }
+interface KartaU { id: string | null; glowna?: boolean; x: number; r: number; /** małżonek tej osoby z drzewa (dla czytnika: „żona: …”) */ partner?: string }
 interface Jedn { karty: KartaU[]; x: number; szer: number }
 interface Grupa { jedn: Jedn[]; ideal: number; x: number; szer: number }
 
@@ -89,7 +90,9 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
     const jednOsoby = (x: string, r: number, glowna?: string) => {
         const sp = zMalzonkami && widac(x) ? malzenstwa(x).map((f) => (f.maz === x ? f.zona : f.maz)).filter(jest) : []
         const ids = glowna && sp.length > 1 ? [sp[0], x, ...sp.slice(1)] : [x, ...sp]
-        return nowaJedn(ids, r, glowna)
+        const j = nowaJedn(ids, r, glowna)
+        for (const k of j.karty) if (k.id !== x) k.partner = x
+        return j
     }
     const rodzinaGl = rodzice(id)
     const rodzenstwo = op.zakres === 'rodzenstwo' && rodzinaGl ? rodzinaGl.dzieci.filter(jest) : [id]
@@ -222,21 +225,30 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
         const p = k.id ? s.drzewo.osoby.get(k.id) : undefined
         if (!p) return new Tag('span', { class: 'dr-karta dr-brak', style: styl }, ['?'])
         if (!widac(p.id)) return new Tag('span', { class: 'dr-karta dr-ukryta', style: styl, title: 'dane tej osoby widzą tylko zalogowani bliscy' }, [new Tag('span', { class: 'dr-imie' }, ['widoczne dla zalogowanych'])])
-        const tresc = [new Tag('span', { class: 'dr-imie' }, [nazwaOsoby(p)]), new Tag('span', { class: 'dr-lata' }, [lataZycia(p)])]
+        const pp = k.partner ? s.drzewo.osoby.get(k.partner) : undefined
+        const dopisek = k.glowna ? ', ta osoba' : pp ? `, ${p.plec === 'K' ? 'żona' : p.plec === 'M' ? 'mąż' : 'małżonek'}: ${nazwaOsoby(pp)}` : ''
+        const tresc = [new Tag('span', { class: 'dr-imie' }, [nazwaOsoby(p)]), new Tag('span', { class: 'dr-lata' }, [lataZycia(p)]), ...(dopisek ? [new Tag('span', { class: 'dr-sr' }, [dopisek])] : [])]
+        const tytul = `${nazwaOsoby(p)}${lataZycia(p) ? ` (${lataZycia(p)})` : ''}`
         return k.glowna
-            ? new Tag('span', { class: `dr-karta dr-${p.plec} dr-glowna`, style: styl }, tresc)
-            : new Tag('a', { class: `dr-karta dr-${p.plec}`, href: `/osoby/${p.id}`, style: styl }, tresc)
+            ? new Tag('span', { class: `dr-karta dr-${p.plec} dr-glowna`, style: styl, tabindex: '0', title: tytul }, tresc)
+            : new Tag('a', { class: `dr-karta dr-${p.plec}`, href: `/osoby/${p.id}`, style: styl, title: tytul }, tresc)
     }
+    // karty pogrupowane w pokolenia (lista z nazwą pokolenia – czytnik ekranu czyta drzewo pokolenie po pokoleniu)
+    const pokolenia = Array.from({ length: n }, (_, i) => {
+        const karty = wszystkie.filter((k) => k.r === pierwszy + i)
+        return new Tag('ul', { class: 'dr-grupa', 'aria-label': nazwyPokolen(pierwszy + i) }, karty.map((k) => new Tag('li', {}, [kartaT(k)])))
+    })
     const wys = n * WIERSZ
     const plansza = new Tag('div', { class: 'dr-plansza', style: `--wc:${Math.ceil(szer)}px;width:${LEWA + Math.ceil(szer) + PRAWA}px;height:${wys}px` }, [
-        ...Array.from({ length: n }, (_, i) => new Tag('div', { class: `dr-wiersz${i === n - 1 ? ' dr-ostatni' : ''}`, style: `top:${i * WIERSZ}px` }, [new Tag('span', { class: 'dr-pokol' }, [nazwyPokolen(pierwszy + i)])])),
+        ...Array.from({ length: n }, (_, i) => new Tag('div', { class: `dr-wiersz${i === n - 1 ? ' dr-ostatni' : ''}`, style: `top:${i * WIERSZ}px`, 'aria-hidden': 'true' }, [new Tag('span', { class: 'dr-pokol' }, [nazwyPokolen(pierwszy + i)])])),
         new Tag('div', { class: 'dr-tresc', style: `width:${Math.ceil(szer)}px;height:${wys}px` }, [
             new Tag('svg', { class: 'dr-linie', width: String(Math.ceil(szer)), height: String(wys), viewBox: `0 0 ${Math.ceil(szer)} ${wys}`, 'aria-hidden': 'true' }, [new Tag('path', { d: sciezki.join('') }, [])]),
-            ...wszystkie.map(kartaT),
-            ...laczniki.map((l) => new Tag('span', { class: 'dr-slub', style: `left:${ox(l.m)}px;top:${oy(l.y)}px`, ...(l.rok ? { title: `ślub ${l.rok}` } : {}) }, ['⚭'])),
+            ...pokolenia,
+            ...laczniki.map((l) => new Tag('span', { class: 'dr-slub', style: `left:${ox(l.m)}px;top:${oy(l.y)}px`, 'aria-hidden': 'true', ...(l.rok ? { title: `ślub ${l.rok}` } : {}) }, ['⚭'])),
         ]),
     ])
-    const klepsydra = new Tag('div', { class: 'dr-przewijanie', 'aria-hidden': 'true' }, [plansza])
+    // wersja graficzna jest też wersją dla czytnika i klawiatury; tekstowa – tylko na telefonie (bez powielania)
+    const klepsydra = new Tag('div', { class: 'dr-przewijanie', role: 'group', 'aria-label': `drzewo rodzinne: ${nazwaOsoby(o)}` }, [plansza])
 
     // wersja tekstowa (telefon, czytniki ekranu)
     const pozycja = (x: string | undefined, rola: string): T => {

@@ -55,7 +55,7 @@ export default function Footer() {
         <footer>
             <div aria-hidden="true" className="whitespace-nowrap overflow-hidden opacity-50">------------------------------------------------------------------------------------------------------------------------</div>
             <MiejscaStopki />
-            <div className="flex items-center border border-[#d6d1c6] dark:border-[#4b5563] w-fit">
+            <div className="flex flex-wrap items-center border border-[#d6d1c6] dark:border-[#4b5563] w-fit" style={{ maxWidth: '100%' }}>
                 <div
                     style={linkStyle}
                     className="bg-muted text-current whitespace-nowrap font-semibold"

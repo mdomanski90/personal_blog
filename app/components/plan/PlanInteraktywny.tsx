@@ -67,6 +67,14 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         return plan.elementy.filter((e) => doSzukania(e).includes(q))
     }, [szukaj, plan])
     const wyroznione = React.useMemo(() => new Set(trafienia.map((e) => e.id)), [trafienia])
+    // stan opracowania planu: ile grobów, ile z odczytanym napisem (pokazany nad planem)
+    const stan = React.useMemo(() => {
+        const groby = plan.elementy.filter((e) => typGrobu(typy.get(e.typ)))
+        const odczytane = groby.filter((e) => e.osoby?.length || e.nazwa || e.napis).length
+        const ograniczone = groby.filter((e) => e.ograniczony).length
+        return { groby: groby.length, odczytane, ograniczone }
+    }, [plan, typy])
+    const odm = (n: number, f: [string, string, string]) => `${n} ${n === 1 ? f[0] : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? f[1] : f[2]}`
     const el = wybrany ? elementy.get(wybrany) ?? null : null
 
     // ---------- groby rodziny ----------
@@ -251,9 +259,14 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
     return (
         <div className="plan-do-druku flex flex-col" style={{ gap: 10 }}>
             <WzoryProbek prefix={`${prefix}-sw`} />
+            {stan.groby > 0 && (
+                <p className="plan-bez-druku text-gray-600 dark:text-gray-400" style={{ margin: 0, fontSize: 13 }}>
+                    na planie {odm(stan.groby, ['grób', 'groby', 'grobów'])} · {stan.odczytane === 0 ? 'napisy nie zostały jeszcze odczytane' : `odczytane napisy: ${stan.odczytane}`}{stan.ograniczone ? ` · ${odm(stan.ograniczone, ['grób', 'groby', 'grobów'])} z napisem tylko dla bliskich` : ''}{stan.odczytane + stan.ograniczone < stan.groby ? ' – plan jest w opracowaniu' : ''}
+                </p>
+            )}
             <div className="plan-bez-druku flex flex-wrap items-center" style={{ gap: 8 }}>
                 <PoleSzukania value={szukaj} onChange={ustawSzukaj} onSubmit={() => { if (trafienia[0]) pokazElement(trafienia[0]) }} placeholder="nazwisko, imię, rok – na tym planie" style={{ flex: '1 1 260px', maxWidth: 420 }} />
-                {szukaj.trim().length >= 2 && <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 13 }}>{trafienia.length ? `znaleziono: ${trafienia.length}` : 'nic nie znaleziono'}</span>}
+                {szukaj.trim().length >= 2 && <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 13 }}>{trafienia.length ? `znaleziono: ${trafienia.length}` : stan.odczytane + stan.ograniczone < stan.groby ? 'nic nie znaleziono – to nie znaczy, że tej osoby tu nie pochowano: nie wszystkie napisy są już odczytane' : 'nic nie znaleziono'}</span>}
                 <span style={{ flex: 1 }} />
                 {plan.podklady.length > 0 && <label className="inline-flex items-center" style={{ gap: 6, fontSize: 13 }}><input type="checkbox" checked={podklad} onChange={(e) => ustawPodklad(e.target.checked)} /> podkład</label>}
                 <button type="button" onClick={doPng} className={`${przycisk} rounded-[7px]`} style={{ height: 28, padding: '0 10px', fontSize: 13 }}>pobierz PNG</button>

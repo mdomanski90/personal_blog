@@ -36,22 +36,23 @@ function Obrz({ o, wywnioskowany }: { o: Obrzadek; wywnioskowany: boolean }) {
     )
 }
 
-// Karta osoby jako jedna tabela: wiersze-nagłówki z tłem (życie, rodzina, drzewo, źródła, w archiwum i wpisach),
+// Karta osoby jako jedna „tabela” (wizualnie): nagłówki części (h2) z tłem, wiersze to pary etykieta–wartość (dl);
+// dawniej: wiersze-nagłówki z tłem (życie, rodzina, drzewo, źródła, w archiwum i wpisach),
 // w każdym wierszu etykieta w kolumnie 150 px i treść – drzewo też jest wierszem tej tabeli.
 function Naglowek({ tytul, id, children }: { tytul: string; id?: string; children?: React.ReactNode }) {
     return (
-        <div role="row" className="ot-nagl" id={id}>
-            <b role="columnheader">{tytul}</b>
+        <div className="ot-nagl" id={id}>
+            <h2>{tytul}</h2>
             {children && <span className="ot-nagl-prawa">{children}</span>}
         </div>
     )
 }
 function W({ e, children }: { e: string; children: React.ReactNode }) {
     return (
-        <div role="row" className="ot-w">
-            <span role="rowheader" className="ot-e">{e}</span>
-            <span role="cell" className="ot-t">{children}</span>
-        </div>
+        <dl className="ot-w">
+            <dt className="ot-e">{e}</dt>
+            <dd className="ot-t">{children}</dd>
+        </dl>
     )
 }
 
@@ -167,11 +168,15 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                     ) : null}
                     {o.inneZapisy?.length ? <p className="text-gray-600 dark:text-gray-400" style={{ margin: 0, fontSize: 'calc(14px * var(--font-scale, 1))' }}>w źródłach także: {o.inneZapisy.join(' · ')}</p> : null}
                     {bio?.lead && <p className="osoba-lead">{bezNawiasow(bio.lead, kontekst.rozwiaz)}</p>}
+                    {!o.portret && (
+                        // na wąskim ekranie zamiast pola „brak zdjęcia” – krótka prośba (pole wypychałoby dane w dół)
+                        <p className="osoba-bez-zdjecia-krotko">Masz zdjęcie tej osoby? <Zgloszenie rodzaj="material" wariant="link" etykieta="skontaktuj się" adres={`/osoby/${id}`} tytul={`zdjęcie: ${tytul}`} podpowiedz="Jakie to zdjęcie (kto na nim jest, z którego mniej więcej roku, skąd pochodzi)? Odezwę się i umówimy, jak je przekazać – oryginał zostaje u Ciebie." /></p>
+                    )}
                     {bio?.tresc && <Tresc html={naHtml(bio.tresc, kontekst)} pusta={null} />}
                 </div>
             </div>
 
-            <div role="table" aria-label={`${tytul} – dane`} className="osoba-tabela">
+            <div className="osoba-tabela">
                 <Naglowek tytul="życie">
                     {przebieg.length > 1 && <>obrządek {przebieg.map((p, i) => <span key={i}>{i > 0 && ' → '}<Obrz o={p.o} wywnioskowany={p.w} /></span>)}</>}
                 </Naglowek>
@@ -237,7 +242,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                             </span>
                             <button type="button" className="ot-przycisk" data-drzewo-pelny="drzewo-osoby">pełny ekran ⤢</button>
                         </Naglowek>
-                        <div role="row" className="ot-drzewo" dangerouslySetInnerHTML={{ __html: html }} />
+                        <div className="ot-drzewo" dangerouslySetInnerHTML={{ __html: html }} />
                     </>
                 )}
 

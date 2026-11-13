@@ -68,7 +68,11 @@ export default async function KsiegiMetrykalne({ searchParams }: Parametry) {
                 )}
             </div>
 
-            {widoczneParafie.length === 0 && (
+            {widoczneParafie.length === 0 && (wyznanie || miejsce) && wszystkieParafie.length > 0 ? (
+                <p className="text-gray-600 dark:text-gray-400">
+                    Nie mamy jeszcze opisanych ksiąg dla tych filtrów. Spis jest niepełny – brak pozycji nie znaczy, że księgi się nie zachowały. <Link href="/biblioteka/ksiegi">wyczyść filtry</Link>
+                </p>
+            ) : widoczneParafie.length === 0 && (
                 <p className="text-gray-600 dark:text-gray-400">Spis jest w przygotowaniu – pierwsze parafie i księgi pojawią się wkrótce.</p>
             )}
 

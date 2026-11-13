@@ -116,7 +116,7 @@ export default function ListaPochowanych({ plan, ustawienia, osoby, naPlanie }: 
                                 <td><button type="button" onClick={() => naPlanie(w.el.id)} className="plan-link" style={{ fontSize: 13, whiteSpace: 'nowrap' }}>na planie →</button></td>
                             </tr>
                         ))}
-                        {lista.length === 0 && <tr><td colSpan={7} className="text-gray-500">{wiersze.length ? 'Nic nie znaleziono.' : 'Napisy z nagrobków nie zostały jeszcze odczytane.'}</td></tr>}
+                        {lista.length === 0 && <tr><td colSpan={7} className="text-gray-500">{wiersze.length ? (bezNapisu ? 'Nic nie znaleziono. To nie znaczy, że tej osoby tu nie pochowano – nie wszystkie napisy są już odczytane.' : 'Nic nie znaleziono.') : 'Napisy z nagrobków nie zostały jeszcze odczytane.'}</td></tr>}
                     </tbody>
                 </table>
             </div>
