@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Link } from 'next-view-transitions'
+import { connection } from 'next/server'
 import { miejsca } from '@/lib/archiwum'
 
 // Miejscowości w stopce – kolejność i grupy ustalone ręcznie (okolice Łosic, okolice Międzyrzeca, Krzesk).
@@ -14,6 +15,8 @@ const GRUPY: string[][] = [
 const klucz = (s: string) => s.toLocaleLowerCase('pl').replace(/[-–,]/g, ' ').replace(/\s+/g, ' ').trim()
 
 async function MiejscaStopki() {
+    // treści czytane przy każdym wyświetleniu, nie przy budowaniu (strony statyczne też mają stopkę)
+    await connection()
     const lista = await miejsca('publiczne')
     const wgNazwy = new Map<string, { id: string; rodzaj: string }>()
     for (const m of lista) if (m.rodzaj !== 'gmina' && m.rodzaj !== 'kraina') wgNazwy.set(klucz(m.nazwa), { id: m.id, rodzaj: m.rodzaj })
