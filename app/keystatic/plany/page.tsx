@@ -1,14 +1,13 @@
 'use client'
-// Panel planów: lista, nowy plan, import pliku planu, prośby czytelników (plany i strony).
+// Panel planów: lista, nowy plan, import pliku planu; zgłoszenia czytelników – w panelu (/keystatic/panel/zgloszenia).
 import * as React from 'react'
 
 type Wiersz = { slug: string; tytul: string; widocznosc: string; miejsce?: string; obiekt?: string; elementow: number; zmieniono: string }
-type ZgPlanu = { id: string; plan: string; element: string; opisElementu: string; tresc: string; kontakt: string; data: string }
-type ZgStrony = { id: string; rodzaj: string; adres: string; tytul: string; tresc: string; kontakt: string; data: string }
+type ZgPlanu = { id: string; stan?: string }
+type ZgStrony = { id: string; stan?: string }
 
 const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
 const WID: Record<string, string> = { ja: 'szkic', bliscy: 'dla bliskich', publiczne: 'publiczny' }
-const RODZ: Record<string, string> = { poprawka: 'poprawka', miejsce: 'nowe miejsce', material: 'materiał' }
 
 export default function Plany() {
     const [dane, ustaw] = React.useState<{ plany: Wiersz[]; miejsca: { id: string; nazwa: string }[] } | null>(null)
@@ -63,17 +62,14 @@ export default function Plany() {
         await fetch(`/api/keystatic/plany/${p.slug}`, { method: 'DELETE' })
         wczytaj()
     }
-    const usunZg = async (rodzaj: 'plan' | 'strona', id: string) => {
-        await fetch(rodzaj === 'plan' ? `/api/keystatic/plany/zgloszenia?id=${id}` : `/api/keystatic/zgloszenia?id=${id}`, { method: 'DELETE' })
-        wczytaj()
-    }
+    const czekaZg = [...zgP, ...zgS].filter((z) => !z.stan || z.stan === 'nowe' || z.stan === 'odlozone').length
     const pole: React.CSSProperties = { font: 'inherit', fontSize: 14, height: 30, padding: '0 8px', border: '1px solid #d1d5db', borderRadius: 7, background: 'transparent', color: 'inherit' }
     const btn: React.CSSProperties = { ...pole, cursor: 'pointer', background: 'var(--muted, #f2f0eb)' }
     return (
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '28px 20px 60px', fontFamily: 'var(--font-jetbrains), monospace', display: 'flex', flexDirection: 'column', gap: 18, fontSize: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 10 }}>
                 <h1 style={{ fontSize: 22, margin: 0 }}>plany obiektów</h1>
-                <span style={{ display: 'flex', gap: 14 }}><a href="/keystatic/plany/typy">katalog typów →</a><a href="/keystatic">panel treści →</a></span>
+                <span style={{ display: 'flex', gap: 14 }}><a href="/keystatic/panel">← panel</a><a href="/keystatic/plany/typy">katalog typów →</a><a href="/keystatic">panel treści →</a></span>
             </div>
             {msg && <p style={{ margin: 0, padding: '8px 10px', borderRadius: 7, background: '#fef3c7', color: '#78350f' }}>{msg}</p>}
             <section style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -100,26 +96,9 @@ export default function Plany() {
                 <label style={{ ...btn, display: 'inline-flex', alignItems: 'center' }}>wybierz plik .plan.json<input type="file" accept=".json" hidden onChange={(e) => e.target.files?.[0] && importuj(e.target.files[0])} /></label>
                 <label style={{ fontSize: 13 }}><input type="checkbox" checked={nadpisz} onChange={(e) => ustawNadpisz(e.target.checked)} /> zastąp istniejący plan o tym samym adresie</label>
             </div>
-            <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <b>prośby i zgłoszenia czytelników {zgP.length + zgS.length > 0 && `(${zgP.length + zgS.length})`}</b>
-                {zgP.length + zgS.length === 0 && <p style={{ color: '#6b7280', margin: 0 }}>Brak nowych zgłoszeń.</p>}
-                {zgP.map((z) => (
-                    <div key={z.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <span style={{ fontSize: 12, color: '#6b7280' }}>{new Date(z.data).toLocaleString('pl-PL')} · plan <a href={`/keystatic/plany/${z.plan}`}>{z.plan}</a> · {z.opisElementu || z.element}</span>
-                        <span style={{ whiteSpace: 'pre-wrap' }}>{z.tresc}</span>
-                        {z.kontakt && <span style={{ fontSize: 12 }}>kontakt: {z.kontakt}</span>}
-                        <button onClick={() => usunZg('plan', z.id)} style={{ ...btn, alignSelf: 'flex-start', height: 26, fontSize: 12 }}>załatwione – usuń</button>
-                    </div>
-                ))}
-                {zgS.map((z) => (
-                    <div key={z.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <span style={{ fontSize: 12, color: '#6b7280' }}>{new Date(z.data).toLocaleString('pl-PL')} · {RODZ[z.rodzaj] ?? z.rodzaj} · <a href={z.adres} target="_blank" rel="noreferrer">{z.tytul || z.adres}</a></span>
-                        <span style={{ whiteSpace: 'pre-wrap' }}>{z.tresc}</span>
-                        {z.kontakt && <span style={{ fontSize: 12 }}>kontakt: {z.kontakt}</span>}
-                        <button onClick={() => usunZg('strona', z.id)} style={{ ...btn, alignSelf: 'flex-start', height: 26, fontSize: 12 }}>załatwione – usuń</button>
-                    </div>
-                ))}
-            </section>
+            <p style={{ margin: 0 }}>
+                <a href="/keystatic/panel/zgloszenia">zgłoszenia czytelników{czekaZg ? ` – czeka ${czekaZg}` : ''} →</a>
+            </p>
         </div>
     )
 }

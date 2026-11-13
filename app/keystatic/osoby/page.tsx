@@ -68,7 +68,7 @@ export default function Osoby() {
         <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 20px 60px', fontFamily: 'var(--font-jetbrains), monospace', display: 'flex', flexDirection: 'column', gap: 18, fontSize: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 10 }}>
                 <h1 style={{ fontSize: 22, margin: 0 }}>osoby {dane && <span style={{ fontSize: 14, color: '#6b7280', fontWeight: 400 }}>· {dane.osoby.length}</span>}</h1>
-                <span style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}><a href="/osoby" target="_blank" rel="noreferrer">na stronie ↗</a><a href="/keystatic/plany">plany →</a><a href="/keystatic">panel treści →</a></span>
+                <span style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}><a href="/keystatic/panel">← panel</a><a href="/osoby" target="_blank" rel="noreferrer">na stronie ↗</a><a href="/keystatic/plany">plany →</a><a href="/keystatic">panel treści →</a></span>
             </div>
             {msg && <p style={{ margin: 0, padding: '8px 10px', borderRadius: 7, background: '#fef3c7', color: '#78350f' }}>{msg}</p>}
 

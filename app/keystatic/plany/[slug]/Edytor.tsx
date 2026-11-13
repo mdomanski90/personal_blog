@@ -127,7 +127,13 @@ export default function Edytor({ slug }: { slug: string }) {
                 } catch { /* brak dostępu do pamięci przeglądarki */ }
                 ustawUst(l.ustawienia)
                 ustawListy({ miejsca: l.miejsca, obiekty: l.obiekty })
-                ustawVb(poczatkowyKadr(p))
+                // ?el=<id> (z panelu zgłoszeń): zaznacz element i pokaż go
+                const elId = new URLSearchParams(window.location.search).get('el')
+                const e = elId ? (p as Plan).elementy.find((x) => x.id === elId) : null
+                if (e) {
+                    const k = poczatkowyKadr(p), [cx, cy] = srodek(e.g), w = Math.min(k[2], jednostka(p) * 30), h = (w * k[3]) / k[2]
+                    ustawVb([cx - w / 2, cy - h / 2, w, h]); ustawZazn(new Set([e.id])); ustawWzorId(e.id)
+                } else ustawVb(poczatkowyKadr(p))
             })
             .catch((e) => ustawBlad(e === 404 ? 'Nie ma takiego planu.' : e === 401 ? 'Brak dostępu – edytor działa tylko za hasłem panelu.' : 'Nie udało się wczytać planu.'))
     }, [slug])
