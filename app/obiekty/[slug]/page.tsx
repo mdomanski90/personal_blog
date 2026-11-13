@@ -15,7 +15,9 @@ import CopyLinkButton from '../../components/CopyLinkButton'
 import PowrotDoMapy from '../../components/PowrotDoMapy'
 import Zgloszenie from '../../components/Zgloszenie'
 import ListaPlanow from '../../components/plan/ListaPlanow'
-import { planyDlaCzytelnika } from '@/lib/plany/serwer'
+import { planDlaCzytelnika, planyDlaCzytelnika } from '@/lib/plany/serwer'
+import { wczytajUstawienia } from '@/lib/plany/dane'
+import WidokObiektu from '../../components/plan/WidokObiektu'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,6 +42,9 @@ export default async function ObiektStrona({ params }: Parametry) {
     const siec = await powiazania('obiekt', o.id, poziom)
     const mat = await materialyDla('obiekt', o.id, poziom)
     const planyObiektu = await planyDlaCzytelnika('obiekt', o.id)
+    // pierwszy plan obiektu (w wersji dla czytelnika) pokazujemy zamiast punktu na mapie
+    const glowny = planyObiektu.length ? await planDlaCzytelnika(planyObiektu[0].slug) : null
+    const ustawienia = glowny ? await wczytajUstawienia() : undefined
 
     return (
         <Strona akcje={<><PowrotDoMapy /><CopyLinkButton sciezka={`/obiekty/${o.id}`} /></>}>
@@ -53,22 +58,27 @@ export default async function ObiektStrona({ params }: Parametry) {
                 <Metki elementy={[rodzaj, o.czas ? formatujEdtf(o.czas) : null, o.istnieje ? null : 'nie istnieje', ...o.inneNazwy]} />
             </div>
 
-            <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))' }}>
-                <div>
-                    {wies && <Wiersz etykieta="miejscowość"><Link href={`/miejsca/${wies.id}`}>{wies.nazwa}</Link></Wiersz>}
-                    {o.czas && <Wiersz etykieta="lata istnienia">{formatujEdtf(o.czas)}</Wiersz>}
-                    <Wiersz etykieta="stan">{o.istnieje ? 'istnieje' : 'nie istnieje'}</Wiersz>
-                    <Wiersz etykieta="współrzędne">
-                        {o.wspolrzedne ? `${o.wspolrzedne[0]}, ${o.wspolrzedne[1]}${o.przyblizone ? ' (przybliżone)' : ''}` : <span className="text-gray-500">brak</span>}
-                    </Wiersz>
-                </div>
-                {o.wspolrzedne && <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={14} wysokosc={300} />}
-            </div>
+            <WidokObiektu
+                plan={glowny?.plan}
+                ustawienia={ustawienia}
+                zalogowany={glowny?.poziom === 'bliscy'}
+                mapa={o.wspolrzedne ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={glowny ? 16 : 14} wysokosc="100%" /> : undefined}
+                info={
+                    <div>
+                        {wies && <Wiersz etykieta="miejscowość"><Link href={`/miejsca/${wies.id}`}>{wies.nazwa}</Link></Wiersz>}
+                        {o.czas && <Wiersz etykieta="lata istnienia">{formatujEdtf(o.czas)}</Wiersz>}
+                        <Wiersz etykieta="stan">{o.istnieje ? 'istnieje' : 'nie istnieje'}</Wiersz>
+                        <Wiersz etykieta="współrzędne">
+                            {o.wspolrzedne ? `${o.wspolrzedne[0]}, ${o.wspolrzedne[1]}${o.przyblizone ? ' (przybliżone)' : ''}` : <span className="text-gray-500">brak</span>}
+                        </Wiersz>
+                    </div>
+                }
+            />
 
             <Tresc html={naHtml(o.opis, await kontekstTresci(poziom))} />
 
-            {planyObiektu.length > 0 && (
-                <Sekcja tytul="plan">
+            {planyObiektu.length > 1 && (
+                <Sekcja tytul="plany">
                     <ListaPlanow plany={planyObiektu} />
                 </Sekcja>
             )}

@@ -539,3 +539,11 @@ header .emblemat { height: clamp(44px, 12vw, 64px); width: auto; display: block;
   .drzewo .dr-klepsydra { display: none; }
   .drzewo .dr-tekst { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
 }
+
+/* strona obiektu: plan / mapa obok danych, „szerzej”, pełny ekran */
+.widok-obiektu{display:grid;gap:1.5rem;grid-template-columns:minmax(14rem,1fr) minmax(0,1.6fr);grid-template-areas:"info wizual";align-items:start}
+.widok-obiektu.widok-szeroki{grid-template-columns:minmax(0,1fr);grid-template-areas:"wizual" "info"}
+.widok-wizual{grid-area:wizual;display:flex;flex-direction:column;gap:10px;min-width:0}
+.widok-info{grid-area:info;min-width:0}
+.widok-pelny{position:fixed;inset:0;z-index:60;background:var(--background,#fbfaf7);padding:12px 16px;overflow:auto}
+@media (max-width:760px){.widok-obiektu,.widok-obiektu.widok-szeroki{grid-template-columns:minmax(0,1fr);grid-template-areas:"wizual" "info"}.widok-szerzej{display:none}}

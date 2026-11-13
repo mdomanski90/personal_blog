@@ -14,7 +14,7 @@ type VB = [number, number, number, number]
 const przycisk = 'border border-[#d1d5db] dark:border-[#4b5563] bg-white dark:bg-[#111827] text-current'
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
 
-export default function PlanInteraktywny({ plan, ustawienia, zalogowany, maly = false }: { plan: Plan; ustawienia: UstawieniaPlanow; zalogowany: boolean; maly?: boolean }) {
+export default function PlanInteraktywny({ plan, ustawienia, zalogowany, maly = false, wysokosc: wys }: { plan: Plan; ustawienia: UstawieniaPlanow; zalogowany: boolean; maly?: boolean; wysokosc?: string }) {
     const typy = React.useMemo(() => katalog(ustawienia), [ustawienia])
     const ukryteTypy = React.useMemo(() => new Set(ustawienia.ukryteTypy), [ustawienia])
     const prefix = `pl-${plan.slug}`
@@ -178,7 +178,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, maly = 
 
     const pokaz = React.useCallback((e: Element) => !wylaczone.has(e.typ), [wylaczone])
     const podkladyDoPokazania = podklad ? plan.podklady.map((p) => ({ p, adres: `/plany/${plan.slug}/podklad/${p.plik}` })) : undefined
-    const wysokosc = maly ? 'min(60vh, 420px)' : 'min(78vh, 760px)'
+    const wysokosc = wys ?? (maly ? 'min(60vh, 420px)' : 'min(78vh, 760px)')
 
     return (
         <div className="plan-do-druku flex flex-col" style={{ gap: 12 }}>
