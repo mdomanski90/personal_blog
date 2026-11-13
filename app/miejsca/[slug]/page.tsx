@@ -181,8 +181,8 @@ export default async function MiejsceStrona({ params }: Parametry) {
                         </ul>
                     )}
                     <div className="text-gray-600 dark:text-gray-400 flex flex-wrap items-baseline" style={{ fontSize: 'calc(14px * var(--font-scale, 1))', gap: '0 6px' }}>
-                        <span>{swiatynie.length ? 'Znasz inne miejsce we wsi (mogiłę, młyn, figurę)?' : 'Nie ma tu jeszcze żadnych miejsc. Znasz kapliczkę, krzyż, mogiłę albo dawny młyn?'}</span>
-                        <Zgloszenie rodzaj="miejsce" adres={`/miejsca/${m.id}`} tytul={m.nazwa} wariant="link" />
+                        <span>{swiatynie.length ? 'Chcesz dodać inny obiekt (miejsce pamięci, kapliczkę, zabytek)?' : 'Nie ma tu jeszcze żadnych obiektów. Chcesz dodać miejsce pamięci, kapliczkę albo zabytek?'}</span>
+                        <Zgloszenie rodzaj="miejsce" adres={`/miejsca/${m.id}`} tytul={m.nazwa} wariant="link" etykieta="Kliknij i zgłoś." />
                     </div>
                 </Sekcja>
             )}

@@ -73,7 +73,7 @@ export async function zgloszeniaPanelu(): Promise<ZgloszeniePanelu[]> {
     const zP = (p as (Zgloszenie & Dopiski)[]).map((z): ZgloszeniePanelu => {
         const pl = tytulPlanu.get(z.plan)
         return {
-            id: z.id, zrodlo: 'plan', rodzaj: 'grób: prośba o usunięcie albo poprawka', tytul: `${pl?.tytul ?? z.plan}${z.opisElementu ? ` · ${z.opisElementu}` : ''}`,
+            id: z.id, zrodlo: 'plan', rodzaj: z.rodzaj === 'informacja' ? 'grób: informacja od czytelnika' : 'grób: prośba o usunięcie albo poprawka', tytul: `${pl?.tytul ?? z.plan}${z.opisElementu ? ` · ${z.opisElementu}` : ''}`,
             adres: pl && pl.widocznosc !== 'ja' ? `/plany/${z.plan}?grob=${encodeURIComponent(z.element)}` : null,
             doPoprawy: KS.plan(z.plan, z.element), tresc: z.tresc, kontakt: z.kontakt, data: z.data, stan: z.stan ?? 'nowe', notatka: z.notatka ?? '',
         }
@@ -122,7 +122,7 @@ export async function postepPlanow(): Promise<PostepPlanu[]> {
         return {
             slug: p.slug, tytul: p.tytul, widocznosc: p.widocznosc, zmieniono: p.zmieniono, geo: p.geo.length, grobow: g.length,
             sprawdzone: g.filter((e) => e.weryfikacja !== 'auto' && e.weryfikacja !== 'przyp' && e.stan !== 'do-sprawdzenia').length,
-            zNapisem: g.filter((e) => e.opis?.trim() || e.osoby?.some((o) => o.nazwa.trim()) || e.nazwa?.trim()).length,
+            zNapisem: g.filter((e) => e.napis?.trim() || e.opis?.trim() || e.osoby?.some((o) => o.nazwa.trim()) || e.nazwa?.trim()).length,
             zeZdjeciem: g.filter((e) => e.zdjecia?.length).length,
         }
     }).sort((a, b) => b.zmieniono.localeCompare(a.zmieniono))

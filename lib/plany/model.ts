@@ -45,8 +45,12 @@ export interface Element {
     etykieta?: { dx: number; dy: number }
     /** grubość linii (jednostki planu); domyślnie z typu */
     szer?: number
-    /** treść z nagrobka, opis */
+    /** opis (elementy inne niż groby); w grobach dawniej „napis z nagrobka, uwagi” – przenoszone do `napis` */
     opis?: string
+    /** grób: napis z nagrobka – transkrypcja dosłowna (z zachowaniem pisowni, języka i podziału na wiersze) */
+    napis?: string
+    /** grób: weryfikacja w źródłach – co potwierdzają księgi i inne źródła, z ich podaniem */
+    zrodla?: string
     stan?: 'istnieje' | 'nie-istnieje' | 'do-sprawdzenia'
     czas?: string
     /** rok śmierci ostatniej pochowanej osoby – do zasady „zmarli niedawno” */
@@ -314,7 +318,7 @@ export function rokZgonu(e: Element): number | null {
     if (e.rokZgonu) return e.rokZgonu
     const lata: number[] = []
     for (const o of e.osoby ?? []) { const m = (o.zm ?? '').match(/(1[6-9]|20)\d\d/); if (m) lata.push(+m[0]) }
-    for (const m of (e.opis ?? '').matchAll(/(?<!\d)(1[6-9]\d\d|20\d\d)(?!\d)/g)) lata.push(+m[1])
+    for (const m of `${e.napis ?? ''} ${e.opis ?? ''}`.matchAll(/(?<!\d)(1[6-9]\d\d|20\d\d)(?!\d)/g)) lata.push(+m[1])
     return lata.length ? Math.max(...lata) : null
 }
 
@@ -353,7 +357,17 @@ export function dlaCzytelnika(plan: Plan, poziom: Widocznosc, u: UstawieniaPlano
 
 /** Tekst do wyszukiwania nazwisk (bez polskich znaków, małe litery). */
 export function doSzukania(e: Element): string {
-    return [e.nazwa, e.opis, ...(e.osoby ?? []).map((o) => o.nazwa)].filter(Boolean).join(' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
+    return [e.nazwa, e.napis, e.opis, ...(e.osoby ?? []).map((o) => o.nazwa)].filter(Boolean).join(' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
+}
+
+/** Groby: dawne pole „opis” (napis z nagrobka, uwagi) → `napis` (transkrypcja). */
+function przeniesNapisy(L: Element[]): Element[] {
+    const typy = katalog()
+    return L.map((e) => {
+        if (e.opis === undefined || e.napis !== undefined || !typy.get(e.typ)?.grob) return e
+        const { opis, ...reszta } = e
+        return { ...reszta, napis: opis }
+    })
 }
 
 /** Kontrola i naprawa wczytanego pliku (stare wersje, braki). */
@@ -372,7 +386,7 @@ export function popraw(p: Partial<Plan> & { slug: string }): Plan {
         geo: Array.isArray(p.geo) ? p.geo.filter((g) => [g.x, g.y, g.lat, g.lon].every((v) => typeof v === 'number')) : [],
         podklady: Array.isArray(p.podklady) ? p.podklady : [],
         warstwy: p.warstwy && typeof p.warstwy === 'object' ? p.warstwy : {},
-        elementy: Array.isArray(p.elementy) ? p.elementy.filter((e) => e && typeof e.id === 'string' && e.g && typeof e.typ === 'string') : [],
+        elementy: Array.isArray(p.elementy) ? przeniesNapisy(p.elementy.filter((e) => e && typeof e.id === 'string' && e.g && typeof e.typ === 'string')) : [],
         wersja: Number(p.wersja) || 1,
         zmieniono: p.zmieniono || new Date().toISOString(),
     }

@@ -18,6 +18,7 @@ import ListaPlanow from '../../components/plan/ListaPlanow'
 import { planDlaCzytelnika, planyDlaCzytelnika } from '@/lib/plany/serwer'
 import { wczytajUstawienia } from '@/lib/plany/dane'
 import WidokObiektu from '../../components/plan/WidokObiektu'
+import { osobyPlanu } from '@/lib/plany/rodzina'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,6 +46,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     // pierwszy plan obiektu (w wersji dla czytelnika) pokazujemy zamiast punktu na mapie
     const glowny = planyObiektu.length ? await planDlaCzytelnika(planyObiektu[0].slug) : null
     const ustawienia = glowny ? await wczytajUstawienia() : undefined
+    const osobyGlownego = glowny ? await osobyPlanu(glowny.plan, poziom) : undefined
 
     return (
         <Strona akcje={<><PowrotDoMapy /><CopyLinkButton sciezka={`/obiekty/${o.id}`} /></>}>
@@ -62,6 +64,7 @@ export default async function ObiektStrona({ params }: Parametry) {
                 plan={glowny?.plan}
                 ustawienia={ustawienia}
                 zalogowany={glowny?.poziom === 'bliscy'}
+                osoby={osobyGlownego}
                 mapa={o.wspolrzedne ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={glowny ? 16 : 14} wysokosc="100%" /> : undefined}
                 info={
                     <div>

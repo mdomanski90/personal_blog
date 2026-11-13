@@ -126,6 +126,8 @@ export async function usunPlik(slug: string, plik: string) {
 // ---------- zgłoszenia czytelników ----------
 export interface Zgloszenie {
     id: string
+    /** prosba – usunięcie albo poprawka; informacja – czytelnik zna osobę, ma zdjęcie itp. */
+    rodzaj?: 'prosba' | 'informacja'
     plan: string
     element: string
     opisElementu: string

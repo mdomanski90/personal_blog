@@ -1,6 +1,6 @@
 import { wczytajPlan, zapiszZgloszenie } from '@/lib/plany/dane'
 
-// Prośba czytelnika o usunięcie albo poprawkę elementu planu. Trafia do panelu (/keystatic/plany), nic nie publikuje.
+// Prośba czytelnika o usunięcie albo poprawkę elementu planu albo informacja o pochowanych. Trafia do panelu zgłoszeń, nic nie publikuje.
 export const dynamic = 'force-dynamic'
 
 const OKNO = 60 * 60 * 1000, MAKS = 5
@@ -11,11 +11,12 @@ export async function POST(req: Request) {
     const teraz = Date.now(), lista = (proby.get(ip) ?? []).filter((t) => teraz - t < OKNO)
     if (lista.length >= MAKS) return Response.json({ blad: 'limit' }, { status: 429 })
     const d = await req.json().catch(() => null)
+    const rodzaj = d?.rodzaj === 'informacja' ? 'informacja' : 'prosba'
     const tresc = String(d?.tresc ?? '').trim().slice(0, 2000), kontakt = String(d?.kontakt ?? '').trim().slice(0, 200)
     const plan = await wczytajPlan(String(d?.plan ?? ''))
     const el = plan?.elementy.find((e) => e.id === String(d?.element ?? ''))
     if (!plan || !el || tresc.length < 3) return Response.json({ blad: 'dane' }, { status: 400 })
     proby.set(ip, [...lista, teraz])
-    await zapiszZgloszenie({ plan: plan.slug, element: el.id, opisElementu: [el.nazwa, el.osoby?.map((o) => o.nazwa).join(', '), (el.opis ?? '').slice(0, 80)].filter(Boolean).join(' · '), tresc, kontakt })
+    await zapiszZgloszenie({ plan: plan.slug, element: el.id, opisElementu: [el.nazwa, el.osoby?.map((o) => o.nazwa).join(', '), (el.napis ?? el.opis ?? '').slice(0, 80)].filter(Boolean).join(' · '), tresc, kontakt, rodzaj })
     return Response.json({ ok: true })
 }

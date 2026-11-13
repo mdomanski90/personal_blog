@@ -35,15 +35,17 @@ function Szukaj() {
     return (
         <div className="pn-szukaj">
             <label htmlFor="pn-q" className="pn-etyk">szukaj w panelu</label>
-            <input id="pn-q" type="search" className="pn-in" style={{ width: '100%', marginTop: 4 }} placeholder="osoba, plan, wpis, miejsce, materiał…" autoComplete="off"
+            <form role="search" className="pole-szukania" style={{ marginTop: 4, background: 'var(--karta)' }} onSubmit={(e) => { e.preventDefault(); if (wyniki[akt]) location.href = wyniki[akt].href }}>
+            <button type="submit">szukaj</button>
+            <input id="pn-q" type="search" style={{ height: 34 }} placeholder="osoba, plan, wpis, miejsce, materiał…" autoComplete="off"
                 value={q} onFocus={() => { wczytaj(); ustawOtwarte(true) }} onBlur={() => window.setTimeout(() => ustawOtwarte(false), 150)}
                 onChange={(e) => { ustawQ(e.target.value); ustawAkt(0); ustawOtwarte(true) }}
                 onKeyDown={(e) => {
                     if (e.key === 'ArrowDown') { e.preventDefault(); ustawAkt((a) => Math.min(a + 1, wyniki.length - 1)) }
                     else if (e.key === 'ArrowUp') { e.preventDefault(); ustawAkt((a) => Math.max(a - 1, 0)) }
-                    else if (e.key === 'Enter' && wyniki[akt]) location.href = wyniki[akt].href
                     else if (e.key === 'Escape') ustawOtwarte(false)
                 }} />
+            </form>
             {otwarte && q.trim() && (
                 <div className="pn-wyniki" role="listbox">
                     {!wyniki.length && <span className="pn-maly" style={{ display: 'block', padding: '8px 12px' }}>{!indeks?.length ? 'wczytuję…' : 'nic nie znaleziono'}</span>}

@@ -47,9 +47,10 @@ function Wyszukiwarka() {
             className={`flex items-stretch flex-1 min-w-0 sm:flex-none sm:ml-auto overflow-hidden border ${RAMKA}`}
             style={{ borderRadius: '7px' }}
         >
-            <label htmlFor="szukaj-q" className="bg-muted lowercase whitespace-nowrap" style={{ ...linkStyl, height: 'auto' }}>szukaj</label>
+            <button type="submit" className="bg-muted lowercase whitespace-nowrap text-current" style={{ ...linkStyl, height: 'auto', border: 0, cursor: 'pointer', font: 'inherit', fontSize: '14px' }}>szukaj</button>
             <input
                 id="szukaj-q"
+                aria-label="szukaj na stronie"
                 name="q"
                 type="search"
                 defaultValue={params?.get('q') ?? ''}

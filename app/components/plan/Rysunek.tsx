@@ -143,7 +143,8 @@ export function Znak({ typ, x, y, s, halo = true, kolor }: { typ: TypElementu; x
 // ---------- las ----------
 function Las({ e, p, u, gesty, prefix }: { e: Element; p: Pkt[]; u: number; gesty: boolean; prefix: string }) {
     const los = losowe(e.id)
-    const rmin = gesty ? u * 1.0 : u * 0.65, rmax = gesty ? u * 1.7 : u * 1.05, gest = gesty ? 1.0 : 0.55
+    // korony rozrzucone nieregularnie: różna wielkość, prześwity między nimi, część zachodzi na siebie
+    const rmin = gesty ? u * 0.6 : u * 0.45, rmax = gesty ? u * 1.6 : u * 1.1, gest = gesty ? 0.36 : 0.22
     const xs = p.map((q) => q[0]), ys = p.map((q) => q[1])
     let A = 0
     for (let i = 0; i < p.length; i++) A += p[i][0] * p[(i + 1) % p.length][1] - p[(i + 1) % p.length][0] * p[i][1]
@@ -155,7 +156,7 @@ function Las({ e, p, u, gesty, prefix }: { e: Element; p: Pkt[]; u: number; gest
         const x = Math.min(...xs) + los() * (Math.max(...xs) - Math.min(...xs)), y = Math.min(...ys) + los() * (Math.max(...ys) - Math.min(...ys))
         if (!wWielokacie(x, y, p)) continue
         const r = rmin + los() * (rmax - rmin)
-        if (kola.some(([a, b, c]) => (x - a) ** 2 + (y - b) ** 2 < (0.6 * (r + c)) ** 2)) continue
+        if (kola.some(([a, b, c]) => (x - a) ** 2 + (y - b) ** 2 < (0.62 * (r + c)) ** 2)) continue
         kola.push([x, y, r])
     }
     kola.sort((a, b) => a[1] - b[1])
@@ -172,7 +173,7 @@ function Las({ e, p, u, gesty, prefix }: { e: Element; p: Pkt[]; u: number; gest
                         return [x + rr * Math.cos(f), y + rr * Math.sin(f)]
                     })
                     const kol = ['korona1', 'korona2', 'korona3'][Math.floor(los() * 3)]
-                    return <path key={i} d={gladka(pts)} style={{ fill: v(kol), stroke: v('las-brzeg'), strokeWidth: Math.max(0.4, r / 40), strokeOpacity: 0.7, strokeLinejoin: 'round' }} />
+                    return <path key={i} d={gladka(pts)} style={{ fill: v(kol), stroke: v('las-brzeg'), strokeWidth: Math.max(0.4, r / 16), strokeOpacity: 0.95, strokeLinejoin: 'round' }} />
                 })}
             </g>
             <polygon points={P(p)} style={{ fill: 'none', stroke: v('las-brzeg'), strokeWidth: Math.max(0.5, rmin / 14) }} />
@@ -294,6 +295,8 @@ export interface OpcjeRysunku {
     pokaz?: (e: Element) => boolean
     wyroznione?: Set<string>
     wybrane?: Set<string>
+    /** „groby rodziny”: te groby podświetlone, pozostałe przygaszone */
+    rodzina?: Set<string>
     numery?: Map<string, Numer>
     podklady?: { p: Podklad; adres: string; krycie?: number }[]
     /** w edytorze: ukryte warstwy */
@@ -409,12 +412,13 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                     inne.push(<g key={id} {...dane}><polygon points={P(pts)} style={{ fill: v(t.rys === 'gosp' ? 'gosp' : 'bud'), stroke: wyrozn(e) ? v('akcent') : 'none', strokeWidth: u * 0.12 }} />{e.stan === 'nie-istnieje' && <polygon points={P(pts)} style={{ fill: v('papier'), stroke: v('szary'), strokeWidth: u * 0.05, strokeDasharray: `${u * 0.12} ${u * 0.12}` }} />}</g>)
                     break
                 case 'grob': {
-                    const wyb = o.wybrane?.has(id), wyr = o.wyroznione?.has(id)
+                    const wyb = o.wybrane?.has(id), wyr = o.wyroznione?.has(id), rodz = o.rodzina?.has(id)
                     inne.push(
                         <polygon key={id} {...dane} points={P(pts)} style={{
-                            fill: wyb || wyr ? v('akcent-tlo') : e.stan === 'nie-istnieje' ? 'transparent' : v('grob'),
-                            stroke: wyb || wyr ? v('akcent') : v('grob-obw'), strokeWidth: wyb ? u * 0.12 : wyr ? u * 0.09 : Math.max(u * 0.03, 0.5),
+                            fill: wyb || wyr ? v('akcent-tlo') : rodz ? v('rodzina-tlo') : e.stan === 'nie-istnieje' ? 'transparent' : v('grob'),
+                            stroke: wyb || wyr ? v('akcent') : rodz ? v('rodzina') : v('grob-obw'), strokeWidth: wyb ? u * 0.12 : wyr || rodz ? u * 0.1 : Math.max(u * 0.03, 0.5),
                             strokeDasharray: e.stan === 'nie-istnieje' ? `${u * 0.1} ${u * 0.08}` : undefined,
+                            opacity: o.rodzina && !rodz && !wyb ? 0.35 : undefined,
                         }} />,
                     )
                     break

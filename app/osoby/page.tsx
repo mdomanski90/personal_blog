@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import PoleSzukania from '../components/PoleSzukania'
 import { Link } from 'next-view-transitions'
 import { poziomCzytelnika, widoczne } from '@/lib/archiwum'
 import { stanOsob } from '@/lib/osoby/dane'
@@ -39,11 +40,10 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
                 )}
             </div>
             {wszystkie.length > 0 && (
-                <form method="get" className="flex flex-wrap gap-2 items-center">
-                    <input name="q" defaultValue={sp.q ?? ''} placeholder="nazwisko, imię, wieś, rok…" className={`${RAMKA} bg-transparent`} style={{ flex: '1 1 16rem', padding: '0 10px', minHeight: 32, borderRadius: 7, fontSize: 'calc(15px * var(--font-scale, 1))' }} />
-                    <button type="submit" className={`${RAMKA} bg-muted`} style={{ padding: '0 12px', minHeight: 32, borderRadius: 7 }}>szukaj</button>
+                <div className="flex flex-wrap gap-2 items-center">
+                    <PoleSzukania action="/osoby" defaultValue={sp.q ?? ''} placeholder="nazwisko, imię, wieś, rok…" style={{ flex: '1 1 16rem', maxWidth: 480 }} />
                     {q && <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 13 }}>{odmiana(lista.length, ['wynik', 'wyniki', 'wyników'])}</span>}
-                </form>
+                </div>
             )}
             <div className="flex flex-col" style={{ gap: '1.2rem' }}>
                 {[...grupy].map(([litera, os]) => (

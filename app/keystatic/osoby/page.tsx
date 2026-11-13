@@ -75,7 +75,7 @@ export default function Osoby() {
             {dane && dane.osoby.length > 0 && (
                 <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <input value={q} onChange={(e) => ustawQ(e.target.value)} placeholder="szukaj: nazwisko, imię, wieś, rok…" style={{ ...pole, flex: '1 1 280px' }} autoFocus />
+                        <form role="search" className="pole-szukania" style={{ flex: '1 1 280px' }} onSubmit={(e) => e.preventDefault()}><button type="submit">szukaj</button><input type="search" value={q} onChange={(e) => ustawQ(e.target.value)} placeholder="nazwisko, imię, wieś, rok…" aria-label="szukaj osoby" autoFocus /></form>
                         <span style={{ color: '#6b7280', fontSize: 12 }}>{lista.length} z {dane.osoby.length}</span>
                         {dane.ostrzezenia.length > 0 && <button onClick={() => ustawPokazOstrz((x) => !x)} style={{ ...btn, background: '#fef3c7' }}>do sprawdzenia: {dane.ostrzezenia.length}</button>}
                     </div>

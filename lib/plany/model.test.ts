@@ -23,10 +23,10 @@ test('groby zmarłych niedawno i z osobami żyjącymi – dla czytelnika bez log
     const plan = popraw({ slug: 'p', elementy: [grob('a', 0, 0, { rokZgonu: new Date().getFullYear() - 1, opis: 'tajne', osoby: [{ nazwa: 'X' }] }), grob('b', 0, 30, { opis: 'stare 1880', notatka: 'robocza', weryfikacja: 'auto' })] } as Plan)
     const pub = dlaCzytelnika(plan, 'publiczne', USTAWIENIA_DOMYSLNE)
     assert.deepEqual(Object.keys(pub.elementy[0]).sort(), ['g', 'id', 'ograniczony', 'stan', 'typ'].sort())
-    assert.equal(pub.elementy[1].opis, 'stare 1880')
+    assert.equal(pub.elementy[1].napis, 'stare 1880')
     assert.equal(pub.elementy[1].notatka, undefined)
     const bliscy = dlaCzytelnika(plan, 'bliscy', USTAWIENIA_DOMYSLNE)
-    assert.equal(bliscy.elementy[0].opis, 'tajne')
+    assert.equal(bliscy.elementy[0].napis, 'tajne')
 })
 
 test('elementy ukryte, typy ukryte i podkłady „tylko do edycji” nie trafiają do czytelnika', () => {

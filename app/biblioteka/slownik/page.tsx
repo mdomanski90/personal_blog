@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import PoleSzukania from '../../components/PoleSzukania'
 import { Link } from 'next-view-transitions'
 import { hasla, poziomCzytelnika, RODZAJE_HASEL } from '@/lib/archiwum'
 import { normalizuj } from '@/lib/tekst'
@@ -24,15 +25,14 @@ export default async function Slownik({ searchParams }: { searchParams: Promise<
             <p className="leading-relaxed text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(16px * var(--font-scale, 1))', margin: 0 }}>
                 Dawne pojęcia, urzędy, miary i słowa z miejscowej gwary, które pojawiają się w dokumentach i wspomnieniach – każde ze źródłem znaczenia.
             </p>
-            <form action="/biblioteka/slownik" className="flex flex-wrap items-center" style={{ gap: 8 }}>
-                {rodzaj && <input type="hidden" name="rodzaj" value={rodzaj} />}
-                <input name="q" defaultValue={q} placeholder="szukaj hasła" className="border border-[#d1d5db] dark:border-[#4b5563] rounded-[7px] bg-transparent text-current" style={{ height: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', font: 'inherit', fontSize: 'calc(14px * var(--font-scale, 1))', minWidth: 220 }} />
+            <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+                <PoleSzukania action="/biblioteka/slownik" defaultValue={q} placeholder="hasło, znaczenie" ukryte={{ rodzaj }} style={{ minWidth: 260 }} />
                 <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1 }}>
                     {[['', 'wszystkie'], ...Object.entries(RODZAJE_HASEL)].map(([id, n]) => (
                         <Link key={id} href={href(id)} className={`${segment} ${rodzaj === id ? 'bg-muted font-bold' : ''}`} style={{ margin: '0 0 0 -1px', height: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', display: 'inline-flex', alignItems: 'center', fontSize: 'calc(13px * var(--font-scale, 1))' }}>{n}</Link>
                     ))}
                 </div>
-            </form>
+            </div>
             {wszystkie.length === 0 && <p className="text-gray-500">Słownik jest w przygotowaniu – hasła pojawią się po dodaniu w panelu.</p>}
             {wszystkie.length > 0 && lista.length === 0 && <p className="text-gray-500">Nic nie znaleziono.</p>}
             {[...litery].map(([l, L]) => (
