@@ -79,7 +79,7 @@ const dodano = () => fields.date({ label: 'Dodano', defaultValue: { kind: 'today
 const komponenty = {
   zrodlo: wrapper({
     label: 'Źródło (transkrypcja, tłumaczenie, cytat)',
-    description: 'Tekst z dokumentu w ramce z etykietą. Luki w nawiasach kwadratowych, np. [...], będą przygaszone.',
+    description: 'Tekst z dokumentu w ramce z etykietą.',
     schema: {
       rodzaj: fields.select({
         label: 'Rodzaj',
