@@ -81,7 +81,8 @@ export interface Ksiega {
     id: string
     nazwa: string
     parafia: string
-    rodzaj: string
+    /** rodzaje aktów w księdze (np. małżeństwa i zgony razem); pierwszy decyduje o kolejności */
+    rodzaje: string[]
     lata: string
     zakresy: [number, number][]
     braki: string
@@ -236,7 +237,7 @@ const wszystkieKsiegiSurowe = cache(async (): Promise<Ksiega[]> => {
         id: slug,
         nazwa: entry.title,
         parafia: entry.parish ?? '',
-        rodzaj: entry.type,
+        rodzaje: entry.types.length ? [...entry.types].sort((a, b) => KOLEJNOSC_KSIAG.indexOf(a) - KOLEJNOSC_KSIAG.indexOf(b)) : ['inne'],
         lata: entry.years,
         zakresy: zakresyLat(entry.years),
         braki: entry.gaps ?? '',
@@ -259,7 +260,7 @@ export async function ksiegi(poziom: Widocznosc): Promise<Ksiega[]> {
     const kol = KOLEJNOSC_KSIAG
     return (await wszystkieKsiegiSurowe())
         .filter((k) => widoczne(k.widocznosc, poziom))
-        .sort((a, b) => a.parafia.localeCompare(b.parafia) || kol.indexOf(a.rodzaj) - kol.indexOf(b.rodzaj) || (a.zakresy[0]?.[0] ?? 0) - (b.zakresy[0]?.[0] ?? 0))
+        .sort((a, b) => a.parafia.localeCompare(b.parafia) || kol.indexOf(a.rodzaje[0]) - kol.indexOf(b.rodzaje[0]) || (a.zakresy[0]?.[0] ?? 0) - (b.zakresy[0]?.[0] ?? 0))
 }
 
 /** Księgi parafii, do których należała wieś, z lat jej przynależności. */

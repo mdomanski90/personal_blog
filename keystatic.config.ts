@@ -425,10 +425,11 @@ export default config({
       schema: {
         title: nazwaIIdentyfikator('Nazwa (np. Olszanka unicka – urodzenia 1826–1875)'),
         parish: fields.relationship({ label: 'Parafia / urząd', collection: 'parafie', validation: { isRequired: true } }),
-        type: fields.select({
-          label: 'Rodzaj',
+        types: fields.multiselect({
+          label: 'Rodzaje aktów',
+          description: 'Zaznacz wszystkie, które są w tej księdze – np. małżeństwa i zgony w jednym tomie.',
           options: Object.entries(RODZAJE_KSIAG).map(([value, label]) => ({ label, value })),
-          defaultValue: 'urodzenia',
+          defaultValue: ['urodzenia'],
         }),
         years: fields.text({ label: 'Lata', description: 'Np. „1826–1875, 1880, 1885–1890”. Z tego powstaje pasek lat w inwentarzu.', validation: { isRequired: true } }),
         gaps: fields.text({ label: 'Braki i uwagi do lat', description: 'Np. „brak 1863, rok 1870 uszkodzony”.' }),

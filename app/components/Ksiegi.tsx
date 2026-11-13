@@ -16,7 +16,7 @@ export function zakresOsi(ks: Ksiega[]): [number, number] {
 export function PasekLat({ ksiegi, os }: { ksiegi: Ksiega[]; os?: [number, number] }) {
     const [od, doRoku] = os ?? zakresOsi(ksiegi)
     const dl = doRoku - od
-    const rodzaje = KOLEJNOSC_KSIAG.filter((r) => ksiegi.some((k) => k.rodzaj === r && k.zakresy.length))
+    const rodzaje = KOLEJNOSC_KSIAG.filter((r) => ksiegi.some((k) => k.rodzaje.includes(r) && k.zakresy.length))
     if (!rodzaje.length) return null
     const kreski: number[] = []
     for (let r = Math.ceil(od / 25) * 25; r <= doRoku; r += 25) kreski.push(r)
@@ -28,7 +28,7 @@ export function PasekLat({ ksiegi, os }: { ksiegi: Ksiega[]; os?: [number, numbe
                     <span className="text-gray-600 dark:text-gray-400 truncate" style={male}>{RODZAJE_KSIAG[r]}</span>
                     <div className={`relative h-3 border-b ${LINIA}`}>
                         {ksiegi
-                            .filter((k) => k.rodzaj === r)
+                            .filter((k) => k.rodzaje.includes(r))
                             .flatMap((k) => k.zakresy.map((z, i) => (
                                 <span
                                     key={`${k.id}-${i}`}
@@ -73,7 +73,7 @@ export function TabelaKsiag({ ksiegi }: { ksiegi: Ksiega[] }) {
                 <tbody>
                     {ksiegi.map((k) => (
                         <tr key={k.id} className="border-b border-[#e7e2d8] dark:border-[#374151] align-top">
-                            <td className="py-1.5 pr-3 whitespace-nowrap">{RODZAJE_KSIAG[k.rodzaj] ?? k.rodzaj}</td>
+                            <td className="py-1.5 pr-3">{k.rodzaje.map((r) => RODZAJE_KSIAG[r] ?? r).join(', ')}</td>
                             <td className="py-1.5 pr-3">
                                 <span className="font-bold">{k.lata}</span>
                                 {(k.braki || k.jezyk) && <span className="block text-gray-500" style={male}>{[k.braki, k.jezyk].filter(Boolean).join(' · ')}</span>}
