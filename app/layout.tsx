@@ -26,6 +26,10 @@ export default function RootLayout({
     return (
         <ViewTransitions>
             <html lang="pl" suppressHydrationWarning className={`${jetbrainsMono.className} ${jetbrainsMono.variable}`}>
+            <head>
+                {/* emblemat rysuje się tylko przy pierwszym wejściu w danej sesji karty (przed malowaniem strony, bez mignięcia) */}
+                <script dangerouslySetInnerHTML={{ __html: "try{if(sessionStorage.getItem('emblemat'))document.documentElement.dataset.emblemat='1'}catch(e){}" }} />
+            </head>
             <body>
             <ThemeProvider
                 attribute="class"

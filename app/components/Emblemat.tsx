@@ -1,7 +1,10 @@
-// Emblemat: kapliczka w Olszance w ramie-łuku (na podstawie obrazka M. Domańskiego).
-// Przy pełnym wczytaniu strony (nagłówek nie jest montowany ponownie przy przejściach między stronami)
-// rysuje się sama rama-łuk, a potem cała zawartość spokojnie pojawia się naraz. Bez animacji przy
-// prefers-reduced-motion. Kolor = currentColor, więc działa w trybie ciemnym.
+'use client'
+
+import * as React from 'react'
+
+// Emblemat: kapliczka w Olszance w ramie-łuku (na podstawie obrazka „Kapliczka w Olszance”).
+// Przy pierwszym wejściu w danej sesji karty rysuje się sama rama-łuk, a potem cała zawartość spokojnie
+// pojawia się naraz; na kolejnych stronach emblemat stoi od razu. Bez animacji przy prefers-reduced-motion. Kolor = currentColor, więc działa w trybie ciemnym.
 
 type Kreska = { d: string; w?: number; g?: string }
 
@@ -51,6 +54,18 @@ const KRESKI: Kreska[] = [
 ]
 
 export default function Emblemat({ rozmiar = 56, animacja = true }: { rozmiar?: number; animacja?: boolean }) {
+    // po pierwszym rysowaniu w tej sesji kolejne strony pokazują emblemat od razu (atrybut na <html> wyłącza animację w CSS;
+    // przy pełnym wczytaniu ustawia go skrypt w <head>, przy przejściach między stronami – ten efekt)
+    React.useEffect(() => {
+        if (!animacja) return
+        try { sessionStorage.setItem('emblemat', '1') } catch { /* brak dostępu */ }
+        const oznacz = () => { document.documentElement.dataset.emblemat = '1' }
+        const start = Date.now()
+        const t = window.setTimeout(oznacz, 2400)
+        // przejście na inną stronę w trakcie rysowania: nowa strona już bez animacji
+        // (natychmiastowe odmontowanie – podwójne uruchomienie efektu w trybie deweloperskim – pomijamy)
+        return () => { window.clearTimeout(t); if (Date.now() - start > 200) oznacz() }
+    }, [animacja])
     return (
         <svg
             viewBox="0 0 80 104"
