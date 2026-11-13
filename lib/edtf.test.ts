@@ -48,3 +48,20 @@ test('identyfikatory i wyszukiwanie', () => {
     assert.equal(normalizuj('W Olszance, 1915!'), 'w olszance 1915')
     assert.equal(normalizuj('Ольшанка'), 'ольшанка')
 })
+
+test('przedział lat z łącznikiem: 1810-1825, półpauza, spacje, otwarte końce', async () => {
+    const { parsujEdtf, formatujEdtf, normalizujEdtf, czyPoprawnaEdtf, EDTF_REGEX } = await import('./edtf')
+    for (const z of ['1810-1825', '1810–1825', '1810 - 1825', '1810 — 1825', '1810/1825']) {
+        assert.equal(normalizujEdtf(z), '1810/1825', z)
+        assert.equal(formatujEdtf(z), '1810–1825', z)
+        assert.ok(EDTF_REGEX.test(z), z)
+    }
+    assert.equal(formatujEdtf('..-1920'), 'do 1920')
+    assert.equal(formatujEdtf('1945-..'), 'od 1945')
+    assert.equal(formatujEdtf('1750~-1760'), 'ok. 1750–1760')
+    // miesiąc i dzień zostają datą, nie przedziałem
+    assert.equal(parsujEdtf('1908-02')?.przedzial, false)
+    assert.equal(parsujEdtf('1750-05-27')?.przedzial, false)
+    assert.equal(czyPoprawnaEdtf('1825-1810'), false)
+    assert.equal(czyPoprawnaEdtf('18-1825'), false)
+})

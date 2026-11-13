@@ -2,18 +2,33 @@
 //   1750-05-27   dzień            1908-02   miesiąc        1875   rok
 //   195X         dekada           18XX      stulecie
 //   1750~        około            1750?     niepewna       1750% około i niepewna
-//   1915/1918    przedział        ../1920   do 1920        1945/.. od 1945
-// Ten sam zapis trafia do eksportu dla Omeka S (dcterms:date / dcterms:temporal).
+//   1915-1918    przedział (też 1915–1918, 1915 - 1918 i zapis EDTF 1915/1918)
+//   ..-1920      do 1920          1945-..   od 1945
+// Przedział z łącznikiem działa dla pełnych lat (dwie czterocyfrowe liczby); daty z miesiącem
+// w przedziale zapisuje się po EDTF-owemu: 1915-03/1916-05. Do eksportu dla Omeka S trafia zapis
+// EDTF z ukośnikiem (dcterms:date / dcterms:temporal) – zamienia go normalizujEdtf().
 
 const POJEDYNCZA = '(?:\\d{4}(?:-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\\d|3[01]))?)?|\\d{3}X|\\d{2}XX)[~?%]?'
 
+const ROK = '\\d{4}[~?%]?'
+const ROK_LUB_OTWARTY = `(?:${ROK}|\\.\\.)`
+// przedział pełnych lat zapisany łącznikiem / półpauzą / pauzą, ze spacjami albo bez: 1810-1825, 1810 – 1825
+const PRZEDZIAL_LAT = new RegExp(`^(${ROK_LUB_OTWARTY})\\s*[-–—]\\s*(${ROK_LUB_OTWARTY})$`)
+
 /** Wyrażenie do sprawdzania pola w panelu (pusta wartość jest dozwolona). */
 export const EDTF_REGEX = new RegExp(
-    `^(?:|${POJEDYNCZA}|(?:${POJEDYNCZA}|\\.\\.)/(?:${POJEDYNCZA}|\\.\\.))$`
+    `^(?:|${POJEDYNCZA}|(?:${POJEDYNCZA}|\\.\\.)/(?:${POJEDYNCZA}|\\.\\.)|${ROK_LUB_OTWARTY}\\s*[-–—]\\s*${ROK_LUB_OTWARTY})$`
 )
 
 export const EDTF_OPIS =
-    'EDTF: 1750-05-27, 1908-02, 1875, 195X (dekada), 18XX (wiek), 1750~ (około), 1750? (niepewna), 1915/1918 (przedział), ../1920, 1945/..'
+    'Np. 1750-05-27, 1908-02, 1875, 1810-1825 (przedział), 195X (dekada), 18XX (wiek), 1750~ (około), 1750? (niepewna), ..-1920 (do 1920), 1945-.. (od 1945)'
+
+/** Zapis EDTF z ukośnikiem (do eksportu i obliczeń): „1810-1825” → „1810/1825”; pozostałe bez zmian. */
+export function normalizujEdtf(zapis: string | null | undefined): string {
+    const s = (zapis ?? '').trim()
+    const m = PRZEDZIAL_LAT.exec(s)
+    return m ? `${m[1]}/${m[2]}` : s
+}
 
 type Precyzja = 'dzien' | 'miesiac' | 'rok' | 'dekada' | 'wiek'
 
@@ -61,7 +76,7 @@ function parsujPunkt(s: string): Punkt | null {
 
 /** Parsuje zapis EDTF; zwraca null dla pustego lub błędnego. */
 export function parsujEdtf(zapis: string | null | undefined): DataEdtf | null {
-    const s = (zapis ?? '').trim()
+    const s = normalizujEdtf(zapis)
     if (!s || !EDTF_REGEX.test(s)) return null
     if (s.includes('/')) {
         const [a, b] = s.split('/')

@@ -10,7 +10,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { dlaEksportu, OBSZARY, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, RODZAJE_OPOWIESCI, RODZAJE_TEMATOW, WYZNANIA_MIEJSC, type Widocznosc } from '../lib/archiwum'
-import { czyPoprawnaEdtf, zakresIso } from '../lib/edtf'
+import { czyPoprawnaEdtf, normalizujEdtf, zakresIso } from '../lib/edtf'
 import { naTekst } from '../lib/markdoc'
 import { odmiana } from '../lib/tekst'
 import { ADRES_PLIKOW, KATALOG_PLIKOW } from '../lib/pliki'
@@ -115,7 +115,7 @@ async function main() {
             'dcterms:alternative': o.inneNazwy,
             'dcterms:type': (RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj) + (o.istnieje ? '' : ' (nie istnieje)'),
             'dcterms:spatial': o.miejsce,
-            'dcterms:temporal': o.czas,
+            'dcterms:temporal': normalizujEdtf(o.czas),
             'numeric:interval': zakresIso(o.czas),
             'mapping:latitude': o.wspolrzedne?.[0],
             'mapping:longitude': o.wspolrzedne?.[1],
@@ -137,7 +137,7 @@ async function main() {
                 'dcterms:title': t.nazwa,
                 'dcterms:alternative': t.inneNazwy,
                 'dcterms:type': RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj,
-                'dcterms:temporal': t.czas,
+                'dcterms:temporal': normalizujEdtf(t.czas),
                 'numeric:interval': z ? `${z.od ?? ''}/${z.do ?? ''}` : '',
                 'dcterms:spatial': t.miejsca,
                 'dcterms:description': naTekst(t.opis),
@@ -173,7 +173,7 @@ async function main() {
                 'o:resource_class': KLASY_MATERIALOW[m.rodzaj] ?? 'dctype:Text',
                 'dcterms:title': m.nazwa,
                 'dcterms:type': RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj,
-                'dcterms:date': m.czas,
+                'dcterms:date': normalizujEdtf(m.czas),
                 'numeric:interval': z ? `${z.od ?? ''}/${z.do ?? ''}` : '',
                 'dcterms:creator': m.tworca,
                 'dcterms:provenance': m.przekazal,
