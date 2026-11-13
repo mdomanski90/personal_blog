@@ -278,6 +278,8 @@ export function importujGedcom(tekst: string, miejsca: MiejsceDoDopasowania[]): 
         const imiona: string[] = []
         let nazwisko = ''
         const inne: string[] = []
+        const zapisy: string[] = []
+        let przydomek = ''
         const uwagi: string[] = []
         wszystkie(r, 'NAME').forEach((n, i) => {
             const m = /^([^/]*)(?:\/([^/]*)\/)?(.*)$/.exec(n.wartosc) ?? []
@@ -286,7 +288,12 @@ export function importujGedcom(tekst: string, miejsca: MiejsceDoDopasowania[]): 
             if (i === 0) {
                 if (g) imiona.push(g)
                 nazwisko = s
-            } else if (s && s !== nazwisko) inne.push(s)
+            } else {
+                if (s && s !== nazwisko) inne.push(s)
+                // inna forma imienia (łacińska, rosyjska…) – cały zapis do „innych zapisów”
+                if (g && g !== imiona[0]) zapisy.push(`${g} ${s}`.trim())
+            }
+            if (!przydomek) przydomek = wart(n, 'NICK').trim()
             const marr = wart(n, '_MARNM') || wart(n, '_MARN')
             if (marr && marr !== nazwisko) inne.push(marr)
         })
@@ -317,7 +324,7 @@ export function importujGedcom(tekst: string, miejsca: MiejsceDoDopasowania[]): 
         pods.multimedia += multimedia.length
         const zn = wszystkie(r, '_MTTAG').map((t) => znaczniki.get(t.wartosc.trim())).filter((x): x is string => !!x)
         osoby.set(id, poprawOsobe({
-            id, imiona: im, nazwisko, inneNazwiska: [...new Set(inne)], plec: sex === 'M' ? 'M' : sex === 'F' ? 'K' : 'U', zdarzenia, zyje: 'auto', widocznosc: 'auto',
+            id, imiona: im, nazwisko, inneNazwiska: [...new Set(inne)], inneZapisy: zapisy, przydomek, plec: sex === 'M' ? 'M' : sex === 'F' ? 'K' : 'U', zdarzenia, zyje: 'auto', widocznosc: 'auto',
             notatki, cytaty: cytaty(r), multimedia, znaczniki: zn, uwagi, gedcomId: r.xref!.replace(/@/g, ''), wersja: 1,
         }))
     }
@@ -458,7 +465,10 @@ export function eksportujGedcom(d: Drzewo, opcje: OpcjeEksportu): string {
         if (!ukryj) {
             if (o.imiona) L.push(`2 GIVN ${o.imiona}`)
             if (o.nazwisko) L.push(`2 SURN ${o.nazwisko}`)
+            if (o.przydomek) L.push(`2 NICK ${o.przydomek}`)
             for (const n of o.inneNazwiska ?? []) L.push(`1 NAME ${o.imiona} /${n}/`)
+            // inny zapis: ostatni wyraz jako nazwisko
+            for (const z of o.inneZapisy ?? []) { const w = z.split(' '); L.push(w.length > 1 ? `1 NAME ${w.slice(0, -1).join(' ')} /${w.at(-1)}/` : `1 NAME ${z}`) }
         }
         L.push(`1 SEX ${o.plec === 'M' ? 'M' : o.plec === 'K' ? 'F' : 'U'}`)
         if (!ukryj) {

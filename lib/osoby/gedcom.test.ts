@@ -221,3 +221,17 @@ test('miejscowość z PLAC: człony, nawiasy, parafia, twarde spacje, bez przeci
         ['Nowa Wieś, Łosice', undefined], ['Łepki Stare, Łosice', 'lepki-stare'], ['Międzyrzec Podlaski', 'miedzyrzec'], ['Ole​szanka', undefined],
     ] as [string, string | undefined][]) assert.equal(znajdzMiejsce(pl, idx), id, pl)
 })
+
+test('inne zapisy imienia i nazwiska, przydomek: import i eksport', () => {
+    const plik = ['0 HEAD', '0 @I1@ INDI', '1 NAME Jan /Testowy/', '2 NICK Sowa', '1 NAME Joannes /Testowski/', '1 NAME Иван /Тестовый/', '1 SEX M', '0 TRLR'].join('\n')
+    const { drzewo: d } = importujGedcom(plik, [])
+    const o = [...d.osoby.values()][0]
+    assert.equal(o.przydomek, 'Sowa')
+    assert.deepEqual(o.inneZapisy, ['Joannes Testowski', 'Иван Тестовый'])
+    assert.deepEqual(o.inneNazwiska, ['Testowski', 'Тестовый'])
+    const g = eksportujGedcom(d, { zyjace: 'pelne', zyje: () => false })
+    assert.ok(g.includes('2 NICK Sowa'))
+    const o2 = [...importujGedcom(g, []).drzewo.osoby.values()][0]
+    assert.equal(o2.przydomek, 'Sowa')
+    assert.ok(o2.inneZapisy?.includes('Joannes Testowski'))
+})

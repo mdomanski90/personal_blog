@@ -39,9 +39,9 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
             const b = bio.get(o.id)
             return {
                 id: o.id, nazwa: nazwaOsoby(o), plec: o.plec, litera: (o.nazwisko || '?').charAt(0).toLocaleUpperCase('pl'),
-                opis: `${lataZycia(o)}${miejsce ? ` · ${miejsce}` : ''}`,
+                opis: `${o.przydomek ? `„${o.przydomek}” · ` : ''}${lataZycia(o)}${miejsce ? ` · ${miejsce}` : ''}`,
                 ...(b ? { biogram: b.lead } : {}),
-                szukaj: normalizuj(`${o.imiona} ${o.nazwisko} ${(o.inneNazwiska ?? []).join(' ')} ${lataZycia(o)} ${miejsce} ${b?.lead ?? ''}`),
+                szukaj: normalizuj(`${o.imiona} ${o.nazwisko} ${(o.inneNazwiska ?? []).join(' ')} ${(o.inneZapisy ?? []).join(' ')} ${o.przydomek ?? ''} ${lataZycia(o)} ${miejsce} ${b?.lead ?? ''}`),
             }
         })
     const kregiListy: KragNaLiscie[] = [...kregi.map((k) => ({ id: k.id, nazwa: k.nazwa, opis: k.opis, ile: ileWKregu[k.id] })), { id: 'wszystkie', nazwa: 'wszyscy', opis: 'całe drzewo', ile: wszystkie.length }]

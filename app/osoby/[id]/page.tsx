@@ -156,11 +156,16 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                 )}
                 <div className="osoba-karta-opis">
                     <h1 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.75rem * var(--font-scale, 1))', margin: 0 }}>{tytul}</h1>
-                    {(lataZycia(o) || o.inneNazwiska?.length) ? (
+                    {(lataZycia(o) || o.inneNazwiska?.length || o.przydomek) ? (
                         <p className="text-gray-600 dark:text-gray-400" style={{ margin: 0 }}>
-                            {lataZycia(o)}{o.inneNazwiska?.length ? `${lataZycia(o) ? ' · ' : ''}${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}` : ''}
+                            {[
+                                lataZycia(o),
+                                o.przydomek && `${o.plec === 'K' ? 'zwana' : o.plec === 'M' ? 'zwany' : 'zwany(-a)'} „${o.przydomek}”`,
+                                o.inneNazwiska?.length && `${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}`,
+                            ].filter(Boolean).join(' · ')}
                         </p>
                     ) : null}
+                    {o.inneZapisy?.length ? <p className="text-gray-600 dark:text-gray-400" style={{ margin: 0, fontSize: 'calc(14px * var(--font-scale, 1))' }}>w źródłach także: {o.inneZapisy.join(' · ')}</p> : null}
                     {bio?.lead && <p className="osoba-lead">{bezNawiasow(bio.lead, kontekst.rozwiaz)}</p>}
                     {bio?.tresc && <Tresc html={naHtml(bio.tresc, kontekst)} pusta={null} />}
                 </div>

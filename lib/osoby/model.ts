@@ -92,6 +92,10 @@ export interface Osoba {
     nazwisko: string
     /** inne nazwiska: panieńskie, po mężu, zapisy z aktów */
     inneNazwiska?: string[]
+    /** inne zapisy imienia i nazwiska – z aktów, po łacinie, cyrylicą (np. „Joannes Testowski”, „Иван Тестовый”) */
+    inneZapisy?: string[]
+    /** przydomek, pseudonim (np. „Kowalka”, „Sowa”) */
+    przydomek?: string
     plec: Plec
     zdarzenia: Zdarzenie[]
     /** auto – z dat (osoba żyjąca, gdy nic nie wskazuje na śmierć i mogła urodzić się w ostatnich 100 latach); widoczność auto – patrz widocznoscOsoby */
@@ -332,7 +336,7 @@ export function rdzenNazwiska(n: string): string {
 }
 
 export function nazwiskaOsoby(o: Osoba): string[] {
-    return [o.nazwisko, ...(o.inneNazwiska ?? [])].flatMap((n) => normalizuj(n).split(' ')).filter(Boolean).map(rdzenNazwiska)
+    return [o.nazwisko, ...(o.inneNazwiska ?? []), ...(o.inneZapisy ?? []).map((z) => z.split(' ').at(-1) ?? '')].flatMap((n) => normalizuj(n).split(' ')).filter(Boolean).map(rdzenNazwiska)
 }
 
 export function indeksNazwisk(d: Drzewo): Map<string, Osoba[]> {
@@ -389,6 +393,8 @@ export function poprawOsobe(o: Partial<Osoba> & { id: string }): Osoba {
         imiona: String(o.imiona ?? '').trim(),
         nazwisko: String(o.nazwisko ?? '').trim(),
         inneNazwiska: (o.inneNazwiska ?? []).map((s) => String(s).trim()).filter(Boolean),
+        ...(o.inneZapisy?.some((s) => String(s).trim()) ? { inneZapisy: [...new Set(o.inneZapisy.map((s) => String(s).trim().replace(/\s+/g, ' ')).filter(Boolean))].slice(0, 30) } : {}),
+        ...(o.przydomek && String(o.przydomek).trim() ? { przydomek: String(o.przydomek).trim().slice(0, 120) } : {}),
         plec: o.plec === 'M' || o.plec === 'K' ? o.plec : 'U',
         zdarzenia: (o.zdarzenia ?? []).filter((z) => z && z.rodzaj in RODZAJE_ZDARZEN).map((z) => ({ ...z, id: z.id || noweIdZdarzenia() })),
         zyje: o.zyje === 'tak' || o.zyje === 'nie' ? o.zyje : 'auto',
