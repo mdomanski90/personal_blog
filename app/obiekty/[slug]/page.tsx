@@ -19,6 +19,7 @@ import { planDlaCzytelnika, planyDlaCzytelnika } from '@/lib/plany/serwer'
 import { wczytajUstawienia } from '@/lib/plany/dane'
 import WidokObiektu from '../../components/plan/WidokObiektu'
 import { osobyPlanu } from '@/lib/plany/rodzina'
+import OtworzWMapach from '../../components/OtworzWMapach'
 import InfoZMapa from '../../components/InfoZMapa'
 import GaleriaZdjec from '../../components/GaleriaZdjec'
 
@@ -68,8 +69,8 @@ export default async function ObiektStrona({ params }: Parametry) {
                         {wies && <Wiersz etykieta="miejscowość"><Link href={`/miejsca/${wies.id}`}>{wies.nazwa}</Link></Wiersz>}
                         {o.czas && <Wiersz etykieta="lata istnienia">{formatujEdtf(o.czas)}</Wiersz>}
                         <Wiersz etykieta="stan">{o.istnieje ? 'istnieje' : 'nie istnieje'}</Wiersz>
-                        <Wiersz etykieta="współrzędne">
-                            {o.wspolrzedne ? `${o.wspolrzedne[0]}, ${o.wspolrzedne[1]}${o.przyblizone ? ' (przybliżone)' : ''}` : <span className="text-gray-500">brak</span>}
+                        <Wiersz etykieta="położenie">
+                            {o.wspolrzedne ? <OtworzWMapach wspolrzedne={o.wspolrzedne} przyblizone={o.przyblizone} /> : <span className="text-gray-500">brak</span>}
                         </Wiersz>
                         {o.zdjecia.length > 0 && <Wiersz etykieta="fotografie"><a href="#fotografie">{o.zdjecia.length}</a></Wiersz>}
                     </div>

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import OtworzWMapach from '../../components/OtworzWMapach'
 import InfoZMapa from '../../components/InfoZMapa'
 import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
@@ -114,6 +115,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                                 ))}
                             </Wiersz>
                         )}
+                        {m.wspolrzedne && !obszar && <Wiersz etykieta="położenie"><OtworzWMapach wspolrzedne={m.wspolrzedne} /></Wiersz>}
                         {m.sameAs && <Wiersz etykieta="zobacz też"><a href={m.sameAs} target="_blank" rel="noopener noreferrer">{m.sameAs.replace(/^https?:\/\//, '')}</a></Wiersz>}
                     </div>
                 )
