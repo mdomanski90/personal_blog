@@ -125,6 +125,14 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, maly = 
         ustawVb([cx - w / 2, cy - h / 2, w, h])
     }
 
+    // link z karty osoby: /plany/<slug>?grob=<id> – zaznacza grób i przybliża
+    React.useEffect(() => {
+        const id = new URLSearchParams(window.location.search).get('grob')
+        const e = id ? plan.elementy.find((x) => x.id === id) : null
+        if (e) pokazElement(e)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
     // ---------- eksport ----------
     const doPng = async () => {
         const s = svgRef.current
@@ -268,7 +276,7 @@ function Karta({ el, plan, typ, numer, progLat, zalogowany, zamknij }: { el: Ele
             ) : (
                 <>
                     {el.osoby && el.osoby.length > 0 && (
-                        <ul style={{ margin: 0, paddingLeft: 18 }}>{el.osoby.map((o, i) => <li key={i}>{o.nazwa}{(o.ur || o.zm) && <span className="text-gray-500"> ({o.ur ?? '?'}–{o.zm ?? '?'})</span>}</li>)}</ul>
+                        <ul style={{ margin: 0, paddingLeft: 18 }}>{el.osoby.map((o, i) => <li key={i}>{o.id ? <a href={`/osoby/${o.id}`}>{o.nazwa}</a> : o.nazwa}{(o.ur || o.zm) && <span className="text-gray-500"> ({o.ur ?? '?'}–{o.zm ?? '?'})</span>}</li>)}</ul>
                     )}
                     {el.czas && <span><span className="text-gray-500">czas: </span>{el.czas}</span>}
                     {el.stan && el.stan !== 'istnieje' && <span className="text-gray-500">{el.stan === 'nie-istnieje' ? 'nie istnieje' : 'do sprawdzenia'}</span>}

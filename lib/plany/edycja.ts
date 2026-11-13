@@ -122,3 +122,101 @@ export function przyciagnijKat(a: number, katKwatery: number | null, shift: bool
     }
     return Math.round(a * 2) / 2
 }
+
+// ---------- stempel: kolejny grób obok sąsiedniego ----------
+type R = Extract<Geometria, { k: 'r' }>
+export interface WzorStempla { typ: string; w: number; h: number; a: number }
+
+/**
+ * Gdzie postawić kopię wzoru pod kursorem: przy grobie tego samego typu – tuż obok niego w rzędzie (wzdłuż szerokości)
+ * albo rząd dalej (wzdłuż długości), z odstępem jak między sąsiednimi grobami; miejsca zajęte pomijane.
+ */
+export function pozycjaStempla(plan: Plan, p: Pkt, wz: WzorStempla): { x: number; y: number; a: number; przyciagniety: boolean } {
+    const groby = plan.elementy.filter((e) => e.typ === wz.typ && e.g.k === 'r')
+    const zasieg = Math.max(wz.w, wz.h) * 3
+    const blisko = groby.filter((e) => Math.hypot((e.g as R).x - p[0], (e.g as R).y - p[1]) < zasieg)
+    if (!blisko.length) return { x: p[0], y: p[1], a: wz.a, przyciagniety: false }
+    // odstępy z najbliższego sąsiada (mediana w kwaterze – jak „powiel”)
+    const n0 = blisko.reduce((a, b) => (Math.hypot((a.g as R).x - p[0], (a.g as R).y - p[1]) <= Math.hypot((b.g as R).x - p[0], (b.g as R).y - p[1]) ? a : b))
+    const G0 = n0.g as R, a0 = rad(G0.a), ux0 = Math.cos(a0), uy0 = Math.sin(a0)
+    const tR = rozstaw(plan, n0, ux0, uy0, true), tK = rozstaw(plan, n0, -uy0, ux0, false)
+    const gapR = tR ? Math.max(0, tR - G0.w) : G0.w * 0.15
+    const gapK = tK ? Math.max(0, tK - G0.h) : G0.h * 0.4
+    const zajete = (x: number, y: number) => groby.some((e) => Math.hypot((e.g as R).x - x, (e.g as R).y - y) < Math.min(wz.w, wz.h) * 0.45)
+    let best: { x: number; y: number; a: number } | null = null, bd = Math.min(wz.w, wz.h) * 0.8
+    for (const n of blisko) {
+        const G = n.g as R, a = rad(G.a), ux = Math.cos(a), uy = Math.sin(a), vx = -uy, vy = ux
+        const kand: Pkt[] = [1, -1].flatMap((s) => [
+            [G.x + ux * s * (G.w / 2 + gapR + wz.w / 2), G.y + uy * s * (G.w / 2 + gapR + wz.w / 2)] as Pkt,
+            [G.x + vx * s * (G.h / 2 + gapK + wz.h / 2), G.y + vy * s * (G.h / 2 + gapK + wz.h / 2)] as Pkt,
+        ])
+        for (const [x, y] of kand) {
+            const d = Math.hypot(x - p[0], y - p[1])
+            if (d < bd && !zajete(x, y)) { bd = d; best = { x, y, a: G.a } }
+        }
+    }
+    return best ? { ...best, przyciagniety: true } : { x: p[0], y: p[1], a: wz.a, przyciagniety: false }
+}
+
+// ---------- wyrównywanie zaznaczonych ----------
+/** Prosta najlepiej dopasowana do środków (kierunek głównej osi). */
+function prosta(pts: Pkt[]): { c: Pkt; u: Pkt } {
+    const n = pts.length, cx = pts.reduce((s, q) => s + q[0], 0) / n, cy = pts.reduce((s, q) => s + q[1], 0) / n
+    let sxx = 0, sxy = 0, syy = 0
+    for (const [x, y] of pts) { sxx += (x - cx) ** 2; sxy += (x - cx) * (y - cy); syy += (y - cy) ** 2 }
+    const t = 0.5 * Math.atan2(2 * sxy, sxx - syy)
+    return { c: [cx, cy], u: [Math.cos(t), Math.sin(t)] }
+}
+
+/** Kąt z rodziny (a, a±90, a±180) najbliższy obecnemu – grób nie obraca się „na bok”. */
+function najblizszyKat(obecny: number, linia: number): number {
+    let best = linia, bd = Infinity
+    for (const k of [linia, linia + 90, linia - 90, linia + 180, linia - 180]) { const d = Math.abs(((obecny - k + 540) % 360) - 180); if (d < bd) { bd = d; best = k } }
+    return +(((best + 540) % 360) - 180).toFixed(2)
+}
+
+/** Środki zaznaczonych na jednej prostej (dopasowanej do nich), prostokąty obrócone zgodnie z nią. */
+export function wyrownajWLinie(els: Element[]): Map<string, Partial<Element>> {
+    const m = new Map<string, Partial<Element>>()
+    if (els.length < 2) return m
+    const { c, u } = prosta(els.map((e) => srodek(e.g)))
+    const kl = (Math.atan2(u[1], u[0]) * 180) / Math.PI
+    for (const e of els) {
+        const [x, y] = srodek(e.g), t = (x - c[0]) * u[0] + (y - c[1]) * u[1]
+        const nx = c[0] + u[0] * t, ny = c[1] + u[1] * t
+        let g = przesun(e.g, nx - x, ny - y)
+        if (g.k === 'r') g = { ...g, a: najblizszyKat(g.a, kl) }
+        m.set(e.id, { g })
+    }
+    return m
+}
+
+/** Równe odstępy między środkami zaznaczonych (pierwszy i ostatni zostają na miejscu). */
+export function rozlozRowno(els: Element[]): Map<string, Partial<Element>> {
+    const m = new Map<string, Partial<Element>>()
+    if (els.length < 3) return m
+    const { c, u } = prosta(els.map((e) => srodek(e.g)))
+    const t = (e: Element) => { const [x, y] = srodek(e.g); return (x - c[0]) * u[0] + (y - c[1]) * u[1] }
+    const L = [...els].sort((a, b) => t(a) - t(b))
+    const [ax, ay] = srodek(L[0].g), [bx, by] = srodek(L[L.length - 1].g)
+    L.forEach((e, i) => {
+        if (i === 0 || i === L.length - 1) return
+        const k = i / (L.length - 1), [x, y] = srodek(e.g)
+        m.set(e.id, { g: przesun(e.g, ax + (bx - ax) * k - x, ay + (by - ay) * k - y) })
+    })
+    return m
+}
+
+/** Zmiana rozmiaru prostokąta jednym bokiem (0 prawy, 1 dolny, 2 lewy, 3 górny); przeciwległy bok zostaje. Z Alt – symetrycznie. */
+export function rozmiarBokiem(g: R, bok: number, p: Pkt, min: number, symetrycznie: boolean): R {
+    const a = rad(g.a), ux = Math.cos(a), uy = Math.sin(a), vx = -uy, vy = ux
+    const lx = (p[0] - g.x) * ux + (p[1] - g.y) * uy, ly = (p[0] - g.x) * vx + (p[1] - g.y) * vy
+    if (bok === 0 || bok === 2) {
+        if (symetrycznie) return { ...g, w: Math.max(min, Math.abs(lx) * 2) }
+        const w = Math.max(min, bok === 0 ? lx + g.w / 2 : g.w / 2 - lx), s = ((w - g.w) / 2) * (bok === 0 ? 1 : -1)
+        return { ...g, w, x: g.x + ux * s, y: g.y + uy * s }
+    }
+    if (symetrycznie) return { ...g, h: Math.max(min, Math.abs(ly) * 2) }
+    const h = Math.max(min, bok === 1 ? ly + g.h / 2 : g.h / 2 - ly), s = ((h - g.h) / 2) * (bok === 1 ? 1 : -1)
+    return { ...g, h, x: g.x + vx * s, y: g.y + vy * s }
+}

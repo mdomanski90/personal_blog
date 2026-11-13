@@ -6,6 +6,7 @@ import { formatujEdtf } from '@/lib/edtf'
 import { obrzadekZdarzenia, stanOsob } from '@/lib/osoby/dane'
 import { drzewoHtml } from '@/lib/osoby/drzewo'
 import { adresAncestry, lataZycia, nazwaOsoby, OBRZADKI, RODZAJE_ZDARZEN, sortujZdarzenia, type Obrzadek, type Zdarzenie } from '@/lib/osoby/model'
+import { pochowkiOsoby } from '@/lib/plany/serwer'
 import { logowanieWlaczone } from '@/lib/sesja'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Zgloszenie from '../../components/Zgloszenie'
@@ -45,7 +46,7 @@ export default async function KartaOsoby({ params }: { params: Promise<{ id: str
             </Strona>
         )
     }
-    const [par, msc] = await Promise.all([parafie(), miejsca(poziom)])
+    const [par, msc, pochowki] = await Promise.all([parafie(), miejsca(poziom), pochowkiOsoby(id)])
     const miejsceId = new Map(msc.map((m) => [m.id, m.nazwa]))
     const rel = s.relacje.get(id) ?? { rodzice: [], malzenstwa: [] }
     const widac = (x?: string) => !!x && s.drzewo.osoby.has(x) && widoczne(s.widocznosc(x), poziom)
@@ -115,7 +116,12 @@ export default async function KartaOsoby({ params }: { params: Promise<{ id: str
                             </Wiersz>
                         )
                     })}
-                    {wszystkie.length === 0 && <p className="text-gray-500 italic">brak dat i miejsc.</p>}
+                    {pochowki.map((g) => (
+                        <Wiersz key={`${g.slug}/${g.elementId}`} etykieta="pochówek">
+                            <span><Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`}>{g.tytul}</Link>{g.numer ? ` – ${g.numer.kwatera ? `kwatera ${g.numer.kwatera}, ` : ''}rząd ${g.numer.rzad}, miejsce ${g.numer.miejsce}` : ''}</span>
+                        </Wiersz>
+                    ))}
+                    {wszystkie.length === 0 && !pochowki.length && <p className="text-gray-500 italic">brak dat i miejsc.</p>}
                 </div>
                 {przebieg.length > 1 && (
                     <p style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>

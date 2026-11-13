@@ -56,3 +56,18 @@ test('tekst SVG z drzewa React: atrybuty, style, znaki specjalne', () => {
     const s = doSvg(React.createElement('g', { strokeWidth: 2, style: { fill: 'var(--x)', strokeDasharray: '2 3' } }, React.createElement('text', null, 'a < b & „c”')))
     assert.equal(s, '<g stroke-width="2" style="fill:var(--x);stroke-dasharray:2 3"><text>a &lt; b &amp; „c”</text></g>')
 })
+
+test('edytor: stempel obok sąsiada, wyrównanie, rozmiar jednym bokiem', async () => {
+    const { pozycjaStempla, wyrownajWLinie, rozlozRowno, rozmiarBokiem } = await import('./edycja')
+    const g = (id: string, x: number, y: number) => ({ id, typ: 'grob', g: { k: 'r' as const, x, y, w: 10, h: 20, a: 0 } })
+    const plan = { elementy: [g('a', 0, 0), g('b', 12, 0)] } as unknown as Parameters<typeof pozycjaStempla>[0]
+    const s = pozycjaStempla(plan, [23, 1], { typ: 'grob', w: 10, h: 20, a: 0 })
+    assert.equal(s.przyciagniety, true)
+    assert.equal(Math.round(s.x), 24); assert.equal(Math.round(s.y), 0)
+    const w = wyrownajWLinie([g('a', 0, 0), g('b', 10, 2), g('c', 20, -1)] as never)
+    assert.ok(Math.abs((w.get('b')!.g as { y: number }).y) < 1.5)
+    const r = rozlozRowno([g('a', 0, 0), g('b', 3, 0), g('c', 20, 0)] as never)
+    assert.equal(Math.round((r.get('b')!.g as { x: number }).x), 10)
+    const b = rozmiarBokiem({ k: 'r', x: 0, y: 0, w: 10, h: 20, a: 0 }, 0, [10, 3], 1, false)
+    assert.equal(b.w, 15); assert.equal(b.x, 2.5); assert.equal(b.h, 20)
+})
