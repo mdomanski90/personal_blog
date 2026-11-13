@@ -100,8 +100,21 @@ export default async function KartaOsoby({ params }: { params: Promise<{ id: str
                 </p>
             ) : null}
 
-            {bio?.lead && <p style={{ fontSize: 'var(--blog-font-size, 18px)', lineHeight: 1.6, margin: 0 }}>{bezNawiasow(bio.lead, kontekst.rozwiaz)}</p>}
-            {bio?.tresc && <Tresc html={naHtml(bio.tresc, kontekst)} pusta={null} />}
+            {(o.portret || bio) && (
+                <div className={`osoba-wstep${o.portret ? ' z-portretem' : ''}`}>
+                    <div className="flex flex-col" style={{ gap: '1rem', minWidth: 0 }}>
+                        {bio?.lead && <p style={{ fontSize: 'var(--blog-font-size, 18px)', lineHeight: 1.6, margin: 0 }}>{bezNawiasow(bio.lead, kontekst.rozwiaz)}</p>}
+                        {bio?.tresc && <Tresc html={naHtml(bio.tresc, kontekst)} pusta={null} />}
+                    </div>
+                    {o.portret && (
+                        <figure className="osoba-portret">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={`/pliki/osoby/${id}/${o.portret.plik}?w=480`} alt={`${tytul}${o.portret.podpis ? ` – ${o.portret.podpis}` : ''}`} />
+                            {(o.portret.podpis || o.portret.zrodlo) && <figcaption>{o.portret.podpis}{o.portret.podpis && o.portret.zrodlo ? ' · ' : ''}{o.portret.zrodlo && <>źródło: {o.portret.zrodlo}</>}</figcaption>}
+                        </figure>
+                    )}
+                </div>
+            )}
 
             <Sekcja tytul="życie">
                 <div className="flex flex-col">
@@ -123,8 +136,16 @@ export default async function KartaOsoby({ params }: { params: Promise<{ id: str
                         )
                     })}
                     {pochowki.map((g) => (
-                        <Wiersz key={`${g.slug}/${g.elementId}`} etykieta="pochówek">
-                            <span><Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`}>{g.tytul}</Link>{g.numer ? ` – ${g.numer.kwatera ? `kwatera ${g.numer.kwatera}, ` : ''}rząd ${g.numer.rzad}, miejsce ${g.numer.miejsce}` : ''}</span>
+                        <Wiersz key={`${g.slug}/${g.elementId}`} etykieta="grób">
+                            <span className="flex flex-col" style={{ gap: 6 }}>
+                                <span><Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`}>{g.tytul}</Link>{g.numer ? ` – ${g.numer.kwatera ? `kwatera ${g.numer.kwatera}, ` : ''}rząd ${g.numer.rzad}, miejsce ${g.numer.miejsce}` : ''} <Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`} className="text-gray-600 dark:text-gray-400">· pokaż na planie →</Link></span>
+                                {g.zdjecie && (
+                                    <Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`} className="w-fit" title="zdjęcie grobu – pokaż na planie">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={g.zdjecie} alt={`grób: ${tytul}`} loading="lazy" style={{ height: 120, borderRadius: 6, display: 'block', border: '1px solid #d6d1c6' }} />
+                                    </Link>
+                                )}
+                            </span>
                         </Wiersz>
                     ))}
                     {wszystkie.length === 0 && !pochowki.length && <p className="text-gray-500 italic">brak dat i miejsc.</p>}

@@ -10,6 +10,7 @@ type Dane = {
     osoba: Osoba
     biogram?: boolean
     zyjeAuto: boolean
+    widocznoscAuto?: 'publiczne' | 'bliscy' | 'ja'
     rodzice: { rodzina: Rodzina; maz: Skrot | null; zona: Skrot | null; rodzenstwo: Skrot[] }[]
     malzenstwa: { rodzina: Rodzina; malzonek: Skrot | null; dzieci: Skrot[] }[]
     osoby: Record<string, Skrot | null>
@@ -219,8 +220,37 @@ export default function EdytorOsoby({ id }: { id: string }) {
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>inne nazwiska (panieńskie, z aktów; po przecinku)</span><input value={(o.inneNazwiska ?? []).join(', ')} onChange={(e) => zmien({ inneNazwiska: e.target.value.split(',').map((s) => s.trim()) })} onBlur={() => zmien({ inneNazwiska: (o.inneNazwiska ?? []).filter(Boolean) })} style={pole} /></label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>płeć</span><select value={o.plec} onChange={(e) => zmien({ plec: e.target.value as Osoba['plec'] })} style={pole}><option value="U">nie wiadomo</option><option value="K">kobieta</option><option value="M">mężczyzna</option></select></label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>żyje</span><select value={o.zyje} onChange={(e) => zmien({ zyje: e.target.value as Osoba['zyje'] })} style={pole}><option value="auto">z dat ({dane.zyjeAuto ? 'żyjąca' : 'nie żyje'})</option><option value="tak">żyje</option><option value="nie">nie żyje</option></select></label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>widoczność karty</span><select value={o.widocznosc} onChange={(e) => zmien({ widocznosc: e.target.value as Osoba['widocznosc'] })} style={pole}><option value="auto">auto ({zyje ? 'dla bliskich' : 'publiczna'})</option><option value="publiczne">publiczna</option><option value="bliscy">dla bliskich</option><option value="ja">tylko ja</option></select></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>widoczność karty</span><select value={o.widocznosc} onChange={(e) => zmien({ widocznosc: e.target.value as Osoba['widocznosc'] })} style={pole}><option value="auto">auto ({(dane.widocznoscAuto ?? (zyje ? 'bliscy' : 'publiczne')) === 'publiczne' ? 'publiczna' : 'dla bliskich'}) – ur. 100+ lub zm. 25+ lat temu</option><option value="publiczne">publiczna</option><option value="bliscy">dla bliskich</option><option value="ja">tylko ja</option></select></label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 2, gridColumn: '1 / -1' }}><span style={maly}>znaczniki (po przecinku)</span><input value={(o.znaczniki ?? []).join(', ')} onChange={(e) => zmien({ znaczniki: e.target.value.split(',').map((s) => s.trim()) })} onBlur={() => zmien({ znaczniki: (o.znaczniki ?? []).filter(Boolean) })} style={pole} /></label>
+            </section>
+
+            <section style={sek}>
+                <b>zdjęcie osoby</b>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    {o.portret
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={`/api/keystatic/osoby/${id}/portret?plik=${encodeURIComponent(o.portret.plik)}`} alt="" style={{ width: 120, borderRadius: 6, border: '1px solid #d6d1c6' }} />
+                        : <span style={{ ...maly, width: 120, height: 150, border: '1px dashed #d6d1c6', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>brak zdjęcia</span>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 260px' }}>
+                        <label style={{ ...btn, display: 'inline-flex', alignItems: 'center', width: 'fit-content', cursor: 'pointer' }}>
+                            {o.portret ? 'zmień zdjęcie' : 'dodaj zdjęcie'}
+                            <input type="file" accept="image/*" hidden onChange={async (e) => {
+                                const f = e.target.files?.[0]; e.target.value = ''
+                                if (!f) return
+                                const fd = new FormData(); fd.append('plik', f)
+                                const r = await fetch(`/api/keystatic/osoby/${id}/portret`, { method: 'POST', body: fd })
+                                const d = await r.json().catch(() => null)
+                                if (d?.plik) zmien({ portret: { ...(o.portret ?? {}), plik: d.plik } }); else ustawMsg(d?.blad ?? 'nie udało się wgrać zdjęcia')
+                            }} />
+                        </label>
+                        {o.portret && <>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>podpis (np. „ok. 1930, przed domem w Olszance”)</span><input value={o.portret.podpis ?? ''} onChange={(e) => zmien({ portret: { ...o.portret!, podpis: e.target.value } })} style={pole} /></label>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>źródło (skąd zdjęcie, kto je udostępnił)</span><input value={o.portret.zrodlo ?? ''} onChange={(e) => zmien({ portret: { ...o.portret!, zrodlo: e.target.value } })} style={pole} /></label>
+                            <button onClick={() => confirm('Odpiąć zdjęcie od osoby? (plik zostaje na serwerze)') && zmien({ portret: undefined })} style={{ ...btn, width: 'fit-content' }}>odepnij zdjęcie</button>
+                        </>}
+                        <span style={maly}>Zdjęcie pokaże się na karcie osoby po zapisaniu – tylko tym, którzy widzą kartę.</span>
+                    </div>
+                </div>
             </section>
 
             <section style={sek}>

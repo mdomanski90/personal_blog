@@ -50,7 +50,7 @@ export async function dolaczPlany<T extends { id: string; typ: 'miejsce' | 'obie
     })
 }
 
-export interface Pochowek { slug: string; tytul: string; elementId: string; numer?: Numer }
+export interface Pochowek { slug: string; tytul: string; elementId: string; numer?: Numer; /** pierwsze zdjęcie grobu (jeśli czytelnik może je zobaczyć) */ zdjecie?: string }
 
 /** Groby, w których plan wskazuje daną osobę z drzewa (tylko te, które czytelnik może zobaczyć). */
 export async function pochowkiOsoby(osobaId: string): Promise<Pochowek[]> {
@@ -61,7 +61,7 @@ export async function pochowkiOsoby(osobaId: string): Promise<Pochowek[]> {
     const wyn: Pochowek[] = []
     for (const surowy of kandydaci) {
         const p = dlaCzytelnika(surowy, poziom, ust), nr = numeracja(p, typy)
-        for (const e of p.elementy) if (e.osoby?.some((o) => o.id === osobaId)) wyn.push({ slug: p.slug, tytul: p.tytul, elementId: e.id, numer: nr.get(e.id) })
+        for (const e of p.elementy) if (e.osoby?.some((o) => o.id === osobaId)) wyn.push({ slug: p.slug, tytul: p.tytul, elementId: e.id, numer: nr.get(e.id), ...(e.zdjecia?.[0]?.plik ? { zdjecie: `/plany/${p.slug}/zdjecie/${e.zdjecia[0].plik}` } : {}) })
     }
     return wyn
 }

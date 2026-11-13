@@ -23,10 +23,11 @@ export default async function KsiegiMetrykalne({ searchParams }: Parametry) {
     const parafieMiejsca = wybraneMiejsce ? new Set(wybraneMiejsce.parafie.map((p) => p.parafia)) : null
     const widoczneParafie = wszystkieParafie
         .filter((p) => !wyznanie || p.wyznanie === wyznanie)
-        .filter((p) => !parafieMiejsca || parafieMiejsca.has(p.id))
+        .filter((p) => !parafieMiejsca || parafieMiejsca.has(p.id) || wszystkieKsiegi.some((k) => k.parafia === p.id && k.miejsca.includes(wybraneMiejsce!.id)))
         .filter((p) => wszystkieKsiegi.some((k) => k.parafia === p.id) || wszystkieMiejsca.some((m) => m.parafie.some((x) => x.parafia === p.id)))
     const os = zakresOsi(wszystkieKsiegi.filter((k) => widoczneParafie.some((p) => p.id === k.parafia)))
-    const miejscaZParafiami = wszystkieMiejsca.filter((m) => m.parafie.length > 0)
+    const nazwyMiejsc = Object.fromEntries(wszystkieMiejsca.map((m) => [m.id, m.nazwa]))
+    const miejscaZParafiami = wszystkieMiejsca.filter((m) => m.parafie.length > 0 || wszystkieKsiegi.some((k) => k.miejsca.includes(m.id)))
     const wyznaniaObecne = Object.keys(WYZNANIA_PARAFII).filter((w) => wszystkieParafie.some((p) => p.wyznanie === w))
     const adres = (zmiany: Record<string, string | undefined>) => {
         const q = new URLSearchParams()
@@ -72,7 +73,7 @@ export default async function KsiegiMetrykalne({ searchParams }: Parametry) {
             )}
 
             {widoczneParafie.map((p, i) => {
-                const ks = wszystkieKsiegi.filter((k) => k.parafia === p.id)
+                const ks = wszystkieKsiegi.filter((k) => k.parafia === p.id && (!wybraneMiejsce || !k.miejsca.length || k.miejsca.includes(wybraneMiejsce.id)))
                 const siedziba = p.siedziba ? wszystkieMiejsca.find((m) => m.id === p.siedziba) : null
                 const wsie = wszystkieMiejsca
                     .map((m) => ({ m, w: m.parafie.find((x) => x.parafia === p.id) }))
@@ -100,7 +101,7 @@ export default async function KsiegiMetrykalne({ searchParams }: Parametry) {
                                 </p>
                             )}
                             <PasekLat ksiegi={ks} os={os} />
-                            {ks.length > 0 ? <TabelaKsiag ksiegi={ks} /> : <p className="text-gray-500" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>księgi tej parafii nie zostały jeszcze opisane.</p>}
+                            {ks.length > 0 ? <TabelaKsiag ksiegi={ks} nazwyMiejsc={nazwyMiejsc} /> : <p className="text-gray-500" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>księgi tej parafii nie zostały jeszcze opisane.</p>}
                         </Sekcja>
                     </div>
                 )

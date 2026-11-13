@@ -73,10 +73,13 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
         const rodz = (f?.dzieci ?? []).filter((c) => c !== id && s.drzewo.osoby.has(c))
         if (rodz.length) srodek.push(new Tag('div', { class: 'dr-rodzenstwo' }, [new Tag('span', { class: 'dr-podpis' }, ['rodzeństwo']), ...rodz.map((c) => karta(c))]))
     }
-    const klepsydra = new Tag('div', { class: 'dr-klepsydra', 'aria-hidden': 'true' }, [
-        przod(id, wstecz, true),
-        ...srodek,
-        ...wrapPot(id, naprzod),
+    // linie pokrewieństwa (pod kątem prostym) i przerywane granice pokoleń dorysowuje w przeglądarce DrzewaLinie
+    const klepsydra = new Tag('div', { class: 'dr-przewijanie', 'aria-hidden': 'true' }, [
+        new Tag('div', { class: 'dr-klepsydra' }, [
+            przod(id, wstecz, true),
+            ...srodek,
+            ...wrapPot(id, naprzod),
+        ]),
     ])
 
     // wersja tekstowa (telefon, czytniki ekranu)

@@ -2,17 +2,13 @@ import * as React from "react"
 import { Link } from 'next-view-transitions'
 import { connection } from 'next/server'
 import { miejsca } from '@/lib/archiwum'
+import { WIERSZE_STOPKI, kluczMiejsca } from '@/lib/kregi'
 
-// Miejscowości w stopce – kolejność i grupy ustalone ręcznie (okolice Łosic, okolice Międzyrzeca, Krzesk).
+// Miejscowości w stopce – kolejność i grupy ustalone ręcznie (lib/kregi.ts).
 // Nazwa z własną publiczną stroną staje się linkiem (dopasowanie po nazwie, bez względu na łącznik i wielkość liter);
 // pozostałe są zwykłym tekstem, dopóki nie powstanie ich strona.
-const GRUPY: string[][] = [
-    ['Aleksandrówka', 'Bejdy', 'Bolesty', 'Dawidy', 'Hadynów', 'Klimy', 'Korczówka', 'Korczówka-Kolonia', 'Łepki Nowe', 'Łepki Stare', 'Mszanna', 'Olszanka', 'Pietrusy', 'Próchenki', 'Radlnia', 'Szawły', 'Szydłówka', 'Wyczółki', 'Łosice'],
-    ['Kożuszki', 'Krawce', 'Krzewica', 'Łuby', 'Łuniew', 'Pościsze', 'Międzyrzec Podlaski'],
-    ['Krzesk-Majątek', 'Krzesk Stary', 'Krzesk-Królowa Niwa'],
-]
-
-const klucz = (s: string) => s.toLocaleLowerCase('pl').replace(/[-–,]/g, ' ').replace(/\s+/g, ' ').trim()
+const GRUPY = WIERSZE_STOPKI
+const klucz = kluczMiejsca
 
 async function MiejscaStopki() {
     // treści czytane przy każdym wyświetleniu, nie przy budowaniu (strony statyczne też mają stopkę)

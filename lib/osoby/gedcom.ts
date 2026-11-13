@@ -156,6 +156,38 @@ function indeksMiejsc(miejsca: MiejsceDoDopasowania[]): Map<string, string> {
     return m
 }
 
+/**
+ * Miejscowość z zapisu PLAC (Ancestry i inne programy zapisują go różnie): „Olszanka, Łosice, Polska”,
+ * „Olszanka (Łosice)”, „parafia Olszanka”, „Olszanka Parish, Siedlce”, „Olszanka Siedlce Poland”,
+ * z twardymi spacjami albo znakami niewidocznymi. Sprawdza pierwszy człon, bez dopisków
+ * w nawiasach i słów „parafia/gmina/wieś/kolonia/parish/village”, a na końcu coraz krótsze początki członu.
+ */
+export function znajdzMiejsce(pl: string, mIdx: Map<string, string>): string | undefined {
+    const czysty = pl.normalize('NFC').replace(/[\u00a0\u2007\u202f]/g, ' ').replace(/[\u200b-\u200d\ufeff]/g, '')
+    const PRZED = /^(?:parafia|par\.?|gmina|gm\.?|wie[sś]|kolonia|kol\.?|gromada|parish(?: of)?|village(?: of)?|town(?: of)?)\s+/i
+    const PO = /\s+(?:parish|parafia|village|gmina|kolonia)$/i
+    // tylko pierwszy człon – dalsze to zwykle gmina, powiat, kraj (np. „Nowa Wieś, Łosice” nie może trafić do Łosic)
+    for (const czlon of czysty.split(/[,;/]/).slice(0, 1)) {
+        const warianty = new Set<string>()
+        const bez = czlon.trim().replace(PRZED, '').replace(PO, '')
+        warianty.add(bez)
+        warianty.add(bez.replace(/\s*\([^)]*\)\s*/g, ' '))
+        for (const w of warianty) {
+            const k = normalizuj(w)
+            if (!k) continue
+            const t = mIdx.get(k)
+            if (t) return t
+            // „Olszanka Siedlce Poland” – coraz krótsze początki (co najmniej jedno słowo)
+            const slowa = k.split(' ')
+            for (let n = slowa.length - 1; n >= 1; n--) {
+                const t2 = mIdx.get(slowa.slice(0, n).join(' '))
+                if (t2) return t2
+            }
+        }
+    }
+    return undefined
+}
+
 const OBSLUGIWANE_INDI = new Set(['NAME', 'SEX', 'FAMC', 'FAMS', 'NOTE', 'SOUR', 'OBJE', '_MTTAG', 'RIN', '_UID', 'UID', 'CHAN', 'ADDR', ...Object.keys(ZDARZENIA_GEDCOM)])
 
 export function importujGedcom(tekst: string, miejsca: MiejsceDoDopasowania[]): WynikImportu {
@@ -210,8 +242,7 @@ export function importujGedcom(tekst: string, miejsca: MiejsceDoDopasowania[]): 
         const pl = wart(w, 'PLAC')
         if (pl) {
             z.miejsce = pl
-            const k = normalizuj(pl.split(',')[0])
-            const mid = mIdx.get(k)
+            const mid = znajdzMiejsce(pl, mIdx)
             if (mid) z.miejsceId = mid
             const l = licznikMiejsc.get(pl) ?? { miejsce: mid, ile: 0 }
             l.ile++

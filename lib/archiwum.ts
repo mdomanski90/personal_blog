@@ -4,17 +4,17 @@
 import * as React from 'react'
 import { createReader } from '@keystatic/core/reader'
 import type { Node } from '@markdoc/markdoc'
-import keystaticConfig from '../keystatic.config'
+import keystaticConfig, { WSTEP_DOMYSLNY } from '../keystatic.config'
 import { kluczSortowania } from './edtf'
 import { naTekst, zajawka, type KontekstTresci, type MaterialWstawki } from './markdoc'
 import { RODZAJE_MATERIALOW } from './materialy'
-import { zakresIso } from './edtf'
+import { formatujEdtf, zakresIso } from './edtf'
 import { bezNawiasow, fragment, ODNOSNIK, slownikOdnosnikow, wzorzecWzmianek, znajdzWzmianki, type Cel, type Fragment, type PozycjaSieci, type RodzajCelu, type Rozwiaz } from './odnosniki'
 import { normalizuj, porownajPl } from './tekst'
 import { adresStrony, stronyMaterialu } from './strony-materialow'
 import { typPliku } from './pliki'
 
-import { zakresyLat, nakladaSie, KOLEJNOSC_KSIAG } from './ksiegi'
+import { zakresyLat, nakladaSie, scalZakresy, zakresyTekst, KOLEJNOSC_KSIAG } from './ksiegi'
 
 const reader = createReader(process.cwd(), keystaticConfig)
 
@@ -88,6 +88,10 @@ export interface Ksiega {
     rodzaje: string[]
     lata: string
     zakresy: [number, number][]
+    /** wsie, których dotyczą akty; puste = cała parafia */
+    miejsca: string[]
+    /** osobne tomy zespołu (np. rok po roku) */
+    jednostki: { lata: string; zakresy: [number, number][]; sygnatura: string; skany: string | null; uwagi: string }[]
     braki: string
     jezyk: string
     gdzie: string
@@ -237,22 +241,30 @@ const wszystkieParafie = cache(async (): Promise<Parafia[]> => {
 
 const wszystkieKsiegiSurowe = cache(async (): Promise<Ksiega[]> => {
     const wpisy = await reader.collections.ksiegi.all()
-    return wpisy.map(({ slug, entry }) => ({
-        id: slug,
-        nazwa: entry.title,
-        parafia: entry.parish ?? '',
-        rodzaje: entry.types.length ? [...entry.types].sort((a, b) => KOLEJNOSC_KSIAG.indexOf(a) - KOLEJNOSC_KSIAG.indexOf(b)) : ['inne'],
-        lata: entry.years,
-        zakresy: zakresyLat(entry.years),
-        braki: entry.gaps ?? '',
-        jezyk: entry.language ?? '',
-        gdzie: entry.repository ?? '',
-        sygnatura: entry.identifier ?? '',
-        dostep: entry.access,
-        skany: entry.scans,
-        indeks: entry.index,
-        widocznosc: entry.visibility as Widocznosc,
-    }))
+    return wpisy.map(({ slug, entry }) => {
+        const jednostki = (entry.volumes ?? [])
+            .map((j) => ({ lata: j.years, zakresy: zakresyLat(j.years), sygnatura: j.identifier ?? '', skany: j.scans || null, uwagi: j.gaps ?? '' }))
+            .sort((a, b) => (a.zakresy[0]?.[0] ?? 0) - (b.zakresy[0]?.[0] ?? 0))
+        const zakresy = scalZakresy([...zakresyLat(entry.years), ...jednostki.flatMap((j) => j.zakresy)])
+        return {
+            id: slug,
+            nazwa: entry.title,
+            parafia: entry.parish ?? '',
+            rodzaje: entry.types.length ? [...entry.types].sort((a, b) => KOLEJNOSC_KSIAG.indexOf(a) - KOLEJNOSC_KSIAG.indexOf(b)) : ['inne'],
+            lata: entry.years?.trim() || zakresyTekst(zakresy),
+            zakresy,
+            miejsca: [...(entry.spatial ?? [])].filter((x): x is string => !!x),
+            jednostki,
+            braki: entry.gaps ?? '',
+            jezyk: entry.language ?? '',
+            gdzie: entry.repository ?? '',
+            sygnatura: entry.identifier ?? '',
+            dostep: entry.access,
+            skany: entry.scans,
+            indeks: entry.index,
+            widocznosc: entry.visibility as Widocznosc,
+        }
+    })
 })
 
 export async function parafie(): Promise<Parafia[]> {
@@ -271,13 +283,23 @@ export async function ksiegi(poziom: Widocznosc): Promise<Ksiega[]> {
 export async function ksiegiDlaMiejsca(m: Miejsce, poziom: Widocznosc): Promise<{ parafia: Parafia; od: number | null; do: number | null; ksiegi: Ksiega[] }[]> {
     const wszystkiePar = await wszystkieParafie()
     const wszystkieKs = await ksiegi(poziom)
-    return m.parafie
+    // księga z zaznaczonymi wsiami dotyczy tylko ich; bez zaznaczenia – całej parafii
+    const dotyczy = (k: Ksiega) => !k.miejsca.length || k.miejsca.includes(m.id)
+    const zParafii = m.parafie
         .map((p) => {
             const parafia = wszystkiePar.find((x) => x.id === p.parafia)
             if (!parafia) return null
-            return { parafia, od: p.od, do: p.do, ksiegi: wszystkieKs.filter((k) => k.parafia === p.parafia && nakladaSie(k.zakresy, p.od, p.do)) }
+            return { parafia, od: p.od, do: p.do, ksiegi: wszystkieKs.filter((k) => k.parafia === p.parafia && dotyczy(k) && nakladaSie(k.zakresy, p.od, p.do)) }
         })
         .filter((x): x is NonNullable<typeof x> => x !== null)
+    // księgi innych parafii, w których wieś zaznaczono wprost
+    const inne = new Map<string, Ksiega[]>()
+    for (const k of wszystkieKs) if (k.miejsca.includes(m.id) && !m.parafie.some((p) => p.parafia === k.parafia)) inne.set(k.parafia, [...(inne.get(k.parafia) ?? []), k])
+    for (const [id, ks] of inne) {
+        const parafia = wszystkiePar.find((x) => x.id === id)
+        if (parafia) zParafii.push({ parafia, od: null, do: null, ksiegi: ks })
+    }
+    return zParafii
 }
 
 const wszystkieTematySurowe = cache(async (): Promise<Temat[]> => {
@@ -568,6 +590,13 @@ export async function oProjekcie(): Promise<Node | null> {
     return s?.content?.node ?? null
 }
 
+/** Wstęp strony głównej (singleton „Strona główna”); bez wpisu – tekst domyślny. Akapity rozdzielone pustym wierszem. */
+export async function wstepStronyGlownej(): Promise<string[]> {
+    const s = await reader.singletons.stronaGlowna.read().catch(() => null)
+    const tekst = s?.intro?.trim() || WSTEP_DOMYSLNY
+    return tekst.split(/\n\s*\n/).map((a) => a.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean)
+}
+
 // ---------- sieć powiązań: odnośniki [[…]] i wzmianki (jak w Logseq) ----------
 
 const pozycjeSieci = cache(async (poziom: Widocznosc): Promise<PozycjaSieci[]> => [
@@ -812,7 +841,7 @@ export async function hasla(poziom: Widocznosc): Promise<Haslo[]> {
 /** Pozycja do losowej karty na stronie głównej. */
 export interface PozycjaLosowa { klucz: string; rodzaj: string; tytul: string; href: string; tekst: string; zdjecie?: string }
 
-/** Publiczne miejsca, obiekty, tematy i osoby z biogramem – do „wylosuj” na stronie głównej. */
+/** Publiczne miejsca, obiekty, tematy, materiały archiwum i osoby z biogramem – do „wylosuj” na stronie głównej. */
 export async function pozycjeLosowe(): Promise<PozycjaLosowa[]> {
     const poziom: Widocznosc = 'publiczne'
     const rozwiaz = slownikOdnosnikow(await pozycjeSieci(poziom))
@@ -829,6 +858,17 @@ export async function pozycjeLosowe(): Promise<PozycjaLosowa[]> {
     for (const tm of await tematy(poziom)) {
         const t = opis(tm.opis)
         if (t.length > 40) wyn.push({ klucz: `temat:${tm.id}`, rodzaj: `temat · ${RODZAJE_TEMATOW[tm.rodzaj] ?? tm.rodzaj}`, tytul: tm.nazwa, href: `/tematy/${tm.id}`, tekst: t })
+    }
+    // materiały archiwum; cztery ostatnio dodane z dopiskiem „nowe”
+    const mats = await materialy(poziom)
+    const najnowsze = new Set([...mats].filter((m) => m.dodano).sort((a, b) => b.dodano!.localeCompare(a.dodano!)).slice(0, 4).map((m) => m.id))
+    for (const m of mats) {
+        const t = opis(m.opis)
+        const skan = m.strony.find((s) => s.adres.startsWith('/pliki/strony/'))?.adres
+        if (t.length > 40 || skan) {
+            const rodzaj = [`archiwum · ${RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj}`, m.czas && formatujEdtf(m.czas), najnowsze.has(m.id) && 'nowe'].filter(Boolean).join(' · ')
+            wyn.push({ klucz: `material:${m.id}`, rodzaj, tytul: m.nazwa, href: `/archiwum/${m.id}`, tekst: t, zdjecie: skan })
+        }
     }
     for (const b of await biogramy(poziom)) {
         const t = (bezNawiasow(b.lead, rozwiaz).trim() || opis(b.tresc)).trim()

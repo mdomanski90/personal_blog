@@ -1,6 +1,6 @@
 import { brakDostepu } from '@/lib/plany/dane'
 import { Konflikt, obrzadekZdarzenia, stanOsob, usunOsobe, zapiszOsobe } from '@/lib/osoby/dane'
-import { ID_OSOBY, poprawOsobe, type Osoba } from '@/lib/osoby/model'
+import { ID_OSOBY, poprawOsobe, widocznoscOsoby, type Osoba } from '@/lib/osoby/model'
 import { ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
 import { parafie } from '@/lib/archiwum'
 import { maBiogram } from '@/lib/osoby/biogramy'
@@ -24,6 +24,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         osoba: o,
         biogram: maBiogram(id),
         zyjeAuto: s.zyje(id),
+        widocznoscAuto: widocznoscOsoby({ ...o, widocznosc: 'auto' }, s.lata.get(id)),
         rodzice: rel.rodzice.map((f) => ({ rodzina: f, maz: sk(f.maz), zona: sk(f.zona), rodzenstwo: f.dzieci.filter((c) => c !== id).map(sk).filter(Boolean) })),
         malzenstwa: rel.malzenstwa.map((f) => ({ rodzina: f, malzonek: sk(f.maz === id ? f.zona : f.maz), dzieci: f.dzieci.map(sk).filter(Boolean) })),
         osoby: Object.fromEntries([...potrzebneOsoby].map((x) => [x, sk(x)])),

@@ -17,6 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ sciezka:
     const { sciezka } = await params
     if (sciezka[0] === 'obiekty') return zdjecieObiektu(req, sciezka)
     if (sciezka[0] === 'strony') return stronaMaterialu(req, sciezka)
+    if (sciezka[0] === 'osoby') return portretOsoby(req, sciezka)
     if (sciezka.length !== 2) return nieMa()
     const [id, nazwa] = sciezka
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) || !/^[\w-]+(\.[\w-]+)*$/.test(nazwa)) return nieMa()
@@ -105,5 +106,27 @@ async function stronaMaterialu(req: Request, sciezka: string[]): Promise<Respons
         }
         const bufor = await sharp(plik).rotate().toBuffer()
         return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': mimePliku(plik), 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': `inline; filename="${id}-${nazwa}"` } })
+    } catch { return nieMa() }
+}
+
+/** Zdjęcie osoby: /pliki/osoby/<id>/<plik>?w=480|1200 – tylko gdy czytelnik widzi kartę osoby. */
+async function portretOsoby(req: Request, sciezka: string[]): Promise<Response> {
+    if (sciezka.length !== 3) return nieMa()
+    const [, id, nazwa] = sciezka
+    const { stanOsob } = await import('@/lib/osoby/dane')
+    const { ID_OSOBY, NAZWA_PORTRETU } = await import('@/lib/osoby/model')
+    if (!ID_OSOBY.test(id) || !NAZWA_PORTRETU.test(nazwa)) return nieMa()
+    const s = await stanOsob()
+    const o = s.drzewo.osoby.get(id)
+    const poziom = await poziomCzytelnika()
+    const w = s.widocznosc(id)
+    const widac = w === 'publiczne' || (w === 'bliscy' && poziom !== 'publiczne') || (w === 'ja' && poziom === 'ja')
+    if (!o || !widac || o.portret?.plik !== nazwa) return nieMa()
+    const plik = path.join(/*turbopackIgnore: true*/ process.cwd(), KATALOG_PLIKOW, 'osoby', id, nazwa)
+    const szer = Number(new URL(req.url).searchParams.get('w'))
+    try {
+        const obraz = sharp(plik).rotate()
+        const bufor = [480, 1200].includes(szer) ? await obraz.resize({ width: szer, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer() : await obraz.webp({ quality: 88 }).toBuffer()
+        return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': 'image/webp', 'Cache-Control': w === 'publiczne' ? 'public, max-age=86400' : 'private, no-store', 'X-Content-Type-Options': 'nosniff' } })
     } catch { return nieMa() }
 }

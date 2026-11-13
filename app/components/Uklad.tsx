@@ -5,6 +5,7 @@ import Footer from './Footer'
 import ScrollToTop from './ScrollToTop'
 import ImageZoom from './ImageZoom'
 import DokumentyWTresci from './DokumentyWTresci'
+import DrzewaLinie from './DrzewaLinie'
 
 // Wspólne elementy wyglądu: obramowane „segmenty”, linia z kresek, nagłówki sekcji.
 
@@ -32,6 +33,7 @@ export function Strona({ children, szeroka = false, akcje }: { children: React.R
                     {children}
                     <ImageZoom />
                     <DokumentyWTresci />
+                    <DrzewaLinie />
                     <Footer />
                 </div>
             </div>

@@ -56,7 +56,7 @@ function Odnosnik({ href, children }: { href: string; children: React.ReactNode 
     return <a href={href} target="_blank" rel="noopener noreferrer">{children} ↗</a>
 }
 
-export function TabelaKsiag({ ksiegi }: { ksiegi: Ksiega[] }) {
+export function TabelaKsiag({ ksiegi, nazwyMiejsc }: { ksiegi: Ksiega[]; /** id wsi → nazwa, do „dotyczy: …” */ nazwyMiejsc?: Record<string, string> }) {
     if (!ksiegi.length) return null
     return (
         <div className="overflow-x-auto">
@@ -73,10 +73,28 @@ export function TabelaKsiag({ ksiegi }: { ksiegi: Ksiega[] }) {
                 <tbody>
                     {ksiegi.map((k) => (
                         <tr key={k.id} className="border-b border-[#e7e2d8] dark:border-[#374151] align-top">
-                            <td className="py-1.5 pr-3">{k.rodzaje.map((r) => RODZAJE_KSIAG[r] ?? r).join(', ')}</td>
+                            <td className="py-1.5 pr-3">
+                                {k.rodzaje.map((r) => RODZAJE_KSIAG[r] ?? r).join(', ')}
+                                {k.miejsca.length > 0 && <span className="block text-gray-500" style={male}>dotyczy: {k.miejsca.map((m) => nazwyMiejsc?.[m] ?? m).join(', ')}</span>}
+                            </td>
                             <td className="py-1.5 pr-3">
                                 <span className="font-bold">{k.lata}</span>
                                 {(k.braki || k.jezyk) && <span className="block text-gray-500" style={male}>{[k.braki, k.jezyk].filter(Boolean).join(' · ')}</span>}
+                                {k.jednostki.length > 0 && (
+                                    <details className="ksiega-tomy" style={male}>
+                                        <summary>{k.jednostki.length} {k.jednostki.length === 1 ? 'tom' : k.jednostki.length % 10 >= 2 && k.jednostki.length % 10 <= 4 && (k.jednostki.length % 100 < 12 || k.jednostki.length % 100 > 14) ? 'tomy' : 'tomów'}</summary>
+                                        <ul>
+                                            {k.jednostki.map((j, i) => (
+                                                <li key={i}>
+                                                    <b>{j.lata}</b>
+                                                    {j.sygnatura && <span className="text-gray-500"> · {j.sygnatura}</span>}
+                                                    {j.uwagi && <span className="text-gray-500"> · {j.uwagi}</span>}
+                                                    {j.skany && <> · <Odnosnik href={j.skany}>skany</Odnosnik></>}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </details>
+                                )}
                             </td>
                             <td className="py-1.5 pr-3">
                                 {k.gdzie || <span className="text-gray-500">—</span>}

@@ -222,7 +222,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                                 <Link href={`/biblioteka/ksiegi#${p.parafia.id}`}>{p.parafia.nazwa}</Link>
                                 <span className="text-gray-500"> · {WYZNANIA_PARAFII[p.parafia.wyznanie] ?? p.parafia.wyznanie}</span>
                             </p>
-                            <TabelaKsiag ksiegi={p.ksiegi} />
+                            <TabelaKsiag ksiegi={p.ksiegi} nazwyMiejsc={Object.fromEntries(wszystkie.map((x) => [x.id, x.nazwa]))} />
                         </div>
                     ))}
                     <Link href={`/biblioteka/ksiegi?miejsce=${m.id}`} style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>pełny spis z paskiem lat →</Link>

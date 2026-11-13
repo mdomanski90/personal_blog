@@ -538,15 +538,22 @@ body {
 .dark .obrzadek { filter: brightness(1.6); }
 
 .drzewo { margin: 0.5rem 0; font-size: calc(13px * var(--font-scale, 1)); }
-.drzewo .dr-klepsydra { display: flex; flex-direction: column; align-items: center; gap: 10px; overflow-x: auto; padding: 4px 0; }
-.drzewo .dr-galaz { display: flex; align-items: center; gap: 8px; }
+.drzewo .dr-przewijanie { overflow: auto; padding: 6px 0 10px; cursor: grab; }
+.drzewo .dr-przewijanie.ciagnie { cursor: grabbing; user-select: none; }
+.drzewo .dr-klepsydra { position: relative; display: flex; flex-direction: column; align-items: center; gap: 22px; width: max-content; min-width: 100%; margin: 0 auto; padding: 0 12px; }
+.drzewo .dr-linie { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.drzewo .dr-linie path { fill: none; stroke: #8a8478; stroke-width: 1.2; }
+.drzewo .dr-linie path.dr-granica { stroke: #d6d1c6; stroke-width: 1; stroke-dasharray: 4 4; }
+.dark .drzewo .dr-linie path { stroke: #8b93a0; }
+.dark .drzewo .dr-linie path.dr-granica { stroke: #3b4350; }
+.drzewo .dr-karta, .drzewo .dr-podpis { position: relative; z-index: 1; }
+.drzewo .dr-galaz { display: flex; align-items: center; gap: 22px; }
 .drzewo .dr-gora { flex-direction: column; }
 .drzewo .dr-dol { flex-direction: column; }
-.drzewo .dr-pokolenie { display: flex; gap: 10px; justify-content: center; align-items: flex-start; }
-.drzewo .dr-gora > .dr-pokolenie { align-items: flex-end; position: relative; padding-bottom: 8px; }
-.drzewo .dr-gora > .dr-pokolenie::after { content: ''; position: absolute; left: 25%; right: 25%; bottom: 0; border-top: 1px solid #c9c4b8; }
-.drzewo .dr-potomni { display: flex; flex-direction: column; gap: 8px; align-items: center; padding-top: 8px; border-top: 1px solid #c9c4b8; }
-.drzewo .dr-rodzina { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.drzewo .dr-pokolenie { display: flex; gap: 14px; justify-content: center; align-items: flex-start; }
+.drzewo .dr-gora > .dr-pokolenie { align-items: flex-end; }
+.drzewo .dr-potomni { display: flex; flex-direction: row; gap: 28px; align-items: flex-start; justify-content: center; }
+.drzewo .dr-rodzina { display: flex; flex-direction: column; align-items: center; gap: 22px; }
 .drzewo .dr-malzonek { display: flex; align-items: center; gap: 4px; }
 .drzewo .dr-rodzenstwo { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center; }
 .drzewo .dr-podpis { color: #6b665c; }
@@ -562,7 +569,6 @@ body {
 .dark .drzewo .dr-K { background: #3a2730; border-color: #5a3a48; }
 .dark .drzewo .dr-M { background: #233040; border-color: #34485f; }
 .dark .drzewo .dr-U, .dark .drzewo .dr-ukryta { background: #2a2a2a; border-color: #404040; }
-.dark .drzewo .dr-gora > .dr-pokolenie::after, .dark .drzewo .dr-potomni { border-color: #4b5563; }
 .drzewo { position: relative; }
 /* lista dostępna dla czytników ekranu także na komputerze (klepsydra jest aria-hidden) */
 .drzewo .dr-tekst { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -576,7 +582,7 @@ body {
 .dark .drzewo .dr-t-K { background: #3a2730; }
 .dark .drzewo .dr-t-M { background: #233040; }
 @media (max-width: 640px) {
-  .drzewo .dr-klepsydra { display: none; }
+  .drzewo .dr-przewijanie, .drzewo .dr-narzedzia { display: none; }
   .drzewo .dr-tekst { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
 }
 
@@ -685,3 +691,32 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .post-content .dok-otworz:hover{background:var(--muted)}
 .dark .post-content .dok-otworz{border-color:#4b5563}
 .post-content figure.material-wstawka[data-dokument] img{max-height:min(70vh,640px);object-fit:contain;background:#f2efe7}
+.osoby-krag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:7px;text-decoration:none!important;color:inherit;font-size:calc(13.5px * var(--font-scale,1))}
+.osoby-krag[aria-current=true]{background:var(--muted);border-color:#1d4ed8}
+.osoby-krag[aria-current=true] b{color:#1d4ed8}
+.dark .osoby-krag[aria-current=true] b{color:#7aa2ff}
+.osoby-litery{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,22rem),1fr));gap:8px 2rem;align-items:start}
+.osoby-litera{border-bottom:1px solid #e7e2d8;padding:4px 0}
+.dark .osoby-litera{border-bottom-color:#374151}
+.osoby-litera>summary{cursor:pointer;font-size:calc(15px * var(--font-scale,1));padding:2px 0}
+.osoby-litera[open]>summary{margin-bottom:4px}
+.osoba-wstep{display:grid;grid-template-columns:minmax(0,1fr);gap:1.5rem;align-items:start}
+.osoba-wstep.z-portretem{grid-template-columns:minmax(0,1fr) minmax(140px,220px)}
+@media (max-width:640px){.osoba-wstep.z-portretem{grid-template-columns:1fr}.osoba-portret{order:-1;max-width:200px}}
+.osoba-portret{margin:0;display:flex;flex-direction:column;gap:4px}
+.osoba-portret img{width:100%;border-radius:6px;border:1px solid #d6d1c6;display:block}
+.osoba-portret figcaption{font-size:calc(12px * var(--font-scale,1));color:#6b665c;line-height:1.4}
+
+.drzewo .dr-narzedzia { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 4px; }
+.drzewo .dr-narzedzia button { border: 1px solid #d6d1c6; border-radius: 7px; background: #fdfcf9; color: inherit; font: inherit; font-size: calc(13px * var(--font-scale, 1)); min-height: calc(28px * var(--font-scale, 1)); padding: 0 10px; cursor: pointer; }
+.drzewo .dr-narzedzia button:hover { background: var(--muted); }
+.dark .drzewo .dr-narzedzia button { background: transparent; border-color: #4b5563; }
+.drzewo.drzewo-pelne { position: fixed; inset: 0; z-index: 130; margin: 0; background: #fbfaf7; padding: 12px 16px; display: flex; flex-direction: column; }
+.dark .drzewo.drzewo-pelne { background: #0b1020; }
+.drzewo.drzewo-pelne .dr-przewijanie { flex: 1; min-height: 0; }
+
+/* księgi: rozwijana lista tomów zespołu */
+.ksiega-tomy { margin-top: 2px; }
+.ksiega-tomy > summary { cursor: pointer; width: fit-content; color: rgb(107 114 128); }
+.ksiega-tomy > summary:hover { color: inherit; }
+.ksiega-tomy > ul { margin: 4px 0 2px; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }

@@ -44,6 +44,20 @@ export function zakresyLat(tekst: string | null | undefined): [number, number][]
     return wynik.sort((a, b) => a[0] - b[0])
 }
 
+/** Zakresy z kilku źródeł (np. tomy po roku) złączone w ciągłe przedziały: 1810, 1811, 1812 → 1810–1812. */
+export function scalZakresy(zakresy: [number, number][]): [number, number][] {
+    const w: [number, number][] = []
+    for (const [a, b] of [...zakresy].sort((x, y) => x[0] - y[0])) {
+        const ost = w.at(-1)
+        if (ost && a <= ost[1] + 1) ost[1] = Math.max(ost[1], b)
+        else w.push([a, b])
+    }
+    return w
+}
+
+/** Zakresy jako tekst: [[1810,1812],[1815,1815]] → „1810–1812, 1815”. */
+export const zakresyTekst = (z: [number, number][]) => z.map(([a, b]) => (a === b ? `${a}` : `${a}–${b}`)).join(', ')
+
 /** Czy któryś zakres zahacza o przedział [od, do] (np. lata przynależności wsi do parafii). */
 export function nakladaSie(zakresy: [number, number][], od: number | null, doRoku: number | null): boolean {
     if (od == null && doRoku == null) return true

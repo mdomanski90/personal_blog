@@ -10,6 +10,8 @@ import { WYZNANIA_PARAFII, RODZAJE_KSIAG, DOSTEP_KSIAG } from './lib/ksiegi';
 // Model danych: claude/odniepamieci-model-danych.md (projekt „own www”).
 // Nazwy pól w plikach jak w Dublin Core – ułatwia późniejszy eksport do Omeka S.
 
+export const WSTEP_DOMYSLNY = 'Archiwum wsi wokół Olszanki i Łosic: dokumenty, zdjęcia, nagrania i wspomnienia, ludzie i miejsca, o których pamięta coraz mniej osób.';
+
 const WSPOLRZEDNE_REGEX = /^$|^-?\d{1,2}(\.\d+)?,\s*-?\d{1,3}(\.\d+)?$/;
 
 function nazwaIIdentyfikator(etykieta: string) {
@@ -153,7 +155,7 @@ export default config({
       'Archiwum': ['materialy'],
       'Księgi metrykalne': ['parafie', 'ksiegi'],
       'Słownik': ['hasla'],
-      'Strony': ['oProjekcie'],
+      'Strony': ['stronaGlowna', 'oProjekcie'],
     },
   },
   collections: {
@@ -458,11 +460,29 @@ export default config({
           options: Object.entries(RODZAJE_KSIAG).map(([value, label]) => ({ label, value })),
           defaultValue: ['urodzenia'],
         }),
-        years: fields.text({ label: 'Lata', description: 'Np. „1826–1875, 1880, 1885–1890”. Z tego powstaje pasek lat w inwentarzu.', validation: { isRequired: true } }),
+        spatial: fields.multiRelationship({
+          label: 'Miejscowości',
+          description: 'Których wsi dotyczą akty w tej księdze. Puste = wszystkie wsie parafii z tych lat. Zaznacz, gdy księga obejmuje tylko część parafii albo wieś spoza niej.',
+          collection: 'miejsca',
+        }),
+        years: fields.text({ label: 'Lata', description: 'Np. „1826–1875, 1880, 1885–1890”. Z tego powstaje pasek lat w inwentarzu. Przy zespole z osobnymi tomami można zostawić puste – lata policzą się z jednostek niżej.' }),
         gaps: fields.text({ label: 'Braki i uwagi do lat', description: 'Np. „brak 1863, rok 1870 uszkodzony”.' }),
         language: fields.text({ label: 'Język', description: 'Np. polski, łacina, rosyjski (od 1868).' }),
         repository: fields.text({ label: 'Gdzie przechowywane', description: 'Np. AP Siedlce, Archiwum Diecezjalne w Siedlcach, parafia, USC Łosice.' }),
-        identifier: fields.text({ label: 'Zespół i sygnatura', description: 'Np. 72/290/0/2/45.' }),
+        identifier: fields.text({ label: 'Zespół i sygnatura', description: 'Np. 72/290/0/2/45. Przy zespole z osobnymi tomami – sam numer zespołu (np. 72/290), a sygnatury tomów niżej.' }),
+        volumes: fields.array(
+          fields.object({
+            years: fields.text({ label: 'Rok lub lata', description: 'Np. 1810 albo 1811–1812.', validation: { isRequired: true } }),
+            identifier: fields.text({ label: 'Sygnatura tomu', description: 'Np. 72/290/0/2/1.' }),
+            scans: fields.url({ label: 'Skany tego tomu' }),
+            gaps: fields.text({ label: 'Uwagi', description: 'Np. „brak kart 5–8”, „tylko alegata”.' }),
+          }),
+          {
+            label: 'Jednostki (tomy)',
+            description: 'Gdy zespół ma osobny tom na każdy rok (np. 1810–1825 = 16 tomów): jeden wpis na tom. W spisie pokażą się jako rozwijana lista pod księgą.',
+            itemLabel: (p) => [p.fields.years.value, p.fields.identifier.value].filter(Boolean).join(' · ') || 'nowy tom',
+          },
+        ),
         access: fields.select({
           label: 'Dostęp',
           options: Object.entries(DOSTEP_KSIAG).map(([value, label]) => ({ label, value })),
@@ -476,6 +496,18 @@ export default config({
     }),
   },
   singletons: {
+    stronaGlowna: singleton({
+      label: 'Strona główna',
+      path: 'content/strona-glowna',
+      schema: {
+        intro: fields.text({
+          label: 'Wstęp',
+          description: 'Tekst na górze strony głównej, obok losowej karty. Pusty wiersz zaczyna nowy akapit.',
+          multiline: true,
+          defaultValue: WSTEP_DOMYSLNY,
+        }),
+      },
+    }),
     oProjekcie: singleton({
       label: 'O projekcie',
       path: 'content/o-projekcie',

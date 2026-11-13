@@ -211,3 +211,13 @@ test('wycinek „tylko moja rodzina”: krewni i ich małżonkowie, bez rodzin m
     assert.ok(wk.osoby.has('ojciec') && wk.osoby.has('ja') && wk.osoby.has('matka'), 'kuzyn: wujostwo, kuzyni i ich małżonkowie')
     assert.ok(!wk.osoby.has('dziadekM'), 'bez rodziny małżonki stryja')
 })
+
+test('miejscowość z PLAC: człony, nawiasy, parafia, twarde spacje, bez przecinków', async () => {
+    const { znajdzMiejsce } = await import('./gedcom')
+    const idx = new Map([['losice', 'losice'], ['olszanka', 'olszanka'], ['luby', 'luby'], ['lepki stare', 'lepki-stare'], ['miedzyrzec podlaski', 'miedzyrzec']])
+    for (const [pl, id] of [
+        ['Olszanka, Łosice, Siedlce, Polska', 'olszanka'], ['Olszanka ', 'olszanka'], [' Olszanka (Łosice)', 'olszanka'], ['parafia Olszanka', 'olszanka'],
+        ['Olszanka Parish, Siedlce', 'olszanka'], ['Olszanka Siedlce Poland', 'olszanka'], ['Łuby', 'luby'], ['Luby, Biała Podlaska', 'luby'],
+        ['Nowa Wieś, Łosice', undefined], ['Łepki Stare, Łosice', 'lepki-stare'], ['Międzyrzec Podlaski', 'miedzyrzec'], ['Ole​szanka', undefined],
+    ] as [string, string | undefined][]) assert.equal(znajdzMiejsce(pl, idx), id, pl)
+})

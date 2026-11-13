@@ -94,7 +94,7 @@ export interface Osoba {
     inneNazwiska?: string[]
     plec: Plec
     zdarzenia: Zdarzenie[]
-    /** auto – z dat (osoba żyjąca, gdy nic nie wskazuje na śmierć i mogła urodzić się w ostatnich 100 latach) */
+    /** auto – z dat (osoba żyjąca, gdy nic nie wskazuje na śmierć i mogła urodzić się w ostatnich 100 latach); widoczność auto – patrz widocznoscOsoby */
     zyje: 'auto' | 'tak' | 'nie'
     widocznosc: WidocznoscOsoby
     notatki?: string
@@ -103,10 +103,14 @@ export interface Osoba {
     znaczniki?: string[]
     /** uwagi z importu do przejrzenia (np. imię z dopiskiem) */
     uwagi?: string[]
+    /** zdjęcie osoby na karcie: plik w pliki-archiwum/osoby/<id>/, podpis i źródło (kto, skąd) */
+    portret?: { plik: string; podpis?: string; zrodlo?: string }
     gedcomId?: string
     wersja: number
     zmieniono?: string
 }
+
+export const NAZWA_PORTRETU = /^portret-[a-z0-9-]+\.(jpg|png|webp)$/
 
 export interface Rodzina {
     id: string
@@ -240,10 +244,26 @@ export function czyZyje(o: Osoba, szacowany: number | undefined, rokTeraz = new 
     return szacowany > rokTeraz - 100
 }
 
-/** Widoczność karty: auto → żyjący „dla bliskich”, zmarli publicznie. */
-export function widocznoscOsoby(o: Osoba, zyje: boolean): 'publiczne' | 'bliscy' | 'ja' {
+/** Progi widoczności „auto”: karta publiczna, gdy osoba urodziła się co najmniej 100 lat temu albo zmarła co najmniej 25 lat temu. */
+export const PROG_URODZENIA = 100
+export const PROG_ZGONU = 25
+
+/**
+ * Widoczność karty. „auto”: publiczna, gdy rok urodzenia (podany) ≤ teraz−100 albo rok zgonu ≤ teraz−25;
+ * gdy urodzenie znamy tylko z szacunku (rodzice, dzieci, małżonek) – z zapasem 25 lat (≤ teraz−125).
+ * W pozostałych przypadkach (także brak dat) – „dla bliskich”.
+ */
+export function widocznoscOsoby(o: Osoba, szacowany?: number, rokTeraz = new Date().getFullYear()): 'publiczne' | 'bliscy' | 'ja' {
     if (o.widocznosc !== 'auto') return o.widocznosc
-    return zyje ? 'bliscy' : 'publiczne'
+    return publicznaZDat(o, szacowany, rokTeraz) ? 'publiczne' : 'bliscy'
+}
+
+export function publicznaZDat(o: Osoba, szacowany?: number, rokTeraz = new Date().getFullYear()): boolean {
+    const u = rokUrodzenia(o), z = rokZgonu(o)
+    if (u != null && u <= rokTeraz - PROG_URODZENIA) return true
+    if (z != null && z <= rokTeraz - PROG_ZGONU) return true
+    if (u == null && szacowany != null && szacowany <= rokTeraz - PROG_URODZENIA - 25) return true
+    return false
 }
 
 // ---------- obrządek z opisu ----------
@@ -378,6 +398,7 @@ export function poprawOsobe(o: Partial<Osoba> & { id: string }): Osoba {
         ...(o.multimedia?.length ? { multimedia: o.multimedia } : {}),
         ...(o.znaczniki?.length ? { znaczniki: o.znaczniki.map(String) } : {}),
         ...(o.uwagi?.length ? { uwagi: o.uwagi.map(String) } : {}),
+        ...(o.portret && NAZWA_PORTRETU.test(String(o.portret.plik)) ? { portret: { plik: String(o.portret.plik), ...(o.portret.podpis?.trim() ? { podpis: String(o.portret.podpis).trim().slice(0, 300) } : {}), ...(o.portret.zrodlo?.trim() ? { zrodlo: String(o.portret.zrodlo).trim().slice(0, 300) } : {}) } } : {}),
         ...(o.gedcomId ? { gedcomId: o.gedcomId } : {}),
         wersja: Number.isFinite(o.wersja) ? Number(o.wersja) : 0,
         ...(o.zmieniono ? { zmieniono: o.zmieniono } : {}),

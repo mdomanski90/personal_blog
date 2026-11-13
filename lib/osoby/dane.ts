@@ -177,7 +177,7 @@ export async function stanOsob(): Promise<StanOsob> {
         zyje: (id) => zyjeM.get(id) ?? true,
         widocznosc: (id) => {
             const o = drzewo.osoby.get(id)
-            return o ? widocznoscOsoby(o, zyjeM.get(id) ?? true) : 'ja'
+            return o ? widocznoscOsoby(o, lata.get(id)) : 'ja'
         },
     }
     pamiecStanu = { drzewo, stan }
