@@ -160,6 +160,8 @@ export interface MaterialWstawki {
     nazwa: string
     rodzaj: string
     plik: string | null
+    /** strony skanu (przeglądarka dokumentu) */
+    strony?: { adres: string; podpis?: string }[]
 }
 
 /** Podgląd materiału: obraz (z powiększeniem), odtwarzacz, PDF albo odnośnik – i podpis z linkiem do archiwum. */
@@ -167,6 +169,18 @@ export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string): Tag {
     const adres = `/archiwum/${m.id}`
     const typ = typPliku(m.plik)
     const podglad: RenderableTreeNode[] = []
+    if (m.strony?.length) {
+        // skan (jedna albo wiele stron): kliknięcie otwiera przeglądarkę dokumentu na pełnym ekranie (DokumentyWTresci)
+        const pierwsza = m.strony[0].adres
+        const obraz = pierwsza.startsWith('/pliki/strony/') ? `${pierwsza}?w=1200` : pierwsza
+        const n = m.strony.length
+        const ile = n === 1 ? '' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? `${n} strony` : `${n} stron`
+        const opis: RenderableTreeNode[] = [new Tag('a', { href: adres }, [podpis || m.nazwa]), ' · ', new Tag('button', { type: 'button', class: 'dok-otworz' }, [ile ? `przeglądaj ${ile} ⤢` : 'powiększ ⤢'])]
+        return new Tag('figure', { class: 'material-wstawka', 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony }) }, [
+            new Tag('img', { src: obraz, alt: podpis || m.nazwa, loading: 'lazy', decoding: 'async', class: 'rounded-none w-full', 'data-dokument-img': '' }),
+            new Tag('figcaption', {}, opis),
+        ])
+    }
     if (m.plik && typ === 'obraz') {
         podglad.push(new Tag('img', { src: m.plik, 'data-zoom-src': m.plik, alt: podpis || m.nazwa, loading: 'lazy', decoding: 'async', class: 'rounded-none w-full cursor-zoom-in' }))
     } else if (m.plik && typ === 'dzwiek') {

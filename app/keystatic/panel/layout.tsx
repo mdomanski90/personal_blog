@@ -8,6 +8,7 @@ const MENU: { href: string; nazwa: string; licznik?: boolean; zewn?: boolean }[]
     { href: '/keystatic/panel', nazwa: 'pulpit' },
     { href: '/keystatic/panel/zgloszenia', nazwa: 'zgłoszenia', licznik: true },
     { href: '/keystatic', nazwa: 'treści – Keystatic', zewn: true },
+    { href: '/keystatic/panel/materialy', nazwa: 'materiały – strony skanów' },
     { href: '/keystatic/plany', nazwa: 'plany cmentarzy', zewn: true },
     { href: '/keystatic/osoby', nazwa: 'osoby i drzewo', zewn: true },
     { href: '/keystatic/panel/dostep', nazwa: 'dostęp' },
@@ -30,7 +31,7 @@ export default function UkladPanelu({ children }: { children: React.ReactNode })
                 </div>
                 <nav className="pn-nav" aria-label="Panel">
                     {MENU.map((m) => (
-                        <a key={m.href} href={m.href} aria-current={sciezka === m.href ? 'page' : undefined}>
+                        <a key={m.href} href={m.href} aria-current={sciezka === m.href || (m.href !== '/keystatic/panel' && !m.zewn && sciezka?.startsWith(m.href + '/')) ? 'page' : undefined}>
                             {m.nazwa}
                             {m.licznik && czeka > 0 && <span className="pn-licznik" aria-label={`${czeka} czeka`}>{czeka}</span>}
                             {m.zewn && <span aria-hidden="true" className="pn-szary">→</span>}

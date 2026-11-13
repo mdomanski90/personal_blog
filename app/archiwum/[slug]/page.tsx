@@ -6,7 +6,7 @@ import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
 import { typPliku } from '@/lib/pliki'
 import { rozdzielZrodla } from '@/lib/markdoc'
-import PodgladSkanu from '../../components/PodgladSkanu'
+import PrzegladarkaDokumentu from '../../components/PrzegladarkaDokumentu'
 import TekstyZrodla from '../../components/TekstyZrodla'
 import JakCytowac from '../../components/JakCytowac'
 import { ADRES_STRONY, AUTOR_STRONY } from '@/lib/strona'
@@ -14,7 +14,6 @@ import Zgloszenie from '../../components/Zgloszenie'
 import { Kreski, Metki, RAMKA, Sekcja, Strona, Tresc, TytulStrony, Wiersz } from '../../components/Uklad'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania from '../../components/Powiazania'
-import { Link } from 'next-view-transitions'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,12 +46,13 @@ export default async function MaterialStrona({ params }: Parametry) {
     const cz = rozdzielZrodla(m.opis)
     const teksty = { transkrypcja: naHtml(cz.transkrypcja, ktx), tlumaczenie: naHtml(cz.tlumaczenie, ktx), oryginal: naHtml(cz.oryginal, ktx) }
     const maTeksty = !!(teksty.transkrypcja || teksty.tlumaczenie || teksty.oryginal)
-    // skan obok tekstu: obraz z transkrypcją albo tłumaczeniem
-    const obok = typ === 'obraz' && maTeksty
+    // skan obok tekstu: strony skanu z transkrypcją albo tłumaczeniem
+    const skan = m.strony.length > 0
+    const obok = skan && maTeksty
     const oryginal = [m.pochodzenie, m.sygnatura].filter(Boolean).join(', ')
 
     return (
-        <Strona szeroka={obok} akcje={<><Link href="/archiwum" className={`${RAMKA} lowercase !no-underline text-current hover:bg-muted inline-flex items-center`} style={{ fontSize: 'calc(14px * var(--font-scale, 1))', minHeight: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', borderRadius: 7 }}>← archiwum</Link><CopyLinkButton sciezka={`/archiwum/${m.id}`} /></>}>
+        <Strona szeroka={obok} akcje={<CopyLinkButton sciezka={`/archiwum/${m.id}`} />}>
             <TytulStrony
                 sciezka={[{ tekst: 'archiwum', href: '/archiwum' }]}
             >
@@ -62,16 +62,17 @@ export default async function MaterialStrona({ params }: Parametry) {
 
             {obok ? (
                 <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(20rem, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
-                    <section className="flex flex-col" style={{ gap: 6 }}><h2 className="font-bold lowercase" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>skan</h2><PodgladSkanu src={m.plik!} alt={m.nazwa} /></section>
-                    <section className="flex flex-col" style={{ gap: 6 }}><TekstyZrodla {...teksty} />{m.opracowal && <span className="text-gray-500" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>transkrypcja i tłumaczenie: {m.opracowal} · luki w nawiasach […] przygaszone</span>}</section>
+                    <section className="flex flex-col" style={{ gap: 6 }}><h2 className="font-bold lowercase" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{m.strony.length > 1 ? `skan · ${m.strony.length} str.` : 'skan'}</h2><PrzegladarkaDokumentu strony={m.strony} tytul={m.nazwa} /></section>
+                    <section className="flex flex-col" style={{ gap: 6 }}><TekstyZrodla {...teksty} />{m.opracowal && <span className="text-gray-500" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>transkrypcja i tłumaczenie: {m.opracowal}</span>}</section>
                 </div>
+            ) : skan ? (
+                <PrzegladarkaDokumentu strony={m.strony} tytul={m.nazwa} />
             ) : m.plik && (
                 <figure className="flex flex-col" style={{ gap: 6, margin: '0 0 0.5rem' }}>
-                    {typ === 'obraz' && <PodgladSkanu src={m.plik} alt={m.nazwa} />}
                     {typ === 'dzwiek' && <audio controls preload="metadata" src={m.plik} className="w-full" />}
                     {typ === 'film' && <video controls preload="metadata" src={m.plik} className="w-full" style={{ borderRadius: 8 }} />}
                     {typ === 'pdf' && <iframe src={m.plik} title={m.nazwa} className={`${RAMKA} w-full`} style={{ height: '75vh', borderRadius: 8 }} />}
-                    {typ !== 'obraz' && <a href={m.plik} className="lowercase w-fit" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }} download>pobierz plik</a>}
+                    {<a href={m.plik} className="lowercase w-fit" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }} download>pobierz plik</a>}
                 </figure>
             )}
 

@@ -11,6 +11,8 @@ import { RODZAJE_MATERIALOW } from './materialy'
 import { zakresIso } from './edtf'
 import { bezNawiasow, fragment, ODNOSNIK, slownikOdnosnikow, wzorzecWzmianek, znajdzWzmianki, type Cel, type Fragment, type PozycjaSieci, type RodzajCelu, type Rozwiaz } from './odnosniki'
 import { normalizuj, porownajPl } from './tekst'
+import { adresStrony, stronyMaterialu } from './strony-materialow'
+import { typPliku } from './pliki'
 
 import { zakresyLat, nakladaSie, KOLEJNOSC_KSIAG } from './ksiegi'
 
@@ -156,6 +158,8 @@ export interface Material {
     rodzaj: string
     /** adres pliku: /pliki/<id>/file.<roz> (plik leży w pliki-archiwum/) */
     plik: string | null
+    /** strony skanu do przeglądarki: z panelu „strony materiału”, a gdy ich nie ma – sam plik, jeśli jest obrazem */
+    strony: { adres: string; podpis?: string }[]
     czas: string
     tworca: string
     /** kto udostępnił materiał (dcterms:provenance) */
@@ -315,6 +319,12 @@ const wszystkieObiektySurowe = cache(async (): Promise<Obiekt[]> => {
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
 
+function stronyDoPokazania(id: string, plik: string | null): { adres: string; podpis?: string }[] {
+    const s = stronyMaterialu(id)
+    if (s.length) return s.map((x) => ({ adres: adresStrony(id, x.plik), ...(x.podpis ? { podpis: x.podpis } : {}) }))
+    return plik && typPliku(plik) === 'obraz' ? [{ adres: plik }] : []
+}
+
 const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
     const wpisy = await reader.collections.materialy.all({ resolveLinkedFiles: true })
     return wpisy
@@ -323,6 +333,7 @@ const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
             nazwa: entry.title,
             rodzaj: entry.type,
             plik: typeof entry.file === 'string' && entry.file ? entry.file : null,
+            strony: stronyDoPokazania(slug, typeof entry.file === 'string' ? entry.file : null),
             czas: entry.temporal,
             tworca: entry.creator,
             przekazal: entry.provenance ?? '',
@@ -589,7 +600,7 @@ export const rozwiazOdnosniki = cache(async (poziom: Widocznosc): Promise<Rozwia
 
 /** Wszystko, czego treść potrzebuje przy renderowaniu: odnośniki [[…]] i wstawione materiały. */
 export const kontekstTresci = cache(async (poziom: Widocznosc): Promise<KontekstTresci> => {
-    const mat = new Map<string, MaterialWstawki>((await materialy(poziom)).map((m) => [m.id, { id: m.id, nazwa: m.nazwa, rodzaj: m.rodzaj, plik: m.plik }]))
+    const mat = new Map<string, MaterialWstawki>((await materialy(poziom)).map((m) => [m.id, { id: m.id, nazwa: m.nazwa, rodzaj: m.rodzaj, plik: m.plik, strony: m.strony }]))
     const { stanOsob } = await import('./osoby/dane')
     const { drzewoOsoby } = await import('./osoby/drzewo')
     const stan = await stanOsob()

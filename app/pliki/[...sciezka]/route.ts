@@ -3,6 +3,7 @@ import path from 'node:path'
 import { Readable } from 'node:stream'
 import sharp from 'sharp'
 import { material, obiekt, poziomCzytelnika } from '@/lib/archiwum'
+import { ID_MATERIALU, NAZWA_STRONY, katalogStron, stronyMaterialu } from '@/lib/strony-materialow'
 import { ADRES_PLIKOW, KATALOG_PLIKOW, mimePliku } from '@/lib/pliki'
 
 // Pliki materiałów: /pliki/<materiał>/<plik>. Wydawane tylko, gdy czytelnik widzi materiał
@@ -15,6 +16,7 @@ const nieMa = () => new Response('Nie znaleziono', { status: 404, headers: { 'Co
 export async function GET(req: Request, { params }: { params: Promise<{ sciezka: string[] }> }) {
     const { sciezka } = await params
     if (sciezka[0] === 'obiekty') return zdjecieObiektu(req, sciezka)
+    if (sciezka[0] === 'strony') return stronaMaterialu(req, sciezka)
     if (sciezka.length !== 2) return nieMa()
     const [id, nazwa] = sciezka
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) || !/^[\w-]+(\.[\w-]+)*$/.test(nazwa)) return nieMa()
@@ -83,5 +85,25 @@ async function zdjecieObiektu(req: Request, sciezka: string[]): Promise<Response
         // oryginał też bez metadanych (GPS z telefonu)
         const bufor = await sharp(plik).rotate().toBuffer()
         return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': mimePliku(plik), 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' } })
+    } catch { return nieMa() }
+}
+
+/** Strony skanów materiałów: /pliki/strony/<materiał>/<plik>; ?w=160|480|1200|2400 – pomniejszona kopia WebP, bez metadanych. */
+async function stronaMaterialu(req: Request, sciezka: string[]): Promise<Response> {
+    if (sciezka.length !== 3) return nieMa()
+    const [, id, nazwa] = sciezka
+    if (!ID_MATERIALU.test(id) || !NAZWA_STRONY.test(nazwa)) return nieMa()
+    const m = await material(id, await poziomCzytelnika())
+    if (!m || !stronyMaterialu(id).some((s) => s.plik === nazwa)) return nieMa()
+    const plik = path.join(/*turbopackIgnore: true*/ katalogStron(id), nazwa)
+    const cache = m.widocznosc === 'publiczne' ? 'public, max-age=86400' : 'private, no-store'
+    const w = Number(new URL(req.url).searchParams.get('w'))
+    try {
+        if ([160, 480, 1200, 2400].includes(w)) {
+            const bufor = await sharp(plik).rotate().resize({ width: w, withoutEnlargement: true }).webp({ quality: w >= 2400 ? 86 : 80 }).toBuffer()
+            return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': 'image/webp', 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' } })
+        }
+        const bufor = await sharp(plik).rotate().toBuffer()
+        return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': mimePliku(plik), 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': `inline; filename="${id}-${nazwa}"` } })
     } catch { return nieMa() }
 }

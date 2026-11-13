@@ -19,9 +19,9 @@ export default function ListaMaterialow({ materialy }: { materialy: Material[] }
                     <li key={m.id} className={`${RAMKA} overflow-hidden flex flex-col`} style={{ borderRadius: 8 }}>
                         <Link href={`/archiwum/${m.id}`} className="!no-underline text-current flex flex-col h-full hover:opacity-90">
                             <div className="bg-muted flex items-center justify-center" style={{ aspectRatio: '4 / 3', overflow: 'hidden' }}>
-                                {m.plik && typ === 'obraz' ? (
+                                {m.strony.length > 0 ? (
                                     // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={m.plik} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={m.strony[0].adres.startsWith('/pliki/strony/') ? `${m.strony[0].adres}?w=480` : m.strony[0].adres} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
                                     <span className="text-gray-500" style={{ fontSize: 28 }} aria-hidden="true">{typ ? ZNAK[typ] : '—'}</span>
                                 )}
