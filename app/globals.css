@@ -537,38 +537,43 @@ body {
 .obrzadek { display: inline-block; font-size: 0.82em; padding: 0 6px; border-radius: 5px; color: var(--kolor); box-shadow: inset 0 0 0 1px var(--kolor); white-space: nowrap; }
 .dark .obrzadek { filter: brightness(1.6); }
 
-.drzewo { margin: 0.5rem 0; font-size: calc(13px * var(--font-scale, 1)); }
-.drzewo .dr-przewijanie { overflow: auto; padding: 6px 0 10px; cursor: grab; }
+.drzewo { margin: 0.5rem 0; font-size: calc(13px * var(--font-scale, 1)); border: 1px solid #d6d1c6; border-radius: 8px; overflow: hidden; background: #fdfcf9; }
+.drzewo.dr-w-tabeli { margin: 0; border: 0; border-radius: 0; background: transparent; }
+.drzewo .dr-przewijanie { overflow: auto; cursor: grab; }
 .drzewo .dr-przewijanie.ciagnie { cursor: grabbing; user-select: none; }
-.drzewo .dr-klepsydra { position: relative; display: flex; flex-direction: column; align-items: center; gap: 22px; width: max-content; min-width: 100%; margin: 0 auto; padding: 0 12px; }
+/* plansza w pikselach przy skali 1; A−/A+ powiększa ją całą (zoom) – karty, linie i wiersze razem */
+.drzewo .dr-plansza { position: relative; min-width: 100%; zoom: var(--font-scale, 1); font-size: 12px; }
+.drzewo .dr-wiersz { position: absolute; left: 0; right: 0; height: 100px; box-sizing: border-box; border-bottom: 1px solid #e7e2d8; background: #fdfcf9; }
+.drzewo .dr-wiersz:nth-child(odd) { background: #faf8f3; }
+.drzewo .dr-wiersz.dr-ostatni { border-bottom: 0; }
+/* etykieta pokolenia stoi w miejscu przy przewijaniu w bok (jak pierwsza kolumna tabeli) */
+.drzewo .dr-pokol { position: sticky; left: 0; z-index: 3; display: flex; align-items: center; width: 150px; height: calc(100% + 1px); box-sizing: border-box; padding-left: 14px; background: inherit; font-size: 13px; color: #6b665c; white-space: nowrap; }
+/* treść wyśrodkowana w miejscu obok kolumny etykiet; przy szerokim drzewie – od kolumny etykiet, z przewijaniem */
+.drzewo .dr-tresc { position: absolute; top: 0; left: max(164px, calc(50% + 74px - var(--wc) / 2)); }
 .drzewo .dr-linie { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
-.drzewo .dr-linie path { fill: none; stroke: #8a8478; stroke-width: 1.2; }
-.drzewo .dr-linie path.dr-granica { stroke: #d6d1c6; stroke-width: 1; stroke-dasharray: 4 4; }
-.dark .drzewo .dr-linie path { stroke: #8b93a0; }
-.dark .drzewo .dr-linie path.dr-granica { stroke: #3b4350; }
-.drzewo .dr-karta, .drzewo .dr-podpis { position: relative; z-index: 1; }
-.drzewo .dr-galaz { display: flex; align-items: center; gap: 22px; }
-.drzewo .dr-gora { flex-direction: column; }
-.drzewo .dr-dol { flex-direction: column; }
-.drzewo .dr-pokolenie { display: flex; gap: 14px; justify-content: center; align-items: flex-start; }
-.drzewo .dr-gora > .dr-pokolenie { align-items: flex-end; }
-.drzewo .dr-potomni { display: flex; flex-direction: row; gap: 28px; align-items: flex-start; justify-content: center; }
-.drzewo .dr-rodzina { display: flex; flex-direction: column; align-items: center; gap: 22px; }
-.drzewo .dr-malzonek { display: flex; align-items: center; gap: 4px; }
-.drzewo .dr-rodzenstwo { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center; }
-.drzewo .dr-podpis { color: #6b665c; }
-.drzewo .dr-karta { display: flex; flex-direction: column; align-items: center; min-width: 7.5rem; max-width: 10rem; padding: 4px 8px; border-radius: 8px; text-align: center; text-decoration: none !important; color: inherit; line-height: 1.25; transition: transform .15s ease; }
+.drzewo .dr-linie path { fill: none; stroke: #8a847a; stroke-width: 1.25; }
+.drzewo .dr-karta { position: absolute; z-index: 1; width: 116px; height: 52px; box-sizing: border-box; padding: 0 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 7px; text-decoration: none !important; color: inherit; line-height: 1.2; overflow: hidden; transition: transform .15s ease; }
+.drzewo .dr-imie { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.drzewo .dr-lata { color: #6b665c; font-size: 11px; margin-top: 2px; }
 .drzewo a.dr-karta:hover { transform: scale(1.04); }
-.drzewo .dr-K { background: #fcf3f6; border: 1px solid #f1d9e2; }
-.drzewo .dr-M { background: #f2f7fc; border: 1px solid #d5e3f3; }
+.drzewo .dr-K { background: #fdf2f6; border: 1px solid #f3d3df; }
+.drzewo .dr-M { background: #eff4fb; border: 1px solid #cfdcef; }
 .drzewo .dr-U { background: #f4f3f0; border: 1px solid #e2e0da; }
-.drzewo .dr-glowna { font-weight: 700; box-shadow: 0 0 0 2px currentColor; }
+.drzewo .dr-glowna { font-weight: 700; border: 2px solid #1c1b18; }
+.drzewo .dr-glowna .dr-lata { font-weight: 400; }
 .drzewo .dr-ukryta { background: #efece5; border: 1px dashed #c9c3b6; color: #6b665c; }
 .drzewo .dr-brak { color: #a39d91; border: 1px dashed #e2e0da; }
-.drzewo .dr-lata { color: #6b665c; font-size: 0.9em; }
+.drzewo .dr-slub { position: absolute; z-index: 2; width: 18px; height: 18px; margin: -9px 0 0 -9px; box-sizing: border-box; border-radius: 9px; background: #fdfcf9; border: 1px solid #8a847a; font-size: 11px; line-height: 16px; text-align: center; color: #4f4a41; cursor: default; }
+.dark .drzewo { border-color: #4b5563; background: transparent; }
+.dark .drzewo .dr-wiersz { border-color: #374151; background: #111827; }
+.dark .drzewo .dr-wiersz:nth-child(odd) { background: #161b26; }
+.dark .drzewo .dr-pokol, .dark .drzewo .dr-lata { color: #9ca3af; }
+.dark .drzewo .dr-linie path { stroke: #8b93a0; }
 .dark .drzewo .dr-K { background: #3a2730; border-color: #5a3a48; }
 .dark .drzewo .dr-M { background: #233040; border-color: #34485f; }
 .dark .drzewo .dr-U, .dark .drzewo .dr-ukryta { background: #2a2a2a; border-color: #404040; }
+.dark .drzewo .dr-glowna { border-color: #e5e7eb; }
+.dark .drzewo .dr-slub { background: #111827; border-color: #8b93a0; color: #d1d5db; }
 .drzewo { position: relative; }
 /* lista dostępna dla czytników ekranu także na komputerze (klepsydra jest aria-hidden) */
 .drzewo .dr-tekst { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -700,9 +705,6 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dark .osoby-litera{border-bottom-color:#374151}
 .osoby-litera>summary{cursor:pointer;font-size:calc(15px * var(--font-scale,1));padding:2px 0}
 .osoby-litera[open]>summary{margin-bottom:4px}
-.osoba-wstep{display:grid;grid-template-columns:minmax(0,1fr);gap:1.5rem;align-items:start}
-.osoba-wstep.z-portretem{grid-template-columns:minmax(0,1fr) minmax(140px,220px)}
-@media (max-width:640px){.osoba-wstep.z-portretem{grid-template-columns:1fr}.osoba-portret{order:-1;max-width:200px}}
 .osoba-portret{margin:0;display:flex;flex-direction:column;gap:4px}
 .osoba-portret img{width:100%;border-radius:6px;border:1px solid #d6d1c6;display:block}
 .osoba-portret figcaption{font-size:calc(12px * var(--font-scale,1));color:#6b665c;line-height:1.4}
@@ -711,7 +713,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .drzewo .dr-narzedzia button { border: 1px solid #d6d1c6; border-radius: 7px; background: #fdfcf9; color: inherit; font: inherit; font-size: calc(13px * var(--font-scale, 1)); min-height: calc(28px * var(--font-scale, 1)); padding: 0 10px; cursor: pointer; }
 .drzewo .dr-narzedzia button:hover { background: var(--muted); }
 .dark .drzewo .dr-narzedzia button { background: transparent; border-color: #4b5563; }
-.drzewo.drzewo-pelne { position: fixed; inset: 0; z-index: 130; margin: 0; background: #fbfaf7; padding: 12px 16px; display: flex; flex-direction: column; }
+.drzewo.drzewo-pelne { position: fixed; inset: 0; z-index: 130; margin: 0; border: 0; border-radius: 0; background: #fbfaf7; padding: 12px 16px; display: flex; flex-direction: column; }
 .dark .drzewo.drzewo-pelne { background: #0b1020; }
 .drzewo.drzewo-pelne .dr-przewijanie { flex: 1; min-height: 0; }
 
@@ -790,3 +792,41 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dok-pelny .dok-obj-notka .uzupelnienie,.dok-pelny .dok-transkrypcja .uzupelnienie,.dark .dok-obj-notka .uzupelnienie{color:#7d786e}
 .dok-pelny .dok-obj-notka a,.dark .dok-obj-notka a{color:#8fb0ff}
 .dark .dok-transkrypcja{border-color:#374151}
+
+/* karta osoby: zdjęcie | imię, lata, opis; pod spodem jedna tabela z wierszami-nagłówkami */
+.osoba-karta{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;align-items:start}
+.osoba-karta.z-portretem{grid-template-columns:200px minmax(0,1fr)}
+.osoba-karta-opis{display:flex;flex-direction:column;gap:10px;min-width:0}
+.osoba-lead{margin:6px 0 0;font-size:var(--blog-font-size,18px);line-height:1.6}
+.osoba-tabela{border:1px solid #d6d1c6;border-radius:8px;overflow:hidden;background:#fdfcf9;font-size:calc(15px * var(--font-scale,1))}
+.osoba-tabela>.ot-nagl{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;min-height:calc(38px * var(--font-scale,1));box-sizing:border-box;padding:4px 14px;background:#f2f0eb;border-bottom:1px solid #d6d1c6;font-size:calc(14px * var(--font-scale,1))}
+.ot-nagl-prawa{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:calc(12px * var(--font-scale,1));color:#6b665c}
+.osoba-tabela>.ot-w{display:grid;grid-template-columns:150px minmax(0,1fr);column-gap:16px;padding:10px 14px;border-bottom:1px solid #e7e2d8;line-height:1.5}
+.osoba-tabela>.ot-w:has(+ .ot-nagl),.osoba-tabela>.ot-drzewo:has(+ .ot-nagl){border-bottom-color:#d6d1c6}
+.osoba-tabela>:last-child{border-bottom:0!important}
+.ot-e{color:#6b665c;font-size:calc(13px * var(--font-scale,1));padding-top:2px}
+.ot-t{min-width:0;overflow-wrap:anywhere}
+.ot-drobne{font-size:.88em;color:#6b665c}
+.ot-osoby{display:flex;flex-wrap:wrap;gap:4px 16px}
+.ot-grob{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}
+.ot-grob img{height:90px;border-radius:6px;display:block;border:1px solid #d6d1c6}
+.osoba-tabela>.ot-drzewo{border-bottom:1px solid #e7e2d8}
+.ot-seg{display:inline-flex;align-items:center;gap:6px}
+.ot-seg-podpis{margin-right:2px}
+.ot-seg a{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:calc(22px * var(--font-scale,1));border:1px solid #d6d1c6;border-radius:6px;background:#fdfcf9;color:inherit;text-decoration:none}
+.ot-seg a[aria-current=true]{background:#1c1b18;border-color:#1c1b18;color:#fdfcf9}
+.ot-przycisk{border:1px solid #d6d1c6;border-radius:7px;background:#fdfcf9;color:#1c1b18;font:inherit;font-size:calc(12px * var(--font-scale,1));height:calc(24px * var(--font-scale,1));padding:0 9px;cursor:pointer}
+.ot-przycisk:hover{background:var(--muted)}
+.dark .osoba-tabela{border-color:#4b5563;background:transparent}
+.dark .osoba-tabela>.ot-nagl{background:#1f2937;border-color:#4b5563}
+.dark .osoba-tabela>.ot-w,.dark .osoba-tabela>.ot-drzewo{border-color:#374151}
+.dark .ot-e,.dark .ot-drobne,.dark .ot-nagl-prawa{color:#9ca3af}
+.dark .ot-seg a,.dark .ot-przycisk{background:transparent;border-color:#4b5563;color:inherit}
+.dark .ot-seg a[aria-current=true]{background:#e5e7eb;color:#111827}
+@media (max-width:640px){.osoba-karta.z-portretem{grid-template-columns:1fr}.osoba-karta .osoba-portret{max-width:200px}.osoba-tabela>.ot-w{grid-template-columns:1fr;row-gap:2px}.ot-seg,.ot-przycisk{display:none}}
+.osoba-bez-zdjecia{min-height:calc(260px * var(--font-scale,1));box-sizing:border-box;padding:16px 14px;border:1px dashed #c9c3b7;border-radius:6px;background:#f2f0eb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+.osoba-bez-zdjecia-napis{font-size:calc(13px * var(--font-scale,1));color:#6b665c}
+.osoba-bez-zdjecia-prosba{font-size:calc(12.5px * var(--font-scale,1));line-height:1.45;color:#4f4a41}
+.osoba-bez-zdjecia form,.osoba-bez-zdjecia textarea,.osoba-bez-zdjecia input{width:100%;box-sizing:border-box;text-align:left}
+.dark .osoba-bez-zdjecia{background:#1f2937;border-color:#4b5563}
+.dark .osoba-bez-zdjecia-prosba{color:#d1d5db}

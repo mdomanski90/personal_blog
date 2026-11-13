@@ -1,3 +1,4 @@
+import * as React from 'react'
 import type { Metadata } from 'next'
 import { Link } from 'next-view-transitions'
 import { notFound } from 'next/navigation'
@@ -7,12 +8,13 @@ import { bezNawiasow } from '@/lib/odnosniki'
 import { formatujEdtf } from '@/lib/edtf'
 import { obrzadekZdarzenia, stanOsob } from '@/lib/osoby/dane'
 import { drzewoHtml } from '@/lib/osoby/drzewo'
-import { adresAncestry, lataZycia, nazwaOsoby, OBRZADKI, RODZAJE_ZDARZEN, sortujZdarzenia, type Obrzadek, type Zdarzenie } from '@/lib/osoby/model'
+import { adresAncestry, lataZycia, nazwaOsoby, OBRZADKI, RODZAJE_ZDARZEN, sortujZdarzenia, type Cytat, type Obrzadek, type Zdarzenie } from '@/lib/osoby/model'
+import { odmiana } from '@/lib/tekst'
 import { pochowkiOsoby } from '@/lib/plany/serwer'
 import { logowanieWlaczone } from '@/lib/sesja'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Zgloszenie from '../../components/Zgloszenie'
-import { Kreski, Sekcja, Strona, Tresc, TytulStrony, Wiersz } from '../../components/Uklad'
+import { Strona, Tresc, TytulStrony } from '../../components/Uklad'
 import Powiazania from '../../components/Powiazania'
 
 export const dynamic = 'force-dynamic'
@@ -34,8 +36,30 @@ function Obrz({ o, wywnioskowany }: { o: Obrzadek; wywnioskowany: boolean }) {
     )
 }
 
-export default async function KartaOsoby({ params }: { params: Promise<{ id: string }> }) {
+// Karta osoby jako jedna tabela: wiersze-nagłówki z tłem (życie, rodzina, drzewo, źródła, w archiwum i wpisach),
+// w każdym wierszu etykieta w kolumnie 150 px i treść – drzewo też jest wierszem tej tabeli.
+function Naglowek({ tytul, id, children }: { tytul: string; id?: string; children?: React.ReactNode }) {
+    return (
+        <div role="row" className="ot-nagl" id={id}>
+            <b role="columnheader">{tytul}</b>
+            {children && <span className="ot-nagl-prawa">{children}</span>}
+        </div>
+    )
+}
+function W({ e, children }: { e: string; children: React.ReactNode }) {
+    return (
+        <div role="row" className="ot-w">
+            <span role="rowheader" className="ot-e">{e}</span>
+            <span role="cell" className="ot-t">{children}</span>
+        </div>
+    )
+}
+
+const RODZAJ_POWIAZANIA: Record<string, string> = { wpis: 'wpis', miejsce: 'miejsce', temat: 'temat', obiekt: 'obiekt', material: 'materiał', osoba: 'biogram' }
+
+export default async function KartaOsoby({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ wstecz?: string }> }) {
     const { id } = await params
+    const sp = await searchParams
     const poziom = await poziomCzytelnika()
     const s = await stanOsob()
     const o = s.drzewo.osoby.get(id)
@@ -76,134 +100,184 @@ export default async function KartaOsoby({ params }: { params: Promise<{ id: str
         const ob = obrzadki.get(z.id)
         if (ob && przebieg[przebieg.length - 1]?.o !== ob.obrzadek) przebieg.push({ o: ob.obrzadek, z, w: ob.wywnioskowany })
     }
-    const cytaty = [...(o.cytaty ?? []), ...wszystkie.flatMap((z) => z.cytaty ?? [])]
-    const zrodlaUnik = new Map<string, { tytul: string; strony: Set<string>; linki: Set<string> }>()
-    for (const c of cytaty) {
-        const t = (c.zrodlo && s.drzewo.zrodla.get(c.zrodlo)?.tytul) || 'źródło'
-        const w = zrodlaUnik.get(t) ?? { tytul: t, strony: new Set(), linki: new Set() }
-        if (c.strona) w.strony.add(c.strona)
-        const a = adresAncestry(c.apid)
-        if (a) w.linki.add(a)
-        if (c.www) w.linki.add(c.www)
-        zrodlaUnik.set(t, w)
+    const etykietaZdarzenia = (z: Zdarzenie) => (z.rodzaj === 'inne' ? z.nazwa || 'zdarzenie' : RODZAJE_ZDARZEN[z.rodzaj])
+    // źródła przy zdarzeniach, których dotyczą (te same źródło i strony – raz)
+    const zrodlaZ = (cytaty: Cytat[]) => {
+        const m = new Map<string, { tytul: string; strony: Set<string>; linki: Set<string> }>()
+        for (const c of cytaty) {
+            const t = (c.zrodlo && s.drzewo.zrodla.get(c.zrodlo)?.tytul) || 'źródło'
+            const w = m.get(t) ?? { tytul: t, strony: new Set(), linki: new Set() }
+            if (c.strona) w.strony.add(c.strona)
+            const a = adresAncestry(c.apid)
+            if (a) w.linki.add(a)
+            if (c.www) w.linki.add(c.www)
+            m.set(t, w)
+        }
+        return [...m.values()]
     }
-    const html = drzewoHtml(s, id, { wstecz: 3, naprzod: 2, zakres: 'malzonkowie' }, poziom)
+    const wierszeZrodel = [
+        ...wszystkie.filter((z) => z.cytaty?.length).map((z) => ({ e: etykietaZdarzenia(z), z: zrodlaZ(z.cytaty!) })),
+        ...(o.cytaty?.length ? [{ e: 'osoba', z: zrodlaZ(o.cytaty) }] : []),
+    ]
+    const wstecz = sp.wstecz === '1' || sp.wstecz === '3' ? Number(sp.wstecz) : 2
+    const html = drzewoHtml(s, id, { wstecz, naprzod: 2, zakres: 'malzonkowie', wTabeli: true, idFigury: 'drzewo-osoby' }, poziom)
     const tytul = nazwaOsoby(o)
     const rodzenstwo = rel.rodzice.flatMap((f) => f.dzieci).filter((c) => c !== id)
+    const ileDzieci = rel.malzenstwa.reduce((a, f) => a + f.dzieci.length, 0)
+    const etMalz = o.plec === 'K' ? 'mąż' : o.plec === 'M' ? 'żona' : 'małżonek'
+    const podsumowanieRodziny = [
+        rel.rodzice.length ? 'rodzice' : '',
+        rodzenstwo.length ? odmiana(rodzenstwo.length, ['rodzeństwo', 'rodzeństwa', 'rodzeństwa']).replace(/^1 rodzeństwo$/, 'brat lub siostra') : '',
+        rel.malzenstwa.length ? (rel.malzenstwa.length > 1 ? `${rel.malzenstwa.length} małżeństwa` : etMalz) : '',
+        ileDzieci ? odmiana(ileDzieci, ['dziecko', 'dzieci', 'dzieci']) : '',
+    ].filter(Boolean).join(' · ')
+    const podpisPortretu = o.portret && [o.portret.podpis, o.portret.zrodlo && `źródło: ${o.portret.zrodlo}`].filter(Boolean).join(' · ')
 
     return (
         <Strona akcje={<CopyLinkButton sciezka={`/osoby/${id}`} />}>
-            <TytulStrony sciezka={[{ tekst: 'osoby', href: '/osoby' }]}>{tytul}</TytulStrony>
-            {(o.inneNazwiska?.length || lataZycia(o)) ? (
-                <p className="text-gray-600 dark:text-gray-400" style={{ marginTop: '-0.6rem' }}>
-                    {lataZycia(o)}{o.inneNazwiska?.length ? `${lataZycia(o) ? ' · ' : ''}${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}` : ''}
-                </p>
-            ) : null}
-
-            {(o.portret || bio) && (
-                <div className={`osoba-wstep${o.portret ? ' z-portretem' : ''}`}>
-                    <div className="flex flex-col" style={{ gap: '1rem', minWidth: 0 }}>
-                        {bio?.lead && <p style={{ fontSize: 'var(--blog-font-size, 18px)', lineHeight: 1.6, margin: 0 }}>{bezNawiasow(bio.lead, kontekst.rozwiaz)}</p>}
-                        {bio?.tresc && <Tresc html={naHtml(bio.tresc, kontekst)} pusta={null} />}
+            <p className="text-gray-600 dark:text-gray-400 lowercase" style={{ fontSize: 'calc(13px * var(--font-scale, 1))', margin: 0 }}>
+                <Link href="/osoby" className="!no-underline hover:underline">osoby</Link> /
+            </p>
+            {/* karta osoby: zdjęcie | imię i nazwisko, lata, z domu, opis */}
+            <div className="osoba-karta z-portretem">
+                {o.portret ? (
+                    <figure className="osoba-portret">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/pliki/osoby/${id}/${o.portret.plik}?w=480`} alt={`${tytul}${o.portret.podpis ? ` – ${o.portret.podpis}` : ''}`} />
+                        {podpisPortretu && <figcaption>{podpisPortretu}</figcaption>}
+                    </figure>
+                ) : (
+                    // bez zdjęcia: puste pole z prośbą – może ktoś z rodziny ma fotografię
+                    <div className="osoba-bez-zdjecia">
+                        <span className="osoba-bez-zdjecia-napis">brak zdjęcia</span>
+                        <span className="osoba-bez-zdjecia-prosba">Masz zdjęcie tej osoby i chcesz je udostępnić?</span>
+                        <Zgloszenie rodzaj="material" adres={`/osoby/${id}`} tytul={`zdjęcie: ${tytul}`} etykieta="skontaktuj się" podpowiedz="Jakie to zdjęcie (kto na nim jest, z którego mniej więcej roku, skąd pochodzi)? Odezwę się i umówimy, jak je przekazać – oryginał zostaje u Ciebie." />
                     </div>
-                    {o.portret && (
-                        <figure className="osoba-portret">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={`/pliki/osoby/${id}/${o.portret.plik}?w=480`} alt={`${tytul}${o.portret.podpis ? ` – ${o.portret.podpis}` : ''}`} />
-                            {(o.portret.podpis || o.portret.zrodlo) && <figcaption>{o.portret.podpis}{o.portret.podpis && o.portret.zrodlo ? ' · ' : ''}{o.portret.zrodlo && <>źródło: {o.portret.zrodlo}</>}</figcaption>}
-                        </figure>
-                    )}
-                </div>
-            )}
-
-            <Sekcja tytul="życie">
-                <div className="flex flex-col">
-                    {wszystkie.map((z) => {
-                        const ob = obrzadki.get(z.id)
-                        return (
-                            <Wiersz key={z.id} etykieta={z.rodzaj === 'inne' ? z.nazwa || 'zdarzenie' : RODZAJE_ZDARZEN[z.rodzaj]}>
-                                <span className="flex flex-col" style={{ gap: 2 }}>
-                                    <span>
-                                        {z.data ? formatujEdtf(z.data) : z.dataTekst}
-                                        {z.miejsce && <>{(z.data || z.dataTekst) && ', '}<Miejsce z={z} /></>}
-                                        {zKim.get(z.id) && <> · z: <Osobka x={zKim.get(z.id)} /></>}
-                                        {ob && <> <Obrz o={ob.obrzadek} wywnioskowany={ob.wywnioskowany} /></>}
-                                    </span>
-                                    {z.chrzestni?.length ? <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: '0.92em' }}>chrzestni: {z.chrzestni.map((c, i) => <span key={i}>{i > 0 && ', '}{c.osoba && s.drzewo.osoby.has(c.osoba) ? <Osobka x={c.osoba} /> : c.tekst}</span>)}</span> : null}
-                                    {z.opis && <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: '0.92em', whiteSpace: 'pre-line' }}>{z.opis}</span>}
-                                </span>
-                            </Wiersz>
-                        )
-                    })}
-                    {pochowki.map((g) => (
-                        <Wiersz key={`${g.slug}/${g.elementId}`} etykieta="grób">
-                            <span className="flex flex-col" style={{ gap: 6 }}>
-                                <span><Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`}>{g.tytul}</Link>{g.numer ? ` – ${g.numer.kwatera ? `kwatera ${g.numer.kwatera}, ` : ''}rząd ${g.numer.rzad}, miejsce ${g.numer.miejsce}` : ''} <Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`} className="text-gray-600 dark:text-gray-400">· pokaż na planie →</Link></span>
-                                {g.zdjecie && (
-                                    <Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`} className="w-fit" title="zdjęcie grobu – pokaż na planie">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={g.zdjecie} alt={`grób: ${tytul}`} loading="lazy" style={{ height: 120, borderRadius: 6, display: 'block', border: '1px solid #d6d1c6' }} />
-                                    </Link>
-                                )}
-                            </span>
-                        </Wiersz>
-                    ))}
-                    {wszystkie.length === 0 && !pochowki.length && <p className="text-gray-500 italic">brak dat i miejsc.</p>}
-                </div>
-                {przebieg.length > 1 && (
-                    <p style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>
-                        obrządek w ciągu życia: {przebieg.map((p, i) => <span key={i}>{i > 0 && ' → '}<Obrz o={p.o} wywnioskowany={p.w} /> <span className="text-gray-600 dark:text-gray-400">({RODZAJE_ZDARZEN[p.z.rodzaj]}{p.z.data ? ` ${formatujEdtf(p.z.data)}` : ''})</span></span>)}
-                    </p>
                 )}
-            </Sekcja>
-
-            <Sekcja tytul="rodzina">
-                <div className="flex flex-col">
-                    {rel.rodzice.map((f) => (
-                        <Wiersz key={f.id} etykieta="rodzice"><span><Osobka x={f.maz} rola="ojciec" /> i <Osobka x={f.zona} rola="matka" /></span></Wiersz>
-                    ))}
-                    {rodzenstwo.length > 0 && <Wiersz etykieta="rodzeństwo"><span className="flex flex-wrap" style={{ gap: '0 0.8rem' }}>{rodzenstwo.map((c) => <Osobka key={c} x={c} />)}</span></Wiersz>}
-                    {rel.malzenstwa.map((f) => {
-                        const sp = f.maz === id ? f.zona : f.maz
-                        return (
-                            <div key={f.id}>
-                                {sp && <Wiersz etykieta={o.plec === 'K' ? 'mąż' : o.plec === 'M' ? 'żona' : 'małżonek'}><Osobka x={sp} /></Wiersz>}
-                                {f.dzieci.length > 0 && <Wiersz etykieta="dzieci"><span className="flex flex-wrap" style={{ gap: '0 0.8rem' }}>{f.dzieci.map((c) => <Osobka key={c} x={c} />)}</span></Wiersz>}
-                            </div>
-                        )
-                    })}
-                    {rel.rodzice.length + rel.malzenstwa.length === 0 && <p className="text-gray-500 italic">rodzina nie została jeszcze wpisana.</p>}
+                <div className="osoba-karta-opis">
+                    <h1 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.75rem * var(--font-scale, 1))', margin: 0 }}>{tytul}</h1>
+                    {(lataZycia(o) || o.inneNazwiska?.length) ? (
+                        <p className="text-gray-600 dark:text-gray-400" style={{ margin: 0 }}>
+                            {lataZycia(o)}{o.inneNazwiska?.length ? `${lataZycia(o) ? ' · ' : ''}${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}` : ''}
+                        </p>
+                    ) : null}
+                    {bio?.lead && <p className="osoba-lead">{bezNawiasow(bio.lead, kontekst.rozwiaz)}</p>}
+                    {bio?.tresc && <Tresc html={naHtml(bio.tresc, kontekst)} pusta={null} />}
                 </div>
-            </Sekcja>
+            </div>
 
-            {html && (
-                <Sekcja tytul="drzewo">
-                    <div dangerouslySetInnerHTML={{ __html: html }} />
-                </Sekcja>
-            )}
+            <div role="table" aria-label={`${tytul} – dane`} className="osoba-tabela">
+                <Naglowek tytul="życie">
+                    {przebieg.length > 1 && <>obrządek {przebieg.map((p, i) => <span key={i}>{i > 0 && ' → '}<Obrz o={p.o} wywnioskowany={p.w} /></span>)}</>}
+                </Naglowek>
+                {wszystkie.map((z) => {
+                    const ob = obrzadki.get(z.id)
+                    return (
+                        <W key={z.id} e={etykietaZdarzenia(z)}>
+                            <span className="flex flex-col" style={{ gap: 2 }}>
+                                <span>
+                                    {z.data ? formatujEdtf(z.data) : z.dataTekst}
+                                    {z.miejsce && <>{(z.data || z.dataTekst) && ', '}<Miejsce z={z} /></>}
+                                    {zKim.get(z.id) && <> · z: <Osobka x={zKim.get(z.id)} /></>}
+                                    {ob && <> <Obrz o={ob.obrzadek} wywnioskowany={ob.wywnioskowany} /></>}
+                                </span>
+                                {z.chrzestni?.length ? <span className="ot-drobne">chrzestni: {z.chrzestni.map((c, i) => <span key={i}>{i > 0 && ', '}{c.osoba && s.drzewo.osoby.has(c.osoba) ? <Osobka x={c.osoba} /> : c.tekst}</span>)}</span> : null}
+                                {z.opis && <span className="ot-drobne" style={{ whiteSpace: 'pre-line' }}>{z.opis}</span>}
+                            </span>
+                        </W>
+                    )
+                })}
+                {pochowki.map((g) => (
+                    <W key={`${g.slug}/${g.elementId}`} e="grób">
+                        <span className="ot-grob">
+                            <span className="flex flex-col" style={{ gap: 4 }}>
+                                <Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`}>{g.tytul}</Link>
+                                <span className="ot-drobne">{g.numer ? `${g.numer.kwatera ? `kwatera ${g.numer.kwatera}, ` : ''}rząd ${g.numer.rzad}, miejsce ${g.numer.miejsce} · ` : ''}<Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`}>pokaż na planie →</Link></span>
+                            </span>
+                            {g.zdjecie && (
+                                <Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`} title="zdjęcie grobu – pokaż na planie">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={g.zdjecie} alt={`grób: ${tytul}`} loading="lazy" />
+                                </Link>
+                            )}
+                        </span>
+                    </W>
+                ))}
+                {wszystkie.length === 0 && !pochowki.length && <W e="—"><span className="text-gray-500">brak dat i miejsc</span></W>}
 
-            {o.notatki && poziom !== 'publiczne' && (
-                <Sekcja tytul="notatki">
-                    <p style={{ whiteSpace: 'pre-line' }}>{o.notatki}</p>
-                </Sekcja>
-            )}
+                <Naglowek tytul="rodzina">{podsumowanieRodziny}</Naglowek>
+                {rel.rodzice.map((f) => (
+                    <W key={f.id} e="rodzice"><span className="ot-osoby"><Osobka x={f.maz} rola="ojciec" /><Osobka x={f.zona} rola="matka" /></span></W>
+                ))}
+                {rodzenstwo.length > 0 && <W e="rodzeństwo"><span className="ot-osoby">{rodzenstwo.map((c) => <Osobka key={c} x={c} />)}</span></W>}
+                {rel.malzenstwa.map((f, i) => {
+                    const mz = f.maz === id ? f.zona : f.maz
+                    const nr = rel.malzenstwa.length > 1 ? ` (${i + 1}°)` : ''
+                    const slub = f.zdarzenia.find((z) => z.rodzaj === 'slub' && z.data)?.data
+                    return (
+                        <React.Fragment key={f.id}>
+                            {mz && <W e={`${etMalz}${nr}`}><span><Osobka x={mz} />{slub && <span className="text-gray-600 dark:text-gray-400"> · ślub {formatujEdtf(slub)}</span>}</span></W>}
+                            {f.dzieci.length > 0 && <W e={`dzieci${nr}`}><span className="ot-osoby">{f.dzieci.map((c) => <Osobka key={c} x={c} />)}</span></W>}
+                        </React.Fragment>
+                    )
+                })}
+                {rel.rodzice.length + rel.malzenstwa.length === 0 && <W e="—"><span className="text-gray-500">rodzina nie została jeszcze wpisana</span></W>}
 
-            {zrodlaUnik.size > 0 && (
-                <Sekcja tytul="źródła">
-                    <ul className="flex flex-col" style={{ gap: 6, fontSize: 'calc(14px * var(--font-scale, 1))' }}>
-                        {[...zrodlaUnik.values()].map((z) => (
-                            <li key={z.tytul}>
-                                {z.tytul}
-                                {z.strony.size > 0 && <span className="text-gray-600 dark:text-gray-400"> – {[...z.strony].join('; ')}</span>}
-                                {[...z.linki].map((l, i) => <span key={l}> · <a href={l} target="_blank" rel="noreferrer">{l.includes('ancestry.com') ? 'rekord w Ancestry' : `link ${i + 1}`} ↗</a></span>)}
-                            </li>
+                {html && (
+                    <>
+                        <Naglowek tytul="drzewo" id="drzewo">
+                            <span className="ot-seg" role="group" aria-label="pokolenia w górę">
+                                <span className="ot-seg-podpis">pokolenia w górę</span>
+                                {[1, 2, 3].map((n) => <Link key={n} href={`/osoby/${id}?wstecz=${n}#drzewo`} aria-current={wstecz === n ? 'true' : undefined} scroll={false}>{n}</Link>)}
+                            </span>
+                            <button type="button" className="ot-przycisk" data-drzewo-pelny="drzewo-osoby">pełny ekran ⤢</button>
+                        </Naglowek>
+                        <div role="row" className="ot-drzewo" dangerouslySetInnerHTML={{ __html: html }} />
+                    </>
+                )}
+
+                {o.notatki && poziom !== 'publiczne' && (
+                    <>
+                        <Naglowek tytul="notatki">tylko dla zalogowanych</Naglowek>
+                        <W e="notatki"><span style={{ whiteSpace: 'pre-line' }}>{o.notatki}</span></W>
+                    </>
+                )}
+
+                {wierszeZrodel.length > 0 && (
+                    <>
+                        <Naglowek tytul="źródła">{odmiana(new Set(wierszeZrodel.flatMap((w) => w.z.map((x) => x.tytul))).size, ['źródło', 'źródła', 'źródeł'])}</Naglowek>
+                        {wierszeZrodel.map((w, i) => (
+                            <W key={i} e={w.e}>
+                                <span className="flex flex-col" style={{ gap: 2 }}>
+                                    {w.z.map((z) => (
+                                        <span key={z.tytul}>
+                                            {z.tytul}
+                                            {z.strony.size > 0 && <span className="text-gray-600 dark:text-gray-400"> – {[...z.strony].join('; ')}</span>}
+                                            {[...z.linki].map((l, j) => <span key={l}> · <a href={l} target="_blank" rel="noreferrer">{l.includes('ancestry.com') ? 'rekord w Ancestry' : `link ${j + 1}`} ↗</a></span>)}
+                                        </span>
+                                    ))}
+                                </span>
+                            </W>
                         ))}
-                    </ul>
-                </Sekcja>
-            )}
+                    </>
+                )}
 
-            {(siec.odnosniki.length > 0 || siec.wzmianki.length > 0) && <Kreski />}
-            <Powiazania dane={siec} />
+                {siec.odnosniki.length > 0 && (
+                    <>
+                        <Naglowek tytul="w archiwum i wpisach">{siec.odnosniki.length}</Naglowek>
+                        {siec.odnosniki.map((z) => (
+                            <W key={`${z.zrodlo.rodzaj}:${z.zrodlo.id}`} e={RODZAJ_POWIAZANIA[z.zrodlo.rodzaj] ?? z.zrodlo.rodzaj}>
+                                <span>
+                                    <Link href={z.zrodlo.adres}>{z.zrodlo.nazwa}</Link>
+                                    {z.fragmenty[0] && <span className="ot-drobne"> · „…{z.fragmenty[0].przed.slice(-60)}<mark className="powiazanie-odnosnik">{z.fragmenty[0].trafienie}</mark>{z.fragmenty[0].po.slice(0, 60)}…”</span>}
+                                </span>
+                            </W>
+                        ))}
+                    </>
+                )}
+            </div>
+
+            <Powiazania dane={{ odnosniki: [], wzmianki: siec.wzmianki }} />
 
             <Zgloszenie rodzaj="poprawka" adres={`/osoby/${id}`} tytul={tytul} />
         </Strona>
