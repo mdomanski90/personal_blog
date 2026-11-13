@@ -851,3 +851,12 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .osoba-bez-zdjecia form,.osoba-bez-zdjecia textarea,.osoba-bez-zdjecia input{width:100%;box-sizing:border-box;text-align:left}
 .dark .osoba-bez-zdjecia{background:#1f2937;border-color:#4b5563}
 .dark .osoba-bez-zdjecia-prosba{color:#d1d5db}
+
+/* wyszukiwarka: filtry (działania – w ramce) i rodzaj wyniku (informacja – sam tekst) */
+.szukaj-filtr{display:inline-flex;align-items:center;min-height:calc(28px * var(--font-scale,1));padding:0 10px;border:1px solid #d6d1c6;border-radius:7px;color:inherit;text-decoration:none!important;background:#fdfcf9}
+.szukaj-filtr:hover{background:var(--muted)}
+.szukaj-filtr[aria-current=true]{border-color:#1d4ed8;color:#1d4ed8;font-weight:700}
+.szukaj-rodzaj{font-size:calc(12px * var(--font-scale,1));color:#6b665c;letter-spacing:.02em}
+.dark .szukaj-filtr{background:transparent;border-color:#4b5563}
+.dark .szukaj-filtr[aria-current=true]{border-color:#7aa2ff;color:#7aa2ff}
+.dark .szukaj-rodzaj{color:#9ca3af}

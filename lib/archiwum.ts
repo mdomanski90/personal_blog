@@ -11,6 +11,7 @@ import { RODZAJE_MATERIALOW } from './materialy'
 import { formatujEdtf, zakresIso } from './edtf'
 import { bezNawiasow, fragment, ODNOSNIK, slownikOdnosnikow, wzorzecWzmianek, znajdzWzmianki, type Cel, type Fragment, type PozycjaSieci, type RodzajCelu, type Rozwiaz } from './odnosniki'
 import { normalizuj, porownajPl } from './tekst'
+import { pasuje, pozycjaTrafienia, przygotujZapytanie, type Zapytanie } from './szukanie'
 import { adresStrony, stronyMaterialu } from './strony-materialow'
 import { JEZYKI, objasnieniaMaterialu, wKolejnosci } from './objasnienia'
 import type { ObjasnienieWidoku } from './objasnienia-widok'
@@ -752,59 +753,95 @@ export async function powiazania(rodzaj: RodzajCelu, id: string, poziom: Widoczn
 
 // ---------- wyszukiwarka ----------
 
+export type RodzajWyniku = 'osoba' | 'miejsce' | 'obiekt' | 'temat' | 'wpis' | 'materiał'
 export interface Wynik {
-    rodzaj: 'miejsce' | 'obiekt' | 'temat' | 'wpis' | 'materiał'
+    rodzaj: RodzajWyniku
+    /** etykieta przy wyniku: osoba, wieś, cerkiew unicka, wpis, dokument… */
+    etykieta: string
     id: string
     tytul: string
     adres: string
     fragment: string
+    /** wynik dołączony przez powiązanie z miejscowością, nie przez sam tekst */
+    przez?: string
 }
 
-function fragmentWokol(tekst: string, fraza: string): string {
-    const norm = normalizuj(tekst)
-    const i = norm.indexOf(fraza)
+function fragmentWokol(tekst: string, z: Zapytanie): string {
+    const i = pozycjaTrafienia(z, tekst)
     if (i < 0) return tekst.slice(0, 160)
-    // normalizuj nie zmienia długości liter, ale skleja odstępy – szukamy przybliżonego miejsca w oryginale
-    const proporcja = tekst.length / Math.max(norm.length, 1)
+    // normalizuj nie zmienia długości liter, ale skleja odstępy – miejsce w oryginale przybliżone
+    const proporcja = tekst.length / Math.max(normalizuj(tekst).length, 1)
     const start = Math.max(0, Math.floor(i * proporcja) - 60)
     return (start > 0 ? '…' : '') + tekst.slice(start, start + 180).trim() + '…'
 }
 
+/**
+ * Wyszukiwarka ogólna: miejscowości, osoby (tylko widoczne dla czytelnika), obiekty, tematy, wpisy, materiały.
+ * Słowa z odmianą (lib/szukanie), bez polskich znaków; przy trafieniu w miejscowość – także to, co jest z nią powiązane.
+ */
 export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wynik[]> {
-    // „w Korczówce”, „z Olszanki” – przyimek pomijamy, formy odmiany są przy nazwach
-    const fraza = normalizuj(zapytanie).replace(/^(w|we|z|ze|do|na|od|po|pod|przy|nad|ku|koło|kolo)\s+(?=\S)/, '')
-    if (fraza.length < 2) return []
+    const z = przygotujZapytanie(zapytanie)
+    if (!z) return []
     const wyniki: (Wynik & { waga: number })[] = []
+    // 3 – nazwa dokładnie taka; 2 – wszystkie słowa w nazwie; 1 – w nazwie i tekście razem
     const ocen = (nazwy: string[], tekst: string) => {
-        if (nazwy.some((n) => normalizuj(n) === fraza)) return 3
-        if (nazwy.some((n) => normalizuj(n).includes(fraza))) return 2
-        if (normalizuj(tekst).includes(fraza)) return 1
+        if (nazwy.some((n) => normalizuj(n) === z.fraza)) return 3
+        if (nazwy.some((n) => normalizuj(n).includes(z.fraza)) || pasuje(z, nazwy.join(' '))) return 2
+        if (pasuje(z, `${nazwy.join(' ')} ${tekst}`)) return 1
         return 0
     }
-    for (const m of await miejsca(poziom)) {
+    const msc = await miejsca(poziom)
+    for (const m of msc) {
         const tekst = bezNawiasow(naTekst(m.opis))
         const waga = ocen([m.nazwa, ...m.inneNazwy, ...m.formy], tekst)
-        if (waga) wyniki.push({ rodzaj: 'miejsce', id: m.id, tytul: m.nazwa, adres: `/miejsca/${m.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : m.inneNazwy.join(', '), waga })
+        if (waga) wyniki.push({ rodzaj: 'miejsce', etykieta: RODZAJE_MIEJSC[m.rodzaj] ?? 'miejscowość', id: m.id, tytul: m.nazwa, adres: `/miejsca/${m.id}`, fragment: waga === 1 ? fragmentWokol(tekst, z) : m.inneNazwy.join(', '), waga: waga + 0.3 })
     }
-    for (const o of await obiekty(poziom)) {
+    // osoby: tylko te, które czytelnik może zobaczyć; imię i nazwisko, inne nazwiska i zapisy, przydomek
+    const { stanOsob } = await import('./osoby/dane')
+    const { nazwaOsoby, lataZycia, zdarzenie } = await import('./osoby/model')
+    const s = await stanOsob()
+    const rozwiaz = slownikOdnosnikow(await pozycjeSieci(poziom))
+    const bio = new Map((await biogramy(poziom)).map((b) => [b.id, bezNawiasow(b.lead, rozwiaz)]))
+    for (const o of s.drzewo.osoby.values()) {
+        if (!widoczne(s.widocznosc(o.id), poziom)) continue
+        const nazwy = [nazwaOsoby(o), `${o.imiona} ${o.nazwisko}`, ...(o.inneNazwiska ?? []).map((n) => `${o.imiona} ${n}`), ...(o.inneZapisy ?? []), ...(o.przydomek ? [o.przydomek] : [])]
+        const waga = ocen(nazwy, bio.get(o.id) ?? '')
+        if (!waga) continue
+        const miejsce = zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce?.split(',')[0] ?? ''
+        wyniki.push({ rodzaj: 'osoba', etykieta: 'osoba', id: o.id, tytul: nazwaOsoby(o), adres: `/osoby/${o.id}`, fragment: [lataZycia(o), miejsce, o.przydomek && `„${o.przydomek}”`, bio.get(o.id)].filter(Boolean).join(' · '), waga })
+    }
+    const obj = await obiekty(poziom)
+    for (const o of obj) {
         const tekst = bezNawiasow(naTekst(o.opis))
         const waga = ocen([o.nazwa, ...o.inneNazwy], tekst)
-        if (waga) wyniki.push({ rodzaj: 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : NAZWY_OBIEKTOW[o.rodzaj] ?? o.rodzaj, waga })
+        if (waga) wyniki.push({ rodzaj: 'obiekt', etykieta: NAZWY_OBIEKTOW[o.rodzaj] ?? 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, z) : '', waga })
     }
-    for (const t of await tematy(poziom)) {
+    const tem = await tematy(poziom)
+    for (const t of tem) {
         const tekst = bezNawiasow(naTekst(t.opis))
         const waga = ocen([t.nazwa, ...t.inneNazwy, ...t.formy], tekst)
-        if (waga) wyniki.push({ rodzaj: 'temat', id: t.id, tytul: t.nazwa, adres: `/tematy/${t.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : t.inneNazwy.join(', '), waga })
+        if (waga) wyniki.push({ rodzaj: 'temat', etykieta: 'temat', id: t.id, tytul: t.nazwa, adres: `/tematy/${t.id}`, fragment: waga === 1 ? fragmentWokol(tekst, z) : t.inneNazwy.join(', '), waga })
     }
-    for (const o of await opowiesci(poziom)) {
+    const wp = await opowiesci(poziom)
+    for (const o of wp) {
         const tekst = bezNawiasow(naTekst(o.tresc))
         const waga = ocen([o.tytul], tekst)
-        if (waga) wyniki.push({ rodzaj: 'wpis', id: o.id, tytul: o.tytul, adres: `/wpisy/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : o.zajawka, waga })
+        if (waga) wyniki.push({ rodzaj: 'wpis', etykieta: 'wpis', id: o.id, tytul: o.tytul, adres: `/wpisy/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, z) : o.zajawka, waga })
     }
-    for (const m of await materialy(poziom)) {
+    const mat = await materialy(poziom)
+    for (const m of mat) {
         const tekst = bezNawiasow(naTekst(m.opis))
-        const waga = ocen([m.nazwa, m.sygnatura], tekst)
-        if (waga) wyniki.push({ rodzaj: 'materiał', id: m.id, tytul: m.nazwa, adres: `/archiwum/${m.id}`, fragment: waga === 1 ? fragmentWokol(tekst, fraza) : RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj, waga })
+        const waga = ocen([m.nazwa, m.sygnatura], `${tekst} ${m.pochodzenie} ${m.tworca}`)
+        if (waga) wyniki.push({ rodzaj: 'materiał', etykieta: RODZAJE_MATERIALOW[m.rodzaj] ?? 'materiał', id: m.id, tytul: m.nazwa, adres: `/archiwum/${m.id}`, fragment: waga === 1 ? fragmentWokol(tekst, z) : [m.czas && formatujEdtf(m.czas), m.pochodzenie].filter(Boolean).join(' · '), waga })
+    }
+    // trafienie w miejscowość: dołącz wpisy, materiały, obiekty i tematy z nią powiązane (jeśli nie ma ich już w wynikach)
+    const znalezione = new Set(wyniki.map((w) => `${w.rodzaj}:${w.id}`))
+    for (const m of msc.filter((x) => wyniki.some((w) => w.rodzaj === 'miejsce' && w.id === x.id && w.waga >= 2))) {
+        const dodaj = (w: Wynik) => { const k = `${w.rodzaj}:${w.id}`; if (!znalezione.has(k)) { znalezione.add(k); wyniki.push({ ...w, przez: m.nazwa, waga: 0.5 }) } }
+        for (const o of wp) if (o.miejsca.includes(m.id)) dodaj({ rodzaj: 'wpis', etykieta: 'wpis', id: o.id, tytul: o.tytul, adres: `/wpisy/${o.id}`, fragment: o.zajawka })
+        for (const x of mat) if (x.miejsca.includes(m.id)) dodaj({ rodzaj: 'materiał', etykieta: RODZAJE_MATERIALOW[x.rodzaj] ?? 'materiał', id: x.id, tytul: x.nazwa, adres: `/archiwum/${x.id}`, fragment: [x.czas && formatujEdtf(x.czas), x.pochodzenie].filter(Boolean).join(' · ') })
+        for (const o of obj) if (o.miejsce === m.id) dodaj({ rodzaj: 'obiekt', etykieta: NAZWY_OBIEKTOW[o.rodzaj] ?? 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: '' })
+        for (const t of tem) if (t.miejsca.includes(m.id)) dodaj({ rodzaj: 'temat', etykieta: 'temat', id: t.id, tytul: t.nazwa, adres: `/tematy/${t.id}`, fragment: '' })
     }
     return wyniki.sort((a, b) => b.waga - a.waga || porownajPl(a.tytul, b.tytul))
 }
