@@ -778,3 +778,27 @@ const wszystkieHasla = cache(async (): Promise<Haslo[]> => {
 export async function hasla(poziom: Widocznosc): Promise<Haslo[]> {
     return (await wszystkieHasla()).filter((h) => widoczne(h.widocznosc, poziom))
 }
+
+/** Pozycja do losowej karty na stronie głównej. */
+export interface PozycjaLosowa { klucz: string; rodzaj: string; tytul: string; href: string; tekst: string; zdjecie?: string }
+
+/** Publiczne miejsca, obiekty i tematy z opisem – do „wylosuj” na stronie głównej (osoby z biogramem dokłada strona). */
+export async function pozycjeLosowe(): Promise<PozycjaLosowa[]> {
+    const poziom: Widocznosc = 'publiczne'
+    const rozwiaz = slownikOdnosnikow(await pozycjeSieci(poziom))
+    const wyn: PozycjaLosowa[] = []
+    const opis = (n: Node | null) => zajawka(n, 260, rozwiaz).trim()
+    for (const m of await miejsca(poziom)) {
+        const t = opis(m.opis)
+        if (t.length > 40) wyn.push({ klucz: `miejsce:${m.id}`, rodzaj: RODZAJE_MIEJSC[m.rodzaj] ?? 'miejscowość', tytul: m.nazwa, href: `/miejsca/${m.id}`, tekst: t })
+    }
+    for (const o of await obiekty(poziom)) {
+        const t = opis(o.opis)
+        if (t.length > 40) wyn.push({ klucz: `obiekt:${o.id}`, rodzaj: `w terenie · ${NAZWY_OBIEKTOW[o.rodzaj] ?? o.rodzaj}`, tytul: o.nazwa, href: `/obiekty/${o.id}`, tekst: t, zdjecie: o.zdjecia[0]?.plik })
+    }
+    for (const tm of await tematy(poziom)) {
+        const t = opis(tm.opis)
+        if (t.length > 40) wyn.push({ klucz: `temat:${tm.id}`, rodzaj: `temat · ${RODZAJE_TEMATOW[tm.rodzaj] ?? tm.rodzaj}`, tytul: tm.nazwa, href: `/tematy/${tm.id}`, tekst: t })
+    }
+    return wyn
+}
