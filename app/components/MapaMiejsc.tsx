@@ -145,6 +145,10 @@ export default function MapaMiejsc({
             cooperativeGestures: true,
         })
         m.addControl(new NavigationControl({ showCompass: false }), 'top-left')
+        // informacja o źródle mapy domyślnie zwinięta (ikonka ⓘ); MapLibre rozwija ją przy starcie
+        const zwin = () => kontener.current?.querySelectorAll('.maplibregl-ctrl-attrib.maplibregl-compact-show').forEach((e) => { e.classList.remove('maplibregl-compact-show'); e.removeAttribute('open') })
+        m.once('load', zwin)
+        m.once('idle', zwin)
         let zapisany: { c: [number, number]; z: number; r?: number | null } | null = null
         try {
             if (zapamietaj) zapisany = JSON.parse(sessionStorage.getItem(zapamietaj) ?? 'null')

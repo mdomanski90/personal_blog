@@ -1052,3 +1052,9 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .szt-tresc .post-content .zrodlo-tresc{padding:0}
 /* mała mapa w nagłówku karty: bez filtrów (zasłaniały mapę); na pełnym ekranie filtry wracają */
 .karta-mapa-ramka:not(.widok-pelny) .mapa-filtry{display:none}
+/* okno „z archiwum”: miniatura na całą wysokość, „obejrzyj” na równi z dołem miniatury */
+.kl-srodek{align-items:stretch}
+.kl-mini{max-height:none;height:auto}
+.kl-tekst{height:100%}
+/* wstęp: odnośniki „o projekcie”, „jak przekazać” na równi z dołem okna „z archiwum” */
+@media (min-width:860px){.glowna-wstep.z-oknem{align-items:stretch}.glowna-wstep.z-oknem>div:first-child>span:last-child{margin-top:auto}}
