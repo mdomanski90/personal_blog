@@ -292,6 +292,8 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
         class: `drzewo${op.wTabeli ? ' dr-w-tabeli' : ''}`, 'data-osoba': id, ...(op.idFigury ? { id: op.idFigury } : {}),
         'data-wstecz': String(wstecz), 'data-naprzod': String(naprzod), 'data-zakres': op.zakres,
         'data-wiecej-wstecz': wiecejWstecz ? '1' : '0', 'data-wiecej-naprzod': wiecejNaprzod ? '1' : '0',
+        // ile rodzeństwa osoby jest w drzewie (przycisk „pokaż rodzeństwo” na pełnym ekranie)
+        'data-rodzenstwo': String(rodzinaGl ? rodzinaGl.dzieci.filter((c) => c !== id && jest(c)).length : 0),
     }, [klepsydra, tekst])
 }
 
