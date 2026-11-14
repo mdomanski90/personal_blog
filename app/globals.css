@@ -1050,3 +1050,5 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .szt-tresc .post-content .zrodlo{border:0;margin:0;background:transparent}
 .szt-tresc .post-content .zrodlo-naglowek{display:none}
 .szt-tresc .post-content .zrodlo-tresc{padding:0}
+/* mała mapa w nagłówku karty: bez filtrów (zasłaniały mapę); na pełnym ekranie filtry wracają */
+.karta-mapa-ramka:not(.widok-pelny) .mapa-filtry{display:none}

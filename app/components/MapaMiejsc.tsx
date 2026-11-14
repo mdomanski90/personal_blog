@@ -530,7 +530,7 @@ export default function MapaMiejsc({
     return (
         <div className="flex flex-col" style={{ gap: 6, height: wypelnij ? wysokosc : undefined }}>
             {(grupy.length > 0 || (planyGeo?.length ?? 0) > 0) && (
-                <div className="flex flex-wrap items-center" style={{ gap: '6px 12px', fontSize: 'calc(13px * var(--font-scale, 1))' }}>
+                <div className="mapa-filtry flex flex-wrap items-center" style={{ gap: '6px 12px', fontSize: 'calc(13px * var(--font-scale, 1))' }}>
                     <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1, paddingTop: 1 }} role="group" aria-label="pokaż na mapie tylko">
                         {grupy.length > 1 && (
                             <button
