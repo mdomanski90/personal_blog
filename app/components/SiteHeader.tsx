@@ -2,14 +2,15 @@
 import * as React from 'react'
 
 import { Link } from 'next-view-transitions'
-import { usePathname, useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { Suspense } from 'react'
 import ThemeToggle from './ThemeToggle'
 import Logowanie from './Logowanie'
 import Emblemat from './Emblemat'
 import Wroc from './Wroc'
+import Wyszukiwarka from './Wyszukiwarka'
 
-// Menu główne (docelowe). Na telefonie zwinięte pod jednym przyciskiem.
+// Menu główne: zakładki teczki stojące na linii w kolorze atramentu; na telefonie siatka w dwóch kolumnach.
 const MENU: { href: string; tekst: string }[] = [
     { href: '/', tekst: 'strona główna' },
     { href: '/wpisy', tekst: 'wpisy' },
@@ -21,22 +22,11 @@ const MENU: { href: string; tekst: string }[] = [
     { href: '/o-projekcie', tekst: 'o projekcie' },
 ]
 
-const linkStyl = {
-    fontSize: '14px',
-    height: '25px',
-    padding: '0 10px',
-    display: 'flex',
-    alignItems: 'center',
-    textTransform: 'lowercase' as const,
-}
-
 function aktywny(pathname: string | null, href: string) {
     if (!pathname) return false
     if (href === '/') return pathname === '/'
     return pathname === href || pathname.startsWith(href + '/')
 }
-
-const RAMKA = 'border-[#d6d1c6] dark:border-[#4b5563]'
 
 // Dwie rzeki – Toczna i Liwiec – dwie spokojne fale tą samą kreską co emblemat (currentColor).
 // Płyną obok siebie, nie łączą się (obie uchodzą osobno do Bugu).
@@ -49,40 +39,16 @@ function Fale() {
     )
 }
 
-function Wyszukiwarka() {
-    const params = useSearchParams()
-    return (
-        <form
-            action="/szukaj"
-            method="get"
-            role="search"
-            className={`flex items-stretch flex-1 min-w-0 sm:flex-none sm:ml-auto overflow-hidden border ${RAMKA}`}
-            style={{ borderRadius: '7px' }}
-        >
-            <button type="submit" className="bg-muted lowercase whitespace-nowrap text-current" style={{ ...linkStyl, height: 'auto', border: 0, cursor: 'pointer', font: 'inherit', fontSize: '14px' }}>szukaj</button>
-            <input
-                id="szukaj-q"
-                aria-label="szukaj na stronie"
-                name="q"
-                type="search"
-                defaultValue={params?.get('q') ?? ''}
-                placeholder="np. Olszanka, bieżeństwo"
-                className={`flex-1 min-w-0 sm:flex-none sm:w-64 bg-transparent text-current border-0 border-l ${RAMKA} outline-none`}
-                style={{ fontSize: '14px', height: '28px', padding: '0 10px' }}
-            />
-        </form>
-    )
-}
-
 export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) {
     const pathname = usePathname()
-    const [otwarte, setOtwarte] = useState(false)
-    useEffect(() => setOtwarte(false), [pathname])
-    const biezacy = MENU.find((m) => aktywny(pathname, m.href))?.tekst ?? 'menu'
+    const glowna = pathname === '/'
 
     return (
         <header>
-            <div className="flex items-center justify-between" style={{ gap: '0.5rem 1rem' }}>
+            {/* niewidoczny, dopóki nie dojdzie się do niego klawiszem Tab */}
+            <a href={glowna ? '#wysz-start' : '#tresc'} className="pomin-do-tresci">przejdź do treści</a>
+            {/* na telefonie przyciski (zaloguj, motyw, A−/A+) nad tytułem, na szerszym ekranie obok */}
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between" style={{ gap: '0.75rem 1rem' }}>
                 <div className="min-w-0 flex items-end" style={{ gap: '14px' }}>
                     <Link href="/" className="!no-underline text-current shrink-0 naglowek-emblemat" aria-label="odniepamieci.pl – strona główna">
                         <Emblemat rozmiar={100} />
@@ -102,61 +68,33 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
                     </p>
                     </div>
                 </div>
-                {/* na szerszym ekranie przyciski obok tytułu, na telefonie w linii z wyszukiwarką */}
-                <div className="hidden sm:flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center justify-end gap-2">
                     <Logowanie />
                     <ThemeToggle />
                 </div>
             </div>
 
-            <nav aria-label="menu główne" style={{ marginTop: '1.6rem' }}>
-                {/* telefon: jeden przycisk z nazwą bieżącego działu, po kliknięciu pełna lista */}
-                <div className="sm:hidden flex items-center justify-between gap-2" style={{ marginBottom: otwarte ? 6 : 0 }}>
-                <button
-                    type="button"
-                    className={`border ${RAMKA} bg-muted text-current cursor-pointer`}
-                    style={{ ...linkStyl, fontWeight: 700, fontFamily: 'inherit' }}
-                    aria-expanded={otwarte}
-                    aria-controls="menu-glowne"
-                    onClick={() => setOtwarte((o) => !o)}
-                >
-                    {biezacy} {otwarte ? '▴' : '▾'}
-                </button>
-                <Logowanie />
-                </div>
-                {/* każda pozycja ma pełną ramkę, a sąsiednie nachodzą na siebie o 1px –
-                    po zawinięciu do drugiej linii kreski się nie dublują i nie zostaje pusta ramka */}
-                <div id="menu-glowne" className={`${otwarte ? 'flex flex-col sm:flex-row' : 'hidden'} sm:flex flex-wrap w-fit`} style={{ paddingLeft: 1, paddingTop: 1 }}>
-                    {MENU.map((m) => {
-                        const akt = aktywny(pathname, m.href)
-                        return (
-                            <Link
-                                key={m.href}
-                                href={m.href}
-                                aria-current={akt ? 'page' : undefined}
-                                style={{ ...linkStyl, fontWeight: akt ? 700 : 400, margin: '-1px 0 0 -1px' }}
-                                className={`${akt ? 'bg-muted text-accent-foreground' : 'text-current hover:opacity-80 transition-opacity'} whitespace-nowrap !no-underline border ${RAMKA}`}
-                            >
-                                {m.tekst}
-                            </Link>
-                        )
-                    })}
-                </div>
+            <nav aria-label="menu główne" className="menu-zakladki">
+                {MENU.map((m) => {
+                    const akt = aktywny(pathname, m.href)
+                    return (
+                        <Link key={m.href} href={m.href} aria-current={akt ? 'page' : undefined} className="zakladka">
+                            {m.tekst}
+                        </Link>
+                    )
+                })}
             </nav>
 
-            <div className="whitespace-nowrap overflow-hidden opacity-50" aria-hidden="true">
-                ------------------------------------------------------------------------------------------------------
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2" style={{ marginTop: '0.75rem' }}>
-                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto empty:hidden"><Wroc />{akcje}</div>
-                <Suspense fallback={<div className="flex-1" style={{ height: 30 }} />}>
-                    <Wyszukiwarka />
-                </Suspense>
-                <div className="sm:hidden shrink-0 flex items-center gap-2">
-                    <ThemeToggle />
+            {glowna ? (
+                <div id="wysz-start" tabIndex={-1} style={{ marginTop: '1.25rem' }}>
+                    <Suspense fallback={<div style={{ height: 50 }} />}><Wyszukiwarka wariant="duzy" /></Suspense>
                 </div>
-            </div>
+            ) : (
+                <div className="flex flex-wrap items-center gap-2" style={{ marginTop: '1rem' }}>
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto empty:hidden"><Wroc />{akcje}</div>
+                    <Suspense fallback={<div className="flex-1" style={{ height: 30 }} />}><Wyszukiwarka /></Suspense>
+                </div>
+            )}
         </header>
     )
 }

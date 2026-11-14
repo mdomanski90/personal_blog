@@ -117,7 +117,7 @@ export default function ObjasnieniaMaterialu() {
                 drawingMode: 'drag',
                 disableUndoRedoKeys: true,
                 userSelectAction: 'EDIT' as never,
-                style: { fill: '#1d4ed8', fillOpacity: 0.08, stroke: '#1d4ed8', strokeOpacity: 0.95, strokeWidth: 2 },
+                style: { fill: '#4c3cc4', fillOpacity: 0.08, stroke: '#4c3cc4', strokeOpacity: 0.95, strokeWidth: 2 },
             })
             a.setDrawingTool('rectangle')
             a.on('createAnnotation', (x) => {

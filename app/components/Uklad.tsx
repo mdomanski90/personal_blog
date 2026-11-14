@@ -30,7 +30,7 @@ export function Strona({ children, szeroka = false, akcje }: { children: React.R
                     <div style={szeroka ? { maxWidth: '52rem', margin: '0 auto' } : undefined}>
                         <SiteHeader akcje={akcje} />
                     </div>
-                    {children}
+                    <main id="tresc" tabIndex={-1} className="space-y-6 outline-none">{children}</main>
                     <ImageZoom />
                     <DokumentyWTresci />
                     <DrzewaLinie />
@@ -131,10 +131,12 @@ export function Wiersz({ etykieta, children }: { etykieta: string; children: Rea
     )
 }
 
-/** Data publikacji wpisu z nazwą dnia tygodnia (jak dotąd na stronie). */
-export function dataZDniem(iso: string | null): string {
+const MIESIACE = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia']
+
+/** Data publikacji wpisu słownie: „4 lutego 2026” (bez dnia tygodnia; niezależnie od ustawień serwera). */
+export function dataWpisu(iso: string | null): string {
     if (!iso) return 'brak daty'
-    const d = new Date(iso + 'T12:00:00')
-    const dni = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota']
-    return `${dni[d.getDay()]}, ${d.toLocaleDateString('pl-PL')}`
+    const [r, m, d] = iso.slice(0, 10).split('-').map(Number)
+    if (!r || !m || !d || m > 12) return iso
+    return `${d} ${MIESIACE[m - 1]} ${r}`
 }

@@ -1,25 +1,18 @@
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
 import type { Opowiesc } from '@/lib/archiwum'
-import { RODZAJE_OPOWIESCI } from '@/lib/archiwum'
-import { Kreski, Metki, dataZDniem } from './Uklad'
+import { Kreski } from './Uklad'
+import { LiniaWpisu } from './MetkiWpisu'
 
-/** Lista wpisów: data · rodzaj · miejsca, tytuł, zajawka i odnośnik do całości. */
+/** Lista wpisów: data · rodzaj · miejsca (spokojna linia), tytuł, zajawka i odnośnik do całości. */
 export default function ListaOpowiesci({ opowiesci, nazwyMiejsc }: { opowiesci: Opowiesc[]; nazwyMiejsc: Map<string, string> }) {
     if (!opowiesci.length) return <p className="text-gray-500 italic lowercase">brak wpisów.</p>
     return (
         <div className="flex flex-col" style={{ gap: 'calc(1.5rem * var(--font-scale, 1))' }}>
             {opowiesci.map((o) => {
-                const miejsca = o.miejsca.filter((id) => nazwyMiejsc.has(id))
                 return (
                     <article key={o.id} className="flex flex-col" style={{ gap: 'calc(0.4rem * var(--font-scale, 1))' }}>
-                        <Metki
-                            elementy={[
-                                dataZDniem(o.data),
-                                RODZAJE_OPOWIESCI[o.rodzaj] ?? o.rodzaj,
-                                miejsca.length ? nazwyMiejsc.get(miejsca[0]) + (miejsca.length > 1 ? ` +${miejsca.length - 1}` : '') : null,
-                            ]}
-                        />
+                        <LiniaWpisu wpis={o} nazwy={{ miejsca: nazwyMiejsc }} ileMiejsc={3} />
                         <h2 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }}>
                             <Link href={`/wpisy/${o.id}`} className="!no-underline hover:underline">{o.tytul}</Link>
                         </h2>

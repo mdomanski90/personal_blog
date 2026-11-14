@@ -328,7 +328,7 @@ function Legenda({ uzyte, prefix, wylaczone, przelacz, wszystkie, rodzina }: { u
         <details className="plan-legenda flex flex-col" style={{ gap: 6 }}>
             <summary className="flex items-baseline" style={{ gap: 12 }}>
                 <span className="plan-legenda-tytul">legenda</span>
-                {wylaczone.size > 0 && <button type="button" onClick={(e) => { e.preventDefault(); wszystkie() }} className="plan-bez-druku text-[#1d4ed8] dark:text-[#7aa2ff]" style={{ fontSize: 12, background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>pokaż wszystko</button>}
+                {wylaczone.size > 0 && <button type="button" onClick={(e) => { e.preventDefault(); wszystkie() }} className="plan-bez-druku text-[#4c3cc4] dark:text-[#a597ff]" style={{ fontSize: 12, background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>pokaż wszystko</button>}
             </summary>
             <span className="plan-bez-druku text-gray-500" style={{ fontSize: 11, marginTop: 6 }}>kliknij, żeby ukryć albo pokazać</span>
             <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(13rem, 1fr))', gap: '4px 16px', marginTop: 6 }}>

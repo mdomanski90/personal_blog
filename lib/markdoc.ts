@@ -180,7 +180,13 @@ export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string): Tag {
         const ile = n === 1 ? '' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? `${n} strony` : `${n} stron`
         const opis: RenderableTreeNode[] = [new Tag('a', { href: adres }, [podpis || m.nazwa]), ' · ', new Tag('button', { type: 'button', class: 'dok-otworz' }, [ile ? `przeglądaj ${ile} ⤢` : 'powiększ ⤢'])]
         return new Tag('figure', { class: 'material-wstawka', 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony, ...(m.objasnienia?.length ? { objasnienia: m.objasnienia } : {}) }) }, [
-            new Tag('img', { src: obraz, alt: podpis || m.nazwa, loading: 'lazy', decoding: 'async', class: 'rounded-none w-full', 'data-dokument-img': '' }),
+            // wysoki (pionowy) skan pokazany do pewnej wysokości; DokumentyWTresci dodaje cieniowanie i przycisk,
+            // gdy obraz faktycznie jest dłuższy od kadru
+            new Tag('span', { class: 'dok-kadr' }, [
+                new Tag('img', { src: obraz, alt: podpis || m.nazwa, loading: 'lazy', decoding: 'async', class: 'rounded-none w-full', 'data-dokument-img': '' }),
+                new Tag('span', { class: 'dok-kadr-cien', 'aria-hidden': 'true' }, []),
+                new Tag('button', { type: 'button', class: 'dok-otworz dok-kadr-przycisk', tabindex: '-1' }, ['obejrzyj cały dokument ⤢']),
+            ]),
             new Tag('figcaption', {}, opis),
         ])
     }

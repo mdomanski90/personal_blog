@@ -20,7 +20,20 @@ export default function DokumentyWTresci() {
             try { ustawOtwarty(JSON.parse(fig.dataset.dokument ?? '')) } catch { /* uszkodzone dane – nic */ }
         }
         document.addEventListener('click', klik)
-        return () => document.removeEventListener('click', klik)
+        // kadr wysokich skanów: cieniowanie i „obejrzyj cały dokument” tylko wtedy, gdy obraz wystaje poza kadr
+        const sprawdz = () => document.querySelectorAll<HTMLElement>('.dok-kadr').forEach((k) => {
+            const img = k.querySelector('img')
+            k.classList.toggle('przyciety', !!img && img.getBoundingClientRect().height > k.clientHeight + 2)
+        })
+        const obrazy = [...document.querySelectorAll<HTMLImageElement>('.dok-kadr img')]
+        obrazy.forEach((img) => img.addEventListener('load', sprawdz))
+        sprawdz()
+        window.addEventListener('resize', sprawdz)
+        return () => {
+            document.removeEventListener('click', klik)
+            obrazy.forEach((img) => img.removeEventListener('load', sprawdz))
+            window.removeEventListener('resize', sprawdz)
+        }
     }, [])
     if (!otwarty) return null
     return createPortal(<PrzegladarkaDokumentu strony={otwarty.strony} objasnienia={otwarty.objasnienia} tytul={otwarty.tytul} pelnyNaStart onZamknij={() => ustawOtwarty(null)} />, document.body)

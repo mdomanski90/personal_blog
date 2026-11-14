@@ -22,6 +22,7 @@ function pytaniePoprawki(adres: string): string {
 export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk', etykieta, podpowiedz }: { rodzaj: keyof typeof OPISY; adres: string; tytul: string; wariant?: 'przycisk' | 'link'; etykieta?: string; podpowiedz?: string }) {
     const [stan, ustawStan] = React.useState<'zamkniety' | 'otwarty' | 'wysylanie' | 'wyslany' | 'blad'>('zamkniety')
     const [tresc, ustawTresc] = React.useState('')
+    const idPola = `zg-${React.useId()}`
     const [kontakt, ustawKontakt] = React.useState('')
     const wyslij = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -33,12 +34,12 @@ export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk',
     if (stan === 'wyslany') return <p role="status" className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>Dziękuję – zgłoszenie trafiło do redakcji. Nic nie pojawi się na stronie bez sprawdzenia{kontakt.trim() ? '; odezwiemy się pod podany kontakt' : ''}.</p>
     if (stan === 'zamkniety')
         return wariant === 'link'
-            ? <button type="button" onClick={() => ustawStan('otwarty')} className="underline text-current" style={{ font: 'inherit', background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>{etykieta ?? OPISY[rodzaj].przycisk}</button>
+            ? <button type="button" onClick={() => ustawStan('otwarty')} className="odn" style={{ font: 'inherit', background: 'none', border: 0, padding: 0, cursor: 'pointer', textAlign: 'left' }}>{etykieta ?? OPISY[rodzaj].przycisk}</button>
             : <button type="button" onClick={() => ustawStan('otwarty')} className={`${RAMKA} lowercase hover:bg-muted rounded-[7px]`} style={{ minHeight: 'calc(28px * var(--font-scale, 1))', maxWidth: '100%', padding: '2px 10px', fontSize: 'calc(14px * var(--font-scale, 1))', whiteSpace: 'normal', textAlign: 'left' }}>{etykieta ?? OPISY[rodzaj].przycisk}</button>
     return (
         <form onSubmit={wyslij} className="flex flex-col w-full" style={{ gap: 8, maxWidth: '36rem' }}>
-            <label className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }} htmlFor={`zg-${rodzaj}`}>{podpowiedz ?? (rodzaj === 'poprawka' ? pytaniePoprawki(adres) : OPISY[rodzaj].podpowiedz)} <span className="block" style={{ fontSize: '0.92em' }}>Zgłoszenie trafia do redakcji – nie jest publikowane automatycznie.</span></label>
-            <textarea id={`zg-${rodzaj}`} required minLength={3} maxLength={4000} rows={4} value={tresc} onChange={(e) => ustawTresc(e.target.value)} className={RAMKA} style={pole} />
+            <label className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }} htmlFor={idPola}>{podpowiedz ?? (rodzaj === 'poprawka' ? pytaniePoprawki(adres) : OPISY[rodzaj].podpowiedz)} <span className="block" style={{ fontSize: '0.92em' }}>Zgłoszenie trafia do redakcji – nie jest publikowane automatycznie.</span></label>
+            <textarea id={idPola} autoFocus required minLength={3} maxLength={4000} rows={4} value={tresc} onChange={(e) => ustawTresc(e.target.value)} className={RAMKA} style={pole} />
             <input value={kontakt} onChange={(e) => ustawKontakt(e.target.value)} maxLength={200} placeholder="kontakt do Ciebie (nieobowiązkowy, nie będzie pokazany)" className={RAMKA} style={pole} />
             <div className="flex items-center" style={{ gap: 10 }}>
                 <button type="submit" disabled={stan === 'wysylanie'} className={`${RAMKA} bg-muted rounded-[7px] lowercase`} style={{ height: 'calc(28px * var(--font-scale, 1))', padding: '0 12px', fontSize: 'calc(14px * var(--font-scale, 1))' }}>{stan === 'wysylanie' ? 'wysyłam…' : 'wyślij'}</button>
