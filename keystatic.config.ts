@@ -144,6 +144,15 @@ const opisMarkdoc = (etykieta: string, katalog: string) =>
     components: komponenty,
   });
 
+
+/** Źródła karty: każde osobno, pokazywane na dole strony jako numerowana lista. */
+const zrodlaKarty = () =>
+  fields.array(fields.text({ label: 'Źródło', multiline: true }), {
+    label: 'Źródła',
+    description: 'Każde źródło osobno: archiwum, zespół i sygnatura; publikacja z autorem, rokiem i stroną; relacja (kto, kiedy). Pokazywane na dole karty, numerowane. Adresy zamieniają się w odnośniki.',
+    itemLabel: (p) => (p.value || 'źródło').slice(0, 80),
+  })
+
 export default config({
   storage: {
     kind: 'local',
@@ -257,6 +266,7 @@ export default config({
         visibility: widocznosc(),
         note: notatka(),
         dateSubmitted: dodano(),
+        sources: zrodlaKarty(),
         descriptionSource: fields.text({ label: 'Źródło opisu', description: 'Np. „na podstawie: Wikipedia, hasło Olszanka (powiat łosicki), CC BY-SA 4.0 – https://pl.wikipedia.org/wiki/…”. Adresy zamieniają się w odnośniki.', multiline: true }),
         description: opisMarkdoc('Historia i opis', 'miejsca'),
       },
@@ -285,6 +295,7 @@ export default config({
         visibility: widocznosc(),
         note: notatka(),
         dateSubmitted: dodano(),
+        sources: zrodlaKarty(),
         description: opisMarkdoc('Opis', 'tematy'),
       },
     }),
@@ -329,6 +340,7 @@ export default config({
         visibility: widocznosc(),
         note: notatka(),
         dateSubmitted: dodano(),
+        sources: zrodlaKarty(),
         description: opisMarkdoc('Opis i historia', 'obiekty'),
       },
     }),
@@ -374,6 +386,7 @@ export default config({
         }),
         note: notatka(),
         dateSubmitted: dodano(),
+        sources: zrodlaKarty(),
         description: opisMarkdoc('Opis, transkrypcja, tłumaczenie', 'materialy'),
       },
     }),

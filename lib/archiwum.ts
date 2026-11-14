@@ -69,6 +69,8 @@ export interface Miejsce {
     dodano: string | null
     /** skąd pochodzi opis (np. Wikipedia, CC BY-SA) */
     zrodloOpisu: string
+    /** źródła karty (pole „Źródła” w panelu) – pokazywane na dole, numerowane */
+    zrodla: string[]
     opis: Node | null
 }
 
@@ -115,6 +117,7 @@ export interface Temat {
     miejsca: string[]
     widocznosc: Widocznosc
     dodano: string | null
+    zrodla: string[]
     opis: Node | null
 }
 
@@ -155,6 +158,7 @@ export interface Obiekt {
     dodano: string | null
     opis: Node | null
     zdjecia: ZdjecieObiektu[]
+    zrodla: string[]
 }
 export interface ZdjecieObiektu { plik: string; podpis: string; data: string; autor: string; prawa: string }
 export { RODZAJE_MATERIALOW }
@@ -182,6 +186,7 @@ export interface Material {
     obiekty: string[]
     widocznosc: Widocznosc
     dodano: string | null
+    zrodla: string[]
     opis: Node | null
 }
 
@@ -221,6 +226,7 @@ const wszystkieMiejscaSurowe = cache(async (): Promise<Miejsce[]> => {
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
             zrodloOpisu: entry.descriptionSource ?? '',
+            zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             opis: entry.description?.node ?? null,
         }))
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
@@ -319,6 +325,7 @@ const wszystkieTematySurowe = cache(async (): Promise<Temat[]> => {
             miejsca: [...entry.spatial],
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
+            zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             opis: entry.description?.node ?? null,
         }))
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
@@ -339,6 +346,7 @@ const wszystkieObiektySurowe = cache(async (): Promise<Obiekt[]> => {
             istnieje: entry.exists,
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
+            zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             opis: entry.description?.node ?? null,
             zdjecia: (entry.photos ?? []).filter((z) => z.image).map((z) => ({ plik: String(z.image), podpis: z.caption, data: z.date, autor: z.creator, prawa: z.rights })),
         }))
@@ -373,6 +381,7 @@ const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
             obiekty: [...entry.relation].filter(Boolean) as string[],
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
+            zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             opis: entry.description?.node ?? null,
         }))
         .sort((a, b) => kluczSortowania(a.czas) - kluczSortowania(b.czas) || porownajPl(a.nazwa, b.nazwa))

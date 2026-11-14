@@ -19,16 +19,17 @@ function pobierz(nazwa: string, tresc: string, typ: string) {
     window.setTimeout(() => URL.revokeObjectURL(a.href), 4000)
 }
 
-export default function JakCytowac({ dane, plik }: { dane: DaneCytatu; plik: string }) {
+/** wTabeli – wiersz w tabeli karty (nagłówek „jak cytować” daje tabela), bez własnej ramki. */
+export default function JakCytowac({ dane, plik, wTabeli = false }: { dane: DaneCytatu; plik: string; wTabeli?: boolean }) {
     const [skopiowano, ustaw] = React.useState(false)
     const tekst = opisCytatu(dane)
     const iso = new Date().toISOString().slice(0, 10)
     const bib = `@misc{${plik},\n  title = {${dane.tytul}},\n  howpublished = {${SERWIS}},\n  note = {oprac. ${dane.opracowal}${dane.oryginal ? `; oryginał: ${dane.oryginal}` : ''}},\n  ${dane.rok ? `year = {${dane.rok}},\n  ` : ''}url = {${dane.adres}},\n  urldate = {${iso}}\n}\n`
     const ris = [`TY  - ${dane.rodzaj === 'wpis' ? 'BLOG' : 'GEN'}`, `TI  - ${dane.tytul}`, ...(dane.autor ? [`AU  - ${dane.autor}`] : []), `A2  - ${dane.opracowal}`, ...(dane.rok ? [`PY  - ${dane.rok}`] : []), `T2  - ${SERWIS}`, `UR  - ${dane.adres}`, `Y2  - ${iso}`, ...(dane.oryginal ? [`N1  - Oryginał: ${dane.oryginal}`] : []), 'ER  - ', ''].join('\r\n')
     return (
-        <div className="border border-[#d6d1c6] dark:border-[#4b5563] rounded-[8px] flex flex-col" style={{ padding: 12, gap: 8 }}>
-            <div className="flex items-center justify-between" style={{ gap: 8 }}>
-                <b className="lowercase" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>jak cytować</b>
+        <div className={wTabeli ? 'flex flex-col' : 'border border-[#d6d1c6] dark:border-[#4b5563] rounded-[8px] flex flex-col'} style={{ padding: wTabeli ? 0 : 12, gap: 8 }}>
+            <div className="flex items-center justify-between" style={{ gap: 8, ...(wTabeli ? { order: 2, justifyContent: 'flex-start' } : {}) }}>
+                {!wTabeli && <b className="lowercase" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>jak cytować</b>}
                 <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(tekst); ustaw(true); window.setTimeout(() => ustaw(false), 2000) } catch {} }}
                     className="border border-[#d6d1c6] dark:border-[#4b5563] rounded-[7px] lowercase" style={{ height: 'calc(26px * var(--font-scale, 1))', padding: '0 10px', fontSize: 'calc(13px * var(--font-scale, 1))', background: 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit' }}>{skopiowano ? 'skopiowano ✓' : 'kopiuj'}</button>
             </div>

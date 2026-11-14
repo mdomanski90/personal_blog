@@ -4,6 +4,8 @@
 // kółko na pełnym ekranie), obrót, dopasowanie. Kliknięcie w skan – pełny ekran; Esc albo ✕ zamyka.
 // Objaśnienia (odczyt, tłumaczenie, objaśnienie, pieczęć): na marginesie z kreską do miejsca na skanie (do 8 na stronie)
 // albo numerki + lista; „transkrypcja” – sam tekst odczytów strony; „ukryj” – sam skan.
+// Wariant „karta” (karta materiału, obok panelu z tekstem – SkanZTekstem): zwarty pasek [‹ 1/2 ›] [objaśnienia N | ▾] [− +] [⤢],
+// bez listy objaśnień i miniatur pod skanem (są w panelu obok); zmiana strony i wybrane objaśnienie zgłaszane na zewnątrz.
 
 import * as React from 'react'
 import type OpenSeadragon from 'openseadragon'
@@ -25,7 +27,7 @@ export function ileStron(n: number): string {
 const KLUCZ_TRYBU = 'dok-objasnienia'
 const MAKS_NA_MARGINESIE = 8
 
-export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul, wysokosc = 'min(75vh, 720px)', pelnyNaStart = false, onZamknij, startStrona = 0 }: {
+export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul, wysokosc = 'min(75vh, 720px)', pelnyNaStart = false, onZamknij, startStrona = 0, wariant = 'zwykly', naZmianeStrony, aktywneZ, naAktywne }: {
     strony: StronaPodgladu[]
     objasnienia?: ObjasnienieWidoku[]
     tytul: string
@@ -34,6 +36,11 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     pelnyNaStart?: boolean
     onZamknij?: () => void
     startStrona?: number
+    wariant?: 'zwykly' | 'karta'
+    naZmianeStrony?: (strona: number) => void
+    /** objaśnienie wybrane poza przeglądarką (np. w panelu tekstu) */
+    aktywneZ?: string | null
+    naAktywne?: (id: string | null) => void
 }) {
     const ramka = React.useRef<HTMLDivElement>(null)
     const pole = React.useRef<HTMLDivElement>(null)
@@ -42,7 +49,13 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const obszar = React.useRef<HTMLDivElement>(null)
     const warstwa = React.useRef<ApiWarstwy | null>(null)
     const [wersja, ustawWersje] = React.useState(0)
-    const [aktywne, ustawAktywne] = React.useState<string | null>(null)
+    const [aktywne, ustawAktywneW] = React.useState<string | null>(null)
+    const naAktywneRef = React.useRef(naAktywne)
+    naAktywneRef.current = naAktywne
+    const ustawAktywne = React.useCallback((id: string | null) => { ustawAktywneW(id); naAktywneRef.current?.(id) }, [])
+    const naStroneRef = React.useRef(naZmianeStrony)
+    naStroneRef.current = naZmianeStrony
+    const [menu, ustawMenu] = React.useState(false)
     const [wskazane, ustawWskazane] = React.useState<string | null>(null)
     const [wybranyTryb, ustawWybranyTryb] = React.useState<TrybObjasnien | null>(null)
     const [transkrypcja, ustawTranskrypcje] = React.useState(false)
@@ -93,7 +106,7 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
             }
             v.addHandler('zoom', odswiezSkale)
             v.addHandler('open', () => { odswiezSkale(); v.viewport.setRotation(0); ustawObrot(0); ustawWersje((x) => x + 1) })
-            v.addHandler('page', (e) => { ustawStrone((e as unknown as { page: number }).page); ustawAktywne(null) })
+            v.addHandler('page', (e) => { const p = (e as unknown as { page: number }).page; ustawStrone(p); ustawAktywne(null); naStroneRef.current?.(p) })
             // krótkie kliknięcie (nie przeciągnięcie): w objaśnienie – pokazuje je; gdzie indziej – pełny ekran
             v.addHandler('canvas-click', (e) => {
                 const ev = e as unknown as { quick: boolean; position: { x: number; y: number }; preventDefaultAction: boolean }
@@ -137,6 +150,13 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
         if (pelnyNaStart) ramka.current?.requestFullscreen?.().catch(() => {})
     }, [pelnyNaStart])
 
+    // objaśnienie wybrane w panelu obok: podświetlenie i przybliżenie na skanie
+    React.useEffect(() => {
+        if (aktywneZ === undefined || aktywneZ === aktywneRef.current) return
+        ustawAktywneW(aktywneZ)
+        if (aktywneZ) warstwa.current?.pokaz(aktywneZ)
+    }, [aktywneZ])
+
     React.useEffect(() => {
         try { const t = localStorage.getItem(KLUCZ_TRYBU); if (t === 'margines' || t === 'numery' || t === 'ukryj') ustawWybranyTryb(t) } catch { /* bez pamięci */ }
         const el = ramka.current
@@ -145,7 +165,9 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
         ro.observe(el)
         return () => ro.disconnect()
     }, [])
+    const wybranyTrybPokazu = React.useRef<TrybObjasnien | null>(null)
     const wybierzTryb = (t: TrybObjasnien) => {
+        if (t !== 'ukryj') wybranyTrybPokazu.current = t
         ustawWybranyTryb(t)
         try { localStorage.setItem(KLUCZ_TRYBU, t) } catch { /* bez pamięci */ }
     }
@@ -165,8 +187,44 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const klikListy = (id: string) => { if (aktywne === id) return ustawAktywne(null); ustawAktywne(id); warstwa.current?.pokaz(id) }
     const uklad = efTryb === 'margines' || (efTryb === 'numery' && pelny) ? (pelny && efTryb === 'margines' ? 'obie' : 'prawa') : 'sam'
 
+    const karta = wariant === 'karta' && !pelny
+    const objWlaczone = efTryb !== 'ukryj'
+    const trybPokazu: TrybObjasnien = tryb === 'ukryj' ? (wybranyTrybPokazu.current ?? 'numery') : tryb
+
     return (
-        <div ref={ramka} className={`dok${pelny ? ' dok-pelny' : ''}`}>
+        <div ref={ramka} className={`dok${pelny ? ' dok-pelny' : ''}${karta ? ' dok-karta' : ''}`}>
+            {karta ? (
+            <div className="dok-pasek dok-pasek-karta" role="toolbar" aria-label="przeglądanie dokumentu">
+                {n > 1 ? (
+                    <span className="dok-grupa" role="group" aria-label="strony">
+                        <button type="button" onClick={() => idz(-1)} disabled={strona === 0} aria-label="poprzednia strona">‹</button>
+                        <span className="dok-stan" aria-live="polite" aria-label={`strona ${strona + 1} z ${n}`}>{strona + 1} / {n}</span>
+                        <button type="button" onClick={() => idz(1)} disabled={strona >= n - 1} aria-label="następna strona">›</button>
+                    </span>
+                ) : <span className="dok-stan-tekst">1 strona</span>}
+                <span className="dok-pasek-prawa">
+                    {sa && (
+                        <span className="dok-grupa dok-grupa-menu" role="group" aria-label="objaśnienia na skanie">
+                            <button type="button" aria-pressed={objWlaczone} disabled={!naStronie.length} title={naStronie.length ? (objWlaczone ? 'ukryj objaśnienia na skanie' : 'pokaż objaśnienia na skanie') : 'na tej stronie nie ma objaśnień'}
+                                onClick={() => wybierzTryb(objWlaczone ? 'ukryj' : trybPokazu)}>objaśnienia <span className="dok-licznik">{naStronie.length}</span></button>
+                            <button type="button" aria-haspopup="true" aria-expanded={menu} aria-label="sposób pokazywania objaśnień" onClick={() => ustawMenu((x) => !x)}>▾</button>
+                            {menu && (
+                                <span className="dok-menu" role="menu">
+                                    {([['margines', 'na marginesie'], ['numery', 'numery na skanie']] as const).map(([t, nazwa]) => (
+                                        <button key={t} type="button" role="menuitemradio" aria-checked={tryb === t} onClick={() => { wybierzTryb(t); ustawMenu(false) }}>{tryb === t ? '● ' : '○ '}{nazwa}</button>
+                                    ))}
+                                </span>
+                            )}
+                        </span>
+                    )}
+                    <span className="dok-grupa" role="group" aria-label="powiększenie">
+                        <button type="button" onClick={() => przybliz(1 / 1.3)} aria-label="pomniejsz" title={`pomniejsz (${skala}%)`}>−</button>
+                        <button type="button" onClick={() => przybliz(1.3)} aria-label="powiększ" title={`powiększ (${skala}%)`}>+</button>
+                    </span>
+                    <span className="dok-grupa"><button type="button" onClick={otworz} aria-label="pełny ekran" title="pełny ekran">⤢</button></span>
+                </span>
+            </div>
+            ) : (
             <div className="dok-pasek" role="toolbar" aria-label="przeglądanie dokumentu">
                 {pelny && <b className="dok-tytul">{tytul}</b>}
                 {n > 1 && (
@@ -197,6 +255,7 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
                         : <button type="button" onClick={otworz}>pełny ekran ⤢</button>}
                 </span>
             </div>
+            )}
             <div ref={obszar} className={`dok-obszar dok-uklad-${uklad}`}>
                 <div ref={pole} className="dok-pole" style={{ gridArea: 'pole', ...(pelny ? {} : { height: wysokosc }) }} aria-label={`skan: ${tytul}${n > 1 ? `, strona ${strona + 1} z ${n}` : ''}`} role="img" />
                 {sa && (
@@ -204,15 +263,15 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
                         ustawAktywne={ustawAktywne} ustawWskazane={ustawWskazane} api={warstwa} wersja={wersja} />
                 )}
             </div>
-            {efTryb === 'numery' && !pelny && <ListaObjasnien lista={naStronie} aktywne={aktywne} wskazane={wskazane} onKlik={klikListy} ustawWskazane={ustawWskazane} />}
-            {transkrypcja && doTranskrypcji.length > 0 && (
+            {efTryb === 'numery' && !pelny && !karta && <ListaObjasnien lista={naStronie} aktywne={aktywne} wskazane={wskazane} onKlik={klikListy} ustawWskazane={ustawWskazane} />}
+            {transkrypcja && !karta && doTranskrypcji.length > 0 && (
                 <div className="dok-transkrypcja" aria-label="transkrypcja tej strony">
                     {doTranskrypcji.map((o) => (
                         <p key={o.id} className={`dok-obj-${o.rodzaj}`}><span className="dok-obj-nr">{o.nr}</span> {o.rodzaj === 'tlumaczenie' && <span className="dok-transkrypcja-rodzaj">tłumaczenie: </span>}<TekstZrodla tekst={o.tekst} /></p>
                     ))}
                 </div>
             )}
-            {(podpis || n > 1) && (
+            {(podpis || n > 1) && !karta && (
                 <div className="dok-dol">
                     {n > 1 && (
                         <div className="dok-miniatury">

@@ -3,23 +3,22 @@ import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
 import { miejsca, obiekt, obiekty, materialyDla, powiazania, poziomCzytelnika, kontekstTresci, RODZAJE_OBIEKTOW } from '@/lib/archiwum'
 import { formatujEdtf } from '@/lib/edtf'
-import { naHtml } from '@/lib/markdoc'
+import { naHtml, zajawka } from '@/lib/markdoc'
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import { tarczaObiektu } from '@/lib/tarcze'
-import { Kreski, Metki, Sekcja, Strona, Tresc, TytulStrony, Wiersz } from '../../components/Uklad'
+import { Strona, Tresc, maTekst } from '../../components/Uklad'
+import { Czesc, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke } from '../../components/Karta'
+import MapaKarty from '../../components/MapaKarty'
 import Powiazania from '../../components/Powiazania'
-import ListaMaterialow from '../../components/ListaMaterialow'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
-import Zgloszenie from '../../components/Zgloszenie'
 import ListaPlanow from '../../components/plan/ListaPlanow'
 import { planDlaCzytelnika, planyDlaCzytelnika } from '@/lib/plany/serwer'
 import { wczytajUstawienia } from '@/lib/plany/dane'
 import WidokObiektu from '../../components/plan/WidokObiektu'
 import { osobyPlanu } from '@/lib/plany/rodzina'
 import OtworzWMapach from '../../components/OtworzWMapach'
-import InfoZMapa from '../../components/InfoZMapa'
 import GaleriaZdjec from '../../components/GaleriaZdjec'
 
 export const dynamic = 'force-dynamic'
@@ -50,63 +49,73 @@ export default async function ObiektStrona({ params }: Parametry) {
     const ustawienia = glowny ? await wczytajUstawienia() : undefined
     const osobyGlownego = glowny ? await osobyPlanu(glowny.plan, poziom) : undefined
 
+    const ktx = await kontekstTresci(poziom)
+    const opisHtml = naHtml(o.opis, ktx)
+    const lead = zajawka(o.opis, 240, ktx.rozwiaz)
+    const foto = o.zdjecia[0]
+    const podpisFoto = foto ? [foto.podpis, foto.data, foto.autor && `fot. ${foto.autor}`].filter(Boolean).join(' · ') : ''
+    const mapa = o.wspolrzedne ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={glowny ? 16 : 14} wysokosc="100%" /> : undefined
+    const tabelaPodstawowa = (
+        <Tabela etykieta={`${o.nazwa} – dane`}>
+            <Czesc tytul="podstawowe" />
+            <W e="miejscowość">{wies && <Link href={`/miejsca/${wies.id}`} className="odn">{wies.nazwa}</Link>}</W>
+            <W e="rodzaj">{rodzaj}</W>
+            <W e="lata istnienia">{o.czas ? formatujEdtf(o.czas) : null}</W>
+            <W e="stan">{o.istnieje ? 'istnieje' : 'nie istnieje'}</W>
+            <W e="inne nazwy">{o.inneNazwy.length ? o.inneNazwy.join(' · ') : null}</W>
+            <W e="położenie">
+                {o.wspolrzedne
+                    ? (glowny || !mapa
+                        ? <OtworzWMapach wspolrzedne={o.wspolrzedne} przyblizone={o.przyblizone} />
+                        : <span className="karta-polozenie"><span><OtworzWMapach wspolrzedne={o.wspolrzedne} przyblizone={o.przyblizone} /></span><MapaKarty mapa={mapa} wysokosc={150} /></span>)
+                    : <span className="text-gray-600 dark:text-gray-400">nieustalone</span>}
+            </W>
+            {o.zdjecia.length > 1 && <Czesc tytul="fotografie" id="fotografie">{o.zdjecia.length}</Czesc>}
+            {o.zdjecia.length > 1 && <WCaly><GaleriaZdjec zdjecia={o.zdjecia} tytul={o.nazwa} /></WCaly>}
+        </Tabela>
+    )
+
     return (
         <Strona akcje={<><CopyLinkButton sciezka={`/obiekty/${o.id}`} /></>}>
-            <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]}>
-                <span className="inline-flex items-center" style={{ gap: 10 }}>
-                    <span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaObiektu(o.rodzaj, rodzaj, 36, o.istnieje) }} />
-                    {o.nazwa}
-                </span>
-            </TytulStrony>
-            <div className="flex flex-wrap items-center gap-2">
-                <Metki elementy={[rodzaj, o.czas ? formatujEdtf(o.czas) : null, o.istnieje ? null : 'nie istnieje', ...o.inneNazwy]} />
-            </div>
+            <NaglowekKarty
+                sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]}
+                tytul={<span className="inline-flex items-center" style={{ gap: 10 }}><span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaObiektu(o.rodzaj, rodzaj, 32, o.istnieje) }} />{o.nazwa}</span>}
+                obraz={foto ? (
+                    <figure className="osoba-portret">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <a href={`${foto.plik}?w=1800`} target="_blank" rel="noopener" title="powiększ zdjęcie"><img src={`${foto.plik}?w=480`} alt={foto.podpis || o.nazwa} /></a>
+                        <figcaption>{podpisFoto}{o.zdjecia.length > 1 && <>{podpisFoto && ' · '}<a href="#fotografie" className="odn">wszystkie ({o.zdjecia.length}) ↓</a></>}</figcaption>
+                    </figure>
+                ) : undefined}
+                linia={[rodzaj, wies ? { tekst: wies.nazwa, href: `/miejsca/${wies.id}` } : null, o.czas ? formatujEdtf(o.czas) : null, o.istnieje ? 'istnieje' : 'nie istnieje']}
+                lead={lead ? <p style={{ margin: 0 }}>{lead}</p> : undefined}
+            />
 
-            {(() => {
-                const info = (
-                    <div>
-                        {wies && <Wiersz etykieta="miejscowość"><Link href={`/miejsca/${wies.id}`}>{wies.nazwa}</Link></Wiersz>}
-                        {o.czas && <Wiersz etykieta="lata istnienia">{formatujEdtf(o.czas)}</Wiersz>}
-                        <Wiersz etykieta="stan">{o.istnieje ? 'istnieje' : 'nie istnieje'}</Wiersz>
-                        <Wiersz etykieta="położenie">
-                            {o.wspolrzedne ? <OtworzWMapach wspolrzedne={o.wspolrzedne} przyblizone={o.przyblizone} /> : <span className="text-gray-500">brak</span>}
-                        </Wiersz>
-                        {o.zdjecia.length > 0 && <Wiersz etykieta="fotografie"><a href="#fotografie">{o.zdjecia.length}</a></Wiersz>}
-                    </div>
-                )
-                const mapa = o.wspolrzedne ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={glowny ? 16 : 14} wysokosc="100%" /> : undefined
-                // z planem: plan na całą szerokość (zakładki plan · lista · mapa); bez planu: dane obok mapy z „rozszerz”
-                if (glowny) return <WidokObiektu plan={glowny.plan} ustawienia={ustawienia} zalogowany={glowny.poziom === 'bliscy'} osoby={osobyGlownego} mapa={mapa} info={info} />
-                return mapa ? <InfoZMapa info={info} mapa={mapa} wysokosc={300} /> : info
-            })()}
+            {/* z planem (np. cmentarz): plan na całą szerokość z zakładkami, dane obok; bez planu – tabela z mapką */}
+            {glowny ? <WidokObiektu plan={glowny.plan} ustawienia={ustawienia} zalogowany={glowny.poziom === 'bliscy'} osoby={osobyGlownego} mapa={mapa} info={tabelaPodstawowa} /> : tabelaPodstawowa}
 
-            <Tresc html={naHtml(o.opis, await kontekstTresci(poziom))} />
-
-            {o.zdjecia.length > 0 && (
-                <Sekcja tytul="fotografie" id="fotografie">
-                    <GaleriaZdjec zdjecia={o.zdjecia} tytul={o.nazwa} />
-                </Sekcja>
+            {maTekst(opisHtml) && (
+                <section className="flex flex-col" style={{ gap: 10 }}>
+                    <h2 className="font-bold lowercase" style={{ fontSize: 'calc(20px * var(--font-scale, 1))' }}>opis</h2>
+                    <Tresc html={opisHtml} />
+                </section>
             )}
 
-            {planyObiektu.length > 1 && (
-                <Sekcja tytul="plany">
-                    <ListaPlanow plany={planyObiektu} />
-                </Sekcja>
+            {(mat.length > 0 || planyObiektu.length > 1 || o.zrodla.length > 0 || o.zdjecia.some((z) => z.autor || z.prawa)) && (
+                <Tabela etykieta={`${o.nazwa} – powiązane i źródła`}>
+                    {(mat.length > 0 || planyObiektu.length > 1) && <Czesc tytul="powiązane" />}
+                    <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
+                    <W e="plany">{planyObiektu.length > 1 && <ListaPlanow plany={planyObiektu} />}</W>
+                    <Zrodla pozycje={[
+                        ...o.zrodla.map((z, i) => <ZAdresami key={`z${i}`} tekst={z} />),
+                        ...o.zdjecia.filter((z) => z.autor || z.prawa).map((z, i) => <span key={`f${i}`}>fotografia{z.podpis ? ` „${z.podpis}”` : ''}{z.data ? `, ${z.data}` : ''}: {[z.autor, z.prawa].filter(Boolean).join(', ')}</span>),
+                    ]} />
+                </Tabela>
             )}
 
-            {mat.length > 0 && (
-                <Sekcja tytul="materiały w archiwum">
-                    <ListaMaterialow materialy={mat} />
-                </Sekcja>
-            )}
-
-            {(siec.odnosniki.length > 0 || siec.wzmianki.length > 0) && <Kreski />}
             <Powiazania dane={siec} />
 
-            <div className="border-t border-[#e7e2d8] dark:border-[#374151] flex flex-wrap items-center" style={{ paddingTop: '1rem', gap: '0.6rem 1rem' }}>
-                <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>Coś się nie zgadza albo wiesz więcej o tym miejscu?</span>
-                <Zgloszenie rodzaj="poprawka" adres={`/obiekty/${o.id}`} tytul={o.nazwa} />
-            </div>
+            <ZglosPoprawke adres={`/obiekty/${o.id}`} tytul={o.nazwa} pytanie="Coś się nie zgadza albo wiesz więcej o tym obiekcie?" />
         </Strona>
     )
 }
