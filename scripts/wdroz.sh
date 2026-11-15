@@ -19,10 +19,14 @@ mapfile -t TEMATY < <(git log -300 --format=%s)
 jest() { local t; t=$(git -C "$ZRODLO" log -1 --format=%s "$1"); printf '%s\n' "${TEMATY[@]}" | grep -qxF -- "$t"; }
 mapfile -t MAIN < <(git -C "$ZRODLO" rev-list --reverse --max-count=40 origin/main)
 OSTATNI=""; BRAK=()
+# commity starsze niż pierwszy znaleziony na serwerze pomijamy (np. „Kod z serwera” – powstały na GitHubie z kodu serwera,
+# na local nie mają odpowiednika); STOP tylko przy luce między commitami obecnymi na serwerze
 for c in "${MAIN[@]}"; do
     if jest "$c"; then
-        [ ${#BRAK[@]} -eq 0 ] || stop "commit $(git -C "$ZRODLO" log -1 --format='%h %s' "$c") jest na serwerze, a wcześniejsze nie – sprawdź ręcznie"
-        OSTATNI=$c
+        if [ -n "$OSTATNI" ] && [ ${#BRAK[@]} -gt 0 ]; then
+            stop "commit $(git -C "$ZRODLO" log -1 --format='%h %s' "$c") jest na serwerze, a wcześniejszy $(git -C "$ZRODLO" log -1 --format='%h %s' "${BRAK[0]}") nie – sprawdź ręcznie"
+        fi
+        BRAK=(); OSTATNI=$c
     else BRAK+=("$c"); fi
 done
 [ ${#BRAK[@]} -gt 0 ] || { echo "Nic do wdrożenia – serwer ma wszystkie commity z main."; exit 0; }
