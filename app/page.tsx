@@ -93,17 +93,20 @@ export default async function StronaGlowna() {
                 return (
                     // id = identyfikator wpisu, więc stare odnośniki „/#identyfikator” nadal przewijają do wpisu
                     <article key={w.id} id={w.id} className={`zapowiedz scroll-mt-6${wyr ? ' zapowiedz--wyrozniona' : ''}${obraz ? ' z-obrazem' : ''}`}>
-                        {obraz && (
-                            <Link href={`/wpisy/${w.id}`} className="zapowiedz-obraz" tabIndex={-1} aria-hidden="true">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={obraz} alt="" loading={wyr ? 'eager' : 'lazy'} style={{ objectPosition: kadry.get(w.miniatura!) }} />
-                            </Link>
-                        )}
-                        <div className="zapowiedz-tresc">
-                            <MetkiWpisu wpis={w} nazwy={n} />
-                            <h3 className="zapowiedz-tytul"><Link href={`/wpisy/${w.id}`}>{w.tytul}</Link></h3>
-                            {tekst && <p className="zapowiedz-tekst">{tekst}</p>}
-                            <Link href={`/wpisy/${w.id}`} className="zapowiedz-dalej">czytaj dalej <span aria-hidden="true">→</span><span className="sr-only">: {w.tytul}</span></Link>
+                        <MetkiWpisu wpis={w} nazwy={n} />
+                        {/* miniatura zawsze po lewej, na wysokość od góry tytułu do dołu zapowiedzi (wykadrowany fragment) */}
+                        <div className="zapowiedz-uklad">
+                            {obraz && (
+                                <Link href={`/wpisy/${w.id}`} className="zapowiedz-obraz" tabIndex={-1} aria-hidden="true">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={obraz} alt="" loading={wyr ? 'eager' : 'lazy'} style={{ objectPosition: kadry.get(w.miniatura!) }} />
+                                </Link>
+                            )}
+                            <div className="zapowiedz-tresc">
+                                <h3 className="zapowiedz-tytul"><Link href={`/wpisy/${w.id}`}>{w.tytul}</Link></h3>
+                                {tekst && <p className="zapowiedz-tekst">{tekst}</p>}
+                                <Link href={`/wpisy/${w.id}`} className="zapowiedz-dalej">czytaj dalej <span aria-hidden="true">→</span><span className="sr-only">: {w.tytul}</span></Link>
+                            </div>
                         </div>
                     </article>
                 )
