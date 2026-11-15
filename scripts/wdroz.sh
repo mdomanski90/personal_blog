@@ -18,17 +18,17 @@ git -C "$ZRODLO" fetch -q origin
 mapfile -t TEMATY < <(git log -300 --format=%s)
 jest() { local t; t=$(git -C "$ZRODLO" log -1 --format=%s "$1"); printf '%s\n' "${TEMATY[@]}" | grep -qxF -- "$t"; }
 mapfile -t MAIN < <(git -C "$ZRODLO" rev-list --reverse --max-count=40 origin/main)
-OSTATNI=""; BRAK=()
-# commity starsze niż pierwszy znaleziony na serwerze pomijamy (np. „Kod z serwera” – powstały na GitHubie z kodu serwera,
-# na local nie mają odpowiednika); STOP tylko przy luce między commitami obecnymi na serwerze
+# do wdrożenia: wszystko PO najnowszym commicie main obecnym na serwerze (po temacie). Starsze commity bez odpowiednika
+# na local (np. „Kod z serwera” – powstały na GitHubie z kodu serwera) tylko wypisujemy jako ostrzeżenie.
+OSTATNI=""; BRAK=(); STARSZE=()
 for c in "${MAIN[@]}"; do
-    if jest "$c"; then
-        if [ -n "$OSTATNI" ] && [ ${#BRAK[@]} -gt 0 ]; then
-            stop "commit $(git -C "$ZRODLO" log -1 --format='%h %s' "$c") jest na serwerze, a wcześniejszy $(git -C "$ZRODLO" log -1 --format='%h %s' "${BRAK[0]}") nie – sprawdź ręcznie"
-        fi
-        BRAK=(); OSTATNI=$c
+    if jest "$c"; then STARSZE+=("${BRAK[@]}"); BRAK=(); OSTATNI=$c
     else BRAK+=("$c"); fi
 done
+if [ ${#STARSZE[@]} -gt 0 ]; then
+    echo "UWAGA: starsze commity main bez odpowiednika na serwerze (pomijam – sprawdź, czy ich treść już tam jest):"
+    for c in "${STARSZE[@]}"; do git -C "$ZRODLO" log -1 --format='  %h %s' "$c"; done
+fi
 [ ${#BRAK[@]} -gt 0 ] || { echo "Nic do wdrożenia – serwer ma wszystkie commity z main."; exit 0; }
 [ -n "$OSTATNI" ] || stop "nie znalazłem na serwerze żadnego z ostatnich 40 commitów main"
 echo "Na serwerze ostatni: $(git -C "$ZRODLO" log -1 --format='%h %s' "$OSTATNI")"
