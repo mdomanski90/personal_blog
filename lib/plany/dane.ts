@@ -120,9 +120,127 @@ export async function zapiszObraz(slug: string, dane: Buffer, nazwaOryg: string,
     return { plik, szer, wys }
 }
 
-export async function usunPlik(slug: string, plik: string) {
+// ---------- kosz plików planów (etap 1, CEM-23): podkłady i zdjęcia – 30 dni zamiast natychmiastowego usunięcia ----------
+//   pliki-archiwum/plany/_kosz/<czas ms>~<slug>~<plik>   (katalog _kosz nie pasuje do SLUG – nie da się go pobrać z zewnątrz)
+const KOSZ_PLIKOW = () => path.join(/*turbopackIgnore: true*/ PLIKI(), '_kosz')
+export const DNI_KOSZA_PLIKOW = 30
+const NAZWA_W_KOSZU = /^(\d{12,})~([a-z0-9]+(?:-[a-z0-9]+)*)~([\w-]+(?:\.[\w-]+)*)$/
+export interface PlikWKoszu { nazwa: string; slug: string; plik: string; czas: string }
+
+function zKosza(nazwa: string): PlikWKoszu | null {
+    const m = nazwa.match(NAZWA_W_KOSZU)
+    return m ? { nazwa, slug: m[2], plik: m[3], czas: new Date(+m[1]).toISOString() } : null
+}
+
+/** Usunięcie podkładu albo zdjęcia: plik idzie do kosza na 30 dni. */
+export async function usunPlik(slug: string, plik: string, teraz = Date.now()) {
     const p = sciezkaPliku(slug, plik)
-    if (p) await fs.promises.unlink(p).catch(() => {})
+    if (!p || slug === '_ikony') { if (p) await fs.promises.unlink(p).catch(() => {}); return }
+    await fs.promises.mkdir(KOSZ_PLIKOW(), { recursive: true })
+    await fs.promises.rename(p, path.join(/*turbopackIgnore: true*/ KOSZ_PLIKOW(), `${teraz}~${slug}~${plik}`)).catch(() => {})
+    await wyczyscKoszPlikow(teraz)
+}
+
+export async function listaKoszaPlikow(): Promise<PlikWKoszu[]> {
+    let L: string[] = []
+    try { L = await fs.promises.readdir(KOSZ_PLIKOW()) } catch { return [] }
+    return L.map(zKosza).filter((x): x is PlikWKoszu => !!x).sort((a, b) => b.czas.localeCompare(a.czas))
+}
+
+/** Usuwa na stałe pliki starsze niż 30 dni. */
+export async function wyczyscKoszPlikow(teraz = Date.now()): Promise<number> {
+    let n = 0
+    for (const k of await listaKoszaPlikow()) {
+        if (teraz - Date.parse(k.czas) <= DNI_KOSZA_PLIKOW * 864e5) continue
+        await fs.promises.unlink(path.join(/*turbopackIgnore: true*/ KOSZ_PLIKOW(), k.nazwa)).catch(() => {}); n++
+    }
+    return n
+}
+
+/** Przywraca plik z kosza na dawne miejsce; błąd, gdy tam już coś jest. */
+export async function przywrocPlikZKosza(nazwa: string): Promise<string | null> {
+    const k = zKosza(nazwa)
+    if (!k) return 'zła nazwa pliku'
+    const cel = sciezkaPliku(k.slug, k.plik)
+    if (!cel) return 'zła nazwa pliku'
+    try { await fs.promises.access(cel); return 'pod tą nazwą jest już inny plik' } catch { /* wolne */ }
+    await fs.promises.mkdir(path.dirname(cel), { recursive: true })
+    try { await fs.promises.rename(path.join(/*turbopackIgnore: true*/ KOSZ_PLIKOW(), nazwa), cel) } catch { return 'nie ma już tego pliku' }
+    return null
+}
+
+export async function usunPlikZKosza(nazwa: string): Promise<string | null> {
+    if (!zKosza(nazwa)) return 'zła nazwa pliku'
+    await fs.promises.unlink(path.join(/*turbopackIgnore: true*/ KOSZ_PLIKOW(), nazwa)).catch(() => {})
+    return null
+}
+
+/** Pliki, do których plan się odwołuje (podkłady, zdjęcia). */
+export function plikiPlanu(plan: Pick<Plan, 'podklady' | 'elementy'>): Set<string> {
+    const L = new Set<string>()
+    for (const p of plan.podklady) L.add(p.plik)
+    for (const e of plan.elementy) for (const z of e.zdjecia ?? []) L.add(z.plik)
+    return L
+}
+
+/** Po zapisie planu: plik, do którego plan znów się odwołuje (np. po „cofnij”), wraca z kosza sam. */
+export async function przywrocBrakujacePliki(plan: Pick<Plan, 'slug' | 'podklady' | 'elementy'>): Promise<string[]> {
+    const brak: string[] = []
+    for (const plik of plikiPlanu(plan)) {
+        const p = sciezkaPliku(plan.slug, plik)
+        if (!p) continue
+        try { await fs.promises.access(p) } catch { brak.push(plik) }
+    }
+    if (!brak.length) return []
+    const kosz = await listaKoszaPlikow(), wyn: string[] = []
+    for (const plik of brak) {
+        const k = kosz.find((x) => x.slug === plan.slug && x.plik === plik) // najnowszy pierwszy
+        if (k && !(await przywrocPlikZKosza(k.nazwa))) wyn.push(plik)
+    }
+    return wyn
+}
+
+// ---------- zapis z kontrolą wersji (jeden zapis planu naraz) ----------
+const kolejki = new Map<string, Promise<unknown>>()
+/** Wykonuje f po zakończeniu poprzednich operacji na tym planie (sprawdzenie wersji i zapis bez wyścigu). */
+export function poKolei<T>(slug: string, f: () => Promise<T>): Promise<T> {
+    const poprz = kolejki.get(slug) ?? Promise.resolve()
+    const nast = poprz.catch(() => {}).then(f)
+    kolejki.set(slug, nast)
+    nast.finally(() => { if (kolejki.get(slug) === nast) kolejki.delete(slug) }).catch(() => {})
+    return nast
+}
+
+/** Zapis z edytora: wersja z przeglądarki musi zgadzać się z zapisaną, inaczej konflikt (409) z wersją z serwera. */
+export async function zapiszZWersja(d: Plan): Promise<{ konflikt: Plan } | { plan: Plan; przywrocone: string[] }> {
+    return poKolei(d.slug, async () => {
+        const obecny = await wczytajPlan(d.slug)
+        if (obecny && obecny.wersja !== d.wersja) return { konflikt: obecny }
+        const plan = await zapiszPlan(popraw({ ...d, wersja: (obecny?.wersja ?? 0) + 1 }))
+        return { plan, przywrocone: await przywrocBrakujacePliki(plan) }
+    })
+}
+
+// ---------- szkic awaryjny na serwerze (zamiast całego planu w localStorage) ----------
+//   pliki-archiwum/plany/_szkice/<slug>.json – zapisywany, gdy zapis planu się nie udał (konflikt, błąd serwera)
+const SZKICE = () => path.join(/*turbopackIgnore: true*/ PLIKI(), '_szkice')
+export interface Szkic { czas: string; wersjaBazowa: number; plan: Plan }
+
+export async function zapiszSzkic(slug: string, plan: Plan): Promise<Szkic> {
+    if (!SLUG.test(slug)) throw new Error('zły identyfikator planu')
+    const s: Szkic = { czas: new Date().toISOString(), wersjaBazowa: plan.wersja, plan: popraw({ ...plan, slug }) }
+    await zapiszAtomowo(path.join(/*turbopackIgnore: true*/ SZKICE(), `${slug}.json`), JSON.stringify(s))
+    return s
+}
+
+export async function wczytajSzkic(slug: string): Promise<Szkic | null> {
+    if (!SLUG.test(slug)) return null
+    try { return JSON.parse(await fs.promises.readFile(path.join(/*turbopackIgnore: true*/ SZKICE(), `${slug}.json`), 'utf8')) as Szkic } catch { return null }
+}
+
+export async function usunSzkic(slug: string) {
+    if (!SLUG.test(slug)) return
+    await fs.promises.unlink(path.join(/*turbopackIgnore: true*/ SZKICE(), `${slug}.json`)).catch(() => {})
 }
 
 // ---------- zgłoszenia czytelników ----------

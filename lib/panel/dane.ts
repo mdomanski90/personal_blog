@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { hasla, ksiegi, materialy, miejsca, obiekty, opowiesci, parafie, tematy } from '../archiwum'
-import { listaPlanow, listaZgloszen, wczytajUstawienia, type Zgloszenie } from '../plany/dane'
+import { listaKoszaPlikow, listaPlanow, listaZgloszen, przywrocPlikZKosza, usunPlikZKosza, wczytajUstawienia, wyczyscKoszPlikow, type Zgloszenie } from '../plany/dane'
 import { katalog, typGrobu } from '../plany/typy'
 import { etapElementu } from '../plany/statusy'
 import { stanOsob, sladImportu } from '../osoby/dane'
@@ -287,7 +287,7 @@ export async function indeksPanelu(): Promise<PozycjaIndeksu[]> {
 }
 
 // ---------- kosz ----------
-export interface PozycjaKosza { rodzaj: 'plan' | 'osoba' | 'rodzina' | 'import'; plik: string; nazwa: string; czas: string }
+export interface PozycjaKosza { rodzaj: 'plan' | 'osoba' | 'rodzina' | 'import' | 'plik'; plik: string; nazwa: string; czas: string }
 
 const KOSZE = { plan: () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'plany', '_kosz'), osoby: () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'osoby', '_kosz') }
 const PLIK_KOSZA = /^[\w.-]+-\d{12,}\.json$/
@@ -310,11 +310,15 @@ export async function kosz(): Promise<PozycjaKosza[]> {
         try { const o = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KOSZE.osoby(), w.name), 'utf8')); nazwa = nazwaOsoby(o) || nazwa } catch { /* nic */ }
         wyn.push({ rodzaj: 'osoba', plik: w.name, nazwa, czas })
     }
+    // podkłady i zdjęcia planów (30 dni, potem znikają same)
+    await wyczyscKoszPlikow()
+    for (const k of await listaKoszaPlikow()) wyn.push({ rodzaj: 'plik', plik: k.nazwa, nazwa: `${k.slug}: ${k.plik}`, czas: k.czas })
     return wyn.sort((a, b) => b.czas.localeCompare(a.czas))
 }
 
 /** Przywraca plik z kosza na dawne miejsce (tylko gdy tam nic nie ma). */
 export async function przywrocZKosza(rodzaj: string, plik: string): Promise<string | null> {
+    if (rodzaj === 'plik') return przywrocPlikZKosza(plik)
     if (!PLIK_KOSZA.test(plik)) return 'zła nazwa pliku'
     const id = plik.replace(/-\d+\.json$/, '')
     let zr: string, cel: string
@@ -330,6 +334,7 @@ export async function przywrocZKosza(rodzaj: string, plik: string): Promise<stri
 }
 
 export async function usunZKosza(rodzaj: string, plik: string): Promise<string | null> {
+    if (rodzaj === 'plik') return usunPlikZKosza(plik)
     if (!PLIK_KOSZA.test(plik)) return 'zła nazwa pliku'
     const kat = rodzaj === 'plan' ? KOSZE.plan() : rodzaj === 'osoba' || rodzaj === 'rodzina' ? KOSZE.osoby() : null
     if (!kat) return 'tego nie da się usunąć z panelu'

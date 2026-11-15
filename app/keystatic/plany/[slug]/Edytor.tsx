@@ -102,7 +102,8 @@ export default function Edytor({ slug }: { slug: string }) {
     // autozapis: numer wersji z serwera i jeden zapis naraz (inaczej drugi zapis szedł ze starą wersją → fałszywy konflikt)
     const wersjaRef = React.useRef(0)
     const wTrakcie = React.useRef(false)
-    const [kopiaPrz, ustawKopiaPrz] = React.useState<{ czas: string; plan: Plan } | null>(null)
+    const [kopiaPrz, ustawKopiaPrz] = React.useState<{ czas: string; plan: Plan; zrodlo: 'serwer' | 'przegladarka' } | null>(null)
+    const szkicZapisany = React.useRef(false)
     const [ponownie, ustawPonownie] = React.useState(0)
     const [ostatniZapis, ustawOstatniZapis] = React.useState<Date | null>(null)
     const natychmiast = React.useRef(false)
@@ -124,12 +125,18 @@ export default function Edytor({ slug }: { slug: string }) {
                 wersjaRef.current = p.wersja
                 if (p.zmieniono) ustawOstatniZapis(new Date(p.zmieniono))
                 ustawPlanSurowo(p)
-                // niezapisane zmiany z poprzedniej sesji (kopia w tej przeglądarce)
-                try {
-                    const k = JSON.parse(localStorage.getItem(KLUCZ_KOPII(slug)) ?? 'null') as { czas: string; plan: Plan } | null
-                    const bez = (x: Plan) => JSON.stringify({ ...x, wersja: 0, zmieniono: '' })
-                    if (k?.plan && (!p.zmieniono || k.czas > p.zmieniono) && bez(k.plan) !== bez(p)) ustawKopiaPrz(k)
-                } catch { /* brak dostępu do pamięci przeglądarki */ }
+                // niezapisane zmiany z poprzedniej sesji: szkic na serwerze (etap 1), a jednorazowo także dawna kopia z tej przeglądarki
+                const bez = (x: Plan) => JSON.stringify({ ...x, wersja: 0, zmieniono: '' })
+                fetch(`${API(slug)}/szkic`).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((sz: { czas: string; plan: Plan } | null) => {
+                    let k: { czas: string; plan: Plan; zrodlo: 'serwer' | 'przegladarka' } | null = sz?.plan ? { czas: sz.czas, plan: sz.plan, zrodlo: 'serwer' } : null
+                    if (!k) try {
+                        const d = JSON.parse(localStorage.getItem(KLUCZ_KOPII(slug)) ?? 'null') as { czas: string; plan: Plan } | null
+                        if (d?.plan && (!p.zmieniono || d.czas > p.zmieniono)) k = { ...d, zrodlo: 'przegladarka' }
+                        else localStorage.removeItem(KLUCZ_KOPII(slug))
+                    } catch { /* brak dostępu do pamięci przeglądarki */ }
+                    if (k && bez(k.plan) !== bez(p)) ustawKopiaPrz(k)
+                    else if (sz) fetch(`${API(slug)}/szkic`, { method: 'DELETE' }).catch(() => {})
+                })
                 ustawUst(l.ustawienia)
                 ustawListy({ miejsca: l.miejsca, obiekty: l.obiekty })
                 // ?el=<id> (z panelu zgłoszeń): zaznacz element i pokaż go
@@ -181,13 +188,19 @@ export default function Edytor({ slug }: { slug: string }) {
     }
 
     // ---------- autozapis ----------
+    /** Szkic awaryjny na serwerze – gdy zapis planu się nie udał (konflikt z innym oknem, błąd serwera). Nic w pamięci przeglądarki. */
     const zapiszKopie = React.useCallback(() => {
-        try { if (planRef.current) localStorage.setItem(KLUCZ_KOPII(slug), JSON.stringify({ czas: new Date().toISOString(), plan: planRef.current })) } catch { /* pełna albo niedostępna pamięć */ }
+        if (!planRef.current) return
+        fetch(`${API(slug)}/szkic`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...planRef.current, wersja: wersjaRef.current }) })
+            .then((r) => { if (r.ok) szkicZapisany.current = true }).catch(() => { /* serwer nieosiągalny – zmiany zostają w oknie, ponawiamy zapis */ })
+    }, [slug])
+    const usunSzkic = React.useCallback(() => {
+        szkicZapisany.current = false
+        fetch(`${API(slug)}/szkic`, { method: 'DELETE' }).catch(() => {})
+        try { localStorage.removeItem(KLUCZ_KOPII(slug)) } catch { /* nic */ }
     }, [slug])
     React.useEffect(() => {
         if (!plan || !brudny.current || zapis === 'konflikt' || wTrakcie.current) return
-        // kopia w przeglądarce od razu – na wypadek zamknięcia karty albo awarii zapisu
-        const tk = window.setTimeout(zapiszKopie, 300)
         const zwloka = natychmiast.current ? 0 : 1200
         natychmiast.current = false
         const t = window.setTimeout(async () => {
@@ -201,21 +214,24 @@ export default function Edytor({ slug }: { slug: string }) {
             if (!r?.ok) { brudny.current = true; zapiszKopie(); ustawZapis('blad'); window.setTimeout(() => ustawPonownie((x) => x + 1), 4000); return }
             const j = await r.json()
             wersjaRef.current = j.wersja
+            if (j.przywrocone?.length) pokaz(`Wróciły z kosza pliki, do których plan znów się odwołuje: ${j.przywrocone.join(', ')}.`)
             ustawOstatniZapis(j.zmieniono ? new Date(j.zmieniono) : new Date())
             ustawPlanSurowo((p) => (p ? { ...p, wersja: j.wersja, zmieniono: j.zmieniono } : p))
             if (brudny.current) ustawPonownie((x) => x + 1) // zmiany w trakcie zapisu – kolejny zapis
             else {
                 ustawZapis('ok')
-                try { localStorage.removeItem(KLUCZ_KOPII(slug)) } catch { /* nic */ }
+                if (szkicZapisany.current && !kopiaPrzRef.current) usunSzkic() // zapis się udał – szkic awaryjny niepotrzebny
             }
         }, zwloka)
-        return () => { window.clearTimeout(t); window.clearTimeout(tk) }
-    }, [plan, slug, zapis, ponownie, zapiszKopie])
+        return () => window.clearTimeout(t)
+    }, [plan, slug, zapis, ponownie, zapiszKopie, usunSzkic])
     React.useEffect(() => {
-        const ostrz = (e: BeforeUnloadEvent) => { if (brudny.current || wTrakcie.current) { zapiszKopie(); e.preventDefault(); e.returnValue = '' } }
+        const ostrz = (e: BeforeUnloadEvent) => { if (brudny.current || wTrakcie.current) { e.preventDefault(); e.returnValue = '' } }
         window.addEventListener('beforeunload', ostrz)
         return () => window.removeEventListener('beforeunload', ostrz)
-    }, [zapiszKopie])
+    }, [])
+    const kopiaPrzRef = React.useRef(kopiaPrz)
+    kopiaPrzRef.current = kopiaPrz
     /** „zapisz teraz” (Ctrl+S): zapis od razu, także bez zmian – dla pewności, że serwer ma aktualny plan */
     const zapiszTeraz = () => {
         if (zapisRef.current === 'konflikt') { pokaz('Plan zmieniono w innym oknie – wybierz „zachowaj moją wersję” albo „wczytaj z serwera”.'); return }
@@ -251,6 +267,7 @@ export default function Edytor({ slug }: { slug: string }) {
         brudny.current = true
         ustawZapis('zmiany')
         ustawKopiaPrz(null)
+        usunSzkic()
     }
 
     // ---------- pomocnicze ----------
@@ -835,10 +852,10 @@ export default function Edytor({ slug }: { slug: string }) {
                 <a href="/keystatic/plany" className="ed-btn">← plany</a>
                 <b className="ed-tytul">{plan.tytul}</b>
                 <span className={`ed-zapis ed-zapis-${zapis}`}>{{ ok: 'zapisano', zmiany: 'zmiany…', zapisuje: 'zapisuję…', blad: 'błąd zapisu – ponawiam', konflikt: 'plan zmieniono w innym oknie – zmiany z tego okna nie są jeszcze zapisane' }[zapis]}</span>
-                {kopiaPrz && <span className="ed-kopia">W tej przeglądarce jest niezapisana wersja planu z {new Date(kopiaPrz.czas).toLocaleString('pl-PL')}. <button className="ed-btn" onClick={przywrocKopie}>przywróć ją</button> <button className="ed-btn" onClick={() => { try { localStorage.removeItem(KLUCZ_KOPII(slug)) } catch { /* nic */ } ustawKopiaPrz(null) }}>odrzuć</button></span>}
+                {kopiaPrz && <span className="ed-kopia">{kopiaPrz.zrodlo === 'serwer' ? 'Na serwerze jest szkic niezapisanej wersji planu' : 'W tej przeglądarce jest dawna kopia niezapisanej wersji planu'} z {new Date(kopiaPrz.czas).toLocaleString('pl-PL')}. <button className="ed-btn" onClick={przywrocKopie}>przywróć ją</button> <button className="ed-btn" onClick={() => { usunSzkic(); ustawKopiaPrz(null) }}>odrzuć</button></span>}
                 {zapis === 'konflikt' && <>
                     <button className="ed-btn" onClick={zachowajMoja} title="Zapisz plan z tego okna na serwerze (zastąpi wersję z innego okna)">zachowaj moją wersję</button>
-                    <button className="ed-btn" onClick={() => { if (confirm('Wczytać plan z serwera? Zmiany z tego okna przepadną (kopia zostaje w pliku, jeśli najpierw klikniesz „pobierz”).')) { brudny.current = false; try { localStorage.removeItem(KLUCZ_KOPII(slug)) } catch { /* nic */ } location.reload() } }}>wczytaj z serwera</button>
+                    <button className="ed-btn" onClick={() => { if (confirm('Wczytać plan z serwera? Zmiany z tego okna zostają w szkicu na serwerze – po wczytaniu możesz je przywrócić albo odrzucić.')) { brudny.current = false; zapiszKopie(); window.setTimeout(() => location.reload(), 600) } }}>wczytaj z serwera</button>
                 </>}
                 <span className="ed-ostatni" title={ostatniZapis ? `ostatni udany zapis na serwerze: ${ostatniZapis.toLocaleString('pl-PL')}` : 'ten plan nie był jeszcze zapisany z edytora'}>{ostatniZapis ? `zapis: ${ostatniZapis.toLocaleTimeString('pl-PL')}${ostatniZapis.toDateString() !== new Date().toDateString() ? ` (${ostatniZapis.toLocaleDateString('pl-PL')})` : ''}` : 'zapis: —'}</span>
                 <button className="ed-btn" onClick={zapiszTeraz} disabled={zapis === 'zapisuje'} title="Zapisz na serwerze teraz (Ctrl+S)">zapisz teraz</button>
