@@ -56,3 +56,17 @@ test('przenieś: odmowa, gdy cel ma dane albo źródło puste; podgląd pokazuje
     assert.deepEqual(p.pola.find((x) => x.pole === 'napis'), { pole: 'napis', nazwa: 'napis z nagrobka', a: true, b: true })
     assert.equal(p.pola.find((x) => x.pole === 'osoby')?.b, false)
 })
+
+test('PD-16: zdjęcie z GPS → najbliższy grób w promieniu 3 m; bez georeferencji – brak propozycji', async () => {
+    const { propozycjaGrobu } = await import('./edycja')
+    // georeferencja: 1 jednostka planu = 1 m na wschód / południe od punktu (52.2, 22.9)
+    const geo = [{ x: 0, y: 0, lat: 52.2, lon: 22.9 }, { x: 100, y: 0, lat: 52.2, lon: 22.9 + 100 / (111320 * Math.cos((52.2 * Math.PI) / 180)) }]
+    const plan = { geo, elementy: [grob('a', 0), grob('b', 30), { id: 'k', typ: 'krzyz', g: { k: 'p' as const, x: 12, y: 10 } }] }
+    const czyGrob = (e: Element) => e.typ === 'grob'
+    const lon = (x: number) => 22.9 + x / (111320 * Math.cos((52.2 * Math.PI) / 180)), lat = (y: number) => 52.2 - y / 110540
+    const p = propozycjaGrobu(plan, czyGrob, 1, lat(1), lon(31))
+    assert.equal(p?.id, 'b')
+    assert.ok(p!.odl < 1.5)
+    assert.equal(propozycjaGrobu(plan, czyGrob, 1, lat(0), lon(15)), null, 'ponad 3 m od środka – brak propozycji (krzyż się nie liczy)')
+    assert.equal(propozycjaGrobu({ ...plan, geo: [] }, czyGrob, 1, lat(10), lon(31)), null)
+})

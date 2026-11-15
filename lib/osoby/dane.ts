@@ -130,8 +130,42 @@ export async function sladImportu(): Promise<SladImportu | null> {
     try { return JSON.parse(await fs.promises.readFile(path.join(KATALOG(), '_import.json'), 'utf8')) } catch { return null }
 }
 
-/** Zapis całego drzewa z importu. Poprzednie dane (jeśli są) idą do content/osoby/_kosz/<czas>/. */
-export async function zapiszImport(d: Drzewo, slad: SladImportu) {
+/** Identyfikatory osób dodanych w panelu (bez gedcomId) – import ich nie zastępuje (etap 1, PD-01). */
+export function idOsobRecznych(d: Drzewo): Set<string> {
+    return new Set([...d.osoby.values()].filter((o) => !o.gedcomId).map((o) => o.id))
+}
+
+export interface ZachowaneReczne { osoby: number; rodziny: number; rodzinyPominiete: number }
+
+/**
+ * Nowe drzewo z importu + osoby dodane w panelu (bez gedcomId) ze starego drzewa. Rodziny z panelu zostają, gdy
+ * wszystkie ich osoby nadal istnieją (przy zajętym identyfikatorze dostają nowy – osoby nie odwołują się do rodzin).
+ * Rodzina z GEDCOM, do której w panelu dopisano osobę, wraca w wersji z GEDCOM – osoba zostaje, bez tego powiązania.
+ */
+export function polaczZRecznymi(stare: Drzewo, nowe: Drzewo): { drzewo: Drzewo; zachowane: ZachowaneReczne } {
+    const osoby = new Map(nowe.osoby), rodziny = new Map(nowe.rodziny)
+    const zachowane: ZachowaneReczne = { osoby: 0, rodziny: 0, rodzinyPominiete: 0 }
+    for (const o of stare.osoby.values()) {
+        if (o.gedcomId) continue
+        if (osoby.has(o.id)) throw new Error(`Import nadpisałby osobę dodaną w panelu (${o.id}) – przerwano, nic nie zapisano.`)
+        osoby.set(o.id, o); zachowane.osoby++
+    }
+    let n = rodziny.size + 1
+    for (const f of stare.rodziny.values()) {
+        if (f.gedcomId) continue
+        const czlonkowie = [f.maz, f.zona, ...f.dzieci].filter((x): x is string => !!x)
+        if (!czlonkowie.length || !czlonkowie.every((x) => osoby.has(x))) { zachowane.rodzinyPominiete++; continue }
+        let id = f.id
+        if (rodziny.has(id)) { while (rodziny.has(`r${n}`)) n++; id = `r${n}` }
+        rodziny.set(id, { ...f, id }); zachowane.rodziny++
+    }
+    return { drzewo: { osoby, rodziny, zrodla: nowe.zrodla }, zachowane }
+}
+
+/** Zapis całego drzewa z importu. Poprzednie dane (jeśli są) idą do content/osoby/_kosz/<czas>/; osoby dodane w panelu zostają. */
+export async function zapiszImport(nowe: Drzewo, slad: SladImportu): Promise<ZachowaneReczne> {
+    uniewaznij()
+    const { drzewo: d, zachowane } = polaczZRecznymi(await wczytajDrzewo(), nowe)
     const kat = KATALOG()
     let pliki: string[] = []
     try { pliki = await fs.promises.readdir(kat) } catch { /* pusty */ }
@@ -153,6 +187,7 @@ export async function zapiszImport(d: Drzewo, slad: SladImportu) {
     await zapiszAtomowo(path.join(kat, '_zrodla.json'), JSON.stringify([...d.zrodla.values()], null, 1))
     await zapiszAtomowo(path.join(kat, '_import.json'), JSON.stringify(slad, null, 1))
     uniewaznij()
+    return zachowane
 }
 
 // ---------- widok dla czytelnika ----------

@@ -9,7 +9,7 @@ import {
     type Element, type Geometria, type Macierz, type Osoba, type Pkt, type Plan, type Podklad, type Zdjecie,
 } from '@/lib/plany/model'
 import { GRUPY, katalog, typGrobu, WARSTWY, type TypElementu, type UstawieniaPlanow, type Warstwa } from '@/lib/plany/typy'
-import { katWMiejscu, kopia, obrocGeom, podgladDanych, przeniesDane, zamienDane, pozycjaStempla, przesun, przyciagnij, przyciagnijKat, rozlozRowno, rozmiarBokiem, rozmiarGrobu, wektor, wyrownajWLinie, type Przyciaganie, type WzorStempla } from '@/lib/plany/edycja'
+import { katWMiejscu, kopia, obrocGeom, podgladDanych, propozycjaGrobu, przeniesDane, zamienDane, pozycjaStempla, przesun, przyciagnij, przyciagnijKat, rozlozRowno, rozmiarBokiem, rozmiarGrobu, wektor, wyrownajWLinie, type Przyciaganie, type WzorStempla } from '@/lib/plany/edycja'
 import { ETAPY, ETYKIETA_ETAPU, ETYKIETA_POLOZENIA, ETYKIETA_ZRODEL, etapElementu, polozenie, poZmianieDanych, STANY_ZRODEL, stanZrodel, type Etap, type Polozenie, type StanZrodel } from '@/lib/plany/statusy'
 import { odczytajExif } from '@/lib/plany/exif'
 import { RysunekPlanu, Wzory } from '@/app/components/plan/Rysunek'
@@ -783,17 +783,13 @@ export default function Edytor({ slug }: { slug: string }) {
     const [przypinane, ustawPrzypinane] = React.useState<number | null>(null)
     const wczytajZdjecia = async (pliki: FileList) => {
         if (!plan) return
-        const g2p = geoNaPlan(plan.geo), m = skala
-        const groby = plan.elementy.filter((x) => typGrobu(typy.get(x.typ)))
         const L: ZdjecieDoPrzypiecia[] = []
         for (const f of Array.from(pliki)) {
             const ex = f.type === 'image/jpeg' || /\.jpe?g$/i.test(f.name) ? odczytajExif(await f.arrayBuffer()) : {}
             let propozycja: string | null = null, odl: number | undefined
-            if (ex.lat !== undefined && ex.lon !== undefined && g2p && m) {
-                const [x, y] = g2p(ex.lat, ex.lon)
-                let best: Element | null = null, bd = Infinity
-                for (const g of groby) { const [a, b] = srodek(g.g), d = Math.hypot(a - x, b - y); if (d < bd) { bd = d; best = g } }
-                if (best && bd * m <= 3) { propozycja = best.id; odl = bd * m }
+            if (ex.lat !== undefined && ex.lon !== undefined) {
+                const p = propozycjaGrobu(plan, (x) => typGrobu(typy.get(x.typ)), skala, ex.lat, ex.lon)
+                if (p) { propozycja = p.id; odl = p.odl }
             }
             L.push({ plik: f, url: URL.createObjectURL(f), ...ex, propozycja, odl })
         }
@@ -1199,11 +1195,24 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
     osobyDrzewa: SkrotOsoby[] | null; wczytajOsoby: () => void
 }) {
     const [aktywna, ustawAktywna] = React.useState<number | null>(null)
+    const [bladKarty, ustawBladKarty] = React.useState('')
     const t = typy.get(e.typ)
     const zgodne = [...typy.values()].filter((x) => x.rodzaj === t?.rodzaj && (!ukryteTypy.has(x.id) || x.id === e.typ))
     const g = e.g
     const osoby = e.osoby ?? []
     const ustOsoby = (o: Osoba[]) => zmiana({ osoby: o.length ? o : undefined })
+    /** PD-01: osoba z grobu bez karty → nowa karta w drzewie (dodana w panelu, zmarła, daty z grobu) i powiązanie z grobem */
+    const utworzKarte = async (i: number) => {
+        const o = osoby[i], cz = o.nazwa.trim().split(/\s+/)
+        const nazwisko = cz.length > 1 ? cz[cz.length - 1] : cz[0], imiona = cz.length > 1 ? cz.slice(0, -1).join(' ') : ''
+        if (!confirm(`Utworzyć kartę osoby?\nimiona: ${imiona || '–'}\nnazwisko: ${nazwisko}\nur.: ${o.ur || '–'} · zm.: ${o.zm || '–'}\n\nKarta powstanie w dziale „osoby” bez rodziny; uzupełnisz ją tam.`)) return
+        const r = await fetch('/api/keystatic/osoby', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ akcja: 'nowa', imiona, nazwisko, ur: o.ur, zm: o.zm, zGrobu: { plan: slug, grob: e.id } }) }).catch(() => null)
+        const j = r ? await r.json().catch(() => null) : null
+        if (!r?.ok || !j?.id) { ustawBladKarty(j?.blad ?? 'Nie udało się utworzyć karty.'); return }
+        ustawBladKarty('')
+        ustOsoby(osoby.map((q, k) => (k === i ? { ...q, id: j.id } : q)))
+        wczytajOsoby()
+    }
     void skala
     // Rysuj: kształt i położenie; Opracuj / Sprawdź: dane grobu (napis, osoby, zdjęcia, źródła)
     const rysuj = tryb === 'rysuj', dane = !rysuj || !t?.grob, etap = t?.grob ? etapElementu(e) : null
@@ -1274,6 +1283,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
                                     <input className="ed-in" style={{ width: 58 }} placeholder="zm." value={o.zm ?? ''} onChange={(x) => ustOsoby(osoby.map((q, j) => (j === i ? { ...q, zm: x.target.value || undefined } : q)))} />
                                     <button className="ed-btn" onClick={() => ustOsoby(osoby.filter((_, j) => j !== i))} aria-label="usuń osobę">×</button>
                                 </div>
+                                {!o.id && o.nazwa.trim().length > 2 && <button className="ed-link ed-maly" onClick={() => utworzKarte(i)} title="Nowa karta w dziale osoby (bez rodziny); import GEDCOM jej nie usuwa">nie ma w drzewie – utwórz kartę osoby</button>}
                                 {o.id && <span className="ed-maly">w drzewie: <a href={`/keystatic/osoby/${o.id}`} target="_blank" rel="noreferrer">karta osoby ↗</a> · <button className="ed-link" onClick={() => ustOsoby(osoby.map((q, j) => (j === i ? { ...q, id: undefined } : q)))}>odłącz</button></span>}
                                 {podp.length > 0 && (
                                     <div className="ed-podp">
@@ -1293,6 +1303,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
                         )
                     })}
                     <button className="ed-btn" onClick={() => { wczytajOsoby(); ustOsoby([...osoby, { nazwa: '' }]); ustawAktywna(osoby.length); window.setTimeout(() => { const L = document.querySelectorAll<HTMLInputElement>('.ed-osoba input'); L[L.length - 3]?.focus() }, 50) }}>+ osoba</button>
+                    {bladKarty && <p className="ed-uwaga" role="alert">{bladKarty}</p>}
                     <span className="ed-maly">Wpisz nazwisko – podpowiem osoby z drzewa; wybrana osoba dostaje na swojej karcie wiersz „pochówek”.</span>
                     <div className="ed-rzad">
                         <Pole etykieta="rok śmierci (ostatniej osoby)"><input className="ed-in" type="number" value={e.rokZgonu ?? ''} onChange={(x) => zmiana({ rokZgonu: x.target.value ? +x.target.value : undefined })} placeholder="z napisu" /></Pole>

@@ -194,7 +194,8 @@ export function znajdzMiejsce(pl: string, mIdx: Map<string, string>): string | u
 
 const OBSLUGIWANE_INDI = new Set(['NAME', 'SEX', 'FAMC', 'FAMS', 'NOTE', 'SOUR', 'OBJE', '_MTTAG', 'RIN', '_UID', 'UID', 'CHAN', 'ADDR', ...Object.keys(ZDARZENIA_GEDCOM)])
 
-export function importujGedcom(tekst: string, miejsca: MiejsceDoDopasowania[]): WynikImportu {
+/** `zajete` – identyfikatory osób dodanych w panelu (bez gedcomId), które import zachowuje; nowe osoby ich nie dostaną. */
+export function importujGedcom(tekst: string, miejsca: MiejsceDoDopasowania[], zajete: ReadonlySet<string> = new Set()): WynikImportu {
     const rekordy = parsujGedcom(tekst)
     const poXref = new Map(rekordy.filter((r) => r.xref).map((r) => [r.xref!, r]))
     const mIdx = indeksMiejsc(miejsca)
@@ -309,7 +310,7 @@ export function importujGedcom(tekst: string, miejsca: MiejsceDoDopasowania[]): 
         // nazwisko z kilkoma członami (np. panieńskie i po mężu) zostaje jak było; człony trafiają do wyszukiwania przez nazwiskaOsoby
         const ur = jeden(r, 'BIRT') ?? jeden(r, 'CHR') ?? jeden(r, 'BAPM')
         const rok = ur ? rokPoczatku(dataGedcomNaEdtf(wart(ur, 'DATE')) ?? undefined) : null
-        const id = idZNazwy(im || 'osoba', nazwisko, rok, (x) => osoby.has(x))
+        const id = idZNazwy(im || 'osoba', nazwisko, rok, (x) => osoby.has(x) || zajete.has(x))
         idOsoby.set(r.xref!, id)
         const sex = wart(r, 'SEX').toUpperCase()
         const zdarzenia: Zdarzenie[] = []

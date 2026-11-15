@@ -1,6 +1,6 @@
 // Operacje edytora na geometrii (czyste funkcje): przesuwanie, obrót, kopie, przyciąganie, odstęp „jak sąsiednie”.
 
-import { kwateraDla, noweId, punktyElementu, rad, srodek, type Element, type Geometria, type Pkt, type Plan } from './model'
+import { geoNaPlan, kwateraDla, noweId, punktyElementu, rad, srodek, type Element, type Geometria, type Pkt, type Plan } from './model'
 import type { TypElementu } from './typy'
 
 export function przesun(g: Geometria, dx: number, dy: number): Geometria {
@@ -288,4 +288,15 @@ export function zamienDane(elementy: Element[], aId: string, bId: string): Eleme
     const a = elementy.find((e) => e.id === aId), b = elementy.find((e) => e.id === bId)
     if (!a || !b || aId === bId) return { blad: 'Wybierz dwa różne groby.' }
     return elementy.map((e) => (e.id === aId ? zDanymi(a, b) : e.id === bId ? zDanymi(b, a) : e))
+}
+
+// ---------- zdjęcie nagrobka z GPS → propozycja grobu (PD-16; działa od 12.11, wydzielone do testu) ----------
+/** Najbliższy grób w promieniu `promienM` metrów od punktu GPS; null, gdy plan nie ma georeferencji lub skali. */
+export function propozycjaGrobu(plan: Pick<Plan, 'geo' | 'elementy'>, czyGrob: (e: Element) => boolean, skala: number | null, lat: number, lon: number, promienM = 3): { id: string; odl: number } | null {
+    const g2p = plan.geo.length >= 2 ? geoNaPlan(plan.geo) : null
+    if (!g2p || !skala) return null
+    const [x, y] = g2p(lat, lon)
+    let best: Element | null = null, bd = Infinity
+    for (const g of plan.elementy) { if (!czyGrob(g)) continue; const [a, b] = srodek(g.g), d = Math.hypot(a - x, b - y); if (d < bd) { bd = d; best = g } }
+    return best && bd * skala <= promienM ? { id: best.id, odl: bd * skala } : null
 }
