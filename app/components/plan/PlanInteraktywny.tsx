@@ -444,7 +444,16 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
                                     return (
                                         <div key={j} className="flex flex-col" style={{ gap: 1 }}>
                                             {z ? <a href={`/osoby/${o.id}`} style={{ fontWeight: 700, fontSize: 15 }}>{o.nazwa}</a> : <b style={{ fontSize: 15 }}>{o.nazwa}</b>}
-                                            {(o.ur || o.zm || z?.zdanie) && <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 12.5 }}>{[o.ur || o.zm ? `${o.ur ?? '?'} – ${o.zm ?? '?'}` : '', z?.zdanie].filter(Boolean).join(' · ')}</span>}
+                                            {(o.ur || o.zm || z?.rodzina.length) && <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 12.5 }}>
+                                                {o.ur || o.zm ? `${o.ur ?? '?'} – ${o.zm ?? '?'}` : null}
+                                                {/* P7C-4: rodzice i małżonkowie jako odnośniki do kart osób */}
+                                                {z?.rodzina.map((c, ci) => (
+                                                    <React.Fragment key={c.etykieta + ci}>
+                                                        {(ci > 0 || o.ur || o.zm) && ' · '}{c.etykieta}:{' '}
+                                                        {c.osoby.map((x, xi) => <React.Fragment key={x.id}>{xi > 0 && ' i '}<a href={`/osoby/${x.id}`}>{x.nazwa}</a></React.Fragment>)}
+                                                    </React.Fragment>
+                                                ))}
+                                            </span>}
                                         </div>
                                     )
                                 })}

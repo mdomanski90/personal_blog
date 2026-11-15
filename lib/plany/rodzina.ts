@@ -6,7 +6,9 @@ import { lataZycia, nazwaOsoby, type Osoba } from '../osoby/model'
 import type { Plan } from './model'
 
 export interface KrewnyNaPlanie { id: string; nazwa: string; lata: string; relacja: string }
-export interface OsobaNaPlanie { id: string; nazwa: string; lata: string; zdanie: string; krewni: KrewnyNaPlanie[] }
+/** P7C-4: części zdania o rodzinie z odnośnikami do kart osób (np. „rodzice: A i B”, „żona: C”) */
+export interface CzescRodziny { etykieta: string; osoby: { id: string; nazwa: string }[] }
+export interface OsobaNaPlanie { id: string; nazwa: string; lata: string; zdanie: string; rodzina: CzescRodziny[]; krewni: KrewnyNaPlanie[] }
 
 const rola = (o: Osoba | undefined, m: string, k: string, n: string) => (o?.plec === 'M' ? m : o?.plec === 'K' ? k : n)
 
@@ -26,21 +28,22 @@ export async function osobyPlanu(plan: Plan, poziom: Widocznosc): Promise<Record
             const p = s.drzewo.osoby.get(k)!
             krewni.push({ id: k, nazwa: nazwaOsoby(p), lata: lataZycia(p), relacja })
         }
-        const rodzice: string[] = [], malzonkowie: string[] = []
+        const rodzice: { id: string; nazwa: string }[] = [], malzonkowie: CzescRodziny[] = []
         for (const f of rel?.rodzice ?? []) {
-            if (f.maz) { dodaj(f.maz, 'ojciec'); if (widac(f.maz)) rodzice.push(nazwaOsoby(s.drzewo.osoby.get(f.maz)!)) }
-            if (f.zona) { dodaj(f.zona, 'matka'); if (widac(f.zona)) rodzice.push(nazwaOsoby(s.drzewo.osoby.get(f.zona)!)) }
+            if (f.maz) { dodaj(f.maz, 'ojciec'); if (widac(f.maz)) rodzice.push({ id: f.maz, nazwa: nazwaOsoby(s.drzewo.osoby.get(f.maz)!) }) }
+            if (f.zona) { dodaj(f.zona, 'matka'); if (widac(f.zona)) rodzice.push({ id: f.zona, nazwa: nazwaOsoby(s.drzewo.osoby.get(f.zona)!) }) }
             for (const c of f.dzieci) dodaj(c, rola(s.drzewo.osoby.get(c), 'brat', 'siostra', 'rodzeństwo'))
         }
         for (const f of rel?.malzenstwa ?? []) {
             const sp = f.maz === id ? f.zona : f.maz
             const p = sp ? s.drzewo.osoby.get(sp) : undefined
             dodaj(sp, rola(p, 'mąż', 'żona', 'małżonek'))
-            if (sp && widac(sp)) malzonkowie.push(`${rola(p, 'mąż', 'żona', 'małżonek')}: ${nazwaOsoby(p!)}`)
+            if (sp && widac(sp)) malzonkowie.push({ etykieta: rola(p, 'mąż', 'żona', 'małżonek'), osoby: [{ id: sp, nazwa: nazwaOsoby(p!) }] })
             for (const c of f.dzieci) dodaj(c, rola(s.drzewo.osoby.get(c), 'syn', 'córka', 'dziecko'))
         }
-        const czesci = [rodzice.length ? `rodzice: ${rodzice.join(' i ')}` : '', ...malzonkowie].filter(Boolean)
-        wyn[id] = { id, nazwa: nazwaOsoby(o), lata: lataZycia(o), zdanie: czesci.join(' · '), krewni }
+        const rodzina: CzescRodziny[] = [...(rodzice.length ? [{ etykieta: 'rodzice', osoby: rodzice }] : []), ...malzonkowie]
+        const zdanie = rodzina.map((c) => `${c.etykieta}: ${c.osoby.map((x) => x.nazwa).join(' i ')}`).join(' · ')
+        wyn[id] = { id, nazwa: nazwaOsoby(o), lata: lataZycia(o), zdanie, rodzina, krewni }
     }
     return wyn
 }
