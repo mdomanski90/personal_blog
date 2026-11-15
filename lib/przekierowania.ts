@@ -28,7 +28,8 @@ export async function wczytajPrzekierowania(): Promise<Przekierowanie[]> {
 /** Cel przekierowania z podążaniem za łańcuchem (stary → pośredni → nowy), najwyżej 5 kroków, bez pętli. */
 export function celPrzekierowania(lista: Przekierowanie[], rodzaj: string, slug: string): string | null {
     const mapa = new Map(lista.filter((w) => w.rodzaj === rodzaj && w.stary.trim() && w.nowy.trim()).map((w) => [w.stary.trim(), w.nowy.trim()]))
-    let obecny = slug, byly = new Set([slug])
+    let obecny = slug
+    const byly = new Set([slug])
     for (let i = 0; i < 5; i++) {
         const n = mapa.get(obecny)
         if (!n || byly.has(n)) break

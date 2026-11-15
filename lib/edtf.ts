@@ -99,7 +99,7 @@ export function czyPoprawnaEdtf(zapis: string | null | undefined): boolean {
 
 /** Liczba RRRRMMDD – najwcześniejszy (poczatek) albo najpóźniejszy (koniec) dzień objęty punktem. */
 function klucz(p: Punkt, strona: 'poczatek' | 'koniec'): number {
-    let rokOd = p.rok
+    const rokOd = p.rok
     let rokDo = p.rok
     if (p.precyzja === 'dekada') rokDo = p.rok + 9
     if (p.precyzja === 'wiek') rokDo = p.rok + 99

@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import Database from 'better-sqlite3'
 import path from 'path'
 
@@ -8,7 +9,6 @@ let db: Database.Database | null = null
 function getDb(): Database.Database {
     if (!db) {
         // Utwórz folder data/ jeśli nie istnieje
-        const fs = require('fs')
         const dir = path.dirname(DB_PATH)
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true })

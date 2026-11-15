@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     }
     if (d?.akcja === 'import' && d.plan && typeof d.plan === 'object') {
         const wej = d.plan as Plan & { podklady: (Plan['podklady'][number] & { dane?: string })[] }
-        let slug = String(d.slug || wej.slug || '')
+        const slug = String(d.slug || wej.slug || '')
         if (!SLUG.test(slug)) return Response.json({ blad: 'Plik nie ma poprawnego identyfikatora planu.' }, { status: 400 })
         if ((await wczytajPlan(slug)) && !d.nadpisz) return Response.json({ blad: `Plan „${slug}” już jest. Zaznacz „zastąp”, żeby go nadpisać.` }, { status: 409 })
         try {

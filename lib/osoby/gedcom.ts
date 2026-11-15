@@ -301,7 +301,7 @@ export function importujGedcom(tekst: string, miejsca: MiejsceDoDopasowania[]): 
             const marr = wart(n, '_MARNM') || wart(n, '_MARN')
             if (marr && marr !== nazwisko) inne.push(marr)
         })
-        let im = imiona.join(' ')
+        const im = imiona.join(' ')
         if (/\d|cm\b|\(|\[|\?/i.test(`${im} ${nazwisko}`)) {
             uwagi.push(`imię lub nazwisko z dopiskiem z Ancestry: „${`${im} /${nazwisko}/`.trim()}” – popraw`)
             pods.imionaZDopiskami++
