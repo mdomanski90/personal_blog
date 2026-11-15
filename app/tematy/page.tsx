@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { TytulDzialu, WstepDzialu, WstepTekst } from '@/app/components/WstepDzialu'
 import { Link } from 'next-view-transitions'
 import { materialy, materialyDla, opowiesciDlaTematu, osCzasu, poziomCzytelnika, rozwiazOdnosniki, RODZAJE_TEMATOW, RODZAJE_MATERIALOW, tematy } from '@/lib/archiwum'
 import { kluczSortowania } from '@/lib/edtf'
@@ -39,7 +40,8 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
 
     return (
         <Strona>
-            <TytulStrony>tematy</TytulStrony>
+            <TytulStrony><TytulDzialu dzial="tematy" domyslny="tematy" /></TytulStrony>
+            <WstepDzialu dzial="tematy" className="ot-drobne" />
             <div className="flex w-fit" style={{ paddingLeft: 1 }}>{zakladka('lista', 'lista')}{zakladka('os', 'oś czasu')}</div>
             {lista.length === 0 && <p className="text-gray-500 italic lowercase">brak opublikowanych tematów.</p>}
 

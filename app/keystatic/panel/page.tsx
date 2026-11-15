@@ -115,6 +115,7 @@ export default function Pulpit() {
                     <section aria-labelledby="szybko" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <h2 id="szybko" className="pn-etyk">szybko</h2>
                         <div className="pn-rzad">
+                            <a className="pn-btn pn-btn-gl" href="/keystatic/panel/do-opracowania">do opracowania →</a>
                             <a className="pn-btn" href="/keystatic/collection/posts/create">+ wpis</a>
                             <a className="pn-btn" href="/keystatic/collection/miejsca/create">+ miejsce</a>
                             <a className="pn-btn" href="/keystatic/collection/materialy/create">+ materiał do archiwum</a>

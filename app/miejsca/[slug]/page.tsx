@@ -107,15 +107,15 @@ export default async function MiejsceStrona({ params }: Parametry) {
                 <Czesc tytul="podstawowe" />
                 {!obszar && <W e="gmina">{zGminy ? <Link href={`/miejsca/${zGminy.id}`} className="odn">{zGminy.nazwa.replace(/^gmina /i, '')}</Link> : <span className="text-gray-600 dark:text-gray-400">w opracowaniu</span>}</W>}
                 {nadrzedne && (!gmina || nadrzedne.id !== gmina.id) && obszar && <W e="należy do"><Link href={`/miejsca/${nadrzedne.id}`} className="odn">{nadrzedne.nazwa}</Link></W>}
-                {!obszar && (
-                    <W e={m.parafie.length > 1 ? 'parafie' : 'parafia'}>
-                        {m.parafie.length === 0 ? <span className="text-gray-600 dark:text-gray-400">przynależność parafialna w opracowaniu</span> : m.parafie.map((p, i) => {
+                {!obszar && m.parafie.length > 0 && (
+                    <W e="przynależność parafialna / USC">
+                        {m.parafie.map((p, i) => {
                             const par = wszystkieParafie.find((x) => x.id === p.parafia)
                             if (!par) return null
-                            const okres = p.od != null || p.do != null ? `${p.od ? `od ${p.od}` : ''}${p.od && p.do ? ' ' : ''}${p.do ? `do ${p.do}` : ''}` : ''
+                            const okres = p.od != null && p.do != null ? `${p.od}–${p.do}` : p.od != null ? `od ${p.od}` : p.do != null ? `do ${p.do}` : ''
                             return (
                                 <span key={p.parafia + i} className="block">
-                                    <Link href={`/biblioteka/ksiegi#${par.id}`} className="odn">{par.nazwa}</Link>
+                                    <Link href={`/parafie/${par.id}`} className="odn">{par.nazwa}</Link>
                                     <span className="ot-drobne"> – {WYZNANIA_PARAFII[par.wyznanie] ?? par.wyznanie}{okres && ` · ${okres}`}</span>
                                 </span>
                             )
@@ -178,7 +178,9 @@ export default async function MiejsceStrona({ params }: Parametry) {
                                 {!ksiegiSa && <span className="ot-drobne">Spis ksiąg parafii tej wsi jest w przygotowaniu.</span>}
                                 {ksiegiWsi.filter((p) => p.ksiegi.length > 0).map((p) => (
                                     <div key={p.parafia.id} className="flex flex-col" style={{ gap: 6 }}>
-                                        <span><Link href={`/biblioteka/ksiegi#${p.parafia.id}`} className="odn">{p.parafia.nazwa}</Link><span className="ot-drobne"> · {WYZNANIA_PARAFII[p.parafia.wyznanie] ?? p.parafia.wyznanie}</span></span>
+                                        <span>{p.parafia.id === 'nieustalona-instytucja'
+                                            ? <span>{p.parafia.nazwa}</span>
+                                            : <Link href={`/parafie/${p.parafia.id}`} className="odn">{p.parafia.nazwa}</Link>}<span className="ot-drobne"> · {WYZNANIA_PARAFII[p.parafia.wyznanie] ?? p.parafia.wyznanie}</span></span>
                                         <TabelaKsiag ksiegi={p.ksiegi} nazwyMiejsc={Object.fromEntries(wszystkie.map((x) => [x.id, x.nazwa]))} />
                                     </div>
                                 ))}

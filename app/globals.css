@@ -1058,3 +1058,32 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .kl-tekst{height:100%}
 /* wstęp: odnośniki „o projekcie”, „jak przekazać” na równi z dołem okna „z archiwum” */
 @media (min-width:860px){.glowna-wstep.z-oknem{align-items:stretch}.glowna-wstep.z-oknem>div:first-child>span:last-child{margin-top:auto}}
+
+/* PACZKA5_2026 — rozszerzenie JEDYNIE istniejącej nawigacji zakładek, bez redesignu. */
+.menu-zakladki .menu-grupa{position:relative;display:flex;align-items:stretch;min-width:0}
+.odp .menu-zakladki .menu-grupa>.zakladka{padding-right:14px}
+.odp .menu-zakladki .menu-grupa:has(.menu-rozwij)>.zakladka{padding-right:29px}
+.odp .menu-zakladki .menu-archiwum>.zakladka{font-weight:700}
+.menu-zakladki .menu-rozwij{position:absolute;right:4px;top:0;height:100%;border:0;background:transparent;color:var(--link);cursor:pointer;padding:0 4px;font:inherit;font-size:13px}
+.menu-zakladki .menu-rozwij:hover{background:rgba(127,127,127,.08)}
+.menu-zakladki .menu-rozwij:focus-visible{outline:2px solid var(--ring);outline-offset:-2px}
+.menu-zakladki .menu-podlista{position:absolute;left:0;top:100%;z-index:90;display:flex;flex-direction:column;min-width:185px;max-width:min(94vw,310px);padding:5px;border:1px solid var(--border);border-radius:0 7px 7px 7px;background:var(--popover);box-shadow:0 8px 18px rgba(0,0,0,.12)}
+.menu-zakladki .menu-podlista a{display:block;color:var(--foreground);padding:8px 10px;font-size:calc(13px * var(--font-scale,1));text-decoration:none;white-space:normal;border-radius:5px}
+.menu-zakladki .menu-podlista a:hover,.menu-zakladki .menu-podlista a:focus-visible{background:var(--muted);text-decoration:underline}
+@media(max-width:640px){.menu-zakladki .menu-grupa{min-width:0}.menu-zakladki .menu-grupa>.zakladka{width:100%}.menu-zakladki .menu-podlista{min-width:100%;left:0}.menu-zakladki .menu-rozwij{min-width:30px}}
+
+/* PACZKA 6A: wszystkie zakładki w jednej linii na desktopie; zachowaj istniejący wygląd. */
+@media (min-width: 641px) {
+  .menu-zakladki { flex-wrap: nowrap; gap: 2px; padding-left: 2px; }
+  .odp .menu-zakladki .menu-grupa > .zakladka { padding-left: clamp(4px, .6vw, 11px); padding-right: clamp(4px, .6vw, 11px); font-size: clamp(12px, 1.25vw, 14px); }
+  .odp .menu-zakladki .menu-grupa:has(.menu-rozwij) > .zakladka { padding-right: clamp(21px, 2.2vw, 27px); }
+  .menu-zakladki .menu-rozwij { right: 2px; }
+}
+/* Na ekranach dotykowych trójkąt ma co najmniej 42 px pola dotykowego. */
+@media (max-width: 640px) { .menu-zakladki .menu-rozwij { min-width: 42px; right: 0; } .odp .menu-zakladki .menu-grupa:has(.menu-rozwij)>.zakladka { padding-right: 44px; } }
+/* Na bardzo wąskim komputerze/tablecie: bez nieprzewidywalnego zawijania do drugiego wiersza. */
+@media (min-width: 641px) and (max-width: 800px) {
+  .menu-zakladki { gap: 1px; }
+  .odp .menu-zakladki .menu-grupa > .zakladka { font-size: 12px; padding-left: 4px; padding-right: 4px; }
+  .odp .menu-zakladki .menu-grupa:has(.menu-rozwij) > .zakladka { padding-right: 21px; }
+}

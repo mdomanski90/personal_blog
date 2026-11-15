@@ -5,4 +5,5 @@ export const RODZAJE_MATERIALOW: Record<string, string> = {
     zdjecie: 'zdjęcie',
     nagranie: 'nagranie',
     mapa: 'mapa',
+    wspomnienie: 'wspomnienie i relacja', // PACZKA5_2026
 }

@@ -17,7 +17,8 @@ import { JEZYKI, objasnieniaMaterialu, wKolejnosci } from './objasnienia'
 import type { ObjasnienieWidoku } from './objasnienia-widok'
 import { typPliku } from './pliki'
 
-import { zakresyLat, nakladaSie, scalZakresy, zakresyTekst, KOLEJNOSC_KSIAG } from './ksiegi'
+import { zakresyLat, scalZakresy, zakresyTekst, KOLEJNOSC_KSIAG } from './ksiegi'
+import { ksiegaDotyczyMiejsca } from './ksiegi-powiazania'
 
 const reader = createReader(process.cwd(), keystaticConfig)
 
@@ -83,12 +84,35 @@ export interface Parafia {
     diecezja: string
     sameAs: string | null
     opis: string
+    zrodla?: string[]
+    osoby?: { nazwa: string; rola: string; okres: string; idOsoby: string }[]
+}
+
+/** Jedno źródło prawdy o powiązaniu obiektu z parafią/urzędem: karta obiektu. */
+export interface RelacjaObiektuZInstytucja {
+    parafia: string
+    od: number | null
+    do: number | null
+    zrodlo: string
+}
+
+export interface ZespolArchiwalny {
+    id: string
+    nazwa: string
+    sygnatura: string
+    archiwum: string
+    adres: string | null
+    opis: string
 }
 
 export interface Ksiega {
     id: string
     nazwa: string
     parafia: string
+    zespolArchiwalny: string | null
+    /** Instytucja główna i instytucje dodatkowe — jeden rekord może dotyczyć wielu. */
+    instytucje: string[]
+    wyznania: string[]
     /** rodzaje aktów w księdze (np. małżeństwa i zgony razem); pierwszy decyduje o kolejności */
     rodzaje: string[]
     lata: string
@@ -96,7 +120,7 @@ export interface Ksiega {
     /** wsie, których dotyczą akty; puste = cała parafia */
     miejsca: string[]
     /** osobne tomy zespołu (np. rok po roku) */
-    jednostki: { lata: string; zakresy: [number, number][]; sygnatura: string; skany: string | null; uwagi: string }[]
+    jednostki: { lata: string; zakresy: [number, number][]; sygnatura: string; skany: string | null; uwagi: string; tytul: string; liczbaSkanow: number | null; digitalizacja: 'online' | 'brak' | 'nieustalone' }[]
     braki: string
     jezyk: string
     gdzie: string
@@ -154,6 +178,7 @@ export interface Obiekt {
     przyblizone: boolean
     czas: string
     istnieje: boolean
+    instytucje?: RelacjaObiektuZInstytucja[]
     widocznosc: Widocznosc
     dodano: string | null
     opis: Node | null
@@ -184,6 +209,12 @@ export interface Material {
     miejsca: string[]
     tematy: string[]
     obiekty: string[]
+    // PACZKA5_2026: powiązania i pola dodatkowe bez zmiany istniejących rekordów.
+    zbiory: string[]
+    instytucje: string[]
+    osobyIds: string[]
+    miejscePrzechowywania: string
+    transkrypcja: string
     widocznosc: Widocznosc
     dodano: string | null
     zrodla: string[]
@@ -244,15 +275,38 @@ const wszystkieParafie = cache(async (): Promise<Parafia[]> => {
             diecezja: entry.diocese ?? '',
             sameAs: entry.sameAs,
             opis: entry.description ?? '',
+            zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
+            osoby: (entry.people ?? []).filter((x) => x.name).map((x) => ({
+                nazwa: x.name, rola: x.role ?? '', okres: x.period ?? '', idOsoby: x.personId ?? '',
+            })),
         }))
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
+
+const wszystkieZespolyArchiwalne = cache(async (): Promise<ZespolArchiwalny[]> => {
+    // Nowa kolekcja: katalog może jeszcze nie istnieć po instalacji, przed pierwszym zapisem.
+    const fs = await import('node:fs/promises')
+    try { await fs.access(`${process.cwd()}/content/zespoly`) }
+    catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return []; throw e }
+    const wpisy = await reader.collections.zespoly.all()
+    return wpisy.map(({ slug, entry }) => ({
+        id: slug, nazwa: entry.title, sygnatura: entry.identifier ?? '',
+        archiwum: entry.repository ?? '', adres: entry.source ?? null, opis: entry.description ?? '',
+    }))
+})
+export async function zespolyArchiwalne(): Promise<ZespolArchiwalny[]> {
+    return wszystkieZespolyArchiwalne()
+}
 
 const wszystkieKsiegiSurowe = cache(async (): Promise<Ksiega[]> => {
     const wpisy = await reader.collections.ksiegi.all()
     return wpisy.map(({ slug, entry }) => {
         const jednostki = (entry.volumes ?? [])
-            .map((j) => ({ lata: j.years, zakresy: zakresyLat(j.years), sygnatura: j.identifier ?? '', skany: j.scans || null, uwagi: j.gaps ?? '' }))
+            .map((j) => ({
+                lata: j.years, zakresy: zakresyLat(j.years), sygnatura: j.identifier ?? '', skany: j.scans || null,
+                uwagi: j.gaps ?? '', tytul: j.title ?? '', liczbaSkanow: j.scanCount ?? null,
+                digitalizacja: (j.scans ? 'online' : j.digitization ?? 'nieustalone') as 'online' | 'brak' | 'nieustalone',
+            }))
             .sort((a, b) => (a.zakresy[0]?.[0] ?? 0) - (b.zakresy[0]?.[0] ?? 0))
         // przy tomach pasek lat z samych tomów (widać brakujące roczniki); „Lata” zostaje jako podpis
         const zakresy = scalZakresy(jednostki.some((j) => j.zakresy.length) ? jednostki.flatMap((j) => j.zakresy) : zakresyLat(entry.years))
@@ -260,6 +314,9 @@ const wszystkieKsiegiSurowe = cache(async (): Promise<Ksiega[]> => {
             id: slug,
             nazwa: entry.title,
             parafia: entry.parish ?? '',
+            zespolArchiwalny: entry.fonds ?? null,
+            instytucje: [...new Set([entry.parish, ...(entry.relatedParishes ?? [])].filter((x): x is string => !!x))],
+            wyznania: [...(entry.relatedReligions ?? [])],
             rodzaje: entry.types.length ? [...entry.types].sort((a, b) => KOLEJNOSC_KSIAG.indexOf(a) - KOLEJNOSC_KSIAG.indexOf(b)) : ['inne'],
             lata: entry.years?.trim() || zakresyTekst(zakresy),
             zakresy,
@@ -289,27 +346,30 @@ export async function ksiegi(poziom: Widocznosc): Promise<Ksiega[]> {
         .sort((a, b) => a.parafia.localeCompare(b.parafia) || kol.indexOf(a.rodzaje[0]) - kol.indexOf(b.rodzaje[0]) || (a.zakresy[0]?.[0] ?? 0) - (b.zakresy[0]?.[0] ?? 0))
 }
 
-/** Księgi parafii, do których należała wieś, z lat jej przynależności. */
+/** Księgi dotyczące miejscowości: jedna reguła dla jej karty, katalogu i wyszukiwarki. */
 export async function ksiegiDlaMiejsca(m: Miejsce, poziom: Widocznosc): Promise<{ parafia: Parafia; od: number | null; do: number | null; ksiegi: Ksiega[] }[]> {
     const wszystkiePar = await wszystkieParafie()
-    const wszystkieKs = await ksiegi(poziom)
-    // księga z zaznaczonymi wsiami dotyczy tylko ich; bez zaznaczenia – całej parafii
-    const dotyczy = (k: Ksiega) => !k.miejsca.length || k.miejsca.includes(m.id)
-    const zParafii = m.parafie
-        .map((p) => {
-            const parafia = wszystkiePar.find((x) => x.id === p.parafia)
-            if (!parafia) return null
-            return { parafia, od: p.od, do: p.do, ksiegi: wszystkieKs.filter((k) => k.parafia === p.parafia && dotyczy(k) && nakladaSie(k.zakresy, p.od, p.do)) }
-        })
-        .filter((x): x is NonNullable<typeof x> => x !== null)
-    // księgi innych parafii, w których wieś zaznaczono wprost
-    const inne = new Map<string, Ksiega[]>()
-    for (const k of wszystkieKs) if (k.miejsca.includes(m.id) && !m.parafie.some((p) => p.parafia === k.parafia)) inne.set(k.parafia, [...(inne.get(k.parafia) ?? []), k])
-    for (const [id, ks] of inne) {
-        const parafia = wszystkiePar.find((x) => x.id === id)
-        if (parafia) zParafii.push({ parafia, od: null, do: null, ksiegi: ks })
+    const pasujace = (await ksiegi(poziom)).filter((k) => ksiegaDotyczyMiejsca(k, m))
+    const grupy = new Map<string, { parafia: Parafia; od: number | null; do: number | null; ksiegi: Ksiega[] }>()
+    for (const k of pasujace) {
+        const rel = k.instytucje.find((id) => m.parafie.some((z) => z.parafia === id))
+        const instytucja = rel || k.parafia || k.instytucje[0]
+        const parafia = wszystkiePar.find((p) => p.id === instytucja) ?? (
+            k.instytucje.length === 0 ? {
+                id: 'nieustalona-instytucja', nazwa: 'instytucja nieustalona', wyznanie: '',
+                siedziba: null, czas: '', diecezja: '', sameAs: null, opis: '', zrodla: [], osoby: [],
+            } : null
+        )
+        if (!parafia) continue // zerwane relacje wymagają poprawy w Keystatic
+        let grupa = grupy.get(parafia.id)
+        if (!grupa) {
+            const relacja = m.parafie.find((p) => p.parafia === parafia.id)
+            grupa = { parafia, od: relacja?.od ?? null, do: relacja?.do ?? null, ksiegi: [] }
+            grupy.set(parafia.id, grupa)
+        }
+        grupa.ksiegi.push(k)
     }
-    return zParafii
+    return [...grupy.values()]
 }
 
 const wszystkieTematySurowe = cache(async (): Promise<Temat[]> => {
@@ -344,6 +404,9 @@ const wszystkieObiektySurowe = cache(async (): Promise<Obiekt[]> => {
             przyblizone: entry.approximate,
             czas: entry.temporal,
             istnieje: entry.exists,
+            instytucje: (entry.institutions ?? []).filter((r) => r.parish).map((r) => ({
+                parafia: r.parish as string, od: r.from ?? null, do: r.to ?? null, zrodlo: r.source ?? '',
+            })),
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
@@ -379,6 +442,11 @@ const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
             miejsca: [...entry.spatial].filter(Boolean) as string[],
             tematy: [...entry.subject].filter(Boolean) as string[],
             obiekty: [...entry.relation].filter(Boolean) as string[],
+            zbiory: [...(entry.collections ?? [])].filter((x): x is string => !!x),
+            instytucje: [...(entry.institutions ?? [])].filter((x): x is string => !!x),
+            osobyIds: [...(entry.peopleIds ?? [])].filter(Boolean),
+            miejscePrzechowywania: entry.repository ?? '',
+            transkrypcja: entry.transcription ?? '',
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
@@ -762,7 +830,7 @@ export async function powiazania(rodzaj: RodzajCelu, id: string, poziom: Widoczn
 
 // ---------- wyszukiwarka ----------
 
-export type RodzajWyniku = 'osoba' | 'miejsce' | 'obiekt' | 'temat' | 'wpis' | 'materiał'
+export type RodzajWyniku = 'osoba' | 'miejsce' | 'obiekt' | 'temat' | 'wpis' | 'materiał' | 'księga' | 'parafia' | 'hasło' | 'publikacja' | 'zbiór' // PACZKA5_2026
 export interface Wynik {
     rodzaj: RodzajWyniku
     /** etykieta przy wyniku: osoba, wieś, cerkiew unicka, wpis, dokument… */
@@ -840,10 +908,34 @@ export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wyn
     const mat = await materialy(poziom)
     for (const m of mat) {
         const tekst = bezNawiasow(naTekst(m.opis))
-        const waga = ocen([m.nazwa, m.sygnatura], `${tekst} ${m.pochodzenie} ${m.tworca}`)
+        const waga = ocen([m.nazwa, m.sygnatura], `${tekst} ${m.pochodzenie} ${m.tworca} ${m.transkrypcja} ${m.miejscePrzechowywania}`)
         if (waga) wyniki.push({ rodzaj: 'materiał', etykieta: RODZAJE_MATERIALOW[m.rodzaj] ?? 'materiał', id: m.id, tytul: m.nazwa, adres: `/archiwum/${m.id}`, fragment: waga === 1 ? fragmentWokol(tekst, z) : [m.czas && formatujEdtf(m.czas), m.pochodzenie].filter(Boolean).join(' · '), waga })
     }
-    // trafienie w miejscowość: dołącz wpisy, materiały, obiekty i tematy z nią powiązane (jeśli nie ma ich już w wynikach)
+    // PACZKA5_2026: publikacje i zbiory w tym samym istniejącym indeksie.
+    const { szukajP5 } = await import('./paczka5')
+    wyniki.push(...await szukajP5(zapytanie, poziom))
+    // Biblioteka: księgi (również po sygnaturach tomów), parafie/urzędy i słownik.
+    // Brak osobnego indeksu; respektujemy te same poziomy widoczności co katalogi.
+    const par = await parafie()
+    for (const p of par) {
+        const waga = ocen([p.nazwa], `${p.czas} ${p.diecezja} ${p.opis}`)
+        if (waga) wyniki.push({ rodzaj: 'parafia', etykieta: 'parafia / urząd', id: p.id, tytul: p.nazwa, adres: `/parafie/${p.id}`, fragment: [p.czas && formatujEdtf(p.czas), p.diecezja].filter(Boolean).join(' · '), waga })
+    }
+    const wszystkieKs = await ksiegi(poziom)
+    const nazwyParafii = new Map(par.map((p) => [p.id, p.nazwa]))
+    for (const k of wszystkieKs) {
+        const nazwaParafii = k.instytucje.map((id) => nazwyParafii.get(id) ?? id).join(' · ')
+        const zwiazane = msc.filter((m) => ksiegaDotyczyMiejsca(k, m)).map((m) => m.nazwa)
+        const tomy = k.jednostki.map((j) => `${j.sygnatura} ${j.lata}`)
+        const tekst = [k.lata, k.sygnatura, k.gdzie, k.braki, k.jezyk, nazwaParafii, ...zwiazane, ...tomy].join(' ')
+        const waga = ocen([k.nazwa, k.sygnatura, ...k.jednostki.map((j) => j.sygnatura).filter(Boolean)], tekst)
+        if (waga) wyniki.push({ rodzaj: 'księga', etykieta: 'księga metrykalna', id: k.id, tytul: k.nazwa, adres: `/biblioteka/ksiegi#ksiega-${k.id}`, fragment: [k.lata, k.sygnatura, nazwaParafii].filter(Boolean).join(' · '), waga })
+    }
+    for (const h of await hasla(poziom)) {
+        const waga = ocen([h.haslo, ...h.formy], `${h.znaczenie} ${h.przyklad} ${h.zrodlo}`)
+        if (waga) wyniki.push({ rodzaj: 'hasło', etykieta: 'słownik', id: h.id, tytul: h.haslo, adres: `/biblioteka/slownik#${h.id}`, fragment: h.znaczenie.slice(0, 160), waga })
+    }
+    // trafienie w miejscowość: dołącz wpisy, materiały, obiekty, tematy i księgi powiązane z miejscem
     const znalezione = new Set(wyniki.map((w) => `${w.rodzaj}:${w.id}`))
     for (const m of msc.filter((x) => wyniki.some((w) => w.rodzaj === 'miejsce' && w.id === x.id && w.waga >= 2))) {
         const dodaj = (w: Wynik) => { const k = `${w.rodzaj}:${w.id}`; if (!znalezione.has(k)) { znalezione.add(k); wyniki.push({ ...w, przez: m.nazwa, waga: 0.5 }) } }
@@ -851,6 +943,7 @@ export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wyn
         for (const x of mat) if (x.miejsca.includes(m.id)) dodaj({ rodzaj: 'materiał', etykieta: RODZAJE_MATERIALOW[x.rodzaj] ?? 'materiał', id: x.id, tytul: x.nazwa, adres: `/archiwum/${x.id}`, fragment: [x.czas && formatujEdtf(x.czas), x.pochodzenie].filter(Boolean).join(' · ') })
         for (const o of obj) if (o.miejsce === m.id) dodaj({ rodzaj: 'obiekt', etykieta: NAZWY_OBIEKTOW[o.rodzaj] ?? 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: '' })
         for (const t of tem) if (t.miejsca.includes(m.id)) dodaj({ rodzaj: 'temat', etykieta: 'temat', id: t.id, tytul: t.nazwa, adres: `/tematy/${t.id}`, fragment: '' })
+        for (const k of wszystkieKs) if (ksiegaDotyczyMiejsca(k, m)) dodaj({ rodzaj: 'księga', etykieta: 'księga metrykalna', id: k.id, tytul: k.nazwa, adres: `/biblioteka/ksiegi#ksiega-${k.id}`, fragment: [k.lata, k.sygnatura].filter(Boolean).join(' · ') })
     }
     return wyniki.sort((a, b) => b.waga - a.waga || porownajPl(a.tytul, b.tytul))
 }

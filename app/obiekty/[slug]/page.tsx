@@ -1,3 +1,5 @@
+import { parafie } from '@/lib/archiwum'
+import { zapiszOkres } from '@/lib/parafie-powiazania'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
@@ -37,6 +39,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     const o = await obiekt(slug, poziom)
     if (!o) notFound()
     const wszystkie = await miejsca(poziom)
+    const listaParafii = await parafie()
     const wies = o.miejsce ? wszystkie.find((m) => m.id === o.miejsce) : undefined
     const punkty = o.wspolrzedne ? await dolaczPlany(punktyMapy(wszystkie, await obiekty(poziom))) : []
     const planyGeo = await planyNaMape()
@@ -59,6 +62,19 @@ export default async function ObiektStrona({ params }: Parametry) {
         <Tabela etykieta={`${o.nazwa} – dane`}>
             <Czesc tytul="podstawowe" />
             <W e="miejscowość">{wies && <Link href={`/miejsca/${wies.id}`} className="odn">{wies.nazwa}</Link>}</W>
+            <W e="parafia / urząd">{(o.instytucje?.length ?? 0) > 0 && (
+                <span className="flex flex-col" style={{ gap: 4 }}>
+                    {(o.instytucje ?? []).map((rel, i) => {
+                        const p = listaParafii.find((x) => x.id === rel.parafia)
+                        if (!p) return null
+                        return <span key={`${rel.parafia}-${i}`}>
+                            <Link href={`/parafie/${p.id}`} className="odn">{p.nazwa}</Link>
+                            <span className="ot-drobne"> · {zapiszOkres(rel.od, rel.do)}</span>
+                            {rel.zrodlo && <span className="ot-drobne"> · źródło: <ZAdresami tekst={rel.zrodlo} /></span>}
+                        </span>
+                    })}
+                </span>
+            )}</W>
             <W e="rodzaj">{rodzaj}</W>
             <W e="lata istnienia">{o.czas ? formatujEdtf(o.czas) : null}</W>
             <W e="stan">{o.istnieje ? 'istnieje' : 'nie istnieje'}</W>

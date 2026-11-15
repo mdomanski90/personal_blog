@@ -10,7 +10,23 @@ import Emblemat from './Emblemat'
 import Wroc from './Wroc'
 import Wyszukiwarka from './Wyszukiwarka'
 
-// Menu główne: zakładki teczki stojące na linii w kolorze atramentu; na telefonie siatka w dwóch kolumnach.
+// PACZKA5_2026: zachowujemy zakładki teczki i resztę strony bez zmian.
+const PODMENU: Record<string, { href: string; tekst: string }[]> = {
+    '/miejsca': [
+        { href: '/miejsca', tekst: 'miejscowości' },
+        { href: '/parafie', tekst: 'instytucje' },
+        { href: '/obiekty', tekst: 'obiekty' },
+    ],
+    '/archiwum': [
+        { href: '/archiwum', tekst: 'wszystkie materiały' },
+        { href: '/archiwum?rodzaj=wspomnienie', tekst: 'wspomnienia i relacje' },
+        { href: '/archiwum?rodzaj=zdjecie', tekst: 'fotografie' },
+        { href: '/archiwum?rodzaj=dokument', tekst: 'dokumenty' },
+        { href: '/archiwum?rodzaj=nagranie', tekst: 'nagrania' },
+        { href: '/archiwum?rodzaj=mapa', tekst: 'mapy' },
+        { href: '/archiwum/zbiory', tekst: 'zbiory i kolekcje' },
+    ],
+}
 const MENU: { href: string; tekst: string }[] = [
     { href: '/', tekst: 'strona główna' },
     { href: '/wpisy', tekst: 'wpisy' },
@@ -42,6 +58,21 @@ function Fale() {
 export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) {
     const pathname = usePathname()
     const glowna = pathname === '/'
+    const [rozwiniete, setRozwiniete] = React.useState<string | null>(null)
+    const navRef = React.useRef<HTMLElement>(null)
+    React.useEffect(() => { setRozwiniete(null) }, [pathname])
+    React.useEffect(() => {
+        const key = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && rozwiniete) {
+                navRef.current?.querySelector<HTMLButtonElement>('button[aria-expanded="true"]')?.focus()
+                setRozwiniete(null)
+            }
+        }
+        const click = (e: MouseEvent) => { if (navRef.current && !navRef.current.contains(e.target as Node)) setRozwiniete(null) }
+        document.addEventListener('keydown', key)
+        document.addEventListener('mousedown', click)
+        return () => { document.removeEventListener('keydown', key); document.removeEventListener('mousedown', click) }
+    }, [rozwiniete])
 
     return (
         <header>
@@ -74,14 +105,26 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
                 </div>
             </div>
 
-            <nav aria-label="menu główne" className="menu-zakladki">
+            <nav ref={navRef} aria-label="menu główne" className="menu-zakladki">
                 {MENU.map((m) => {
-                    const akt = aktywny(pathname, m.href)
-                    return (
-                        <Link key={m.href} href={m.href} aria-current={akt ? 'page' : undefined} className="zakladka">
+                    const akt = aktywny(pathname, m.href) ||
+                        (m.href === '/miejsca' && (!!pathname?.startsWith('/parafie') || !!pathname?.startsWith('/obiekty')))
+                    const pod = PODMENU[m.href]
+                    return <div key={m.href} className={`menu-grupa ${m.href === '/archiwum' ? 'menu-archiwum' : ''}`}
+                        onMouseEnter={(e) => { if (pod && window.matchMedia('(hover: hover) and (pointer: fine)').matches) setRozwiniete(m.href) }}
+                        onMouseLeave={() => { if (pod && window.matchMedia('(hover: hover) and (pointer: fine)').matches) setRozwiniete(null) }}
+                        onBlurCapture={(e) => { if (pod && !e.currentTarget.contains(e.relatedTarget as Node | null)) setRozwiniete(null) }}
+                    >
+                        <Link href={m.href} aria-current={akt ? 'page' : undefined} className="zakladka" onFocus={() => { if (pod) setRozwiniete(m.href) }}>
                             {m.tekst}
                         </Link>
-                    )
+                        {pod && <button type="button" className="menu-rozwij" aria-label={`rozwiń: ${m.tekst}`}
+                            aria-controls={rozwiniete === m.href ? `podmenu-${m.href.slice(1)}` : undefined} aria-expanded={rozwiniete === m.href}
+                            onClick={() => setRozwiniete(rozwiniete === m.href ? null : m.href)}>▾</button>}
+                        {pod && rozwiniete === m.href && <div id={`podmenu-${m.href.slice(1)}`} className="menu-podlista">
+                            {pod.map((x) => <Link key={x.href} href={x.href} onClick={() => setRozwiniete(null)}>{x.tekst}</Link>)}
+                        </div>}
+                    </div>
                 })}
             </nav>
 

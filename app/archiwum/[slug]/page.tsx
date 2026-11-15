@@ -15,6 +15,9 @@ import { Czesc, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, 
 import SkanZTekstem from '../../components/SkanZTekstem'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania from '../../components/Powiazania'
+import { zbiory } from '@/lib/paczka5'
+import { Link } from 'next-view-transitions'
+import { widoczne } from '@/lib/archiwum'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,6 +42,9 @@ export default async function MaterialStrona({ params }: Parametry) {
     const n = await nazwy(poziom)
     const nazwyObiektow = new Map((await obiekty(poziom)).map((o) => [o.id, o.nazwa]))
     const siec = await powiazania('material', m.id, poziom)
+    const dostepneZbiory = new Map((await zbiory(poziom)).map((z) => [z.id, z.nazwa])) // PACZKA5_2026
+    const stanOsobP5 = await (await import('@/lib/osoby/dane')).stanOsob()
+    const widoczneOsobyP5 = new Set([...stanOsobP5.drzewo.osoby.keys()].filter(id => widoczne(stanOsobP5.widocznosc(id), poziom)))
     const typ = typPliku(m.plik)
     const miejscaM = m.miejsca.filter((id) => n.miejsca.has(id))
     const tematyM = m.tematy.filter((id) => n.tematy.has(id))
@@ -87,6 +93,11 @@ export default async function MaterialStrona({ params }: Parametry) {
             <Tabela etykieta={`${m.nazwa} – opis`}>
                 {(m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal) && <Czesc tytul="opis archiwalny" />}
                 <W e="sygnatura">{m.sygnatura}</W>
+                <W e="miejsce przechowywania">{m.miejscePrzechowywania}</W>
+                <W e="transkrypcja">{m.transkrypcja && <span className="whitespace-pre-wrap">{m.transkrypcja}</span>}</W>
+                <W e="zbiory">{m.zbiory.filter(id => dostepneZbiory.has(id)).map(id => <span key={id} className="block"><Link className="odn" href={`/archiwum/zbiory/${id}`}>{dostepneZbiory.get(id)}</Link></span>)}</W>
+                <W e="osoby">{m.osobyIds.filter(id => widoczneOsobyP5.has(id)).map(id => <span key={id} className="block"><Link className="odn" href={`/osoby/${id}`}>{id}</Link></span>)}</W>
+                <W e="instytucje">{m.instytucje.map(id => <span key={id} className="block"><Link className="odn" href={`/parafie/${id}`}>{id}</Link></span>)}</W>
                 <W e="pochodzenie">{m.pochodzenie && <span className="whitespace-pre-line">{m.pochodzenie}</span>}</W>
                 <W e="autor / wytwórca">{m.tworca}</W>
                 <W e="język">{m.jezyk}</W>

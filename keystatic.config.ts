@@ -161,10 +161,11 @@ export default config({
     brand: { name: 'odniepamieci.pl' },
     navigation: {
       'Treści': ['posts', 'miejsca', 'obiekty', 'tematy', 'biogramy'],
-      'Archiwum': ['materialy'],
+      'Archiwum': ['materialy', 'zbiory'],
+      'Biblioteka': ['publikacje'],
       'Księgi metrykalne': ['parafie', 'ksiegi'],
       'Słownik': ['hasla'],
-      'Strony': ['stronaGlowna', 'oProjekcie'],
+      'Strony': ['stronaGlowna', 'wstepyDzialow', 'oProjekcie'],
     },
   },
   collections: {
@@ -322,6 +323,19 @@ export default config({
         approximate: fields.checkbox({ label: 'Położenie przybliżone' }),
         temporal: dataEdtf('Lata istnienia'),
         exists: fields.checkbox({ label: 'Istnieje do dziś', defaultValue: true }),
+        institutions: fields.array(
+          fields.object({
+            parish: fields.relationship({ label: 'Parafia / urząd', collection: 'parafie' }),
+            from: fields.integer({ label: 'Od roku (opcjonalnie)' }),
+            to: fields.integer({ label: 'Do roku (opcjonalnie)' }),
+            source: fields.text({ label: 'Źródło powiązania (opcjonalnie)' }),
+          }),
+          {
+            label: 'Powiązane parafie i urzędy',
+            description: 'Związek obiektu (kościoła, cerkwi, plebanii itd.) z instytucją. Może zmieniać się w czasie. Nie jest to przynależność parafialna miejscowości.',
+            itemLabel: (p) => [p.fields.parish.value ?? 'instytucja', [p.fields.from.value, p.fields.to.value].filter((x) => x != null).join('–')].filter(Boolean).join(' '),
+          },
+        ),
         photos: fields.array(
           fields.object({
             image: fields.image({
@@ -374,6 +388,11 @@ export default config({
         spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
         subject: fields.multiRelationship({ label: 'Tematy', collection: 'tematy' }),
         relation: fields.multiRelationship({ label: 'Przedstawia obiekty', description: 'Np. zdjęcie cerkwi, nagrobka.', collection: 'obiekty' }),
+        collections: fields.multiRelationship({ label: 'Zbiory / kolekcje', collection: 'zbiory', description: 'Jeden materiał może należeć do wielu zbiorów; nie twórz kopii.' }),
+        institutions: fields.multiRelationship({ label: 'Powiązane instytucje (parafie / urzędy)', collection: 'parafie' }),
+        peopleIds: fields.array(fields.text({ label: 'Identyfikator osoby' }), { label: 'Powiązane osoby', description: 'Identyfikatory osób z drzewa; bez kopiowania ich kart.', itemLabel: (p) => p.value }),
+        repository: fields.text({ label: 'Miejsce przechowywania', description: 'Archiwum, instytucja lub prywatny depozyt.' }),
+        transcription: fields.text({ label: 'Transkrypcja do wyszukiwania', multiline: true, description: 'Opcjonalnie tekst odczytu. Nie wklejaj materiałów prywatnych do publicznego rekordu.' }),
         visibility: fields.select({
           label: 'Widoczność',
           description: 'Nagranie bez zgody osoby nagranej – „tylko ja”.',
@@ -388,6 +407,39 @@ export default config({
         dateSubmitted: dodano(),
         sources: zrodlaKarty(),
         description: opisMarkdoc('Opis, transkrypcja, tłumaczenie', 'materialy'),
+      },
+    }),
+    // PACZKA5_2026: zbiory i publikacje są oddzielnymi bytami (nie tematami i nie księgami).
+    zbiory: collection({
+      label: 'Zbiory i kolekcje', slugField: 'title', path: 'content/zbiory/*',
+      format: { contentField: 'description' }, columns: ['title'],
+      schema: {
+        title: nazwaIIdentyfikator('Nazwa zbioru'),
+        provenance: fields.text({ label: 'Pochodzenie / przekazał(a)', multiline: true }),
+        rights: fields.text({ label: 'Prawa do zbioru' }),
+        visibility: widocznosc(), sources: zrodlaKarty(), note: notatka(),
+        description: opisMarkdoc('Opis zbioru', 'zbiory'),
+      },
+    }),
+    publikacje: collection({
+      label: 'Publikacje i opracowania', slugField: 'title', path: 'content/publikacje/*',
+      columns: ['title', 'type'],
+      schema: {
+        title: nazwaIIdentyfikator('Tytuł publikacji'),
+        type: fields.select({ label: 'Rodzaj', options: [
+          { label: 'książka', value: 'ksiazka' }, { label: 'artykuł', value: 'artykul' },
+          { label: 'prasa', value: 'prasa' }, { label: 'opracowanie', value: 'opracowanie' },
+          { label: 'baza / serwis', value: 'baza' },
+        ], defaultValue: 'ksiazka' }),
+        creator: fields.text({ label: 'Autor / redakcja' }),
+        year: fields.text({ label: 'Rok publikacji' }),
+        publisher: fields.text({ label: 'Wydawnictwo / czasopismo / serwis' }),
+        identifier: fields.text({ label: 'ISBN / ISSN / sygnatura biblioteczna' }),
+        url: fields.url({ label: 'Adres publikacji lub katalogu' }),
+        spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
+        subject: fields.multiRelationship({ label: 'Tematy', collection: 'tematy' }),
+        visibility: widocznosc(), note: notatka(),
+        description: fields.text({ label: 'Opis bibliograficzny', multiline: true }),
       },
     }),
     parafie: collection({
@@ -407,6 +459,16 @@ export default config({
         diocese: fields.text({ label: 'Diecezja / dekanat', description: 'Np. diecezja chełmska (unicka), dekanat łosicki.' }),
         sameAs: fields.url({ label: 'Strona w sieci', description: 'Np. hasło w Wikipedii, strona parafii.' }),
         description: fields.text({ label: 'Opis', multiline: true }),
+        people: fields.array(
+          fields.object({
+            name: fields.text({ label: 'Imię i nazwisko', validation: { isRequired: true } }),
+            role: fields.text({ label: 'Funkcja / rola', description: 'Np. proboszcz, duchowny, urzędnik, kantor.' }),
+            period: fields.text({ label: 'Okres pełnienia funkcji', description: 'Np. 1865–1873 albo ok. 1900.' }),
+            personId: fields.text({ label: 'ID osoby w drzewie (opcjonalnie)', description: 'Tylko jeśli istnieje odpowiadająca karta /osoby/[id].' }),
+          }),
+          { label: 'Osoby związane z instytucją', itemLabel: (p) => p.fields.name.value || 'osoba' },
+        ),
+        sources: zrodlaKarty(),
         note: notatka(),
       },
     }),
@@ -459,6 +521,19 @@ export default config({
         content: opisMarkdoc('Biogram', 'biogramy'),
       },
     }),
+    zespoly: collection({
+      label: 'Zespoły archiwalne',
+      slugField: 'title',
+      path: 'content/zespoly/*',
+      columns: ['title', 'identifier'],
+      schema: {
+        title: nazwaIIdentyfikator('Nazwa zespołu archiwalnego'),
+        identifier: fields.text({ label: 'Sygnatura zespołu', validation: { isRequired: true } }),
+        repository: fields.text({ label: 'Archiwum / instytucja przechowująca' }),
+        source: fields.url({ label: 'Karta zespołu w katalogu źródłowym' }),
+        description: fields.text({ label: 'Opis i uwagi', multiline: true }),
+      },
+    }),
     ksiegi: collection({
       label: 'Księgi metrykalne',
       slugField: 'title',
@@ -466,7 +541,18 @@ export default config({
       columns: ['title', 'years'],
       schema: {
         title: nazwaIIdentyfikator('Nazwa (np. Olszanka unicka – urodzenia 1826–1875)'),
-        parish: fields.relationship({ label: 'Parafia / urząd', collection: 'parafie', validation: { isRequired: true } }),
+        fonds: fields.relationship({ label: 'Zespół archiwalny (opcjonalnie)', collection: 'zespoly', description: 'Jeden zespół może zawierać wiele ksiąg; brak przypisania nie usuwa dotychczasowej sygnatury.' }),
+        parish: fields.relationship({ label: 'Instytucja główna / wytwórca (gdy wiadomo)', collection: 'parafie' }),
+        relatedParishes: fields.multiRelationship({
+          label: 'Pozostałe instytucje, których dotyczą akta',
+          description: 'Może być kilka parafii/urzędów; nie należy zgadywać wytwórcy. Nie jest to powiązanie wsi z parafią.',
+          collection: 'parafie',
+        }),
+        relatedReligions: fields.multiselect({
+          label: 'Wyznania, których dotyczą akta',
+          options: Object.entries(WYZNANIA_PARAFII).map(([value, label]) => ({ label, value })),
+          defaultValue: [],
+        }),
         types: fields.multiselect({
           label: 'Rodzaje aktów',
           description: 'Zaznacz wszystkie, które są w tej księdze – np. małżeństwa i zgony w jednym tomie.',
@@ -487,7 +573,14 @@ export default config({
           fields.object({
             years: fields.text({ label: 'Rok lub lata', description: 'Np. 1810 albo 1811–1812.', validation: { isRequired: true } }),
             identifier: fields.text({ label: 'Sygnatura tomu', description: 'Np. 72/290/0/2/1.' }),
+            title: fields.text({ label: 'Oryginalny tytuł jednostki' }),
             scans: fields.url({ label: 'Skany tego tomu' }),
+            scanCount: fields.integer({ label: 'Liczba skanów', description: '0 = brak skanów, puste = nie ustalono.' }),
+            digitization: fields.select({
+              label: 'Dostępność digitalizacji',
+              options: [{ value: 'online', label: 'skany istnieją' }, { value: 'brak', label: 'brak skanów online' }, { value: 'nieustalone', label: 'nie ustalono' }],
+              defaultValue: 'nieustalone',
+            }),
             gaps: fields.text({ label: 'Uwagi', description: 'Np. „brak kart 5–8”, „tylko alegata”.' }),
           }),
           {
@@ -509,6 +602,73 @@ export default config({
     }),
   },
   singletons: {
+    wstepyDzialow: singleton({
+      label: 'Wstępy działów',
+      path: 'content/_panel/wstepy-dzialow',
+      format: { data: 'json' },
+      schema: {
+        wpisy: fields.object({
+          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
+          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
+          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
+          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
+        }, { label: 'Wpisy' }),
+        miejsca: fields.object({
+          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
+          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
+          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
+          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
+        }, { label: 'Miejsca' }),
+        osoby: fields.object({
+          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
+          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
+          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
+          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
+        }, { label: 'Osoby' }),
+        tematy: fields.object({
+          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
+          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
+          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
+          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
+        }, { label: 'Tematy' }),
+        archiwum: fields.object({
+          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
+          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
+          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
+          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
+        }, { label: 'Archiwum' }),
+        zbiory: fields.object({
+          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
+          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
+          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
+          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
+        }, { label: 'Zbiory i kolekcje' }),
+        biblioteka: fields.object({
+          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
+          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
+          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
+          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
+        }, { label: 'Biblioteka' }),
+        publikacje: fields.object({
+          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
+          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
+          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
+          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
+        }, { label: 'Publikacje' }),
+        instytucje: fields.object({
+          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
+          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
+          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
+          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
+        }, { label: 'Instytucje' }),
+        obiekty: fields.object({
+          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
+          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
+          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
+          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
+        }, { label: 'Obiekty' }),
+      },
+    }),
     stronaGlowna: singleton({
       label: 'Strona główna',
       path: 'content/strona-glowna',

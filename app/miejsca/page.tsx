@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { TytulDzialu, WstepDzialu, WstepTekst } from '@/app/components/WstepDzialu'
 import { miejsca, miejscaWedlugObszarow, obiekty, OBSZARY, poziomCzytelnika } from '@/lib/archiwum'
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
@@ -21,7 +22,8 @@ export default async function Miejsca() {
 
     return (
         <Strona>
-            <TytulStrony>miejsca</TytulStrony>
+            <TytulStrony><TytulDzialu dzial="miejsca" domyslny="miejsca" /></TytulStrony>
+            <WstepDzialu dzial="miejsca" className="ot-drobne" />
             <div className="flex flex-col" style={{ gap: 8 }}>
                 <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} granice zapamietaj="mapa-miejsca" />
                 {bez > 0 && (

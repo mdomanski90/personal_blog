@@ -14,6 +14,11 @@ const GRUPY: { r: RodzajWyniku; nazwa: [string, string, string] }[] = [
     { r: 'osoba', nazwa: ['osoba', 'osoby', 'osób'] },
     { r: 'wpis', nazwa: ['wpis', 'wpisy', 'wpisów'] },
     { r: 'materiał', nazwa: ['materiał', 'materiały', 'materiałów'] },
+    { r: 'publikacja', nazwa: ['publikacja', 'publikacje', 'publikacji'] },
+    { r: 'zbiór', nazwa: ['zbiór', 'zbiory', 'zbiorów'] }, // PACZKA5_2026
+    { r: 'księga', nazwa: ['księga', 'księgi', 'ksiąg'] },
+    { r: 'parafia', nazwa: ['parafia / urząd', 'parafie / urzędy', 'parafii / urzędów'] },
+    { r: 'hasło', nazwa: ['hasło', 'hasła', 'haseł'] },
     { r: 'obiekt', nazwa: ['obiekt', 'obiekty', 'obiektów'] },
     { r: 'temat', nazwa: ['temat', 'tematy', 'tematów'] },
 ]

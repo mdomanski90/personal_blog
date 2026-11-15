@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { TytulDzialu, WstepDzialu, WstepTekst } from '@/app/components/WstepDzialu'
 import { nazwy, opowiesci, poziomCzytelnika } from '@/lib/archiwum'
 import { Strona, TytulStrony } from '../components/Uklad'
 import ListaOpowiesci from '../components/ListaOpowiesci'
@@ -12,7 +13,8 @@ export default async function Opowiesci() {
     const { miejsca } = await nazwy(poziom)
     return (
         <Strona>
-            <TytulStrony>wpisy</TytulStrony>
+            <TytulStrony><TytulDzialu dzial="wpisy" domyslny="wpisy" /></TytulStrony>
+            <WstepDzialu dzial="wpisy" className="ot-drobne" />
             <ListaOpowiesci opowiesci={lista} nazwyMiejsc={miejsca} />
         </Strona>
     )

@@ -61,7 +61,7 @@ function Odnosnik({ href, children }: { href: string; children: React.ReactNode 
     return <a href={href} target="_blank" rel="noopener noreferrer">{children} ↗</a>
 }
 
-export function TabelaKsiag({ ksiegi, nazwyMiejsc }: { ksiegi: Ksiega[]; /** id wsi → nazwa, do „dotyczy: …” */ nazwyMiejsc?: Record<string, string> }) {
+export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg }: { ksiegi: Ksiega[]; /** id wsi → nazwa */ nazwyMiejsc?: Record<string, string>; /** id instytucji → nazwa */ nazwyParafii?: Record<string, string>; /** Dla powtórzonych ksiąg w grupach: identyfikator DOM tylko w jednej grupie. */ kotwiceKsieg?: ReadonlySet<string> }) {
     if (!ksiegi.length) return null
     return (
         <div className="overflow-x-auto">
@@ -78,10 +78,12 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc }: { ksiegi: Ksiega[]; /** id 
                 <tbody>
                     {ksiegi.map((k) => (
                         <React.Fragment key={k.id}>
-                        <tr className={`${k.jednostki.length ? '' : 'border-b '}border-[#e7e2d8] dark:border-[#374151] align-top`}>
+                        <tr id={!kotwiceKsieg || kotwiceKsieg.has(k.id) ? `ksiega-${k.id}` : undefined} className={`${k.jednostki.length ? '' : 'border-b '}border-[#e7e2d8] dark:border-[#374151] align-top scroll-mt-6`}>
                             <td className="py-1.5 pr-3">
+                                <strong className="block">{k.nazwa}</strong>
                                 {k.rodzaje.map((r) => RODZAJE_KSIAG[r] ?? r).join(', ')}
                                 {k.miejsca.length > 0 && <span className="block text-gray-500" style={male}>dotyczy: {k.miejsca.map((m) => nazwyMiejsc?.[m] ?? m).join(', ')}</span>}
+                                {nazwyParafii && k.instytucje.length > 0 && <span className="block text-gray-500" style={male}>instytucje: {k.instytucje.map((id) => nazwyParafii[id] ?? id).join(', ')}</span>}
                             </td>
                             <td className="py-1.5 pr-3">
                                 <span className="font-bold">{k.lata}</span>
@@ -110,6 +112,9 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc }: { ksiegi: Ksiega[]; /** id 
                                                     <b>{j.lata}</b>
                                                     {j.sygnatura && <span className="text-gray-500"> {j.sygnatura}</span>}
                                                     {j.skany && <> <Odnosnik href={j.skany}>skany</Odnosnik></>}
+                                                    {j.digitalizacja === 'brak' && <span className="text-gray-500"> · bez skanów online</span>}
+                                                    {j.liczbaSkanow !== null && <span className="text-gray-500"> · {j.liczbaSkanow} skanów</span>}
+                                                    {j.tytul && <span className="block text-gray-500">{j.tytul}</span>}
                                                     {j.uwagi && <span className="block text-gray-500">{j.uwagi}</span>}
                                                 </li>
                                             ))}

@@ -2,7 +2,7 @@ import * as React from 'react'
 import type { Metadata } from 'next'
 import { Link } from 'next-view-transitions'
 import { notFound } from 'next/navigation'
-import { biogram, kontekstTresci, miejsca, parafie, poziomCzytelnika, powiazania, widoczne } from '@/lib/archiwum'
+import { biogram, kontekstTresci, miejsca, parafie, poziomCzytelnika, powiazania, widoczne, materialy } from '@/lib/archiwum' // PACZKA5_2026
 import { naHtml } from '@/lib/markdoc'
 import { bezNawiasow } from '@/lib/odnosniki'
 import { formatujEdtf } from '@/lib/edtf'
@@ -287,6 +287,10 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                 )}
             </div>
 
+            {((await materialy(poziom)).filter(m => m.osobyIds.includes(id))).length > 0 && <section className="flex flex-col" style={{ gap: 6 }}>
+                <h2 className="font-bold lowercase">materiały archiwalne</h2>
+                {(await materialy(poziom)).filter(m => m.osobyIds.includes(id)).map(m => <p key={m.id}><Link className="odn" href={`/archiwum/${m.id}`}>{m.nazwa} →</Link></p>)}
+            </section>}
             <Powiazania dane={{ odnosniki: [], wzmianki: siec.wzmianki }} />
 
             <Zgloszenie rodzaj="poprawka" adres={`/osoby/${id}`} tytul={tytul} />

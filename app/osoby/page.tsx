@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { TytulDzialu, WstepDzialu, WstepTekst } from '@/app/components/WstepDzialu'
 import ListaOsob, { type KragNaLiscie, type OsobaNaLiscie } from './ListaOsob'
 import { Link } from 'next-view-transitions'
 import { biogramy, miejsca, poziomCzytelnika, rozwiazOdnosniki, widoczne } from '@/lib/archiwum'
@@ -47,9 +48,9 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
     const kregiListy: KragNaLiscie[] = [...kregi.map((k) => ({ id: k.id, nazwa: k.nazwa, opis: k.opis, ile: ileWKregu[k.id] })), { id: 'wszystkie', nazwa: 'wszyscy', opis: 'całe drzewo', ile: wszystkie.length }]
     return (
         <Strona>
-            <TytulStrony>osoby</TytulStrony>
+            <TytulStrony><TytulDzialu dzial="osoby" domyslny="osoby" /></TytulStrony>
             <div className="flex flex-col leading-relaxed" style={{ gap: '0.8rem', fontSize: 'calc(16px * var(--font-scale, 1))' }}>
-                <p>Ludzie z tych wsi: przodkowie, sąsiedzi, księża, wójtowie – każdy ze swoją stroną, drzewem przodków i potomków oraz dokumentami, które potwierdzają daty i więzi.</p>
+                <p><WstepTekst dzial="osoby" domyslny={"Ludzie z tych wsi: przodkowie, sąsiedzi, księża, wójtowie – każdy ze swoją stroną, drzewem przodków i potomków oraz dokumentami, które potwierdzają daty i więzi."} /></p>
                 {s.drzewo.osoby.size === 0 ? (
                     <p className="text-gray-600 dark:text-gray-400">Ten dział jest w przygotowaniu – osoby pojawią się po wczytaniu drzewa genealogicznego. Dane osób urodzonych w ostatnich 100 latach (i zmarłych w ostatnich 25) będą widoczne tylko dla zalogowanych bliskich.</p>
                 ) : (
