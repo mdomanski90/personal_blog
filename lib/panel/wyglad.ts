@@ -68,7 +68,7 @@ export function cssAkcentu(wybrany: string): string {
     return `/* odniepamieci.pl · akcent zapisany w panelu administracyjnym */
 html:not(.dark){${zestaw(jasny, '#fbfaf7', `color-mix(in srgb,${jasny} 16%,transparent)`)}}
 html.dark{${zestaw(ciemny, '#15171a', `color-mix(in srgb,${ciemny} 22%,transparent)`)}}
-.odp .naglowek-rzeki{color:var(--link);opacity:1}
+.odp .naglowek-rzeki svg{stroke:var(--link)}
 .odp .drzewo .dr-karta:focus-visible,.odp .drzewo .dr-narzedzia button:focus-visible{outline-color:var(--link)}
 .odp .osoby-krag[aria-current=true]{border-color:var(--link)}
 .odp .osoby-krag[aria-current=true] b,.odp .szukaj-filtr[aria-current=true]{color:var(--link)}
