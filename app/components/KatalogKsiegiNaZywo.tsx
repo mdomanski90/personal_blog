@@ -86,9 +86,9 @@ export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyz
 
     return (
         <div>
-            <nav aria-label="sposób przeglądania ksiąg" className="flex flex-wrap" style={{ gap: 8, marginBottom: 4 }}>
-                <Link href={adres({ widok: undefined })} aria-current={widok === 'miejscowosci' ? 'page' : undefined} className="szukaj-filtr" style={{ fontWeight: widok === 'miejscowosci' ? 700 : 400 }}>według miejscowości</Link>
-                <Link href={adres({ widok: 'parafie' })} aria-current={widok === 'parafie' ? 'page' : undefined} className="szukaj-filtr" style={{ fontWeight: widok === 'parafie' ? 700 : 400 }}>według parafii / urzędu</Link>
+            <nav aria-label="sposób przeglądania ksiąg" className="k-seg" style={{ marginBottom: 4, alignSelf: 'flex-start' }}>
+                <Link href={adres({ widok: undefined })} aria-current={widok === 'miejscowosci' ? 'page' : undefined}>według miejscowości</Link>
+                <Link href={adres({ widok: 'parafie' })} aria-current={widok === 'parafie' ? 'page' : undefined}>według parafii / urzędu</Link>
             </nav>
             <div className="flex flex-col" style={{ gap: 10 }}>
                 {wyznaniaObecne.length > 1 && (

@@ -7,21 +7,8 @@ const FONT_SIZES = [14, 16, 18, 20, 22]
 const DEFAULT_SIZE = 18
 const ZDARZENIE = 'odp:rozmiar-czcionki'
 
-const RAMKA = 'border-[#d6d1c6] dark:border-[#4b5563]'
 
-// Ten sam wygląd co menu i wyszukiwarka: obramowane segmenty, czcionka strony.
-// Kolory, tło i obramowanie w klasach (styl wpisany w element miałby pierwszeństwo przed hover/disabled).
-const segment: React.CSSProperties = {
-    fontSize: '14px',
-    fontWeight: 700,
-    height: '28px',
-    minWidth: '36px',
-    padding: '0 10px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: 'inherit',
-}
+// P7A-2: grupa kontrolek rozmiaru S (k-grupa w globals.css); na telefonie 44 px.
 
 function ustawRozmiar(size: number) {
     document.documentElement.style.setProperty('--blog-font-size', `${size}px`)
@@ -63,16 +50,12 @@ export default function ThemeToggle() {
     const ciemny = resolvedTheme === 'dark'
     const najmniejszy = fontSize === FONT_SIZES[0]
     const najwiekszy = fontSize === FONT_SIZES[FONT_SIZES.length - 1]
-    const klasa = (wylaczony = false) =>
-        `border-0 bg-transparent ${wylaczony ? 'text-gray-400 dark:text-gray-600 cursor-default' : 'text-current cursor-pointer hover:bg-muted transition-colors'}`
 
     return (
-        <div className={`flex items-stretch overflow-hidden border ${RAMKA}`} style={{ borderRadius: '7px' }}>
+        <div className="k-grupa" role="group" aria-label="motyw i rozmiar pisma">
             <button
                 type="button"
                 onClick={() => setTheme(ciemny ? 'light' : 'dark')}
-                style={segment}
-                className={klasa()}
                 aria-label={ciemny ? 'jasny motyw' : 'ciemny motyw'}
                 title={ciemny ? 'jasny motyw' : 'ciemny motyw'}
             >
@@ -82,8 +65,6 @@ export default function ThemeToggle() {
                 type="button"
                 onClick={() => zmienRozmiar(-1)}
                 disabled={najmniejszy}
-                style={segment}
-                className={`border-l ${RAMKA} ${klasa(najmniejszy)}`}
                 aria-label="mniejsza czcionka"
                 title="mniejsza czcionka"
             >
@@ -93,8 +74,6 @@ export default function ThemeToggle() {
                 type="button"
                 onClick={() => zmienRozmiar(1)}
                 disabled={najwiekszy}
-                style={segment}
-                className={`border-l ${RAMKA} ${klasa(najwiekszy)}`}
                 aria-label="większa czcionka"
                 title="większa czcionka"
             >
