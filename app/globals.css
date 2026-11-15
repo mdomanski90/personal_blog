@@ -1173,3 +1173,23 @@ select.k-pole{padding-right:8px;cursor:pointer}
   .k-btn,.k-btn--s,.k-pole,.k-seg>a,.k-seg>button,.szukaj-filtr,.pole-szukania,.wysz-maly .wysz-pole,.kopiuj-link{min-height:44px}
   .k-grupa>button{min-height:44px;min-width:44px}
 }
+/* P7A-2b · pole z podpowiedziami i filtry archiwum na żywo */
+.k-filtry{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,13rem),1fr));gap:14px 16px;align-items:start;padding:20px 24px;border-radius:var(--promien-duzy);background:var(--tlo-sekcji);margin:6px 0 4px}
+.k-filtry .k-pole{width:100%}
+.k-filtry-szeroki{grid-column:1 / -1}
+.k-filtry-lata{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.k-filtry-akcje{grid-column:1 / -1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.k-filtry-wyczysc{background:none;border:0;padding:0;font:inherit;font-size:calc(14px * var(--font-scale,1));color:var(--link);text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:calc(40px * var(--font-scale,1))}
+.k-filtry[aria-busy=true]+*{opacity:.6;transition:opacity .2s}
+.k-wybor{position:relative}
+.k-wybor-ramka{position:relative;display:block}
+.k-wybor-wartosc{display:flex;min-height:calc(40px * var(--font-scale,1));align-items:center}
+.k-wybor-pastylka{max-width:100%;padding:0 4px 0 14px;font-weight:700}
+.k-wybor-pastylka>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.k-wybor-pastylka>button{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:999px;background:transparent;color:inherit;font:inherit;cursor:pointer;flex:none}
+.k-wybor-pastylka>button:hover{background:var(--tlo-kontrolki)}
+.k-wybor-lista{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);margin:0;padding:6px;list-style:none;max-height:min(60vh,22rem);overflow:auto;border:1px solid var(--krawedz-kontrolki);border-radius:var(--promien);background:var(--tlo-kontrolki);box-shadow:0 10px 24px rgba(28,27,24,.12)}
+.k-wybor-lista li{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:calc(15px * var(--font-scale,1));color:var(--tekst)}
+.k-wybor-lista li[aria-selected=true]{background:var(--tlo-sekcji);text-decoration:underline;text-decoration-color:var(--akcent);text-decoration-thickness:2px;text-underline-offset:4px}
+.k-wybor-opis{font-size:calc(13px * var(--font-scale,1));color:var(--tekst-etykieta);text-decoration:none}
+@media (max-width:640px){.k-filtry{padding:16px}.k-wybor-pastylka>button{width:40px;height:40px}.k-wybor-lista li{min-height:44px;justify-content:center}}

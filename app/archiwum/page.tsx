@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { TytulDzialu, WstepDzialu, WstepTekst } from '@/app/components/WstepDzialu'
 import { Link } from 'next-view-transitions'
-import { miejsca, obiekty, tematy, poziomCzytelnika, type Widocznosc } from '@/lib/archiwum'
+import { miejsca, obiekty, tematy, poziomCzytelnika, RODZAJE_OBIEKTOW, type Widocznosc } from '@/lib/archiwum'
+import FiltryArchiwum from './FiltryArchiwum'
 import { RODZAJE_MATERIALOW } from '@/lib/materialy'
 import { zbiory, katalogP5, type FiltrP5 } from '@/lib/paczka5'
 import { Strona, TytulStrony } from '../components/Uklad'
@@ -12,8 +13,6 @@ export const metadata: Metadata = { title: 'archiwum · odniepamieci.pl' }
 type Params = Record<string, string | string[] | undefined>
 const val = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v ?? '').slice(0, 120)
 const rok = (s: string) => /^-?\d{1,4}$/.test(s) ? Number(s) : undefined
-const pole = {}
-const etykieta = 'k-etykieta'
 
 export default async function Archiwum({ searchParams }: { searchParams: Promise<Params> }) {
   const sp = await searchParams
@@ -36,6 +35,7 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
     .filter((o) => widoczne(stan.widocznosc(o.id), poziom))
     .map((o) => ({ id: o.id, nazwa: nazwaOsoby(o) }))
     .sort((a, b) => a.nazwa.localeCompare(b.nazwa, 'pl'))
+  const nazwyMsc = new Map(msc.map((m) => [m.id, m.nazwa]))
   const qs = (n: number) => {
     const p = new URLSearchParams()
     for (const [k, v] of Object.entries(sp)) if (k !== 'strona') { const s = val(v); if (s) p.set(k, s) }
@@ -48,37 +48,15 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
       <WstepTekst dzial="archiwum" domyslny={"Dokumenty, fotografie, wspomnienia, nagrania i mapy z opisem, pochodzeniem oraz powiązaniami."} />
       <span className="block"><Link href="/archiwum/zbiory" className="odn">zbiory i kolekcje →</Link></span>
     </p>
-    <form method="get" action="/archiwum" className="flex flex-wrap items-end" style={{ gap: 10 }}>
-      <label className={etykieta}>szukaj w metadanych i transkrypcjach
-        <input name="q" defaultValue={f.q} className="k-pole" style={{ ...pole, width: 250 }} placeholder="wpisz frazę…" />
-      </label>
-      <label className={etykieta}>rodzaj<select name="rodzaj" defaultValue={f.rodzaj} className="k-pole" style={pole}>
-        <option value="">wszystkie</option>{Object.entries(RODZAJE_MATERIALOW).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-      </select></label>
-      <label className={etykieta}>miejscowość<select name="miejsce" defaultValue={f.miejsce} className="k-pole" style={pole}>
-        <option value="">wszystkie</option>{msc.map(m => <option key={m.id} value={m.id}>{m.nazwa}</option>)}
-      </select></label>
-      <label className={etykieta}>temat<select name="temat" defaultValue={f.temat} className="k-pole" style={pole}>
-        <option value="">wszystkie</option>{tem.map(t => <option key={t.id} value={t.id}>{t.nazwa}</option>)}
-      </select></label>
-      <label className={etykieta}>obiekt<select name="obiekt" defaultValue={f.obiekt} className="k-pole" style={pole}>
-        <option value="">wszystkie</option>{obj.map(o => <option key={o.id} value={o.id}>{o.nazwa}</option>)}
-      </select></label>
-      <label className={etykieta}>osoba<select name="osoba" defaultValue={f.osoba} className="k-pole" style={pole}>
-        <option value="">wszystkie</option>{osoby.map(o => <option key={o.id} value={o.id}>{o.nazwa}</option>)}
-      </select></label>
-      <label className={etykieta}>zbiór<select name="zbior" defaultValue={f.zbior} className="k-pole" style={pole}>
-        <option value="">wszystkie</option>{kol.map(z => <option key={z.id} value={z.id}>{z.nazwa}</option>)}
-      </select></label>
-      <label className={etykieta}>od roku<input name="od" defaultValue={val(sp.od)} inputMode="numeric" className="k-pole" style={{ ...pole, width: 82 }} placeholder="1750" /></label>
-      <label className={etykieta}>do roku<input name="do" defaultValue={val(sp.do)} inputMode="numeric" className="k-pole" style={{ ...pole, width: 82 }} placeholder="1918" /></label>
-      <label className={etykieta}>sortowanie<select name="sort" defaultValue={f.sort ?? 'data_rosnaco'} className="k-pole" style={pole}>
-        <option value="data_rosnaco">chronologicznie</option><option value="data_malejaco">od najnowszych</option>
-        <option value="tytul">tytuł A–Z</option><option value="dodano">ostatnio dodane</option>
-      </select></label>
-      <button type="submit" className="k-btn k-btn--glowny">filtruj</button>
-      <Link className="odn" href="/archiwum" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 'calc(40px * var(--font-scale, 1))' }}>wyczyść</Link>
-    </form>
+    <FiltryArchiwum
+      poczatkowe={{ q: f.q ?? '', rodzaj: f.rodzaj ?? '', miejsce: f.miejsce ?? '', temat: f.temat ?? '', obiekt: f.obiekt ?? '', osoba: f.osoba ?? '', zbior: f.zbior ?? '', od: val(sp.od), do: val(sp.do), sort: f.sort ?? '' }}
+      rodzaje={Object.entries(RODZAJE_MATERIALOW)}
+      miejscowosci={msc.map((m) => ({ id: m.id, nazwa: m.nazwa }))}
+      tematy={tem.map((x) => ({ id: x.id, nazwa: x.nazwa }))}
+      obiekty={obj.map((o) => ({ id: o.id, nazwa: o.nazwa, szukaj: o.inneNazwy, opis: [RODZAJE_OBIEKTOW[o.rodzaj as keyof typeof RODZAJE_OBIEKTOW] ?? o.rodzaj, o.miejsce ? nazwyMsc.get(o.miejsce) : ''].filter(Boolean).join(' · ') }))}
+      osoby={osoby}
+      zbiory={kol.map((z) => ({ id: z.id, nazwa: z.nazwa }))}
+    />
     <p className="ot-drobne" aria-live="polite">{wyn.razem} materiałów · strona {wyn.strona} z {wyn.stron}</p>
     <ListaMaterialow materialy={wyn.wyniki} />
     {wyn.stron > 1 && <nav aria-label="strony katalogu archiwum" className="flex flex-wrap items-center" style={{ gap: 12 }}>
