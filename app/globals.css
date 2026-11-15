@@ -1244,7 +1244,7 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .odp .spis-dzialow a:hover{color:var(--akcent)}
 .odp .spis-dzialow a:hover .sd-nazwa{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
 .odp .spis-dzialow a[aria-current=page]{background:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu);font-weight:700}
-.spis-dzialow a[aria-current=page] i,.spis-dzialow a[aria-current=page] .sd-liczba{color:var(--akcent-na-wypelnieniu);opacity:.85}
+.spis-dzialow a[aria-current=page] i,.spis-dzialow a[aria-current=page] .sd-liczba{color:var(--akcent-na-wypelnieniu)}
 .spis-dzialow a[aria-current=page] .sd-kropki{border-color:currentColor;opacity:.5}
 .spis-zwiniety details{border-radius:var(--promien-duzy);background:var(--tlo-sekcji);padding:10px 20px;margin:4px 0 2px}
 .spis-zwiniety summary{display:flex;flex-wrap:wrap;align-items:center;gap:10px;cursor:pointer;list-style:none}
