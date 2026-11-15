@@ -1498,7 +1498,8 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 /* redakcyjna zapowiedź zamiast pełnego wpisu; miniatura opcjonalna (bez pustego miejsca); najnowszy wyróżniony */
 .zapowiedz{display:grid;grid-template-columns:minmax(0,1fr);gap:16px 24px;padding:18px 0;border-bottom:1px solid var(--linia-podzialu)}
 .zapowiedz.z-obrazem{grid-template-columns:calc(150px * var(--font-scale,1)) minmax(0,1fr)}
-.zapowiedz--wyrozniona{padding:22px 24px;border:0;border-radius:var(--promien-duzy);background:var(--tlo-sekcji);margin-bottom:6px}
+/* najnowszy: bez osobnego tła (wyróżnione jest już okno „z archiwum”) – tylko dłuższy fragment, większy tytuł i miniatura */
+.zapowiedz--wyrozniona{padding-top:6px}
 .zapowiedz--wyrozniona.z-obrazem{grid-template-columns:minmax(0,1fr) calc(240px * var(--font-scale,1))}
 .zapowiedz--wyrozniona .zapowiedz-obraz{order:2}
 .zapowiedz-obraz{display:block;align-self:start;border-radius:var(--promien-maly);overflow:hidden;border:1px solid var(--linia-podzialu);background:var(--tlo-kontrolki);aspect-ratio:4/3}
@@ -1513,6 +1514,5 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .odp a.zapowiedz-dalej:hover{text-decoration:underline}
 @media (max-width:640px){
   .zapowiedz.z-obrazem,.zapowiedz--wyrozniona.z-obrazem{grid-template-columns:minmax(0,1fr)}
-  .zapowiedz--wyrozniona{padding:18px}
   .zapowiedz-obraz,.zapowiedz--wyrozniona .zapowiedz-obraz{order:0;max-height:220px}
 }
