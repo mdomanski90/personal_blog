@@ -70,13 +70,7 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
         return () => window.clearTimeout(t)
     }, [aktywne, zakladka])
 
-    return (
-        <section className="skan-z-tekstem" aria-label="skan i tekst">
-            <div className="szt-skan">
-                <PrzegladarkaDokumentu strony={strony} objasnienia={objasnienia} tytul={tytul} wariant="karta" wysokosc="calc(560px * var(--font-scale, 1))"
-                    naZmianeStrony={ustawStrone} aktywneZ={aktywne} naAktywne={zSkanu} />
-            </div>
-            <div className="szt-tekst">
+    const pasek = (
                 <div className="szt-pasek">
                     {dostepne.length > 1 ? (
                         <span className="dok-grupa" role="tablist" aria-label="tekst">
@@ -87,7 +81,9 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
                     ) : <b className="szt-jedna">{dostepne[0]}</b>}
                     <span className="szt-strona">{strony.length > 1 ? `strona ${strona + 1}` : ''}</span>
                 </div>
-                <div ref={tekst} className="szt-tresc" tabIndex={0} role="tabpanel" aria-label={`${zakladka}${strony.length > 1 ? `, strona ${strona + 1}` : ''}`}>
+    )
+    const tresc = (
+        <>
                     {html ? (
                         <>
                             {opracowal && zakladka !== 'oryginał' && <p className="szt-kto">{zakladka}: {opracowal}</p>}
@@ -109,6 +105,21 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
                     ) : (
                         <p className="szt-pusto">Na tej stronie nie ma jeszcze {zakladka === 'transkrypcja' ? 'odczytu' : 'tłumaczenia'}.</p>
                     )}
+        </>
+    )
+    const opis = `${zakladka}${strony.length > 1 ? `, strona ${strona + 1}` : ''}`
+    return (
+        <section className="skan-z-tekstem" aria-label="skan i tekst">
+            <div className="szt-skan">
+                {/* P7E-2: na pełnym ekranie ten sam panel tekstu (transkrypcja / oryginał / tłumaczenie / objaśnienia) z boku skanu */}
+                <PrzegladarkaDokumentu strony={strony} objasnienia={objasnienia} tytul={tytul} wariant="karta" wysokosc="calc(560px * var(--font-scale, 1))"
+                    naZmianeStrony={ustawStrone} aktywneZ={aktywne} naAktywne={zSkanu}
+                    panelTekstu={<div className="szt-tekst szt-tekst-pelny">{pasek}<div className="szt-tresc" tabIndex={0} role="tabpanel" aria-label={opis}>{tresc}</div></div>} />
+            </div>
+            <div className="szt-tekst">
+                {pasek}
+                <div ref={tekst} className="szt-tresc" tabIndex={0} role="tabpanel" aria-label={opis}>
+                    {tresc}
                 </div>
             </div>
         </section>

@@ -6,7 +6,7 @@ import { createReader } from '@keystatic/core/reader'
 import type { Node } from '@markdoc/markdoc'
 import keystaticConfig, { WSTEP_DOMYSLNY } from '../keystatic.config'
 import { kluczSortowania } from './edtf'
-import { naTekst, zajawka, type KontekstTresci, type MaterialWstawki } from './markdoc'
+import { naHtml, naTekst, rozdzielZrodla, zajawka, type KontekstTresci, type MaterialWstawki } from './markdoc'
 import { RODZAJE_MATERIALOW } from './materialy'
 import { formatujEdtf, zakresIso } from './edtf'
 import { bezNawiasow, fragment, ODNOSNIK, slownikOdnosnikow, wzorzecWzmianek, znajdzWzmianki, type Cel, type Fragment, type PozycjaSieci, type RodzajCelu, type Rozwiaz } from './odnosniki'
@@ -757,7 +757,7 @@ export const rozwiazOdnosniki = cache(async (poziom: Widocznosc): Promise<Rozwia
 
 /** Wszystko, czego treść potrzebuje przy renderowaniu: odnośniki [[…]] i wstawione materiały. */
 export const kontekstTresci = cache(async (poziom: Widocznosc): Promise<KontekstTresci> => {
-    const mat = new Map<string, MaterialWstawki>(await Promise.all((await materialy(poziom)).map(async (m) => [m.id, { id: m.id, nazwa: m.nazwa, rodzaj: m.rodzaj, plik: m.plik, strony: m.strony, objasnienia: await objasnieniaDoWidoku(m.id, poziom) }] as const)))
+    const mat = new Map<string, MaterialWstawki>(await Promise.all((await materialy(poziom)).map(async (m) => [m.id, { id: m.id, nazwa: m.nazwa, rodzaj: m.rodzaj, plik: m.plik, strony: m.strony, objasnienia: await objasnieniaDoWidoku(m.id, poziom), transkrypcja: naHtml(rozdzielZrodla(m.opis).transkrypcja) || undefined }] as const)))
     const { stanOsob } = await import('./osoby/dane')
     const { drzewoOsoby } = await import('./osoby/drzewo')
     const stan = await stanOsob()

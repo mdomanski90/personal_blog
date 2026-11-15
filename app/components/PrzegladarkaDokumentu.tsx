@@ -27,7 +27,7 @@ export function ileStron(n: number): string {
 const KLUCZ_TRYBU = 'dok-objasnienia'
 const MAKS_NA_MARGINESIE = 8
 
-export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul, wysokosc = 'min(75vh, 720px)', pelnyNaStart = false, onZamknij, startStrona = 0, wariant = 'zwykly', naZmianeStrony, aktywneZ, naAktywne }: {
+export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul, wysokosc = 'min(75vh, 720px)', pelnyNaStart = false, onZamknij, startStrona = 0, wariant = 'zwykly', naZmianeStrony, aktywneZ, naAktywne, panelTekstu }: {
     strony: StronaPodgladu[]
     objasnienia?: ObjasnienieWidoku[]
     tytul: string
@@ -41,6 +41,8 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     /** objaśnienie wybrane poza przeglądarką (np. w panelu tekstu) */
     aktywneZ?: string | null
     naAktywne?: (id: string | null) => void
+    /** P7E-2: panel tekstu (np. zakładki transkrypcji z karty materiału) – na pełnym ekranie z boku skanu */
+    panelTekstu?: React.ReactNode
 }) {
     const ramka = React.useRef<HTMLDivElement>(null)
     const pole = React.useRef<HTMLDivElement>(null)
@@ -58,7 +60,8 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const [menu, ustawMenu] = React.useState(false)
     const [wskazane, ustawWskazane] = React.useState<string | null>(null)
     const [wybranyTryb, ustawWybranyTryb] = React.useState<TrybObjasnien | null>(null)
-    const [transkrypcja, ustawTranskrypcje] = React.useState(false)
+    // null = domyślnie: na pełnym ekranie tekst z boku włączony, w karcie / we wpisie wyłączony
+    const [transkrypcjaW, ustawTranskrypcje] = React.useState<boolean | null>(null)
     const [szerokosc, ustawSzerokosc] = React.useState(0)
     const aktywneRef = React.useRef(aktywne)
     aktywneRef.current = aktywne
@@ -185,8 +188,12 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const tryb: TrybObjasnien = szerokosc > 0 && szerokosc < 640 && wybranyTryb === 'margines' ? 'numery' : wybranyTryb ?? (naStronie.length <= MAKS_NA_MARGINESIE && szerokosc >= (pelny ? 900 : 640) ? 'margines' : 'numery')
     const efTryb: TrybObjasnien = naStronie.length ? tryb : 'ukryj'
     const doTranskrypcji = naStronie.filter((o) => o.rodzaj === 'odczyt' || o.rodzaj === 'tlumaczenie')
+    const transkrypcja = transkrypcjaW ?? pelny
+    // P7E-2: panel boczny na pełnym ekranie – tekst z karty materiału albo odczyty z objaśnień
+    const maTekst = !!panelTekstu || doTranskrypcji.length > 0
+    const bok = pelny && maTekst && transkrypcja
     const klikListy = (id: string) => { if (aktywne === id) return ustawAktywne(null); ustawAktywne(id); warstwa.current?.pokaz(id) }
-    const uklad = efTryb === 'margines' || (efTryb === 'numery' && pelny) ? (pelny && efTryb === 'margines' ? 'obie' : 'prawa') : 'sam'
+    const uklad = bok ? 'sam' : efTryb === 'margines' || (efTryb === 'numery' && pelny) ? (pelny && efTryb === 'margines' ? 'obie' : 'prawa') : 'sam'
 
     const karta = wariant === 'karta' && !pelny
     const objWlaczone = efTryb !== 'ukryj'
@@ -227,8 +234,8 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
                             )}
                         </span>
                     )}
-                    {!karta && doTranskrypcji.length > 0 && (
-                        <span className="dok-grupa"><button type="button" aria-pressed={transkrypcja} onClick={() => ustawTranskrypcje((x) => !x)} aria-label="transkrypcja" title="transkrypcja tej strony"><span aria-hidden="true">¶</span><span className="dok-etyk"> transkrypcja</span></button></span>
+                    {!karta && maTekst && (
+                        <span className="dok-grupa"><button type="button" aria-pressed={transkrypcja} onClick={() => ustawTranskrypcje(!transkrypcja)} aria-label="transkrypcja" title="transkrypcja tej strony"><span aria-hidden="true">¶</span><span className="dok-etyk"> transkrypcja</span></button></span>
                     )}
                     <span className="dok-grupa" role="group" aria-label="powiększenie">
                         <button type="button" onClick={() => przybliz(1 / 1.3)} aria-label="pomniejsz" title={`pomniejsz (${skala}%)`}>−</button>
@@ -248,15 +255,28 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
                     </span>
                 </span>
             </div>
+            <div className={`dok-srodek${bok ? ' z-bokiem' : ''}`}>
             <div ref={obszar} className={`dok-obszar dok-uklad-${uklad}`}>
                 <div ref={pole} className="dok-pole" style={{ gridArea: 'pole', ...(pelny ? {} : { height: wysokosc }) }} aria-label={`skan: ${tytul}${n > 1 ? `, strona ${strona + 1} z ${n}` : ''}`} role="img" />
                 {sa && (
-                    <ObjasnieniaSkanu widz={widz} osd={osd} pole={pole} obszar={obszar} lista={naStronie} tryb={efTryb} pelny={pelny} aktywne={aktywne} wskazane={wskazane}
+                    <ObjasnieniaSkanu widz={widz} osd={osd} pole={pole} obszar={obszar} lista={naStronie} tryb={bok && efTryb === 'margines' ? 'numery' : efTryb} pelny={pelny && !bok} aktywne={aktywne} wskazane={wskazane}
                         ustawAktywne={ustawAktywne} ustawWskazane={ustawWskazane} api={warstwa} wersja={wersja} />
                 )}
             </div>
+            {bok && (
+                <div className="dok-bok" role="region" aria-label="tekst tej strony">
+                    {panelTekstu ?? (
+                        <div className="dok-transkrypcja dok-transkrypcja-bok">
+                            {doTranskrypcji.map((o) => (
+                                <p key={o.id} className={`dok-obj-${o.rodzaj}`}><span className="dok-obj-nr">{o.nr}</span> {o.rodzaj === 'tlumaczenie' && <span className="dok-transkrypcja-rodzaj">tłumaczenie: </span>}<TekstZrodla tekst={o.tekst} /></p>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+            </div>
             {efTryb === 'numery' && !pelny && !karta && <ListaObjasnien lista={naStronie} aktywne={aktywne} wskazane={wskazane} onKlik={klikListy} ustawWskazane={ustawWskazane} />}
-            {transkrypcja && !karta && doTranskrypcji.length > 0 && (
+            {transkrypcja && !karta && !pelny && doTranskrypcji.length > 0 && (
                 <div className="dok-transkrypcja" aria-label="transkrypcja tej strony">
                     {doTranskrypcji.map((o) => (
                         <p key={o.id} className={`dok-obj-${o.rodzaj}`}><span className="dok-obj-nr">{o.nr}</span> {o.rodzaj === 'tlumaczenie' && <span className="dok-transkrypcja-rodzaj">tłumaczenie: </span>}<TekstZrodla tekst={o.tekst} /></p>

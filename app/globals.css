@@ -1516,3 +1516,24 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
   .zapowiedz.z-obrazem,.zapowiedz--wyrozniona.z-obrazem{grid-template-columns:minmax(0,1fr)}
   .zapowiedz-obraz,.zapowiedz--wyrozniona .zapowiedz-obraz{order:0;max-height:220px}
 }
+
+/* ============================================ */
+/* P7E-2 · TEKST Z BOKU SKANU NA PEŁNYM EKRANIE  */
+/* ============================================ */
+.dok-srodek{display:block;min-width:0}
+.dok-pelny .dok-srodek{flex:1;min-height:0;display:flex;gap:16px}
+.dok-pelny .dok-srodek>.dok-obszar{flex:1;min-width:0;height:100%}
+.dok-bok{flex:0 0 min(30rem,36%);min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #4a4640;border-radius:var(--promien);background:#1f1d1a;color:#e8e6e1}
+.dok-bok .szt-tekst-pelny{display:flex;flex-direction:column;height:100%;min-height:0;border:0;background:transparent;color:inherit}
+.dok-bok .szt-pasek{background:#22201d;border-color:#4a4640}
+.dok-bok .szt-tresc{height:auto;flex:1;min-height:0;overflow-y:auto;padding:14px 16px;color:#e8e6e1}
+.dok-bok .szt-tresc .post-content,.dok-bok .szt-tresc p{color:#e8e6e1}
+.dok-bok .szt-strona,.dok-bok .szt-kto,.dok-bok .szt-pusto{color:#b8b2a6}
+.dok-bok .dok-grupa{background:#22201d;border-color:#4a4640}
+.dok-bok .dok-grupa>button{color:#e8e6e1;border-left-color:#4a4640}
+.dok-bok .dok-grupa>button[aria-selected=true]{background:var(--akcent-wypelnienie,#0a6fd6);color:#fff}
+.dok-transkrypcja-bok{max-height:none;border:0;overflow-y:auto;padding:14px 16px;margin:0}
+@media (max-width:640px){
+  .dok-pelny .dok-srodek{flex-direction:column;gap:8px}
+  .dok-bok{flex:0 0 auto;max-height:38vh}
+}

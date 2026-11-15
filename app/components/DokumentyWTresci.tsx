@@ -9,7 +9,7 @@ import PrzegladarkaDokumentu, { type StronaPodgladu } from './PrzegladarkaDokume
 import type { ObjasnienieWidoku } from '@/lib/objasnienia-widok'
 
 export default function DokumentyWTresci() {
-    const [otwarty, ustawOtwarty] = React.useState<{ tytul: string; strony: StronaPodgladu[]; objasnienia?: ObjasnienieWidoku[] } | null>(null)
+    const [otwarty, ustawOtwarty] = React.useState<{ tytul: string; strony: StronaPodgladu[]; objasnienia?: ObjasnienieWidoku[]; transkrypcja?: string } | null>(null)
     React.useEffect(() => {
         const klik = (e: MouseEvent) => {
             const cel = e.target as HTMLElement | null
@@ -36,5 +36,6 @@ export default function DokumentyWTresci() {
         }
     }, [])
     if (!otwarty) return null
-    return createPortal(<PrzegladarkaDokumentu strony={otwarty.strony} objasnienia={otwarty.objasnienia} tytul={otwarty.tytul} pelnyNaStart onZamknij={() => ustawOtwarty(null)} />, document.body)
+    return createPortal(<PrzegladarkaDokumentu strony={otwarty.strony} objasnienia={otwarty.objasnienia} tytul={otwarty.tytul} pelnyNaStart onZamknij={() => ustawOtwarty(null)}
+        panelTekstu={otwarty.transkrypcja ? <div className="szt-tekst szt-tekst-pelny"><div className="szt-pasek"><b className="szt-jedna">transkrypcja</b></div><div className="szt-tresc" tabIndex={0} role="region" aria-label="transkrypcja"><div className="post-content" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }} dangerouslySetInnerHTML={{ __html: otwarty.transkrypcja }} /></div></div> : undefined} />, document.body)
 }

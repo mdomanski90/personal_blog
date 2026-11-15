@@ -158,6 +158,8 @@ const config: Config = {
 
 export interface MaterialWstawki {
     id: string
+    /** P7E-2: transkrypcja z opisu materiału (HTML) – panel z boku skanu na pełnym ekranie */
+    transkrypcja?: string
     nazwa: string
     rodzaj: string
     plik: string | null
@@ -180,7 +182,7 @@ export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string): Tag {
         const ile = n === 1 ? '' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? `${n} strony` : `${n} stron`
         // P7E-1 (SG-04, SG-05): jedna czynność powiększania i jeden odnośnik „szczegóły w archiwum →”
         const opis: RenderableTreeNode[] = [new Tag('span', {}, [podpis || m.nazwa]), ' · ', new Tag('button', { type: 'button', class: 'dok-otworz' }, [ile ? `przeglądaj ${ile} ⤢` : 'powiększ skan ⤢']), ' · ', new Tag('a', { href: adres }, ['szczegóły w archiwum →'])]
-        return new Tag('figure', { class: 'material-wstawka', 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony, ...(m.objasnienia?.length ? { objasnienia: m.objasnienia } : {}) }) }, [
+        return new Tag('figure', { class: 'material-wstawka', 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony, ...(m.objasnienia?.length ? { objasnienia: m.objasnienia } : {}), ...(m.transkrypcja ? { transkrypcja: m.transkrypcja } : {}) }) }, [
             // wysoki (pionowy) skan pokazany do pewnej wysokości; DokumentyWTresci dodaje cieniowanie i przycisk,
             // gdy obraz faktycznie jest dłuższy od kadru
             new Tag('span', { class: 'dok-kadr' }, [
