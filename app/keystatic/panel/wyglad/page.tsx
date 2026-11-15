@@ -50,7 +50,7 @@ export default function Wyglad() {
                 <input className="pn-in" aria-label="wartość HEX" value={kolor} onChange={e => ustawKolor(e.target.value)} maxLength={7} style={{ width: 120 }} />
             </label>
             {stan && <div className="pn-rzad" style={{ alignItems: 'stretch', gap: 12 }}>
-                {([['jasny', stan.jasny, '#fbfaf7', stan.kontrastJasny], ['ciemny', stan.ciemny, '#15171a', stan.kontrastCiemny]] as const).map(([n, akcent, tlo, kr]) =>
+                {([['jasny', stan.jasny, '#fbfaf7', stan.kontrastJasny], ['ciemny', stan.ciemny, '#1a1917', stan.kontrastCiemny]] as const).map(([n, akcent, tlo, kr]) =>
                     <div key={n} style={{ flex: '1 1 240px', padding: 16, background: tlo, color: n === 'jasny' ? '#1c1b18' : '#eee', border: '1px solid #888', borderRadius: 8 }}>
                         <div style={{ fontSize: 12, marginBottom: 12 }}>{n} motyw · kontrast {kr.toFixed(2)}:1</div>
                         <div style={{ color: akcent, fontWeight: 700, textDecoration: 'underline' }}>przykładowy link</div>

@@ -4,6 +4,10 @@ import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 
 export const AKCENT_DOMYSLNY = '#4c3cc4'
+export const AKCENT_CIEMNY_DOMYSLNY = '#419cff'
+/** Wypełnienie „tu jesteś” / przycisk główny nocą dla domyślnego akcentu – biały napis 4,9:1. */
+export const WYPELNIENIE_CIEMNE_DOMYSLNE = '#0a6fd6'
+export const TLO_CIEMNE = '#1a1917'
 export const PRESETY_AKCENTU = [AKCENT_DOMYSLNY, '#155e75', '#166534', '#7f1d1d', '#92400e', '#1e40af'] as const
 const plik = () => path.join(process.cwd(), 'content', '_panel', 'wyglad.json')
 export const prawidlowyHex = (v: unknown): v is string => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)
@@ -36,8 +40,9 @@ function dostosuj(akcent: string, tlo: string, cel: string, minimalny = 4.5): st
 export function koloryAkcentu(wybrany: string) {
     const bazowy = normalizujAkcent(wybrany)
     const jasny = dostosuj(bazowy, '#fbfaf7', '#090909')
-    const ciemny = bazowy === AKCENT_DOMYSLNY ? '#a597ff' : dostosuj(bazowy, '#15171a', '#ffffff')
-    return { wybrany: bazowy, jasny, ciemny, kontrastJasny: kontrast(jasny, '#fbfaf7'), kontrastCiemny: kontrast(ciemny, '#15171a') }
+    // P7A-1: tryb ciemny „papier nocą” (#1a1917); domyślny akcent nocą = błękit macOS (decyzja D1)
+    const ciemny = bazowy === AKCENT_DOMYSLNY ? AKCENT_CIEMNY_DOMYSLNY : dostosuj(bazowy, TLO_CIEMNE, '#ffffff')
+    return { wybrany: bazowy, jasny, ciemny, kontrastJasny: kontrast(jasny, '#fbfaf7'), kontrastCiemny: kontrast(ciemny, TLO_CIEMNE) }
 }
 
 export async function wczytajAkcent(): Promise<string> {
@@ -60,14 +65,18 @@ export async function zapiszAkcent(wartosc: string): Promise<void> {
 
 /** CSS jest dostarczany osobną, niecache'owaną trasą. Nie wymaga przebudowy Next.js po zmianie. */
 export function cssAkcentu(wybrany: string): string {
-    const { jasny, ciemny } = koloryAkcentu(wybrany)
-    const zestaw = (kolor: string, kontrastTla: string, alpha: string) => `
-    --link:${kolor};--primary:${kolor};--ring:${kolor};--accent-foreground:${kolor};
-    --sidebar-primary:${kolor};--sidebar-accent-foreground:${kolor};--sidebar-ring:${kolor};
-    --pl-akcent:${kolor};--pl-akcent-tlo:${alpha};--p6-akcent:${kolor};--primary-foreground:${kontrastTla};`
+    const { wybrany: bazowy, jasny, ciemny } = koloryAkcentu(wybrany)
+    const zestaw = (kolor: string, wypelnienie: string, naWypelnieniu: string, alpha: string) => `
+    --link:${kolor};--primary:${wypelnienie};--ring:${kolor};--accent-foreground:${kolor};
+    --sidebar-primary:${wypelnienie};--sidebar-accent-foreground:${kolor};--sidebar-ring:${kolor};
+    --pl-akcent:${kolor};--pl-akcent-tlo:${alpha};--p6-akcent:${kolor};--primary-foreground:${naWypelnieniu};
+    --akcent-wypelnienie:${wypelnienie};--akcent-na-wypelnieniu:${naWypelnieniu};`
+    const domyslny = bazowy === AKCENT_DOMYSLNY
+    const wypCiemne = domyslny ? WYPELNIENIE_CIEMNE_DOMYSLNE : ciemny
+    const naWypCiemnym = domyslny ? '#ffffff' : TLO_CIEMNE
     return `/* odniepamieci.pl · akcent zapisany w panelu administracyjnym */
-html:not(.dark){${zestaw(jasny, '#fbfaf7', `color-mix(in srgb,${jasny} 16%,transparent)`)}}
-html.dark{${zestaw(ciemny, '#15171a', `color-mix(in srgb,${ciemny} 22%,transparent)`)}}
+html:not(.dark){${zestaw(jasny, jasny, '#fbfaf7', `color-mix(in srgb,${jasny} 16%,transparent)`)}}
+html.dark{${zestaw(ciemny, wypCiemne, naWypCiemnym, `color-mix(in srgb,${ciemny} 22%,transparent)`)}}
 .odp .naglowek-rzeki svg{stroke:var(--link)}
 .odp .drzewo .dr-karta:focus-visible,.odp .drzewo .dr-narzedzia button:focus-visible{outline-color:var(--link)}
 .odp .osoby-krag[aria-current=true]{border-color:var(--link)}
@@ -77,6 +86,6 @@ html.dark{${zestaw(ciemny, '#15171a', `color-mix(in srgb,${ciemny} 22%,transpare
 .odp .dok-obj-ramka,.odp .dok-obj-kreska{stroke:var(--link)}
 .odp .dok-obj-kreska.kropka,.odp .dok-obj-znak circle{fill:var(--link)}
 .odp .dok-obj-notka.aktywna{border-color:var(--link);box-shadow:0 0 0 1px var(--link) inset}
-.odp .dok-obj-nr{background:var(--link);color:var(--primary-foreground)}
+.odp .dok-obj-nr{background:var(--link);color:var(--tlo-strony)}
 ` 
 }
