@@ -1378,3 +1378,14 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .dok-karta .dok-grupa>button[aria-pressed=true],.szt-pasek .dok-grupa>button[aria-selected=true]{background:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu)}
 .dok-licznik{background:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu)}
 .dok-stan-tekst,.szt-strona,.szt-kto{color:var(--tekst-etykieta)}
+
+/* ============================================ */
+/* P7C-1 · ŹRÓDŁA MAP I SKANÓW (JV-18)           */
+/* ============================================ */
+/* krótki podpis źródeł zawsze widoczny w lewym dolnym rogu mapy; pełny pod ⓘ */
+.mapa-zrodla{position:absolute;left:8px;bottom:8px;z-index:2;max-width:calc(100% - 64px);margin:0;padding:2px 8px;border-radius:var(--promien-maly);background:color-mix(in srgb,var(--tlo-strony) 88%,transparent);color:var(--tekst-opis);font-size:11px;line-height:1.5;pointer-events:auto}
+.odp .mapa-zrodla a,.mapa-zrodla a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.mapa-zrodla a:hover{color:var(--akcent)}
+/* podpis źródła pod skanem / mapą archiwalną */
+.podpis-zrodla{margin:6px 0 0;font-size:calc(13px * var(--font-scale,1));color:var(--tekst-opis);line-height:1.5}
+.podpis-zrodla span{color:var(--tekst-etykieta)}

@@ -384,6 +384,7 @@ export default config({
         source: fields.text({ label: 'Pochodzenie', description: 'Skąd pochodzi: archiwum i zespół, zbiory rodzinne, od kogo otrzymane.', multiline: true }),
         identifier: fields.text({ label: 'Sygnatura', description: 'Np. AP Lublin 35/99/0/1/405, nr aktu, nr zdjęcia.' }),
         rights: fields.text({ label: 'Prawa', description: 'Np. domena publiczna, CC BY 4.0, „za zgodą rodziny – tylko do wglądu”.' }),
+        credit: fields.text({ label: 'Podpis źródła pod skanem', description: 'Krótka linia widoczna zawsze pod skanem lub mapą: archiwum, zespół, sygnatura, licencja – np. „AP Siedlce, 62/1106, sygn. 12 · domena publiczna”. Puste – złożona z miejsca przechowywania, sygnatury i praw.' }),
         language: fields.text({ label: 'Język', description: 'Np. polski, łacina, rosyjski.' }),
         spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
         subject: fields.multiRelationship({ label: 'Tematy', collection: 'tematy' }),

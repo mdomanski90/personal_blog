@@ -587,12 +587,18 @@ export default function MapaMiejsc({
             style={wypelnij ? { flex: 1, minHeight: 0, borderRadius: '8px', overflow: 'hidden' } : { height: wysokosc, borderRadius: '8px', overflow: 'hidden' }}
             />
             {panel && <PanelPlanu panel={panel} zamknij={() => setPanel(null)} />}
+            {/* P7C-1 (JV-18): krótki podpis źródeł zawsze widoczny (wymóg ODbL OpenStreetMap i CC BY IH PAN); pełny – pod ⓘ */}
+            <p className="mapa-zrodla">
+                © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://openfreemap.org">OpenFreeMap</a>
+                {obrys && <> · gmina: PRG GUGiK</>}
+                {granice && rok && <> · granice: <a href="https://www.openhistoricalmap.org/copyright">OHM</a>{rok <= 1600 && <>, <a href="https://data.atlasfontium.pl/layers/geonode:powiaty">IH PAN</a> CC BY</>}</>}
+            </p>
             </div>
             {granice && (
                 <div className="flex flex-col" style={{ gap: 6, fontSize: 'calc(13px * var(--font-scale, 1))' }}>
                     <div className="flex flex-wrap items-center" style={{ gap: '6px 10px' }}>
                         <span className="lowercase text-gray-600 dark:text-gray-400">granice historyczne:</span>
-                        <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1, paddingTop: 1 }} role="group" aria-label="granice historyczne – rok">
+                        <div className="flex flex-wrap w-fit" style={{ gap: 4 }} role="group" aria-label="granice historyczne – rok">
                             {[null, ...LATA_GRANIC].map((l) => {
                                 const wl = l ? rok === l.rok : rok === null
                                 return (
@@ -602,8 +608,7 @@ export default function MapaMiejsc({
                                         aria-pressed={wl}
                                         title={l ? l.opis : 'bez granic historycznych'}
                                         onClick={() => setRok(l ? l.rok : null)}
-                                        className={`border border-[#d6d1c6] dark:border-[#4b5563] lowercase cursor-pointer whitespace-nowrap ${wl ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
-                                        style={{ margin: '-1px 0 0 -1px', padding: '0 8px', height: 26, fontSize: 'inherit', fontFamily: 'inherit' }}
+                                        className="k-btn k-btn--s lowercase whitespace-nowrap"
                                     >
                                         {l?.etykieta ?? 'brak'}
                                     </button>

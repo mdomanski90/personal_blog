@@ -214,6 +214,8 @@ export interface Material {
     instytucje: string[]
     osobyIds: string[]
     miejscePrzechowywania: string
+    /** P7C-1: krótki podpis źródła widoczny pod skanem/mapą (pole „credit”) */
+    podpisZrodla: string
     transkrypcja: string
     widocznosc: Widocznosc
     dodano: string | null
@@ -446,6 +448,7 @@ const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
             instytucje: [...(entry.institutions ?? [])].filter((x): x is string => !!x),
             osobyIds: [...(entry.peopleIds ?? [])].filter(Boolean),
             miejscePrzechowywania: entry.repository ?? '',
+            podpisZrodla: entry.credit ?? '',
             transkrypcja: entry.transcription ?? '',
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,

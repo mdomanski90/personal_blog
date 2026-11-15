@@ -11,9 +11,9 @@ const PALETY = {
         granica: '#a59c8a', napis: '#6b665b', napisObwodka: '#f3ede0',
     },
     ciemny: {
-        tlo: '#1c1d1f', las: '#232b24', mokradlo: '#22282a', zabudowa: '#262523', woda: '#283746', rzeka: '#33485c',
+        tlo: '#1a1917', las: '#232b24', mokradlo: '#22282a', zabudowa: '#262523', woda: '#283746', rzeka: '#33485c',
         droga1: '#5a4a38', droga2: '#4a4036', droga3: '#3d3731', droga4: '#302d2a', kolej: '#55504a',
-        granica: '#5f594f', napis: '#a39d91', napisObwodka: '#1c1d1f',
+        granica: '#5f594f', napis: '#a39d91', napisObwodka: '#1a1917',
     },
 }
 

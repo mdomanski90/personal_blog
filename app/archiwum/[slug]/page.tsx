@@ -58,6 +58,7 @@ export default async function MaterialStrona({ params }: Parametry) {
     const obj = skan ? await objasnieniaDoWidoku(m.id, poziom) : []
     const obok = skan && maTeksty
     const oryginal = [m.pochodzenie, m.sygnatura].filter(Boolean).join(', ')
+    const podpisZrodla = m.podpisZrodla || [m.miejscePrzechowywania, m.sygnatura, m.prawa].filter(Boolean).join(' · ')
 
     const rok = m.czas ? formatujEdtf(m.czas) : null
     const ileStr = m.strony.length > 1 ? `${m.strony.length} ${m.strony.length % 10 >= 2 && m.strony.length % 10 <= 4 && (m.strony.length % 100 < 12 || m.strony.length % 100 > 14) ? 'strony' : 'stron'}` : null
@@ -88,6 +89,8 @@ export default async function MaterialStrona({ params }: Parametry) {
                     {<a href={m.plik} className="odn lowercase w-fit" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }} download>pobierz plik</a>}
                 </figure>
             )}
+            {/* P7C-1 (JV-18): źródło skanu/mapy zawsze widoczne pod obrazem, bez klikania */}
+            {(skan || m.plik) && podpisZrodla && <p className="podpis-zrodla"><span>źródło:</span> {podpisZrodla}</p>}
             {!obok && maTeksty && <TekstyZrodla {...teksty} />}
 
             <Tabela etykieta={`${m.nazwa} – opis`}>
