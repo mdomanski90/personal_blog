@@ -34,7 +34,7 @@ export default function GaleriaZdjec({ zdjecia, tytul }: { zdjecia: Zdjecie[]; t
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={`${x.plik}?w=480`} alt={x.podpis || tytul} loading="lazy" style={{ objectPosition: pozycjaKadru(x.kadr) }} />
                         </button>
-                        {(x.podpis || opisZrodla(x)) && <figcaption style={{ fontSize: 'calc(12.5px * var(--font-scale, 1))', lineHeight: 1.45 }}>{x.podpis}{x.podpis && opisZrodla(x) ? <br /> : null}<span className="text-gray-500">{opisZrodla(x)}</span></figcaption>}
+                        {(x.podpis || opisZrodla(x)) && <figcaption style={{ fontSize: 'calc(12.5px * var(--font-scale, 1))', lineHeight: 1.45 }}>{x.podpis}{x.podpis && opisZrodla(x) ? <br /> : null}<span className="text-[var(--tekst-etykieta)]">{opisZrodla(x)}</span></figcaption>}
                     </figure>
                 ))}
             </div>

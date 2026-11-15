@@ -41,46 +41,17 @@ async function MiejscaStopki() {
 }
 
 export default function Footer() {
-    const linkStyle = {
-        fontSize: '14px',
-        fontWeight: '400',
-        height: '25px',
-        padding: '0 10px',
-        display: 'flex',
-        alignItems: 'center',
-        textTransform: 'lowercase' as const,
-    }
 
     return (
         <footer>
             <div aria-hidden="true" className="whitespace-nowrap overflow-hidden opacity-50">------------------------------------------------------------------------------------------------------------------------</div>
             <MiejscaStopki />
-            <div className="flex flex-wrap items-center border border-[#d6d1c6] dark:border-[#4b5563] w-fit" style={{ maxWidth: '100%' }}>
-                <div
-                    style={linkStyle}
-                    className="bg-muted text-current whitespace-nowrap font-semibold"
-                >
-                    © {new Date().getFullYear()} odniepamieci.pl
-                </div>
-                <a
-                    href="https://github.com/mdomanski90"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={linkStyle}
-                    className="text-current whitespace-nowrap !no-underline border-l border-[#d6d1c6] dark:border-[#4b5563] hover:opacity-80 transition-opacity"
-                >
-                    github
-                </a>
-                <a
-                    href="https://mastodon.com.pl/@sirion"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={linkStyle}
-                    className="text-current whitespace-nowrap !no-underline border-l border-[#d6d1c6] dark:border-[#4b5563] hover:opacity-80 transition-opacity"
-                >
-                    fediverse
-                </a>
-            </div>
+            {/* P7D-4 (AUD-06): stopka bez ramki „na sztywno” – spokojna linia z tokenów, jak okruszki */}
+            <p className="stopka-dol">
+                <span>© {new Date().getFullYear()} odniepamieci.pl</span>
+                <a href="https://github.com/mdomanski90" target="_blank" rel="noopener noreferrer">github</a>
+                <a href="https://mastodon.com.pl/@sirion" target="_blank" rel="noopener noreferrer">fediverse</a>
+            </p>
         </footer>
     )
 }

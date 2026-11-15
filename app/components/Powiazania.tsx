@@ -12,14 +12,14 @@ function Lista({ zrodla, wyroznienie }: { zrodla: ZrodloPowiazania[]; wyroznieni
             {zrodla.map((z) => (
                 <li key={`${z.zrodlo.rodzaj}:${z.zrodlo.id}`} className={`${RAMKA} powiazanie`} style={{ borderRadius: 8, padding: 'calc(0.6rem * var(--font-scale, 1)) calc(0.8rem * var(--font-scale, 1))' }}>
                     <div className="flex flex-wrap items-baseline" style={{ gap: '2px 10px' }}>
-                        <span className="text-gray-500 lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>{RODZAJ[z.zrodlo.rodzaj]}</span>
+                        <span className="text-[var(--tekst-etykieta)] lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>{RODZAJ[z.zrodlo.rodzaj]}</span>
                         <Link href={z.zrodlo.adres} className="font-bold" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{z.zrodlo.nazwa}</Link>
                         {z.ile > z.fragmenty.length && (
-                            <span className="text-gray-500" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>{odmiana(z.ile, ['raz', 'razy', 'razy'])}</span>
+                            <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>{odmiana(z.ile, ['raz', 'razy', 'razy'])}</span>
                         )}
                     </div>
                     {z.fragmenty.map((f, i) => (
-                        <p key={i} className="text-gray-700 dark:text-gray-300 leading-relaxed" style={{ fontSize: 'calc(14px * var(--font-scale, 1))', marginTop: 4 }}>
+                        <p key={i} className="text-[var(--tekst-opis)] leading-relaxed" style={{ fontSize: 'calc(14px * var(--font-scale, 1))', marginTop: 4 }}>
                             {f.przed}
                             <mark className={`powiazanie-${wyroznienie}`}>{f.trafienie}</mark>
                             {f.po}
@@ -49,7 +49,7 @@ export default function Powiazania({ dane }: { dane: DanePowiazan }) {
                     <summary className="cursor-pointer lowercase font-bold" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
                         wspomniane bez odnośnika ({dane.wzmianki.length})
                     </summary>
-                    <p className="text-gray-500 lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))', margin: '6px 0 10px' }}>
+                    <p className="text-[var(--tekst-etykieta)] lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))', margin: '6px 0 10px' }}>
                         teksty, w których pada ta nazwa albo jej forma, ale bez odnośnika [[…]] i bez powiązania w panelu.
                     </p>
                     <Lista zrodla={dane.wzmianki} wyroznienie="wzmianka" />

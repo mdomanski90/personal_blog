@@ -12,7 +12,7 @@ export default function ListaPlanow({ plany }: { plany: Plan[] }) {
                 return (
                     <li key={p.slug} className="flex flex-wrap items-baseline" style={{ gap: 8, fontSize: 'calc(15px * var(--font-scale, 1))' }}>
                         <Link href={`/plany/${p.slug}`}>{p.tytul}</Link>
-                        <span className="text-gray-500" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>{[groby ? `${groby} grobów` : null, `${p.elementy.length} elementów`].filter(Boolean).join(' · ')}</span>
+                        <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>{[groby ? `${groby} grobów` : null, `${p.elementy.length} elementów`].filter(Boolean).join(' · ')}</span>
                     </li>
                 )
             })}

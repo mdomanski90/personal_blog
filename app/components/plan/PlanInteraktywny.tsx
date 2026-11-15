@@ -14,7 +14,7 @@ import PoleSzukania from '../PoleSzukania'
 
 type VB = [number, number, number, number]
 
-const przycisk = 'border border-[#d6d1c6] dark:border-[#4b5563] bg-[#fdfcf9] dark:bg-[#111827] text-current'
+const przycisk = 'border border-[var(--linia-podzialu)] bg-[var(--tlo-strony)] text-current'
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
 export const numerTekst = (n?: Numer) => (n ? `${n.kwatera ? `kwatera ${n.kwatera} · ` : ''}rząd ${n.rzad} · miejsce ${n.miejsce}` : '')
 export const numerKrotki = (n?: Numer) => (n ? `${n.kwatera ? n.kwatera + '/' : ''}${n.rzad}/${n.miejsce}` : '')
@@ -260,13 +260,13 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         <div className="plan-do-druku flex flex-col" style={{ gap: 10 }}>
             <WzoryProbek prefix={`${prefix}-sw`} />
             {stan.groby > 0 && (
-                <p className="plan-bez-druku text-gray-600 dark:text-gray-400" style={{ margin: 0, fontSize: 13 }}>
+                <p className="plan-bez-druku text-[var(--tekst-opis)]" style={{ margin: 0, fontSize: 13 }}>
                     na planie {odm(stan.groby, ['grób', 'groby', 'grobów'])} · {stan.odczytane === 0 ? 'napisy nie zostały jeszcze odczytane' : `odczytane napisy: ${stan.odczytane}`}{stan.ograniczone ? ` · ${odm(stan.ograniczone, ['grób', 'groby', 'grobów'])} z napisem tylko dla bliskich` : ''}{stan.odczytane + stan.ograniczone < stan.groby ? ' – plan jest w opracowaniu' : ''}
                 </p>
             )}
             <div className="plan-bez-druku flex flex-wrap items-center" style={{ gap: 8 }}>
                 <PoleSzukania value={szukaj} onChange={ustawSzukaj} onSubmit={() => { if (trafienia[0]) pokazElement(trafienia[0]) }} placeholder="nazwisko, imię, rok – na tym planie" style={{ flex: '1 1 260px', maxWidth: 420 }} />
-                {szukaj.trim().length >= 2 && <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 13 }}>{trafienia.length ? `znaleziono: ${trafienia.length}` : stan.odczytane + stan.ograniczone < stan.groby ? 'nic nie znaleziono – to nie znaczy, że tej osoby tu nie pochowano: nie wszystkie napisy są już odczytane' : 'nic nie znaleziono'}</span>}
+                {szukaj.trim().length >= 2 && <span className="text-[var(--tekst-opis)]" style={{ fontSize: 13 }}>{trafienia.length ? `znaleziono: ${trafienia.length}` : stan.odczytane + stan.ograniczone < stan.groby ? 'nic nie znaleziono – to nie znaczy, że tej osoby tu nie pochowano: nie wszystkie napisy są już odczytane' : 'nic nie znaleziono'}</span>}
                 <span style={{ flex: 1 }} />
                 {plan.podklady.length > 0 && <label className="inline-flex items-center" style={{ gap: 6, fontSize: 13 }}><input type="checkbox" checked={podklad} onChange={(e) => ustawPodklad(e.target.checked)} /> podkład</label>}
                 <button type="button" onClick={doPng} className={`${przycisk} rounded-[7px]`} style={{ height: 28, padding: '0 10px', fontSize: 13 }}>pobierz PNG</button>
@@ -277,7 +277,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
                     {trafienia.slice(0, 16).map((e) => (
                         <button key={e.id} type="button" onClick={() => pokazElement(e)} aria-pressed={e.id === wybrany} className={`${przycisk} rounded-[7px] plan-traf`} style={{ height: 28, padding: '0 8px', fontSize: 13 }}>{opisElementu(e)}</button>
                     ))}
-                    {trafienia.length > 16 && <span className="text-gray-500" style={{ fontSize: 13, alignSelf: 'center' }}>i {trafienia.length - 16} więcej – zawęź</span>}
+                    {trafienia.length > 16 && <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 13, alignSelf: 'center' }}>i {trafienia.length - 16} więcej – zawęź</span>}
                 </div>
             )}
             <div className="plan-uklad" style={{ height: wysokosc }}>
@@ -304,7 +304,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
                         ))}
                     </div>
                     {nad && <div className="plan-podpowiedz plan-bez-druku" style={{ left: nad.x + 14, top: nad.y + 14 }}>{nad.tekst}</div>}
-                    <div className="plan-bez-druku text-gray-500" style={{ position: 'absolute', left: 10, bottom: 8, fontSize: 11 }}>najedź – nazwisko · kliknij – karta grobu · przeciągnij – przesuń · Ctrl + kółko – przybliż</div>
+                    <div className="plan-bez-druku text-[var(--tekst-etykieta)]" style={{ position: 'absolute', left: 10, bottom: 8, fontSize: 11 }}>najedź – nazwisko · kliknij – karta grobu · przeciągnij – przesuń · Ctrl + kółko – przybliż</div>
                 </div>
                 {rodzina && rodzinaDla ? (
                     <PanelRodziny rodzina={rodzina} numery={numery} zamknij={() => ustawRodzinaDla(null)} wybierz={(g) => pokazElement(g)} />
@@ -330,12 +330,12 @@ function Legenda({ uzyte, prefix, wylaczone, przelacz, wszystkie, rodzina }: { u
                 <span className="plan-legenda-tytul">legenda</span>
                 {wylaczone.size > 0 && <button type="button" onClick={(e) => { e.preventDefault(); wszystkie() }} className="plan-bez-druku text-[#4c3cc4] dark:text-[#419cff]" style={{ fontSize: 12, background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>pokaż wszystko</button>}
             </summary>
-            <span className="plan-bez-druku text-gray-500" style={{ fontSize: 11, marginTop: 6 }}>kliknij, żeby ukryć albo pokazać</span>
+            <span className="plan-bez-druku text-[var(--tekst-etykieta)]" style={{ fontSize: 11, marginTop: 6 }}>kliknij, żeby ukryć albo pokazać</span>
             <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(13rem, 1fr))', gap: '4px 16px', marginTop: 6 }}>
                 {uzyte.map(({ t, n }) => (
                     <button key={t.id} type="button" onClick={() => przelacz(t.id)} aria-pressed={!wylaczone.has(t.id)} className="flex items-center text-left text-current" style={{ gap: 9, fontSize: 13, opacity: wylaczone.has(t.id) ? 0.38 : 1, minHeight: 24, background: 'none', border: 0, padding: 0, font: 'inherit', cursor: 'pointer' }}>
                         <Probka typ={t} prefix={prefix} />
-                        <span>{t.nazwa.replace(/ \(.*\)$/, '')}{n > 1 && <span className="text-gray-500"> · {n}</span>}</span>
+                        <span>{t.nazwa.replace(/ \(.*\)$/, '')}{n > 1 && <span className="text-[var(--tekst-etykieta)]"> · {n}</span>}</span>
                     </button>
                 ))}
                 {rodzina && <span className="flex items-center" style={{ gap: 9, fontSize: 13 }}><span className="plan-rodzina-probka" aria-hidden="true" />grób rodziny</span>}
@@ -353,27 +353,27 @@ function PanelRodziny({ rodzina, numery, zamknij, wybierz }: { rodzina: Rodzina;
             <div className="plan-karta-glowa">
                 <div className="flex items-start justify-between" style={{ gap: 12 }}>
                     <div className="flex flex-col" style={{ gap: 2 }}>
-                        <span className="text-gray-500" style={{ fontSize: 12 }}>rodzina na tym cmentarzu</span>
+                        <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12 }}>rodzina na tym cmentarzu</span>
                         <b style={{ fontSize: 15 }}>{rodzina.wlasne.map((o) => o.nazwa).join(', ')}</b>
-                        <span className="text-gray-500" style={{ fontSize: 12 }}>wg drzewa – tylko osoby połączone z grobem</span>
+                        <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12 }}>wg drzewa – tylko osoby połączone z grobem</span>
                     </div>
                     <button type="button" onClick={zamknij} className="plan-karta-x" aria-label="wyłącz groby rodziny">×</button>
                 </div>
             </div>
             <div className="plan-karta-tresc">
-                {naPlanie.length === 0 && <p className="text-gray-600 dark:text-gray-400" style={{ margin: 0 }}>Nikt z rodziny nie jest jeszcze połączony z grobem na tym planie.</p>}
+                {naPlanie.length === 0 && <p className="text-[var(--tekst-opis)]" style={{ margin: 0 }}>Nikt z rodziny nie jest jeszcze połączony z grobem na tym planie.</p>}
                 {naPlanie.map((k) => (
                     <button key={k.id} type="button" className="plan-krewny" onClick={() => wybierz(k.grob!)}>
                         <span className="plan-rodzina-probka" aria-hidden="true" />
-                        <span className="flex flex-col" style={{ gap: 1, minWidth: 0 }}><b>{k.nazwa}</b><span className="text-gray-500" style={{ fontSize: 12 }}>{k.relacja}{k.lata ? ` · ${k.lata}` : ''}{rodzina.wlasne.length > 1 ? ` · (${k.wzgledem})` : ''}</span></span>
+                        <span className="flex flex-col" style={{ gap: 1, minWidth: 0 }}><b>{k.nazwa}</b><span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12 }}>{k.relacja}{k.lata ? ` · ${k.lata}` : ''}{rodzina.wlasne.length > 1 ? ` · (${k.wzgledem})` : ''}</span></span>
                         <span style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{numerKrotki(numery.get(k.grob!.id))}</span>
                     </button>
                 ))}
                 {poza.length > 0 && (
                     <div className="flex flex-col" style={{ gap: 6, paddingTop: 12 }}>
                         <span className="plan-etyk">w drzewie, nie ma ich na tym planie</span>
-                        {poza.map((k) => <span key={k.id} style={{ fontSize: 13 }}><a href={`/osoby/${k.id}`}>{k.nazwa}</a> <span className="text-gray-500">· {k.relacja}{k.lata ? ` · ${k.lata}` : ''}</span></span>)}
-                        <span className="text-gray-500" style={{ fontSize: 12 }}>Wiesz, gdzie są pochowani? Napisz przez „dodaj informację” przy grobie.</span>
+                        {poza.map((k) => <span key={k.id} style={{ fontSize: 13 }}><a href={`/osoby/${k.id}`}>{k.nazwa}</a> <span className="text-[var(--tekst-etykieta)]">· {k.relacja}{k.lata ? ` · ${k.lata}` : ''}</span></span>)}
+                        <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12 }}>Wiesz, gdzie są pochowani? Napisz przez „dodaj informację” przy grobie.</span>
                     </div>
                 )}
             </div>
@@ -409,13 +409,13 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
     const grob = typGrobu(typ)
     const naglowek = numer ? numerTekst(numer) : typ?.nazwa
     const ileGrobowRodziny = rodzinaIle.krewni.filter((k) => k.grob).length
-    const pole: React.CSSProperties = { font: 'inherit', fontSize: 13, padding: '6px 8px', borderRadius: 7, border: '1px solid #d6d1c6', background: 'transparent', color: 'inherit' }
+    const pole: React.CSSProperties = { font: 'inherit', fontSize: 13, padding: '6px 8px', borderRadius: 7, border: '1px solid var(--linia-podzialu)', background: 'transparent', color: 'inherit' }
 
     return (
         <aside className="plan-karta plan-bez-druku" aria-label={grob ? 'karta grobu' : 'opis elementu'}>
             <div className="plan-karta-glowa">
                 <div className="flex items-center justify-between" style={{ gap: 8 }}>
-                    <span className="text-gray-500" style={{ fontSize: 12 }}>{naglowek}</span>
+                    <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12 }}>{naglowek}</span>
                     <button type="button" onClick={zamknij} className="plan-karta-x" aria-label="zamknij">×</button>
                 </div>
                 {(grob || poprz || nast) && (
@@ -429,7 +429,7 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
             </div>
             <div className="plan-karta-tresc">
                 {el.ograniczony ? (
-                    <p className="text-gray-600 dark:text-gray-400" style={{ margin: 0, lineHeight: 1.5 }}>
+                    <p className="text-[var(--tekst-opis)]" style={{ margin: 0, lineHeight: 1.5 }}>
                         Napis, nazwiska i zdjęcia tego grobu są widoczne tylko dla bliskich (osoby zmarłe w ciągu ostatnich {progLat} lat albo na nagrobku są wymienione osoby żyjące).
                         {!zalogowany && <> <a href={`/zaloguj?wroc=${encodeURIComponent(typeof location !== 'undefined' ? location.pathname : `/plany/${plan.slug}`)}`}>Zaloguj się</a>.</>}
                     </p>
@@ -444,7 +444,7 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
                                     return (
                                         <div key={j} className="flex flex-col" style={{ gap: 1 }}>
                                             {z ? <a href={`/osoby/${o.id}`} style={{ fontWeight: 700, fontSize: 15 }}>{o.nazwa}</a> : <b style={{ fontSize: 15 }}>{o.nazwa}</b>}
-                                            {(o.ur || o.zm || z?.rodzina.length) && <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 12.5 }}>
+                                            {(o.ur || o.zm || z?.rodzina.length) && <span className="text-[var(--tekst-opis)]" style={{ fontSize: 12.5 }}>
                                                 {o.ur || o.zm ? `${o.ur ?? '?'} – ${o.zm ?? '?'}` : null}
                                                 {/* P7C-4: rodzice i małżonkowie jako odnośniki do kart osób */}
                                                 {z?.rodzina.map((c, ci) => (
@@ -461,11 +461,11 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
                                 {rodzinaIle.krewni.length > 0 && <button type="button" onClick={pokazRodzine} className="plan-btn-rodzina">pokaż groby rodziny{ileGrobowRodziny ? ` (${ileGrobowRodziny})` : ''}</button>}
                             </section>
                         ) : null}
-                        {el.czas && <span><span className="text-gray-500">czas: </span>{el.czas}</span>}
-                        {el.stan && el.stan !== 'istnieje' && <span className="text-gray-500">{el.stan === 'nie-istnieje' ? 'nie istnieje' : 'do sprawdzenia'}</span>}
+                        {el.czas && <span><span className="text-[var(--tekst-etykieta)]">czas: </span>{el.czas}</span>}
+                        {el.stan && el.stan !== 'istnieje' && <span className="text-[var(--tekst-etykieta)]">{el.stan === 'nie-istnieje' ? 'nie istnieje' : 'do sprawdzenia'}</span>}
                         {el.napis && (
                             <section className="flex flex-col" style={{ gap: 6 }}>
-                                <div className="flex items-baseline justify-between"><span className="plan-etyk">napis na nagrobku</span><span className="text-gray-500" style={{ fontSize: 11 }}>transkrypcja dosłowna</span></div>
+                                <div className="flex items-baseline justify-between"><span className="plan-etyk">napis na nagrobku</span><span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 11 }}>transkrypcja dosłowna</span></div>
                                 <pre className="plan-napis">{el.napis}</pre>
                             </section>
                         )}
@@ -476,7 +476,7 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
                             </section>
                         )}
                         {el.opis && <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{el.opis}</p>}
-                        {grob && !el.osoby?.length && !el.nazwa && !el.napis && <p className="text-gray-500" style={{ margin: 0 }}>Napis nie został jeszcze odczytany.</p>}
+                        {grob && !el.osoby?.length && !el.nazwa && !el.napis && <p className="text-[var(--tekst-etykieta)]" style={{ margin: 0 }}>Napis nie został jeszcze odczytany.</p>}
                         {el.zdjecia && el.zdjecia.length > 0 && (
                             <section className="flex flex-col" style={{ gap: 6 }}>
                                 <span className="plan-etyk">zdjęcia</span>
@@ -493,12 +493,12 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
                     </>
                 )}
                 {grob && (
-                    <div className="flex flex-col" style={{ gap: 6, borderTop: '1px solid #e7e2d8', paddingTop: 10, marginTop: 2 }}>
-                        {stanWysylki === 'wyslana' && <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: 13 }}>Dziękuję – wiadomość trafiła do autora strony.</span>}
+                    <div className="flex flex-col" style={{ gap: 6, borderTop: '1px solid var(--linia-podzialu)', paddingTop: 10, marginTop: 2 }}>
+                        {stanWysylki === 'wyslana' && <span className="text-[var(--tekst-opis)]" style={{ fontSize: 13 }}>Dziękuję – wiadomość trafiła do autora strony.</span>}
                         {stanWysylki === 'blad' && <span style={{ fontSize: 13, color: '#b91c1c' }}>Nie udało się wysłać. Spróbuj za chwilę.</span>}
                         {forma === null && <>
                             <button type="button" onClick={() => { ustawForme('informacja'); ustawStanWysylki('') }} className="plan-link" style={{ fontSize: 13 }}>znasz tę osobę albo masz zdjęcie? dodaj informację</button>
-                            <button type="button" onClick={() => { ustawForme('prosba'); ustawStanWysylki('') }} className="plan-link text-gray-600 dark:text-gray-400" style={{ fontSize: 12 }}>poproś o usunięcie albo poprawkę</button>
+                            <button type="button" onClick={() => { ustawForme('prosba'); ustawStanWysylki('') }} className="plan-link text-[var(--tekst-opis)]" style={{ fontSize: 12 }}>poproś o usunięcie albo poprawkę</button>
                         </>}
                         {forma !== null && (
                             <div className="flex flex-col" style={{ gap: 6 }}>
@@ -507,7 +507,7 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
                                 <input value={kontakt} onChange={(e) => ustawKontakt(e.target.value)} maxLength={200} placeholder="kontakt do Ciebie (nieobowiązkowy, nie będzie pokazany)" style={pole} />
                                 <div className="flex" style={{ gap: 8 }}>
                                     <button type="button" onClick={wyslij} disabled={tresc.trim().length < 3} className={`${przycisk} rounded-[7px]`} style={{ height: 28, padding: '0 10px', fontSize: 13 }}>wyślij</button>
-                                    <button type="button" onClick={() => ustawForme(null)} className="border border-[#d6d1c6] dark:border-[#4b5563] rounded-[7px] text-current" style={{ height: 28, padding: '0 10px', fontSize: 13, background: 'transparent', cursor: 'pointer' }}>anuluj</button>
+                                    <button type="button" onClick={() => ustawForme(null)} className="border border-[var(--linia-podzialu)] rounded-[7px] text-current" style={{ height: 28, padding: '0 10px', fontSize: 13, background: 'transparent', cursor: 'pointer' }}>anuluj</button>
                                 </div>
                             </div>
                         )}

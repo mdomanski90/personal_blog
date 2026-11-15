@@ -18,7 +18,7 @@ export default function SpisMiejsc({ grupy }: { grupy: GrupaMiejsc[] }) {
                     {g.miejsca.length > 0 && <SiatkaMiejsc miejsca={g.miejsca} />}
                     {g.podgrupy.map((pg) => (
                         <div key={pg.obszar.id} className="flex flex-col" style={{ gap: 6, paddingLeft: 'calc(1rem * var(--font-scale, 1))' }}>
-                            <h3 className="text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>
+                            <h3 className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>
                                 <Link href={`/miejsca/${pg.obszar.id}`} className="!no-underline hover:underline">{pg.obszar.nazwa}</Link>
                             </h3>
                             <SiatkaMiejsc miejsca={pg.miejsca} />

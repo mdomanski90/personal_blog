@@ -17,14 +17,23 @@ const PODMENU: Record<string, { href: string; tekst: string }[]> = {
         { href: '/parafie', tekst: 'instytucje' },
         { href: '/obiekty', tekst: 'obiekty' },
     ],
+    // P7D-1: kolejność jak w spisie działów archiwum (I–VIII)
     '/archiwum': [
         { href: '/archiwum', tekst: 'wszystkie materiały' },
+        { href: '/archiwum?rodzaj=dokument', tekst: 'dokumenty' },
+        { href: '/archiwum?rodzaj=akt', tekst: 'akty metrykalne' },
         { href: '/archiwum?rodzaj=wspomnienie', tekst: 'wspomnienia i relacje' },
         { href: '/archiwum?rodzaj=zdjecie', tekst: 'fotografie' },
-        { href: '/archiwum?rodzaj=dokument', tekst: 'dokumenty' },
         { href: '/archiwum?rodzaj=nagranie', tekst: 'nagrania' },
         { href: '/archiwum?rodzaj=mapa', tekst: 'mapy' },
         { href: '/archiwum/zbiory', tekst: 'zbiory i kolekcje' },
+    ],
+    // P7D-1 (AUD-01): biblioteka z podmenu jak archiwum – te same działy co w spisie biblioteki
+    '/biblioteka': [
+        { href: '/biblioteka/publikacje', tekst: 'publikacje i opracowania' },
+        { href: '/biblioteka/ksiegi', tekst: 'księgi metrykalne' },
+        { href: '/parafie', tekst: 'parafie i urzędy' },
+        { href: '/biblioteka/slownik', tekst: 'słownik' },
     ],
 }
 const MENU: { href: string; tekst: string }[] = [

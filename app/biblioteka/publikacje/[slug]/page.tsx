@@ -1,22 +1,42 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { Link } from 'next-view-transitions'
-import { poziomCzytelnika } from '@/lib/archiwum'
+import { nazwy, poziomCzytelnika } from '@/lib/archiwum'
 import { publikacja } from '@/lib/paczka5'
-import { Strona, TytulStrony } from '../../../components/Uklad'
+import { Strona } from '../../../components/Uklad'
+import { Czesc, LiniaKarty, NaglowekKarty, Tabela, W, ZAdresami, ZglosPoprawke } from '../../../components/Karta'
+import CopyLinkButton from '../../../components/CopyLinkButton'
 export const dynamic = 'force-dynamic'
 type P = { params: Promise<{ slug: string }> }
+const RODZAJE: Record<string, string> = { ksiazka: 'książka', artykul: 'artykuł', prasa: 'prasa', opracowanie: 'opracowanie', baza: 'baza / serwis' }
 export async function generateMetadata({ params }: P): Promise<Metadata> {
   const p = await publikacja((await params).slug, await poziomCzytelnika())
   return { title: p ? `${p.nazwa} · biblioteka · odniepamieci.pl` : 'nie znaleziono · odniepamieci.pl', robots: { index: !!p && p.widocznosc === 'publiczne' } }
 }
+/** P7D-2 (AUD-02): karta publikacji według wzoru kart (nagłówek, „podstawowe”, „powiązane”, zgłoszenie). */
 export default async function Publikacja({ params }: P) {
-  const p = await publikacja((await params).slug, await poziomCzytelnika())
+  const poziom = await poziomCzytelnika()
+  const p = await publikacja((await params).slug, poziom)
   if (!p) notFound()
-  return <Strona><TytulStrony sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }, { tekst: 'publikacje', href: '/biblioteka/publikacje' }]}>{p.nazwa}</TytulStrony>
-    {[['rodzaj',p.rodzaj], ['autor',p.autor], ['rok',p.rok],['wydawca',p.wydawca],['ISBN / identyfikator',p.isbn]]
-      .filter(([,v])=>!!v).map(([k,v])=><p key={k}><strong>{k}:</strong> {v}</p>)}
-    {p.opis && <p className="whitespace-pre-wrap">{p.opis}</p>}
-    {p.url && <p><Link className="odn" href={p.url}>otwórz publikację / katalog źródłowy →</Link></p>}
-  </Strona>
+  const n = await nazwy(poziom)
+  const miejscaP = p.miejsca.filter((id) => n.miejsca.has(id))
+  const tematyP = p.tematy.filter((id) => n.tematy.has(id))
+  return (
+    <Strona akcje={<CopyLinkButton sciezka={`/biblioteka/publikacje/${p.id}`} />}>
+      <NaglowekKarty sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }, { tekst: 'publikacje', href: '/biblioteka/publikacje' }]}
+        tytul={p.nazwa} linia={[RODZAJE[p.rodzaj] ?? p.rodzaj, p.autor || null, p.rok || null]}
+        lead={p.opis ? <p style={{ margin: 0 }} className="whitespace-pre-wrap">{p.opis}</p> : undefined} />
+      <Tabela etykieta={`${p.nazwa} – opis bibliograficzny`}>
+        <Czesc tytul="podstawowe" />
+        <W e="autor">{p.autor}</W>
+        <W e="rok">{p.rok}</W>
+        <W e="wydawca / czasopismo">{p.wydawca}</W>
+        <W e="ISBN / identyfikator">{p.isbn}</W>
+        <W e="dostęp">{p.url && <ZAdresami tekst={p.url} />}</W>
+        {(miejscaP.length > 0 || tematyP.length > 0) && <Czesc tytul="powiązane" />}
+        <W e="miejsca">{miejscaP.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaP.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
+        <W e="tematy">{tematyP.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyP.map((id) => ({ tekst: n.tematy.get(id), href: `/tematy/${id}` }))]} />}</W>
+      </Tabela>
+      <ZglosPoprawke adres={`/biblioteka/publikacje/${p.id}`} tytul={p.nazwa} pytanie="Znasz inne wydanie, egzemplarz albo wersję cyfrową?" />
+    </Strona>
+  )
 }

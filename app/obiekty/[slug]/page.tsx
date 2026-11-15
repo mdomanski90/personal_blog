@@ -84,7 +84,7 @@ export default async function ObiektStrona({ params }: Parametry) {
                     ? (glowny || !mapa
                         ? <OtworzWMapach wspolrzedne={o.wspolrzedne} przyblizone={o.przyblizone} />
                         : <span className="karta-polozenie"><span><OtworzWMapach wspolrzedne={o.wspolrzedne} przyblizone={o.przyblizone} /></span><MapaKarty mapa={mapa} wysokosc={150} /></span>)
-                    : <span className="text-gray-600 dark:text-gray-400">nieustalone</span>}
+                    : <span className="text-[var(--tekst-opis)]">nieustalone</span>}
             </W>
             {o.zdjecia.length > 1 && <Czesc tytul="fotografie" id="fotografie">{o.zdjecia.length}</Czesc>}
             {o.zdjecia.length > 1 && <WCaly><GaleriaZdjec zdjecia={o.zdjecia} tytul={o.nazwa} /></WCaly>}

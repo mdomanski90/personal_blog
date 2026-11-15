@@ -8,7 +8,7 @@ export default function OtworzWMapach({ wspolrzedne, przyblizone }: { wspolrzedn
             <a href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`} target="_blank" rel="noopener noreferrer" title={tekst}>
                 otwórz w Mapach Google ↗
             </a>
-            {przyblizone && <span className="text-gray-500"> (położenie przybliżone)</span>}
+            {przyblizone && <span className="text-[var(--tekst-etykieta)]"> (położenie przybliżone)</span>}
         </span>
     )
 }

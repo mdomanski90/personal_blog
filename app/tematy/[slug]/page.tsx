@@ -82,7 +82,7 @@ export default async function TematStrona({ params }: Parametry) {
 
             {opow.length === 0 && mat.length === 0 && (
                 <Sekcja tytul="powiązane">
-                    <p className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>Nie ma jeszcze wpisów ani materiałów na ten temat. <Link href="/#pomoz" className="odn">Masz coś do dodania?</Link></p>
+                    <p className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>Nie ma jeszcze wpisów ani materiałów na ten temat. <Link href="/#pomoz" className="odn">Masz coś do dodania?</Link></p>
                 </Sekcja>
             )}
 

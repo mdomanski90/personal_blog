@@ -4,7 +4,12 @@ import { Link } from 'next-view-transitions'
 import { poziomCzytelnika } from '@/lib/archiwum'
 import { publikacje } from '@/lib/paczka5'
 import { przygotujZapytanie, pasuje } from '@/lib/szukanie'
-import { RAMKA, Strona, TytulStrony } from '../../components/Uklad'
+import { Strona, TytulStrony } from '../../components/Uklad'
+import PoleSzukania from '../../components/PoleSzukania'
+import Komunikat from '../../components/Komunikat'
+const RODZAJE: [string, string][] = [['', 'wszystkie'], ['ksiazka', 'książki'], ['artykul', 'artykuły'], ['prasa', 'prasa'], ['opracowanie', 'opracowania'], ['baza', 'bazy i serwisy']]
+const RODZAJE_NAZWY: Record<string, string> = { ksiazka: 'książka', artykul: 'artykuł', prasa: 'prasa', opracowanie: 'opracowanie', baza: 'baza / serwis' }
+import SpisBiblioteki from '../SpisBiblioteki'
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'publikacje · biblioteka · odniepamieci.pl' }
 export default async function Publikacje({ searchParams }: { searchParams: Promise<{ q?: string; typ?: string }> }) {
@@ -13,21 +18,22 @@ export default async function Publikacje({ searchParams }: { searchParams: Promi
   const z = przygotujZapytanie(q)
   const lista = (await publikacje(await poziomCzytelnika())).filter(p =>
     (!sp.typ || p.rodzaj === sp.typ) && (!z || pasuje(z, [p.nazwa, p.autor, p.rok, p.wydawca, p.opis].join(' '))))
+  const href = (t: string) => `/biblioteka/publikacje${t || q ? '?' : ''}${[t && `typ=${t}`, q && `q=${encodeURIComponent(q)}`].filter(Boolean).join('&')}`
   return <Strona><TytulStrony sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }]}><TytulDzialu dzial="publikacje" domyslny="publikacje i opracowania" /></TytulStrony>
+            <SpisBiblioteki wybrany="publikacje" />
             <WstepDzialu dzial="publikacje" className="ot-drobne" />
-    <form method="get" className="flex flex-wrap items-end" style={{ gap: 10 }}>
-      <label className="flex flex-col ot-drobne">szukaj<input name="q" defaultValue={q} className={`${RAMKA} bg-transparent text-current`} style={{ padding: '6px 8px' }} /></label>
-      <label className="flex flex-col ot-drobne">rodzaj<select name="typ" defaultValue={sp.typ ?? ''} className={`${RAMKA} bg-transparent text-current`} style={{ padding: '6px' }}>
-        <option value="">wszystkie</option><option value="ksiazka">książki</option><option value="artykul">artykuły</option><option value="prasa">prasa</option><option value="opracowanie">opracowania</option><option value="baza">bazy i serwisy</option>
-      </select></label>
-      <button type="submit" className={`${RAMKA} bg-muted`} style={{ padding: '6px 12px' }}>filtruj</button>
-      {(q || sp.typ) && <Link href="/biblioteka/publikacje">wyczyść</Link>}
-    </form>
-    <p className="ot-drobne">wyniki: {lista.length}</p>
-    {lista.length ? <ul className="flex flex-col" style={{ listStyle: 'none', padding: 0 }}>
-      {lista.map(p => <li key={p.id} className="border-b border-[#e7e2d8] py-3 dark:border-[#374151]">
-        <Link className="odn font-bold" href={`/biblioteka/publikacje/${p.id}`}>{p.nazwa} →</Link>
-        <p className="ot-drobne">{[p.autor, p.rok, p.wydawca].filter(Boolean).join(' · ')}</p>
-      </li>)}</ul> : <p className="ot-drobne">Brak opublikowanych pozycji spełniających kryteria.</p>}
+    {/* P7D-3 (AUD-03, AUD-04): to samo pole szukania i pastylki co w słowniku; lista jak lista materiałów; puste – Komunikat */}
+    <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+      <PoleSzukania action="/biblioteka/publikacje" defaultValue={q} placeholder="tytuł, autor, wydawca" ukryte={{ typ: sp.typ ?? '' }} style={{ minWidth: 260 }} />
+      <div className="flex flex-wrap filtr-pastylki" style={{ gap: 7 }} role="group" aria-label="rodzaj publikacji">
+        {RODZAJE.map(([id, n]) => <Link key={id} href={href(id)} className="szukaj-filtr" aria-current={(sp.typ ?? '') === id ? 'true' : undefined}>{(sp.typ ?? '') === id ? <b>{n}</b> : n}</Link>)}
+      </div>
+    </div>
+    <p className="ot-drobne" aria-live="polite">{lista.length} {lista.length === 1 ? 'pozycja' : lista.length % 10 >= 2 && lista.length % 10 <= 4 && (lista.length % 100 < 12 || lista.length % 100 > 14) ? 'pozycje' : 'pozycji'}</p>
+    {lista.length ? <ul className="lista-pozycji">
+      {lista.map(p => <li key={p.id} className="lista-pozycja">
+        <Link className="lista-tytul" href={`/biblioteka/publikacje/${p.id}`}>{p.nazwa}</Link>
+        <span className="lista-linia">{[RODZAJE_NAZWY[p.rodzaj], p.autor, p.rok, p.wydawca].filter(Boolean).join(' · ')}</span>
+      </li>)}</ul> : <Komunikat rodzaj="pusto">{q || sp.typ ? 'Brak pozycji spełniających kryteria – zmień frazę albo rodzaj.' : 'Spis książek i artykułów jest w przygotowaniu.'}</Komunikat>}
   </Strona>
 }

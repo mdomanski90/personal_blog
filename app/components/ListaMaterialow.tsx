@@ -11,7 +11,7 @@ const ZNAK: Record<string, string> = { obraz: '▣', dzwiek: '♪', film: '▶',
 
 /** Siatka materiałów: miniatura (zdjęcia, mapy, skany) albo znak rodzaju pliku, tytuł, rodzaj i data. */
 export default function ListaMaterialow({ materialy }: { materialy: Material[] }) {
-    if (!materialy.length) return <p className="text-gray-500 italic lowercase">brak materiałów.</p>
+    if (!materialy.length) return <p className="text-[var(--tekst-etykieta)] italic lowercase">brak materiałów.</p>
     return (
         <ul className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(12rem, 1fr))', gap: 12 }}>
             {materialy.map((m) => {
@@ -24,12 +24,12 @@ export default function ListaMaterialow({ materialy }: { materialy: Material[] }
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img src={m.strony[0].adres.startsWith('/pliki/strony/') ? `${m.strony[0].adres}?w=480` : m.strony[0].adres} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: pozycjaKadru(m.kadr) }} />
                                 ) : (
-                                    <span className="text-gray-500" style={{ fontSize: 28 }} aria-hidden="true">{typ ? ZNAK[typ] : '—'}</span>
+                                    <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 28 }} aria-hidden="true">{typ ? ZNAK[typ] : '—'}</span>
                                 )}
                             </div>
                             <div className="flex flex-col" style={{ padding: '8px 10px', gap: 2 }}>
                                 <span className="font-bold leading-tight" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>{m.nazwa}</span>
-                                <span className="text-gray-500 lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>
+                                <span className="text-[var(--tekst-etykieta)] lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>
                                     {[RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj, m.czas && formatujEdtf(m.czas), m.widocznosc === 'bliscy' && 'dla bliskich'].filter(Boolean).join(' · ')}
                                 </span>
                             </div>

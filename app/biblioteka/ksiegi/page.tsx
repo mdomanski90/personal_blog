@@ -3,6 +3,7 @@ import { ksiegi, miejsca, parafie, poziomCzytelnika } from '@/lib/archiwum'
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
 import { Strona, TytulStrony } from '../../components/Uklad'
 import KatalogKsiegiNaZywo from '../../components/KatalogKsiegiNaZywo'
+import SpisBiblioteki from '../SpisBiblioteki'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'księgi metrykalne · biblioteka · odniepamieci.pl' }
@@ -22,6 +23,7 @@ export default async function KsiegiMetrykalne({ searchParams }: Parametry) {
     return (
         <Strona>
             <TytulStrony sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }]}>księgi metrykalne</TytulStrony>
+            <SpisBiblioteki wybrany="ksiegi" />
             <p className="leading-relaxed" style={{ fontSize: 'calc(16px * var(--font-scale, 1))' }}>
                 Zachowane księgi metrykalne i jednostki archiwalne – także te bez skanów online.
                 Księgi możesz przeglądać według miejscowości albo parafii i urzędu. Te same materiały występują w obu widokach.

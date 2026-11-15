@@ -14,7 +14,7 @@ export default function EmailLink() {
     }, [])
 
     if (!email) {
-        return <span className="text-gray-500">[adres pojawi się po załadowaniu strony]</span>
+        return <span className="text-[var(--tekst-etykieta)]">[adres pojawi się po załadowaniu strony]</span>
     }
 
     return <a href={`mailto:${email}`}>{email}</a>

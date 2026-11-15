@@ -541,7 +541,7 @@ export default function MapaMiejsc({
                                 type="button"
                                 aria-pressed={!wybrane.length}
                                 onClick={() => setWybrane([])}
-                                className={`border border-[#d6d1c6] dark:border-[#4b5563] lowercase cursor-pointer ${!wybrane.length ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
+                                className={`border border-[var(--linia-podzialu)] lowercase cursor-pointer ${!wybrane.length ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
                                 style={{ margin: '-1px 0 0 -1px', padding: '0 10px', height: 26, fontSize: 'inherit', fontFamily: 'inherit' }}
                             >
                                 wszystkie
@@ -555,7 +555,7 @@ export default function MapaMiejsc({
                                     type="button"
                                     aria-pressed={wl}
                                     onClick={() => przelacz(g)}
-                                    className={`border border-[#d6d1c6] dark:border-[#4b5563] lowercase cursor-pointer ${wl ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
+                                    className={`border border-[var(--linia-podzialu)] lowercase cursor-pointer ${wl ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
                                     style={{ margin: '-1px 0 0 -1px', padding: '0 10px', height: 26, fontSize: 'inherit', fontFamily: 'inherit' }}
                                 >
                                     {GRUPY_OBIEKTOW[g]}
@@ -568,14 +568,14 @@ export default function MapaMiejsc({
                                 aria-pressed={pokazPlany}
                                 onClick={() => setPokazPlany((x) => !x)}
                                 title="rysunki planów (cmentarzy, wsi) na mapie przy dużym przybliżeniu"
-                                className={`border border-[#d6d1c6] dark:border-[#4b5563] lowercase cursor-pointer ${pokazPlany ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
+                                className={`border border-[var(--linia-podzialu)] lowercase cursor-pointer ${pokazPlany ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
                                 style={{ margin: '-1px 0 0 -1px', padding: '0 10px', height: 26, fontSize: 'inherit', fontFamily: 'inherit' }}
                             >
                                 plany
                             </button>
                         )}
                     </div>
-                    {zoom < PROG_OBIEKTOW && (aktywne.length > 0 || (planyGeo?.length ?? 0) > 0) && <span className="text-gray-500 lowercase">przybliż mapę, żeby zobaczyć obiekty{(planyGeo?.length ?? 0) > 0 ? ' i plany' : ''}</span>}
+                    {zoom < PROG_OBIEKTOW && (aktywne.length > 0 || (planyGeo?.length ?? 0) > 0) && <span className="text-[var(--tekst-etykieta)] lowercase">przybliż mapę, żeby zobaczyć obiekty{(planyGeo?.length ?? 0) > 0 ? ' i plany' : ''}</span>}
                 </div>
             )}
             <div style={{ position: 'relative', ...(wypelnij ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : {}) }}>
@@ -583,7 +583,7 @@ export default function MapaMiejsc({
             ref={kontener}
             role="region"
             aria-label="mapa miejsc"
-            className="border border-[#d6d1c6] dark:border-[#4b5563] w-full mapa-wektor"
+            className="border border-[var(--linia-podzialu)] w-full mapa-wektor"
             style={wypelnij ? { flex: 1, minHeight: 0, borderRadius: '8px', overflow: 'hidden' } : { height: wysokosc, borderRadius: '8px', overflow: 'hidden' }}
             />
             {panel && <PanelPlanu panel={panel} zamknij={() => setPanel(null)} />}
@@ -597,7 +597,7 @@ export default function MapaMiejsc({
             {granice && (
                 <div className="flex flex-col" style={{ gap: 6, fontSize: 'calc(13px * var(--font-scale, 1))' }}>
                     <div className="flex flex-wrap items-center" style={{ gap: '6px 10px' }}>
-                        <span className="lowercase text-gray-600 dark:text-gray-400">granice historyczne:</span>
+                        <span className="lowercase text-[var(--tekst-opis)]">granice historyczne:</span>
                         <div className="flex flex-wrap w-fit" style={{ gap: 4 }} role="group" aria-label="granice historyczne – rok">
                             {[null, ...LATA_GRANIC].map((l) => {
                                 const wl = l ? rok === l.rok : rok === null
@@ -619,11 +619,11 @@ export default function MapaMiejsc({
                     {rok && (
                         <p style={{ margin: 0 }}>
                             <span className="font-bold">{LATA_GRANIC.find((l) => l.rok === rok)?.etykieta ?? Math.floor(rok)}</span>{' '}
-                            <span className="text-gray-600 dark:text-gray-400">{LATA_GRANIC.find((l) => l.rok === rok)?.opis ?? ''}</span>
+                            <span className="text-[var(--tekst-opis)]">{LATA_GRANIC.find((l) => l.rok === rok)?.opis ?? ''}</span>
                         </p>
                     )}
                     {rok && (
-                        <div className="flex flex-wrap items-center text-gray-600 dark:text-gray-400" style={{ gap: '4px 14px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
+                        <div className="flex flex-wrap items-center text-[var(--tekst-opis)]" style={{ gap: '4px 14px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
                             {LEGENDA_PANSTW.map((p) => (
                                 <span key={p.nazwa} className="inline-flex items-center" style={{ gap: 5 }}>
                                     <span aria-hidden="true" style={{ width: 12, height: 12, borderRadius: 3, background: p.kolor, opacity: 0.45, border: `1px solid ${p.kolor}` }} />
@@ -634,7 +634,7 @@ export default function MapaMiejsc({
                         </div>
                     )}
                     {rok && (
-                        <div className="flex flex-wrap items-center text-gray-600 dark:text-gray-400" style={{ gap: '4px 14px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
+                        <div className="flex flex-wrap items-center text-[var(--tekst-opis)]" style={{ gap: '4px 14px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
                             <span className="inline-flex items-center" style={{ gap: 5 }}>
                                 <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="2.6" /></svg>
                                 granica państwa
@@ -653,7 +653,7 @@ export default function MapaMiejsc({
                         </div>
                     )}
                     {rok && (
-                        <p className="text-gray-500 lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>
+                        <p className="text-[var(--tekst-etykieta)] lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>
                             granice: OpenHistoricalMap (CC0) – dane społeczności, nie zawsze kompletne dla każdego roku; Korona i ziemie podlaskie w XVI w. – Atlas historyczny Polski XVI w., IH PAN (CC BY 4.0). Granice z obu źródeł dopasowane do siebie i uproszczone.
                         </p>
                     )}
@@ -671,21 +671,21 @@ function PanelPlanu({ panel, zamknij }: { panel: { nazwa: string; href: string; 
         return () => window.removeEventListener('keydown', esc)
     }, [zamknij])
     return (
-        <div className="mapa-panel-planu border border-[#d6d1c6] dark:border-[#4b5563] bg-[#fdfcf9] dark:bg-[#111827]" role="dialog" aria-label={`plany: ${panel.nazwa}`}>
+        <div className="mapa-panel-planu border border-[var(--linia-podzialu)] bg-[var(--tlo-strony)]" role="dialog" aria-label={`plany: ${panel.nazwa}`}>
             <style>{`.mapa-panel-planu{position:absolute;top:10px;right:10px;bottom:10px;width:min(300px,calc(100% - 20px));overflow:auto;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:14px;box-shadow:0 4px 18px rgb(0 0 0 / .14);z-index:5}@media (max-width:640px){.mapa-panel-planu{top:auto;left:0;right:0;bottom:0;width:auto;max-height:75%;border-radius:12px 12px 0 0}}`}</style>
             <div className="flex items-start justify-between" style={{ gap: 8 }}>
                 <div className="flex flex-col" style={{ gap: 2 }}>
                     <b style={{ fontSize: 15 }}>{panel.nazwa}</b>
                     <a href={panel.href} style={{ fontSize: 13 }}>strona miejsca →</a>
                 </div>
-                <button type="button" onClick={zamknij} aria-label="zamknij" className="text-gray-500" style={{ fontSize: 20, lineHeight: 1, background: 'none', border: 0, cursor: 'pointer' }}>×</button>
+                <button type="button" onClick={zamknij} aria-label="zamknij" className="text-[var(--tekst-etykieta)]" style={{ fontSize: 20, lineHeight: 1, background: 'none', border: 0, cursor: 'pointer' }}>×</button>
             </div>
             {panel.plany.map((p) => (
                 <a key={p.slug} href={`/plany/${p.slug}`} className="flex flex-col !no-underline text-current" style={{ gap: 6 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/plany/${p.slug}/podglad.svg`} alt={`podgląd: ${p.tytul}`} loading="lazy" style={{ width: '100%', borderRadius: 6, border: '1px solid #e7e2d8', background: '#f6f3ec', aspectRatio: '4 / 3', objectFit: 'contain' }} />
+                    <img src={`/plany/${p.slug}/podglad.svg`} alt={`podgląd: ${p.tytul}`} loading="lazy" style={{ width: '100%', borderRadius: 6, border: '1px solid var(--linia-podzialu)', background: '#f6f3ec', aspectRatio: '4 / 3', objectFit: 'contain' }} />
                     <span style={{ fontSize: 13 }}>{p.tytul}</span>
-                    <span className="border border-[#d6d1c6] dark:border-[#4b5563] rounded-[7px] w-fit" style={{ fontSize: 13, padding: '3px 10px' }}>otwórz plan →</span>
+                    <span className="border border-[var(--linia-podzialu)] rounded-[7px] w-fit" style={{ fontSize: 13, padding: '3px 10px' }}>otwórz plan →</span>
                 </a>
             ))}
         </div>

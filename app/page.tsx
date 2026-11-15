@@ -70,7 +70,7 @@ export default async function StronaGlowna() {
                 {wpisy.length > pokazane.length && <Link href="/wpisy" className="odn" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>{wszystkie}</Link>}
             </div>
 
-            {wpisy.length === 0 && <p className="text-gray-500 italic lowercase">brak wpisów.</p>}
+            {wpisy.length === 0 && <p className="text-[var(--tekst-etykieta)] italic lowercase">brak wpisów.</p>}
 
             {pokazane.map((w) => (
                 // id = identyfikator wpisu, więc stare odnośniki „/#identyfikator” nadal przewijają do wpisu

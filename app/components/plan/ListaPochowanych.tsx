@@ -11,7 +11,7 @@ import PoleSzukania from '../PoleSzukania'
 import { numerKrotki } from './PlanInteraktywny'
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
-const pole = 'border border-[#d6d1c6] dark:border-[#4b5563] bg-transparent text-current rounded-[7px]'
+const pole = 'border border-[var(--linia-podzialu)] bg-transparent text-current rounded-[7px]'
 
 interface Wiersz { klucz: string; el: Element; nazwisko: string; imie: string; lata: string; zm: number | null; razem: string[]; idOsoby?: string; zNapisu: boolean }
 
@@ -79,7 +79,7 @@ export default function ListaPochowanych({ plan, ustawienia, osoby, naPlanie }: 
 
     return (
         <div className="flex flex-col" style={{ gap: 12 }}>
-            <p className="text-gray-600 dark:text-gray-400" style={{ margin: 0, fontSize: 13 }}>
+            <p className="text-[var(--tekst-opis)]" style={{ margin: 0, fontSize: 13 }}>
                 {odm(osob, ['osoba', 'osoby', 'osób'])} z odczytanym napisem{bezNapisu ? ` · ${odm(bezNapisu, ['grób', 'groby', 'grobów'])} bez odczytanego napisu` : ''}{ograniczone ? ` · ${odm(ograniczone, ['grób', 'groby', 'grobów'])} z napisem dla bliskich` : ''}
             </p>
             <div className="flex flex-wrap items-end" style={{ gap: 12 }}>
@@ -101,26 +101,26 @@ export default function ListaPochowanych({ plan, ustawienia, osoby, naPlanie }: 
                     {litery.map((l) => <button key={l} type="button" onClick={() => ustawLitere(litera === l ? '' : l)} aria-pressed={litera === l} className="lista-litera">{l}</button>)}
                 </nav>
             )}
-            <div style={{ overflowX: 'auto', border: '1px solid #e7e2d8', borderRadius: 8 }} className="lista-pochowanych">
+            <div style={{ overflowX: 'auto', border: '1px solid var(--linia-podzialu)', borderRadius: 8 }} className="lista-pochowanych">
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
                     <thead><tr><th>nazwisko i imię</th><th>lata</th><th>grób</th><th>razem w grobie</th><th>zdjęcie</th><th>drzewo</th><th><span className="sr-only">plan</span></th></tr></thead>
                     <tbody>
                         {lista.map((w) => (
                             <tr key={w.klucz}>
-                                <td>{w.zNapisu ? <><span>{w.nazwisko}</span> <span className="text-gray-500" style={{ fontSize: 11.5 }}>z napisu</span></> : <><b>{w.nazwisko}</b> {w.imie}</>}</td>
+                                <td>{w.zNapisu ? <><span>{w.nazwisko}</span> <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 11.5 }}>z napisu</span></> : <><b>{w.nazwisko}</b> {w.imie}</>}</td>
                                 <td style={{ whiteSpace: 'nowrap' }}>{w.lata}</td>
                                 <td style={{ whiteSpace: 'nowrap' }}>{numerKrotki(numery.get(w.el.id)) || '—'}</td>
-                                <td className="text-gray-600 dark:text-gray-400">{w.razem.join(', ') || '—'}</td>
+                                <td className="text-[var(--tekst-opis)]">{w.razem.join(', ') || '—'}</td>
                                 <td>{w.el.zdjecia?.length ? '✓' : ''}</td>
                                 <td>{w.idOsoby ? <a href={`/osoby/${w.idOsoby}`}>karta →</a> : ''}</td>
                                 <td><button type="button" onClick={() => naPlanie(w.el.id)} className="plan-link" style={{ fontSize: 13, whiteSpace: 'nowrap' }}>na planie →</button></td>
                             </tr>
                         ))}
-                        {lista.length === 0 && <tr><td colSpan={7} className="text-gray-500">{wiersze.length ? (bezNapisu ? 'Nic nie znaleziono. To nie znaczy, że tej osoby tu nie pochowano – nie wszystkie napisy są już odczytane.' : 'Nic nie znaleziono.') : 'Napisy z nagrobków nie zostały jeszcze odczytane.'}</td></tr>}
+                        {lista.length === 0 && <tr><td colSpan={7} className="text-[var(--tekst-etykieta)]">{wiersze.length ? (bezNapisu ? 'Nic nie znaleziono. To nie znaczy, że tej osoby tu nie pochowano – nie wszystkie napisy są już odczytane.' : 'Nic nie znaleziono.') : 'Napisy z nagrobków nie zostały jeszcze odczytane.'}</td></tr>}
                     </tbody>
                 </table>
             </div>
-            <p className="text-gray-500" style={{ margin: 0, fontSize: 12 }}>Groby osób zmarłych w ciągu ostatnich {ustawienia.progLat} lat i groby z osobami żyjącymi na nagrobku nie mają tu nazwisk – ich napisy widzą tylko bliscy po zalogowaniu.</p>
+            <p className="text-[var(--tekst-etykieta)]" style={{ margin: 0, fontSize: 12 }}>Groby osób zmarłych w ciągu ostatnich {ustawienia.progLat} lat i groby z osobami żyjącymi na nagrobku nie mają tu nazwisk – ich napisy widzą tylko bliscy po zalogowaniu.</p>
         </div>
     )
 }

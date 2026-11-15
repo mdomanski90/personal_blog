@@ -7,6 +7,7 @@ import OsCzasu, { type PozycjaOsi } from '../components/OsCzasu'
 import { formatujEdtf } from '@/lib/edtf'
 import { zajawka } from '@/lib/markdoc'
 import { Kreski, Sekcja, Strona, TytulStrony } from '../components/Uklad'
+import Komunikat from '../components/Komunikat'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'tematy · odniepamieci.pl' }
@@ -33,32 +34,31 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
             pozycje.push({ id: m.id, nazwa: m.nazwa, href: `/archiwum/${m.id}`, rodzaj: 'material', klucz: kluczSortowania(m.czas), data: formatujEdtf(m.czas), meta: `materiał · ${RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj}` })
         }
     }
-    const zakladka = (id: 'lista' | 'os', tekst: string) => (
-        <Link href={id === 'os' ? '/tematy?widok=os' : '/tematy'} className={`border border-[#d6d1c6] dark:border-[#4b5563] lowercase !no-underline text-current ${widok === id ? 'bg-muted font-bold' : ''}`}
-            style={{ margin: '0 0 0 -1px', height: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', display: 'inline-flex', alignItems: 'center', fontSize: 'calc(14px * var(--font-scale, 1))' }}>{tekst}</Link>
-    )
-
     return (
         <Strona>
             <TytulStrony><TytulDzialu dzial="tematy" domyslny="tematy" /></TytulStrony>
             <WstepDzialu dzial="tematy" className="ot-drobne" />
-            <div className="flex w-fit" style={{ paddingLeft: 1 }}>{zakladka('lista', 'lista')}{zakladka('os', 'oś czasu')}</div>
-            {lista.length === 0 && <p className="text-gray-500 italic lowercase">brak opublikowanych tematów.</p>}
+            {/* P7D-3 (AUD-03): przełącznik widoku jak w katalogu ksiąg (k-seg) */}
+            <nav className="k-seg" aria-label="widok tematów">
+                <Link href="/tematy" aria-current={widok === 'lista' ? 'page' : undefined}>lista</Link>
+                <Link href="/tematy?widok=os" aria-current={widok === 'os' ? 'page' : undefined}>oś czasu</Link>
+            </nav>
+            {lista.length === 0 && <Komunikat rodzaj="pusto">Nie ma jeszcze opublikowanych tematów.</Komunikat>}
 
             {widok === 'os' && <OsCzasu pozycje={pozycje} />}
 
             {widok === 'lista' && lista.length > 0 && (
                 <Sekcja tytul="wszystkie tematy">
-                    <ul className="flex flex-col border-t border-[#e7e2d8] dark:border-[#374151]">
+                    <ul className="lista-pozycji">
                         {lista.map((t) => (
-                            <li key={t.id} className="flex flex-col gap-1 py-3 border-b border-[#e7e2d8] dark:border-[#374151]">
+                            <li key={t.id} className="lista-pozycja">
                                 <div className="flex flex-wrap items-baseline gap-x-3">
-                                    <Link href={`/tematy/${t.id}`} className="font-bold" style={{ fontSize: 'calc(17px * var(--font-scale, 1))' }}>{t.nazwa}</Link>
-                                    <span className="text-gray-500" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>
+                                    <Link href={`/tematy/${t.id}`} className="lista-tytul">{t.nazwa}</Link>
+                                    <span className="lista-linia">
                                         {[RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj, t.czas ? formatujEdtf(t.czas) : ''].filter(Boolean).join(' · ')}
                                     </span>
                                 </div>
-                                {t.opis && <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{zajawka(t.opis, 160, rozwiaz)}</p>}
+                                {t.opis && <p className="lista-opis">{zajawka(t.opis, 160, rozwiaz)}</p>}
                             </li>
                         ))}
                     </ul>
@@ -69,7 +69,7 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
                 <>
                     <Kreski />
                     <Sekcja tytul="w skrócie – oś czasu" id="os-czasu">
-                        <ol className="border-l-2 border-[#d6d1c6] dark:border-[#4b5563] ml-1">
+                        <ol className="os-linia ml-1">
                             {os.map((t) => (
                                 <li key={t.id} className="flex flex-wrap gap-x-4 py-1 pl-4" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
                                     <span className="font-bold" style={{ minWidth: '7rem' }}>{formatujEdtf(t.czas)}</span>

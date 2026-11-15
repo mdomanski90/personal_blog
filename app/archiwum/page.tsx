@@ -78,7 +78,7 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
   }
   return <Strona>
     <TytulStrony><TytulDzialu dzial="archiwum" domyslny="archiwum" /></TytulStrony>
-    <p className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
+    <p className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
       <WstepTekst dzial="archiwum" domyslny={"Dokumenty, fotografie, wspomnienia, nagrania i mapy z opisem, pochodzeniem oraz powiązaniami."} />
     </p>
     <SpisDzialow dzialy={dzialy} wybrany={f.rodzaj || 'wszystkie'} />

@@ -22,18 +22,18 @@ export default function OsCzasu({ pozycje }: { pozycje: PozycjaOsi[] }) {
     return (
         <div className="flex flex-col" style={{ gap: 14 }}>
             <div className="flex flex-wrap items-center" style={{ gap: 8, fontSize: 'calc(14px * var(--font-scale, 1))' }}>
-                <span className="text-gray-600 dark:text-gray-400">pokaż:</span>
+                <span className="text-[var(--tekst-opis)]">pokaż:</span>
                 <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1 }}>
                     {FILTRY.map((f) => (
                         <button key={f.id} type="button" aria-pressed={wl.has(f.id)} onClick={() => ustawWl((s) => { const n = new Set(s); if (n.has(f.id)) n.delete(f.id); else n.add(f.id); return n })}
-                            className={`border border-[#d6d1c6] dark:border-[#4b5563] lowercase ${wl.has(f.id) ? 'bg-muted font-bold' : ''}`}
+                            className={`border border-[var(--linia-podzialu)] lowercase ${wl.has(f.id) ? 'bg-muted font-bold' : ''}`}
                             style={{ margin: '0 0 0 -1px', height: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', background: wl.has(f.id) ? undefined : 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 'inherit' }}>
                             {wl.has(f.id) ? '✓ ' : ''}{f.nazwa}
                         </button>
                     ))}
                 </div>
             </div>
-            {grupy.length === 0 && <p className="text-gray-500">Brak pozycji z datą.</p>}
+            {grupy.length === 0 && <p className="text-[var(--tekst-etykieta)]">Brak pozycji z datą.</p>}
             {grupy.map(({ e, L }) => (
                 <section key={e.nazwa} className="flex flex-col" style={{ gap: 0 }}>
                     <div className="uppercase" style={{ fontSize: 'calc(11px * var(--font-scale, 1))', letterSpacing: '.08em', color: e.kolor, fontWeight: 700, marginBottom: 6 }}>{e.nazwa}</div>
@@ -44,15 +44,15 @@ export default function OsCzasu({ pozycje }: { pozycje: PozycjaOsi[] }) {
                                 <span className="font-bold" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{p.data}</span>
                                 <span className="flex flex-col" style={{ gap: 2 }}>
                                     <Link href={p.href} style={{ fontSize: 'calc(16px * var(--font-scale, 1))' }}>{p.nazwa}</Link>
-                                    {p.opis && <span className="text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>{p.opis}</span>}
-                                    <span className="text-gray-500" style={{ fontSize: 'calc(12.5px * var(--font-scale, 1))' }}>{p.meta}</span>
+                                    {p.opis && <span className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>{p.opis}</span>}
+                                    <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 'calc(12.5px * var(--font-scale, 1))' }}>{p.meta}</span>
                                 </span>
                             </li>
                         ))}
                     </ol>
                 </section>
             ))}
-            <div className="flex flex-wrap text-gray-500" style={{ gap: '4px 16px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
+            <div className="flex flex-wrap text-[var(--tekst-etykieta)]" style={{ gap: '4px 16px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
                 <span>● wydarzenie (data)</span><span>▮ zjawisko (okres od–do)</span><span>□ materiał z datą</span><span>epoki – te same kolory co państwa na mapie</span>
             </div>
         </div>

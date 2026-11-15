@@ -24,14 +24,14 @@ export default async function Zaloguj({ searchParams }: { searchParams: Promise<
                 <p>jesteś zalogowany – widzisz też materiały „dla bliskich”.</p>
             ) : (
                 <form method="post" action="/api/zaloguj" className="flex flex-col" style={{ gap: 12, maxWidth: '24rem' }}>
-                    <p className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>
+                    <p className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>
                         część materiałów (np. o osobach żyjących) jest widoczna tylko dla rodziny i bliskich. hasło dostaniesz od autora strony.
                     </p>
                     {sp.blad && <p role="alert" style={{ color: '#b91c1c' }}>{BLEDY[sp.blad] ?? 'nie udało się zalogować.'}</p>}
-                    {!logowanieWlaczone() && !sp.blad && <p className="text-gray-500">{BLEDY.wylaczone}</p>}
+                    {!logowanieWlaczone() && !sp.blad && <p className="text-[var(--tekst-etykieta)]">{BLEDY.wylaczone}</p>}
                     <input type="hidden" name="wroc" value={wroc} />
                     <label className="flex flex-col" style={{ gap: 4 }}>
-                        <span className="lowercase text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>hasło</span>
+                        <span className="lowercase text-[var(--tekst-opis)]" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>hasło</span>
                         <input type="password" name="haslo" required autoComplete="current-password" autoFocus className={`${RAMKA} bg-transparent text-current`} style={pole} />
                     </label>
                     <button type="submit" className={`${RAMKA} bg-muted w-fit cursor-pointer lowercase text-current`} style={pole}>zaloguj</button>

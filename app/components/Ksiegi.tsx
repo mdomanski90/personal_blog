@@ -4,7 +4,7 @@ import * as React from 'react'
 import type { Ksiega } from '@/lib/archiwum'
 import { RODZAJE_KSIAG, DOSTEP_KSIAG, KOLEJNOSC_KSIAG } from '@/lib/ksiegi'
 
-const LINIA = 'border-[#d6d1c6] dark:border-[#4b5563]'
+const LINIA = 'border-[var(--linia-podzialu)]'
 const male = { fontSize: 'calc(13px * var(--font-scale, 1))' }
 
 /** Zakres osi: od pełnej dekady przed najstarszą księgą do pełnej dekady po najmłodszej. */
@@ -68,7 +68,7 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg }:
             <table className="w-full border-collapse tabela-karty" style={{ fontSize: 'calc(14px * var(--font-scale, 1))', tableLayout: 'fixed', minWidth: '34rem' }}>
                 <colgroup><col style={{ width: '22%' }} /><col style={{ width: '30%' }} /><col style={{ width: '28%' }} /><col style={{ width: '20%' }} /></colgroup>
                 <thead>
-                    <tr className={`border-b ${LINIA} text-left text-gray-600 dark:text-gray-400`} style={male}>
+                    <tr className={`border-b ${LINIA} text-left text-[var(--tekst-opis)]`} style={male}>
                         <th className="font-normal py-1 pr-3">rodzaj</th>
                         <th className="font-normal py-1 pr-3">lata</th>
                         <th className="font-normal py-1 pr-3">gdzie i sygnatura</th>
@@ -78,31 +78,31 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg }:
                 <tbody>
                     {ksiegi.map((k) => (
                         <React.Fragment key={k.id}>
-                        <tr id={!kotwiceKsieg || kotwiceKsieg.has(k.id) ? `ksiega-${k.id}` : undefined} className={`${k.jednostki.length ? '' : 'border-b '}border-[#e7e2d8] dark:border-[#374151] align-top scroll-mt-6`}>
+                        <tr id={!kotwiceKsieg || kotwiceKsieg.has(k.id) ? `ksiega-${k.id}` : undefined} className={`${k.jednostki.length ? '' : 'border-b '}border-[var(--linia-podzialu)] align-top scroll-mt-6`}>
                             <td data-etykieta="rodzaj" className="py-1.5 pr-3">
                                 <strong className="block">{k.nazwa}</strong>
                                 {k.rodzaje.map((r) => RODZAJE_KSIAG[r] ?? r).join(', ')}
-                                {k.miejsca.length > 0 && <span className="block text-gray-500" style={male}>dotyczy: {k.miejsca.map((m) => nazwyMiejsc?.[m] ?? m).join(', ')}</span>}
-                                {nazwyParafii && k.instytucje.length > 0 && <span className="block text-gray-500" style={male}>instytucje: {k.instytucje.map((id) => nazwyParafii[id] ?? id).join(', ')}</span>}
+                                {k.miejsca.length > 0 && <span className="block text-[var(--tekst-etykieta)]" style={male}>dotyczy: {k.miejsca.map((m) => nazwyMiejsc?.[m] ?? m).join(', ')}</span>}
+                                {nazwyParafii && k.instytucje.length > 0 && <span className="block text-[var(--tekst-etykieta)]" style={male}>instytucje: {k.instytucje.map((id) => nazwyParafii[id] ?? id).join(', ')}</span>}
                             </td>
                             <td data-etykieta="lata" className="py-1.5 pr-3">
                                 <span className="font-bold">{k.lata}</span>
-                                {(k.braki || k.jezyk) && <span className="block text-gray-500" style={male}>{[k.braki, k.jezyk].filter(Boolean).join(' · ')}</span>}
+                                {(k.braki || k.jezyk) && <span className="block text-[var(--tekst-etykieta)]" style={male}>{[k.braki, k.jezyk].filter(Boolean).join(' · ')}</span>}
                             </td>
                             <td data-etykieta="gdzie i sygnatura" className="py-1.5 pr-3">
                                 {k.gdzie || <span className="brak-danych">jeszcze nie opracowane</span>}
-                                {k.sygnatura && <span className="block text-gray-500" style={male}>{k.sygnatura}</span>}
+                                {k.sygnatura && <span className="block text-[var(--tekst-etykieta)]" style={male}>{k.sygnatura}</span>}
                             </td>
                             <td data-etykieta="dostęp" className="py-1.5">
                                 <span className="flex flex-wrap" style={{ gap: '2px 10px' }}>
                                     {k.skany && <Odnosnik href={k.skany}>skany</Odnosnik>}
                                     {k.indeks && <Odnosnik href={k.indeks}>indeks</Odnosnik>}
-                                    {!k.skany && !k.indeks && <span className="text-gray-500">{DOSTEP_KSIAG[k.dostep] ?? k.dostep}</span>}
+                                    {!k.skany && !k.indeks && <span className="text-[var(--tekst-etykieta)]">{DOSTEP_KSIAG[k.dostep] ?? k.dostep}</span>}
                                 </span>
                             </td>
                         </tr>
                         {k.jednostki.length > 0 && (
-                            <tr className="border-b border-[#e7e2d8] dark:border-[#374151]">
+                            <tr className="border-b border-[var(--linia-podzialu)]">
                                 <td colSpan={4} className="pb-2">
                                     <details className="ksiega-tomy" style={male}>
                                         <summary>{ileTomow(k.jednostki.length)}: roczniki, sygnatury, skany</summary>
@@ -110,12 +110,12 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg }:
                                             {k.jednostki.map((j, i) => (
                                                 <li key={i}>
                                                     <b>{j.lata}</b>
-                                                    {j.sygnatura && <span className="text-gray-500"> {j.sygnatura}</span>}
+                                                    {j.sygnatura && <span className="text-[var(--tekst-etykieta)]"> {j.sygnatura}</span>}
                                                     {j.skany && <> <Odnosnik href={j.skany}>skany</Odnosnik></>}
-                                                    {j.digitalizacja === 'brak' && <span className="text-gray-500"> · bez skanów online</span>}
-                                                    {j.liczbaSkanow !== null && <span className="text-gray-500"> · {j.liczbaSkanow} skanów</span>}
-                                                    {j.tytul && <span className="block text-gray-500">{j.tytul}</span>}
-                                                    {j.uwagi && <span className="block text-gray-500">{j.uwagi}</span>}
+                                                    {j.digitalizacja === 'brak' && <span className="text-[var(--tekst-etykieta)]"> · bez skanów online</span>}
+                                                    {j.liczbaSkanow !== null && <span className="text-[var(--tekst-etykieta)]"> · {j.liczbaSkanow} skanów</span>}
+                                                    {j.tytul && <span className="block text-[var(--tekst-etykieta)]">{j.tytul}</span>}
+                                                    {j.uwagi && <span className="block text-[var(--tekst-etykieta)]">{j.uwagi}</span>}
                                                 </li>
                                             ))}
                                         </ul>

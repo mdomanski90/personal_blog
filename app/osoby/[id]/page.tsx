@@ -80,10 +80,10 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
     const widac = (x?: string) => !!x && s.drzewo.osoby.has(x) && widoczne(s.widocznosc(x), poziom)
 
     const Osobka = ({ x, rola }: { x?: string; rola?: string }) => {
-        if (!x || !s.drzewo.osoby.has(x)) return <span className="text-gray-500">{rola ? `${rola} nieznany` : 'nieznany'}</span>
+        if (!x || !s.drzewo.osoby.has(x)) return <span className="text-[var(--tekst-etykieta)]">{rola ? `${rola} nieznany` : 'nieznany'}</span>
         if (!widac(x)) return <span className="osoba-ukryta">widoczne dla zalogowanych</span>
         const p = s.drzewo.osoby.get(x)!
-        return <span><Link href={`/osoby/${p.id}`} className={`osoba-link osoba-${p.plec}`}>{nazwaOsoby(p)}</Link>{lataZycia(p) && <span className="text-gray-600 dark:text-gray-400"> {lataZycia(p)}</span>}</span>
+        return <span><Link href={`/osoby/${p.id}`} className={`osoba-link osoba-${p.plec}`}>{nazwaOsoby(p)}</Link>{lataZycia(p) && <span className="text-[var(--tekst-opis)]"> {lataZycia(p)}</span>}</span>
     }
     const Miejsce = ({ z }: { z: Zdarzenie }) => {
         if (z.miejsceId && miejsceId.has(z.miejsceId)) return <Link href={`/miejsca/${z.miejsceId}`}>{z.miejsce?.split(',')[0] || miejsceId.get(z.miejsceId)}</Link>
@@ -136,7 +136,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
 
     return (
         <Strona akcje={<CopyLinkButton sciezka={`/osoby/${id}`} />}>
-            <p className="text-gray-600 dark:text-gray-400 lowercase" style={{ fontSize: 'calc(13px * var(--font-scale, 1))', margin: 0 }}>
+            <p className="text-[var(--tekst-opis)] lowercase" style={{ fontSize: 'calc(13px * var(--font-scale, 1))', margin: 0 }}>
                 <Link href="/osoby" className="!no-underline hover:underline">osoby</Link> /
             </p>
             {/* karta osoby: zdjęcie | imię i nazwisko, lata, z domu, opis */}
@@ -158,7 +158,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                 <div className="osoba-karta-opis">
                     <h1 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.75rem * var(--font-scale, 1))', margin: 0 }}>{tytul}</h1>
                     {(lataZycia(o) || o.inneNazwiska?.length || o.przydomek) ? (
-                        <p className="text-gray-600 dark:text-gray-400" style={{ margin: 0 }}>
+                        <p className="text-[var(--tekst-opis)]" style={{ margin: 0 }}>
                             {[
                                 lataZycia(o),
                                 o.przydomek && `${o.plec === 'K' ? 'zwana' : o.plec === 'M' ? 'zwany' : 'zwany(-a)'} „${o.przydomek}”`,
@@ -166,7 +166,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                             ].filter(Boolean).join(' · ')}
                         </p>
                     ) : null}
-                    {o.inneZapisy?.length ? <p className="text-gray-600 dark:text-gray-400" style={{ margin: 0, fontSize: 'calc(14px * var(--font-scale, 1))' }}>w źródłach także: {o.inneZapisy.join(' · ')}</p> : null}
+                    {o.inneZapisy?.length ? <p className="text-[var(--tekst-opis)]" style={{ margin: 0, fontSize: 'calc(14px * var(--font-scale, 1))' }}>w źródłach także: {o.inneZapisy.join(' · ')}</p> : null}
                     {bio?.lead && <p className="osoba-lead">{bezNawiasow(bio.lead, kontekst.rozwiaz)}</p>}
                     {!o.portret && (
                         // na wąskim ekranie zamiast pola „brak zdjęcia” – krótka prośba (pole wypychałoby dane w dół)
@@ -213,7 +213,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                         </span>
                     </W>
                 ))}
-                {wszystkie.length === 0 && !pochowki.length && <W e="—"><span className="text-gray-500">brak dat i miejsc</span></W>}
+                {wszystkie.length === 0 && !pochowki.length && <W e="—"><span className="text-[var(--tekst-etykieta)]">brak dat i miejsc</span></W>}
 
                 <Naglowek tytul="rodzina">{podsumowanieRodziny}</Naglowek>
                 {rel.rodzice.map((f) => (
@@ -226,12 +226,12 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                     const slub = f.zdarzenia.find((z) => z.rodzaj === 'slub' && z.data)?.data
                     return (
                         <React.Fragment key={f.id}>
-                            {mz && <W e={`${etMalz}${nr}`}><span><Osobka x={mz} />{slub && <span className="text-gray-600 dark:text-gray-400"> · ślub {formatujEdtf(slub)}</span>}</span></W>}
+                            {mz && <W e={`${etMalz}${nr}`}><span><Osobka x={mz} />{slub && <span className="text-[var(--tekst-opis)]"> · ślub {formatujEdtf(slub)}</span>}</span></W>}
                             {f.dzieci.length > 0 && <W e={`dzieci${nr}`}><span className="ot-osoby">{f.dzieci.map((c) => <Osobka key={c} x={c} />)}</span></W>}
                         </React.Fragment>
                     )
                 })}
-                {rel.rodzice.length + rel.malzenstwa.length === 0 && <W e="—"><span className="text-gray-500">rodzina nie została jeszcze wpisana</span></W>}
+                {rel.rodzice.length + rel.malzenstwa.length === 0 && <W e="—"><span className="text-[var(--tekst-etykieta)]">rodzina nie została jeszcze wpisana</span></W>}
 
                 {html && (
                     <>
@@ -262,7 +262,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                                     {w.z.map((z) => (
                                         <span key={z.tytul}>
                                             {z.tytul}
-                                            {z.strony.size > 0 && <span className="text-gray-600 dark:text-gray-400"> – {[...z.strony].join('; ')}</span>}
+                                            {z.strony.size > 0 && <span className="text-[var(--tekst-opis)]"> – {[...z.strony].join('; ')}</span>}
                                             {[...z.linki].map((l, j) => <span key={l}> · <a href={l} target="_blank" rel="noreferrer">{l.includes('ancestry.com') ? 'rekord w Ancestry' : `link ${j + 1}`} ↗</a></span>)}
                                         </span>
                                     ))}

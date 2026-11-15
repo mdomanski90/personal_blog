@@ -13,7 +13,7 @@ const RZYMSKIE = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X']
  * P7C-1: gdy panel filtrów jest rozwinięty, spis zwija się do jednego wiersza (wybrany dział)
  * z przyciskiem „wszystkie działy” – samo zwijanie robi CSS (:has), przycisk tylko je odwraca.
  */
-export default function SpisDzialow({ dzialy, wybrany }: { dzialy: Dzial[]; wybrany: string }) {
+export default function SpisDzialow({ dzialy, wybrany, etykieta = 'działy archiwum', zwiniety = false }: { dzialy: Dzial[]; wybrany: string; etykieta?: string; zwiniety?: boolean }) {
     const [pokaz, ustawPokaz] = React.useState(false)
     // po każdym otwarciu/zamknięciu panelu filtrów i po zmianie działu spis znów zwinięty
     React.useEffect(() => { ustawPokaz(false) }, [wybrany])
@@ -37,7 +37,7 @@ export default function SpisDzialow({ dzialy, wybrany }: { dzialy: Dzial[]; wybr
         </ul>
     )
     return (
-        <nav aria-label="działy archiwum" className={`spis-ramka${pokaz ? ' sd-pokaz' : ''}`}>
+        <nav aria-label={etykieta} className={`spis-ramka${pokaz ? ' sd-pokaz' : ''}${zwiniety ? ' sd-zwiniety' : ''}`}>
             {lista}
             <button type="button" className="k-btn k-btn--s lowercase sd-wiecej" aria-expanded={pokaz} onClick={() => ustawPokaz((v) => !v)}>
                 {pokaz ? 'zwiń działy' : 'wszystkie działy'} <span aria-hidden="true">{pokaz ? '▴' : '▾'}</span>

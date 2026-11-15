@@ -105,7 +105,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
 
             <Tabela etykieta={`${m.nazwa} – dane`}>
                 <Czesc tytul="podstawowe" />
-                {!obszar && <W e="gmina">{zGminy ? <Link href={`/miejsca/${zGminy.id}`} className="odn">{zGminy.nazwa.replace(/^gmina /i, '')}</Link> : <span className="text-gray-600 dark:text-gray-400">w opracowaniu</span>}</W>}
+                {!obszar && <W e="gmina">{zGminy ? <Link href={`/miejsca/${zGminy.id}`} className="odn">{zGminy.nazwa.replace(/^gmina /i, '')}</Link> : <span className="text-[var(--tekst-opis)]">w opracowaniu</span>}</W>}
                 {nadrzedne && (!gmina || nadrzedne.id !== gmina.id) && obszar && <W e="należy do"><Link href={`/miejsca/${nadrzedne.id}`} className="odn">{nadrzedne.nazwa}</Link></W>}
                 {!obszar && m.parafie.length > 0 && (
                     <W e="przynależność parafialna / USC">
@@ -122,7 +122,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                         })}
                     </W>
                 )}
-                {!obszar && <W e={m.wyznania.length > 1 ? 'wyznania przed 1875' : 'wyznanie przed 1875'}>{m.wyznania.length ? opisWyznan(m.wyznania, m.wyznaniaRowne) : <span className="text-gray-600 dark:text-gray-400">w opracowaniu</span>}</W>}
+                {!obszar && <W e={m.wyznania.length > 1 ? 'wyznania przed 1875' : 'wyznanie przed 1875'}>{m.wyznania.length ? opisWyznan(m.wyznania, m.wyznaniaRowne) : <span className="text-[var(--tekst-opis)]">w opracowaniu</span>}</W>}
                 <W e="formy zapisu nazwy">{formyZapisu.length > 0 ? formyZapisu.join(' · ') : null}</W>
                 <W e="wsie">{m.rodzaj === 'gmina' && potomkowie.length > 0 ? potomkowie.length : null}</W>
                 <W e="obejmuje">{podrzedne.length > 0 && m.rodzaj !== 'gmina' && <LiniaKarty className="karta-linia-w" elementy={[podrzedne.map((p) => ({ tekst: p.nazwa, href: `/miejsca/${p.id}` }))]} />}</W>
@@ -138,7 +138,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                                     const l = liczniki.get(w.id), ob = wszystkieObiekty.filter((o) => o.miejsce === w.id).length
                                     const meta = [l?.opowiesci ? `${l.opowiesci} ${l.opowiesci === 1 ? 'wpis' : l.opowiesci < 5 ? 'wpisy' : 'wpisów'}` : '', ob ? `${ob} ${ob === 1 ? 'obiekt' : ob < 5 ? 'obiekty' : 'obiektów'}` : ''].filter(Boolean).join(' · ')
                                     return (
-                                        <div key={w.id} className="flex justify-between border-b border-[#e7e2d8] dark:border-[#374151] py-2" style={{ gap: 8 }}>
+                                        <div key={w.id} className="flex justify-between border-b border-[var(--linia-podzialu)] py-2" style={{ gap: 8 }}>
                                             <Link href={`/miejsca/${w.id}`} className="odn">{w.nazwa}</Link>
                                             <span className="ot-drobne">{meta || 'jeszcze bez wpisów'}</span>
                                         </div>
@@ -194,7 +194,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
             <section id="historia" className="flex flex-col scroll-mt-6" style={{ gap: 10 }}>
                 <h2 className="font-bold lowercase" style={{ fontSize: 'calc(20px * var(--font-scale, 1))' }}>{obszar ? 'opis' : 'historia'}</h2>
                 {maTekst(opisHtml) ? <Tresc html={opisHtml} /> : (
-                    <p className="text-gray-600 dark:text-gray-400" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
+                    <p className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
                         Opis historii {obszar ? 'tego obszaru' : 'tej miejscowości'} jest w przygotowaniu.
                     </p>
                 )}

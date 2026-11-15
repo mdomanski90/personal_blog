@@ -38,7 +38,7 @@ export default async function PlanStrona({ params }: Parametry) {
             </TytulStrony>
             {plan.opis && <p className="leading-relaxed" style={{ margin: 0 }}>{plan.opis}</p>}
             <WidokObiektu plan={plan} ustawienia={ustawienia} zalogowany={poziom === 'bliscy'} osoby={osoby} />
-            <p className="text-gray-500" style={{ fontSize: 12, margin: 0 }}>
+            <p className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12, margin: 0 }}>
                 Rysunek uproszczony na podstawie zdjęć lotniczych i oględzin w terenie. Groby osób zmarłych w ciągu ostatnich {ustawienia.progLat} lat – bez napisów i nazwisk
                 {poziom === 'bliscy' ? ' (jesteś zalogowany – widzisz je)' : <> (widoczne <Link href={`/zaloguj?wroc=${encodeURIComponent(`/plany/${plan.slug}`)}`}>dla bliskich</Link>)</>}.
             </p>

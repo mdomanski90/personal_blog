@@ -9,8 +9,8 @@ import DrzewaLinie from './DrzewaLinie'
 
 // Wspólne elementy wyglądu: obramowane „segmenty”, linia z kresek, nagłówki sekcji.
 
-export const RAMKA = 'border border-[#d6d1c6] dark:border-[#4b5563]'
-export const RAMKA_L = 'border-l border-[#d6d1c6] dark:border-[#4b5563]'
+export const RAMKA = 'border border-[var(--linia-podzialu)]'
+export const RAMKA_L = 'border-l border-[var(--linia-podzialu)]'
 
 const segmentStyl: React.CSSProperties = {
     margin: '-1px 0 0 -1px',
@@ -92,15 +92,14 @@ export function TytulStrony({ children, sciezka, akcje }: { children: React.Reac
         <div className="flex flex-col" style={{ gap: '0.4rem' }}>
             {akcje && <div className="flex flex-wrap items-center gap-2" style={{ marginBottom: '0.6rem' }}>{akcje}</div>}
             {/* P7B-2 (JV-15): okruszki – od strony głównej do działu; bieżąca strona to tytuł pod spodem (aria-current) */}
-            {sciezka && sciezka.length > 0 && (
-                <nav aria-label="okruszki" className="okruszki">
-                    <ol>
-                        <li><Link href="/">strona główna</Link></li>
-                        {sciezka.map((s) => <li key={s.href}><Link href={s.href}>{s.tekst}</Link></li>)}
-                    </ol>
-                </nav>
-            )}
-            <h1 className="font-bold break-words leading-tight" aria-current={sciezka && sciezka.length > 0 ? 'page' : undefined} style={{ fontSize: 'calc(1.75rem * var(--font-scale, 1))' }}>
+            {/* P7D-1 (AUD-07): okruszki na każdej stronie poza główną – na stronie działu samo „strona główna” */}
+            <nav aria-label="okruszki" className="okruszki">
+                <ol>
+                    <li><Link href="/">strona główna</Link></li>
+                    {(sciezka ?? []).map((s) => <li key={s.href}><Link href={s.href}>{s.tekst}</Link></li>)}
+                </ol>
+            </nav>
+            <h1 className="font-bold break-words leading-tight" aria-current="page" style={{ fontSize: 'calc(1.75rem * var(--font-scale, 1))' }}>
                 {children}
             </h1>
         </div>
@@ -112,7 +111,7 @@ export const maTekst = (html: string | null | undefined) => !!html && (/<img|<if
 
 /** Treść Markdoc wyrenderowana do HTML (z klasami typografii jak dotąd). */
 export function Tresc({ html, pusta = 'treść nie została jeszcze dodana.' }: { html: string; pusta?: string | null }) {
-    if (!maTekst(html)) return pusta ? <p className="text-gray-500 italic lowercase">{pusta}</p> : null
+    if (!maTekst(html)) return pusta ? <p className="text-[var(--tekst-etykieta)] italic lowercase">{pusta}</p> : null
     return (
         <div className="post-content" style={{ fontSize: 'var(--blog-font-size, 18px)' }}>
             <div dangerouslySetInnerHTML={{ __html: html }} />
@@ -123,8 +122,8 @@ export function Tresc({ html, pusta = 'treść nie została jeszcze dodana.' }: 
 /** Wiersz metryczki: etykieta – wartość. */
 export function Wiersz({ etykieta, children }: { etykieta: string; children: React.ReactNode }) {
     return (
-        <div className="flex gap-3 border-b border-[#e7e2d8] dark:border-[#374151] py-2" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
-            <span className="text-gray-600 dark:text-gray-400 shrink-0" style={{ width: '9rem', fontSize: 'calc(13px * var(--font-scale, 1))' }}>{etykieta}</span>
+        <div className="flex gap-3 border-b border-[var(--linia-podzialu)] py-2" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
+            <span className="text-[var(--tekst-opis)] shrink-0" style={{ width: '9rem', fontSize: 'calc(13px * var(--font-scale, 1))' }}>{etykieta}</span>
             <span className="min-w-0 break-words">{children}</span>
         </div>
     )
