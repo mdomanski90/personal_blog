@@ -67,7 +67,17 @@ export default function FiltryArchiwum({ poczatkowe, miejscowosci, tematy, obiek
     }
     React.useEffect(() => () => { if (zegar.current) clearTimeout(zegar.current) }, [])
 
+    // P7A-4: panel domyślnie zwinięty (zajmował za dużo miejsca); otwarty, gdy jakiś filtr jest ustawiony
+    const aktywnych = KLUCZE.filter((k) => k !== 'rodzaj' && k !== 'sort' && poczatkowe[k]).length
+    const [otwarte, ustawOtwarte] = React.useState(aktywnych > 0)
+
     return (
+        <details className="k-filtry-ramka" open={otwarte} onToggle={(e) => ustawOtwarte((e.currentTarget as HTMLDetailsElement).open)}>
+        <summary className="k-filtry-naglowek">
+            <span className="k-filtry-tytul">szukaj i filtruj w archiwum</span>
+            {aktywnych > 0 && <span className="k-filtry-licznik">{aktywnych} {aktywnych === 1 ? 'filtr' : aktywnych < 5 ? 'filtry' : 'filtrów'}</span>}
+            <span className="k-btn k-filtry-przelacz">{otwarte ? 'zwiń' : 'rozwiń'} <span aria-hidden="true">{otwarte ? '▴' : '▾'}</span></span>
+        </summary>
         <form method="get" action="/archiwum" className="k-filtry" aria-busy={czeka}
             onSubmit={(e) => { e.preventDefault(); if (zegar.current) clearTimeout(zegar.current); zastosuj({ ...w, q: w.q.trim() }) }}>
             <label className="k-etykieta k-filtry-szeroki">szukaj w metadanych i transkrypcjach
@@ -96,5 +106,6 @@ export default function FiltryArchiwum({ poczatkowe, miejscowosci, tematy, obiek
                 {czeka && <span className="k-podpowiedz" role="status">wczytuję…</span>}
             </span>
         </form>
+        </details>
     )
 }

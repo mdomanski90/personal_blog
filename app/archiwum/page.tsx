@@ -36,7 +36,7 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
     .map((o) => ({ id: o.id, nazwa: nazwaOsoby(o) }))
     .sort((a, b) => a.nazwa.localeCompare(b.nazwa, 'pl'))
   const nazwyMsc = new Map(msc.map((m) => [m.id, m.nazwa]))
-  // P7A-4: działy z liczbami (te same liczby co wyniki katalogu przy samym dziale); puste działy pomijamy
+  // P7A-4: działy z liczbami (te same liczby co wyniki katalogu przy samym dziale); widoczne wszystkie, także puste (decyzja właściciela 15.11)
   const DZIALY: [string, string][] = [['dokument', 'dokumenty'], ['akt', 'akty metrykalne'], ['wspomnienie', 'wspomnienia i relacje'], ['zdjecie', 'fotografie'], ['nagranie', 'nagrania'], ['mapa', 'mapy']]
   const hrefDzialu = (rodzaj: string) => {
     const p = new URLSearchParams()
@@ -51,7 +51,7 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
     { klucz: 'wszystkie', nazwa: 'wszystkie materiały', href: hrefDzialu(''), liczba: wszystkich },
     ...DZIALY.map(([k, nazwa], i) => ({ klucz: k, nazwa, href: hrefDzialu(k), liczba: liczby[i].razem })),
     { klucz: 'zbiory', nazwa: 'zbiory i kolekcje', href: '/archiwum/zbiory', liczba: kol.length },
-  ].filter((d) => d.liczba > 0 || d.klucz === 'wszystkie')
+  ]
   const qs = (n: number) => {
     const p = new URLSearchParams()
     for (const [k, v] of Object.entries(sp)) if (k !== 'strona') { const s = val(v); if (s) p.set(k, s) }

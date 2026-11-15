@@ -1296,3 +1296,16 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .glowna-przegladaj{display:flex;flex-wrap:wrap;align-items:center;gap:4px 18px;margin-top:10px;font-size:calc(15px * var(--font-scale,1))}
 .odp a.glowna-przegladaj-glowny{font-weight:700;color:var(--akcent);text-decoration:none;padding:8px 0}
 .odp a.glowna-przegladaj-glowny:hover{text-decoration:underline}
+
+/* P7A-4 · poprawki właściciela: wszystkie działy widoczne, filtry domyślnie zwinięte */
+.odp .spis-dzialow a.sd-pusty{color:var(--tekst-etykieta)}
+.odp .spis-dzialow a.sd-pusty[aria-current=page]{color:var(--akcent-na-wypelnieniu)}
+.k-filtry-ramka{border-radius:var(--promien-duzy);background:var(--tlo-sekcji);margin:6px 0 4px}
+.k-filtry-ramka>.k-filtry{background:transparent;margin:0;padding-top:4px}
+.k-filtry-naglowek{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px 10px 24px;cursor:pointer;list-style:none}
+.k-filtry-naglowek::-webkit-details-marker{display:none}
+.k-filtry-tytul{font-weight:700;color:var(--tekst)}
+.k-filtry-licznik{display:inline-flex;align-items:center;min-height:calc(28px * var(--font-scale,1));padding:0 12px;border-radius:999px;background:var(--akcent-tlo);color:var(--akcent-na-tle);font-size:calc(14px * var(--font-scale,1));font-weight:700}
+.k-filtry-przelacz{margin-left:auto}
+.odp .k-filtry-naglowek:focus-visible{outline:2px solid var(--fokus);outline-offset:2px;border-radius:var(--promien-duzy)}
+@media (max-width:640px){.k-filtry-naglowek{padding-left:16px}}
