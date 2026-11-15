@@ -91,17 +91,16 @@ export function TytulStrony({ children, sciezka, akcje }: { children: React.Reac
     return (
         <div className="flex flex-col" style={{ gap: '0.4rem' }}>
             {akcje && <div className="flex flex-wrap items-center gap-2" style={{ marginBottom: '0.6rem' }}>{akcje}</div>}
+            {/* P7B-2 (JV-15): okruszki – od strony głównej do działu; bieżąca strona to tytuł pod spodem (aria-current) */}
             {sciezka && sciezka.length > 0 && (
-                <p className="text-gray-600 dark:text-gray-400 lowercase" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>
-                    {sciezka.map((s, i) => (
-                        <span key={s.href}>
-                            {i > 0 && ' / '}
-                            <Link href={s.href} className="!no-underline hover:underline">{s.tekst}</Link>
-                        </span>
-                    ))}
-                </p>
+                <nav aria-label="okruszki" className="okruszki">
+                    <ol>
+                        <li><Link href="/">strona główna</Link></li>
+                        {sciezka.map((s) => <li key={s.href}><Link href={s.href}>{s.tekst}</Link></li>)}
+                    </ol>
+                </nav>
             )}
-            <h1 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.75rem * var(--font-scale, 1))' }}>
+            <h1 className="font-bold break-words leading-tight" aria-current={sciezka && sciezka.length > 0 ? 'page' : undefined} style={{ fontSize: 'calc(1.75rem * var(--font-scale, 1))' }}>
                 {children}
             </h1>
         </div>

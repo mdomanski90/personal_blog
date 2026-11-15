@@ -39,7 +39,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
     return (
         <Strona akcje={<CopyLinkButton sciezka={`/parafie/${p.id}`} />}>
             <NaglowekKarty
-                sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }, { tekst: 'parafie i urzędy', href: '/parafie' }]}
+                sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, { tekst: 'instytucje', href: '/parafie' }]}
                 tytul={p.nazwa}
                 linia={[wyznanie, p.czas ? formatujEdtf(p.czas) : null, siedziba ? { tekst: siedziba.nazwa, href: `/miejsca/${siedziba.id}` } : null]}
                 lead={p.opis ? <p style={{ margin: 0 }}>{p.opis.replace(/\s+/g, ' ').slice(0, 240)}{p.opis.length > 240 ? '…' : ''}</p> : undefined}

@@ -45,12 +45,13 @@ export function NaglowekKarty({ sciezka, tytul, obraz, szerokiObraz, linia, lead
 }) {
     return (
         <>
-            <p className="karta-sciezka">
-                {sciezka.map((s, i) => (
-                    <span key={s.href}>{i > 0 && ' / '}<Link href={s.href}>{s.tekst}</Link></span>
-                ))}
-                {sciezka.length > 0 && ' /'}
-            </p>
+            {/* P7B-2 (JV-15): te same okruszki co w TytulStrony */}
+            {sciezka.length > 0 && <nav aria-label="okruszki" className="okruszki">
+                <ol>
+                    <li><Link href="/">strona główna</Link></li>
+                    {sciezka.map((s) => <li key={s.href}><Link href={s.href}>{s.tekst}</Link></li>)}
+                </ol>
+            </nav>}
             <div className={`osoba-karta${obraz ? ' z-portretem' : ''}${obraz && szerokiObraz ? ' z-szerokim' : ''}`}>
                 {obraz && <div className="karta-obraz">{obraz}</div>}
                 <div className="osoba-karta-opis">

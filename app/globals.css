@@ -1354,3 +1354,27 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .k-formularz .k-pole{width:100%}
 .k-formularz-akcje{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .k-formularz .k-etykieta b{color:var(--tekst);font-weight:700}
+
+/* P7B-2: spis działów czytany kolumnami (I–IV w dół po lewej, V–VIII po prawej) */
+.spis-dzialow{grid-auto-flow:column;grid-template-rows:repeat(var(--wiersze,4),auto)}
+@media (max-width:640px){.spis-dzialow{grid-auto-flow:row;grid-template-rows:none}}
+
+/* P7B-2 · okruszki, braki danych, tabele na telefonie jako karty (JV-09, JV-15) */
+.okruszki ol{display:flex;flex-wrap:wrap;gap:2px 0;margin:0;padding:0;list-style:none;font-size:calc(14px * var(--font-scale,1));color:var(--tekst-etykieta);text-transform:lowercase}
+.okruszki li+li::before{content:"/";padding:0 8px;color:var(--tekst-etykieta)}
+.odp .okruszki a{color:var(--tekst-opis);text-decoration:none}
+.odp .okruszki a:hover{color:var(--akcent);text-decoration:underline}
+.brak-danych{color:var(--tekst-opis);border-bottom:1px dashed var(--krawedz-kontrolki)}
+@media (max-width:640px){
+  .overflow-x-auto:has(>.tabela-karty){overflow:visible}
+  .tabela-karty{min-width:0!important;table-layout:auto!important}
+  .tabela-karty colgroup,.tabela-karty thead{display:none}
+  .tabela-karty,.tabela-karty tbody,.tabela-karty tr,.tabela-karty td{display:block;width:100%}
+  .tabela-karty tr{padding:10px 0}
+  .tabela-karty td{padding:3px 0!important}
+  .tabela-karty td[data-etykieta]:not(:first-child)::before{content:attr(data-etykieta);display:block;font-size:calc(13px * var(--font-scale,1));color:var(--tekst-etykieta)}
+}
+/* P7B-2: przeglądarka skanów w karcie – wybrane wg tokenów (nocą biały napis na #0a6fd6), etykiety nocą jaśniejsze */
+.dok-karta .dok-grupa>button[aria-pressed=true],.szt-pasek .dok-grupa>button[aria-selected=true]{background:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu)}
+.dok-licznik{background:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu)}
+.dok-stan-tekst,.szt-strona,.szt-kto{color:var(--tekst-etykieta)}

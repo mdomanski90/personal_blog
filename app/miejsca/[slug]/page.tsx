@@ -140,7 +140,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                                     return (
                                         <div key={w.id} className="flex justify-between border-b border-[#e7e2d8] dark:border-[#374151] py-2" style={{ gap: 8 }}>
                                             <Link href={`/miejsca/${w.id}`} className="odn">{w.nazwa}</Link>
-                                            <span className="ot-drobne">{meta || '—'}</span>
+                                            <span className="ot-drobne">{meta || 'jeszcze bez wpisów'}</span>
                                         </div>
                                     )
                                 })}
