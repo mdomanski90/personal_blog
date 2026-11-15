@@ -1398,3 +1398,39 @@ body:has(.k-filtry-ramka[open]) .spis-ramka:not(.sd-pokaz) .spis-dzialow{grid-te
 body:has(.k-filtry-ramka[open]) .spis-ramka:not(.sd-pokaz) .spis-dzialow li:not(:has(>a[aria-current])){display:none}
 body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz{flex-direction:column;align-items:stretch}
 body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-end}
+
+/* ============================================ */
+/* P7C-2 · PRZEGLĄDARKA SKANÓW – JEDEN PASEK (JV-19) */
+/* ============================================ */
+.dok-pasek.dok-pasek-karta{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.dok-pasek-lewa{display:flex;align-items:center;gap:10px;min-width:0}
+.dok-pasek-prawa{flex-wrap:wrap;justify-content:flex-end}
+.dok-pelny .dok-pasek.dok-pasek-karta{min-height:calc(46px * var(--font-scale,1));padding:6px 10px;border:1px solid #4a4640;border-radius:var(--promien);background:#1f1d1a}
+.dok-pelny .dok-tytul{margin-right:0}
+.dok-pelny .dok-grupa>button[aria-pressed=true]{background:var(--akcent-wypelnienie,#0a6fd6);color:#fff}
+.dok-pelny .dok-licznik{background:#e8e6e1;color:#141311}
+.dok-pelny .dok-menu{background:#22201d;border-color:#4a4640;color:#e8e6e1}
+.dok-pelny .dok-menu button:hover{background:#2f2c28}
+@media (max-width:640px){
+  .dok .dok-grupa>button,.dok .dok-grupa>.dok-stan{min-height:44px;min-width:44px;font-size:15px}
+  .dok-karta .dok-pasek-karta{height:auto;padding:6px 8px}
+  .dok .dok-etyk{display:none}
+  /* pełny ekran na telefonie: skan na górze, pasek przyklejony u dołu (w zasięgu kciuka) */
+  .dok-pelny{padding:8px 8px max(8px,env(safe-area-inset-bottom))}
+  .dok-pelny .dok-pasek.dok-pasek-karta{order:10;padding:6px}
+  .dok-pelny .dok-tytul{display:none}
+  .dok-pelny .dok-dol{order:9}
+}
+.dok-tylko-tel{display:none}
+@media (max-width:640px){
+  .dok-tylko-tel{display:inline-flex}
+  .dok-tylko-pc{display:none}
+  .dok-pasek-lewa{width:100%;justify-content:space-between}
+  .dok-pasek-prawa{width:100%;justify-content:flex-start;gap:6px}
+  .dok .dok-skala{display:none}
+  /* pełny ekran: notki pod skanem, nie obok */
+  .dok-pelny .dok-obszar.dok-uklad-prawa,.dok-pelny .dok-obszar.dok-uklad-obie{grid-template-columns:minmax(0,1fr);grid-template-areas:"pole" "prawy";grid-template-rows:minmax(0,1fr) auto;row-gap:8px}
+  .dok-pelny .dok-obj-lista-boczna{max-height:28vh;overflow-y:auto}
+  .dok-pelny .dok-miniatury button{width:40px}
+}
+.dok-grupa>button{gap:5px}

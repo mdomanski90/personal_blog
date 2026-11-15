@@ -181,7 +181,8 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const naStronie: ObjasnienieNaStronie[] = React.useMemo(() => objasnienia.filter((o) => o.strona === strona).map((o, i) => ({ ...o, nr: i + 1 })), [objasnienia, strona])
     const sa = objasnienia.length > 0
     // tryb: wybrany przez czytelnika albo automatycznie – margines, gdy mało notek i jest miejsce obok skanu
-    const tryb: TrybObjasnien = wybranyTryb ?? (naStronie.length <= MAKS_NA_MARGINESIE && szerokosc >= (pelny ? 900 : 640) ? 'margines' : 'numery')
+    // na wąskim ekranie nie ma miejsca na notki na marginesie – zawsze numery na skanie i lista pod nim
+    const tryb: TrybObjasnien = szerokosc > 0 && szerokosc < 640 && wybranyTryb === 'margines' ? 'numery' : wybranyTryb ?? (naStronie.length <= MAKS_NA_MARGINESIE && szerokosc >= (pelny ? 900 : 640) ? 'margines' : 'numery')
     const efTryb: TrybObjasnien = naStronie.length ? tryb : 'ukryj'
     const doTranskrypcji = naStronie.filter((o) => o.rodzaj === 'odczyt' || o.rodzaj === 'tlumaczenie')
     const klikListy = (id: string) => { if (aktywne === id) return ustawAktywne(null); ustawAktywne(id); warstwa.current?.pokaz(id) }
@@ -193,20 +194,29 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
 
     return (
         <div ref={ramka} className={`dok${pelny ? ' dok-pelny' : ''}${karta ? ' dok-karta' : ''}`}>
-            {karta ? (
+            {/* P7C-2 (JV-19): jeden pasek w karcie i na pełnym ekranie – ta sama kolejność i te same kontrolki;
+                na pełnym ekranie dochodzą tytuł, skala w %, dopasuj, obróć i transkrypcja; na telefonie pasek u dołu, przyciski 44 px */}
             <div className="dok-pasek dok-pasek-karta" role="toolbar" aria-label="przeglądanie dokumentu">
-                {n > 1 ? (
-                    <span className="dok-grupa" role="group" aria-label="strony">
-                        <button type="button" onClick={() => idz(-1)} disabled={strona === 0} aria-label="poprzednia strona">‹</button>
-                        <span className="dok-stan" aria-live="polite" aria-label={`strona ${strona + 1} z ${n}`}>{strona + 1} / {n}</span>
-                        <button type="button" onClick={() => idz(1)} disabled={strona >= n - 1} aria-label="następna strona">›</button>
+                <span className="dok-pasek-lewa">
+                    {pelny && <b className="dok-tytul">{tytul}</b>}
+                    {n > 1 ? (
+                        <span className="dok-grupa" role="group" aria-label="strony">
+                            <button type="button" onClick={() => idz(-1)} disabled={strona === 0} aria-label="poprzednia strona">‹</button>
+                            <span className="dok-stan" aria-live="polite" aria-label={`strona ${strona + 1} z ${n}`}>{strona + 1} / {n}</span>
+                            <button type="button" onClick={() => idz(1)} disabled={strona >= n - 1} aria-label="następna strona">›</button>
+                        </span>
+                    ) : <span className="dok-stan-tekst">1 strona</span>}
+                    <span className="dok-grupa dok-tylko-tel">
+                        {pelny
+                            ? <button type="button" onClick={zamknij} aria-label="zamknij pełny ekran">✕</button>
+                            : <button type="button" onClick={otworz} aria-label="pełny ekran">⤢</button>}
                     </span>
-                ) : <span className="dok-stan-tekst">1 strona</span>}
+                </span>
                 <span className="dok-pasek-prawa">
                     {sa && (
                         <span className="dok-grupa dok-grupa-menu" role="group" aria-label="objaśnienia na skanie">
                             <button type="button" aria-pressed={objWlaczone} disabled={!naStronie.length} title={naStronie.length ? (objWlaczone ? 'ukryj objaśnienia na skanie' : 'pokaż objaśnienia na skanie') : 'na tej stronie nie ma objaśnień'}
-                                onClick={() => wybierzTryb(objWlaczone ? 'ukryj' : trybPokazu)}>objaśnienia <span className="dok-licznik">{naStronie.length}</span></button>
+                                onClick={() => wybierzTryb(objWlaczone ? 'ukryj' : trybPokazu)}><span className="dok-etyk">objaśnienia </span><span className="dok-licznik">{naStronie.length}</span></button>
                             <button type="button" aria-haspopup="true" aria-expanded={menu} aria-label="sposób pokazywania objaśnień" onClick={() => ustawMenu((x) => !x)}>▾</button>
                             {menu && (
                                 <span className="dok-menu" role="menu">
@@ -217,45 +227,27 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
                             )}
                         </span>
                     )}
+                    {!karta && doTranskrypcji.length > 0 && (
+                        <span className="dok-grupa"><button type="button" aria-pressed={transkrypcja} onClick={() => ustawTranskrypcje((x) => !x)} aria-label="transkrypcja" title="transkrypcja tej strony"><span aria-hidden="true">¶</span><span className="dok-etyk"> transkrypcja</span></button></span>
+                    )}
                     <span className="dok-grupa" role="group" aria-label="powiększenie">
                         <button type="button" onClick={() => przybliz(1 / 1.3)} aria-label="pomniejsz" title={`pomniejsz (${skala}%)`}>−</button>
+                        {!karta && <span className="dok-stan dok-skala">{skala}%</span>}
                         <button type="button" onClick={() => przybliz(1.3)} aria-label="powiększ" title={`powiększ (${skala}%)`}>+</button>
                     </span>
-                    <span className="dok-grupa"><button type="button" onClick={otworz} aria-label="pełny ekran" title="pełny ekran">⤢</button></span>
+                    {!karta && (
+                        <span className="dok-grupa" role="group" aria-label="widok">
+                            <button type="button" onClick={dopasuj} aria-label="dopasuj do okna" title="dopasuj do okna"><span aria-hidden="true">⊡</span><span className="dok-etyk"> dopasuj</span></button>
+                            <button type="button" onClick={obroc} aria-label="obróć o 90°" title="obróć o 90°"><span aria-hidden="true">↻</span><span className="dok-etyk"> obróć</span></button>
+                        </span>
+                    )}
+                    <span className="dok-grupa dok-tylko-pc">
+                        {pelny
+                            ? <button type="button" onClick={zamknij} aria-label="zamknij pełny ekran" title="zamknij (Esc)"><span className="dok-etyk">zamknij </span>✕</button>
+                            : <button type="button" onClick={otworz} aria-label="pełny ekran" title="pełny ekran">⤢</button>}
+                    </span>
                 </span>
             </div>
-            ) : (
-            <div className="dok-pasek" role="toolbar" aria-label="przeglądanie dokumentu">
-                {pelny && <b className="dok-tytul">{tytul}</b>}
-                {n > 1 && (
-                    <span className="dok-grupa">
-                        <button type="button" onClick={() => idz(-1)} disabled={strona === 0} aria-label="poprzednia strona">‹</button>
-                        <span className="dok-stan" aria-label={`strona ${strona + 1} z ${n}`}>{strona + 1} / {n}</span>
-                        <button type="button" onClick={() => idz(1)} disabled={strona >= n - 1} aria-label="następna strona">›</button>
-                    </span>
-                )}
-                <span className="dok-grupa">
-                    <button type="button" onClick={() => przybliz(1 / 1.3)} aria-label="pomniejsz">−</button>
-                    <span className="dok-stan dok-skala">{skala}%</span>
-                    <button type="button" onClick={() => przybliz(1.3)} aria-label="powiększ">+</button>
-                </span>
-                {sa && (
-                    <span className="dok-grupa" role="group" aria-label="objaśnienia">
-                        {([['margines', 'na marginesie'], ['numery', 'numery'], ['ukryj', 'sam skan']] as const).map(([t, n]) => (
-                            <button key={t} type="button" aria-pressed={tryb === t} onClick={() => wybierzTryb(t)}>{n}</button>
-                        ))}
-                        {doTranskrypcji.length > 0 && <button type="button" aria-pressed={transkrypcja} onClick={() => ustawTranskrypcje((x) => !x)}>transkrypcja</button>}
-                    </span>
-                )}
-                <span className="dok-grupa">
-                    <button type="button" onClick={dopasuj}>dopasuj</button>
-                    <button type="button" onClick={obroc}>obróć</button>
-                    {pelny
-                        ? <button type="button" onClick={zamknij} aria-label="zamknij pełny ekran">zamknij ✕</button>
-                        : <button type="button" onClick={otworz}>pełny ekran ⤢</button>}
-                </span>
-            </div>
-            )}
             <div ref={obszar} className={`dok-obszar dok-uklad-${uklad}`}>
                 <div ref={pole} className="dok-pole" style={{ gridArea: 'pole', ...(pelny ? {} : { height: wysokosc }) }} aria-label={`skan: ${tytul}${n > 1 ? `, strona ${strona + 1} z ${n}` : ''}`} role="img" />
                 {sa && (
