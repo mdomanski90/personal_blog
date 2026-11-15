@@ -58,62 +58,84 @@ export function PasekLat({ ksiegi, os }: { ksiegi: Ksiega[]; os?: [number, numbe
 const ileTomow = (n: number) => `${n} ${n === 1 ? 'tom' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'tomy' : 'tomów'}`
 
 /**
- * P7F-3: księgi jako karty w stylu kart osoby i obiektu (wspólna tabela karty: nagłówek części + wiersze etykieta–wartość).
- * Nagłówek: rodzaje aktów i lata. Bez powtórzeń: miejscowość / instytucja z kontekstu (grupa katalogu, karta miejscowości,
- * karta instytucji) nie jest powtarzana w każdej księdze. Odnośniki z nazwą serwisu; brak skanów – słownie, skąd je wziąć.
+ * P7F-3: księgi w stylu kart osoby i obiektu (nagłówek: rodzaje aktów i lata; wiersze etykieta–wartość).
+ * Bez powtórzeń: miejscowość / instytucja z kontekstu nie jest powtarzana w każdej księdze. Odnośniki z nazwą serwisu;
+ * brak skanów – słownie, skąd je wziąć.
+ * Warianty (v1.85): „karta” – samodzielna karta pozycji (katalog ksiąg, poza inną kartą); „wiersze” – księga jako blok
+ * w części tabeli karty (karta miejscowości, karta instytucji). Zasada: karty nie zagnieżdżamy w karcie.
  */
-export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg, kontekst }: {
+export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg, kontekst, wariant = 'karta' }: {
     ksiegi: Ksiega[]
     /** id wsi → nazwa */ nazwyMiejsc?: Record<string, string>
     /** id instytucji → nazwa */ nazwyParafii?: Record<string, string>
     /** Dla powtórzonych ksiąg w grupach: identyfikator DOM tylko w jednej grupie. */ kotwiceKsieg?: ReadonlySet<string>
     /** miejscowość albo instytucja, w której kontekście pokazujemy księgi – nie powtarzamy jej w każdej karcie */
     kontekst?: { miejsce?: string; instytucja?: string }
+    /** „wiersze” – wewnątrz tabeli karty (bez własnej ramki) */
+    wariant?: 'karta' | 'wiersze'
 }) {
     if (!ksiegi.length) return null
     return (
-        <div className="karty-ksiag">
+        <div className={wariant === 'wiersze' ? 'ksiegi-w-karcie' : 'karty-ksiag'}>
             {ksiegi.map((k) => {
                 const miejsca = k.miejsca.filter((m) => m !== kontekst?.miejsce)
                 const instytucje = k.instytucje.filter((i) => i !== kontekst?.instytucja)
                 const rodzaje = k.rodzaje.map((r) => RODZAJE_KSIAG[r] ?? r).join(' · ')
+                const id = !kotwiceKsieg || kotwiceKsieg.has(k.id) ? `ksiega-${k.id}` : undefined
+                const pola: [string, React.ReactNode][] = [
+                    ['luki i uwagi', k.braki],
+                    ['język', k.jezyk],
+                    ['przechowuje', k.gdzie || <span className="brak-danych">jeszcze nie opracowane</span>],
+                    ['sygnatura', k.sygnatura],
+                    ['skany', k.skany ? <Odnosnik href={k.skany}>{k.jednostki.length ? 'skany zespołu' : 'zobacz skany'}</Odnosnik>
+                        : k.jednostki.some((j) => j.skany) ? 'przy poszczególnych tomach – niżej'
+                        : <span className="ks-brak">{DOSTEP_KSIAG[k.dostep] ?? k.dostep}</span>],
+                    ['indeks', k.indeks && <Odnosnik href={k.indeks}>indeks aktów</Odnosnik>],
+                    ['miejscowości', miejsca.length > 0 && miejsca.map((m) => nazwyMiejsc?.[m] ?? m).join(', ')],
+                    [instytucje.length > 1 ? 'instytucje' : 'instytucja', nazwyParafii && instytucje.length > 0 && instytucje.map((i) => nazwyParafii[i] ?? i).join(', ')],
+                    ['tytuł w archiwum', k.nazwa],
+                ]
+                const tomy = k.jednostki.length > 0 && <Tomy k={k} />
+                if (wariant === 'wiersze') return (
+                    <section key={k.id} id={id} className="ksiega-blok scroll-mt-6" aria-label={`${rodzaje}, ${k.lata}`}>
+                        <div className="kb-nagl"><h3>{rodzaje || 'księga'}</h3><span className="kb-lata">{k.lata}</span></div>
+                        <dl className="kb-pola">
+                            {pola.filter(([, v]) => v !== null && v !== undefined && v !== false && v !== '').map(([e, v]) => (
+                                <div key={e} className="kb-w"><dt>{e}</dt><dd>{v}</dd></div>
+                            ))}
+                        </dl>
+                        {tomy}
+                    </section>
+                )
                 return (
-                    <KartaPozycji key={k.id} id={!kotwiceKsieg || kotwiceKsieg.has(k.id) ? `ksiega-${k.id}` : undefined}
-                        etykieta={`${rodzaje}, ${k.lata}`} tytul={rodzaje || 'księga'} prawa={k.lata}>
-                        <Wiersz e="luki i uwagi">{k.braki}</Wiersz>
-                        <Wiersz e="język">{k.jezyk}</Wiersz>
-                        <Wiersz e="przechowuje">{k.gdzie || <span className="brak-danych">jeszcze nie opracowane</span>}</Wiersz>
-                        <Wiersz e="sygnatura">{k.sygnatura}</Wiersz>
-                        <Wiersz e="skany">{k.skany ? <Odnosnik href={k.skany}>{k.jednostki.length ? 'skany zespołu' : 'zobacz skany'}</Odnosnik>
-                            : k.jednostki.some((j) => j.skany) ? 'przy poszczególnych tomach – niżej'
-                            : <span className="ks-brak">{DOSTEP_KSIAG[k.dostep] ?? k.dostep}</span>}</Wiersz>
-                        <Wiersz e="indeks">{k.indeks && <Odnosnik href={k.indeks}>indeks aktów</Odnosnik>}</Wiersz>
-                        <Wiersz e="miejscowości">{miejsca.length > 0 && miejsca.map((m) => nazwyMiejsc?.[m] ?? m).join(', ')}</Wiersz>
-                        <Wiersz e={instytucje.length > 1 ? 'instytucje' : 'instytucja'}>{nazwyParafii && instytucje.length > 0 && instytucje.map((id) => nazwyParafii[id] ?? id).join(', ')}</Wiersz>
-                        <Wiersz e="tytuł w archiwum">{k.nazwa}</Wiersz>
-                        {k.jednostki.length > 0 && (
-                            <div className="ot-cala">
-                                <details className="ksiega-tomy" style={male}>
-                                    <summary>{ileTomow(k.jednostki.length)}: roczniki, sygnatury, skany</summary>
-                                    <ul>
-                                        {k.jednostki.map((j, i) => (
-                                            <li key={i}>
-                                                <b>{j.lata}</b>
-                                                {j.sygnatura && <span className="text-[var(--tekst-etykieta)]"> · {j.sygnatura}</span>}
-                                                {j.skany && <> · <Odnosnik href={j.skany}>skany</Odnosnik></>}
-                                                {j.digitalizacja === 'brak' && <span className="text-[var(--tekst-etykieta)]"> · bez skanów online</span>}
-                                                {j.liczbaSkanow !== null && j.liczbaSkanow > 0 && <span className="text-[var(--tekst-etykieta)]"> · {j.liczbaSkanow} skanów</span>}
-                                                {j.tytul && j.tytul !== k.nazwa && <span className="block text-[var(--tekst-etykieta)]">{j.tytul}</span>}
-                                                {j.uwagi && <span className="block text-[var(--tekst-etykieta)]">{j.uwagi}</span>}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </details>
-                            </div>
-                        )}
+                    <KartaPozycji key={k.id} id={id} etykieta={`${rodzaje}, ${k.lata}`} tytul={rodzaje || 'księga'} prawa={k.lata}>
+                        {pola.map(([e, v]) => <Wiersz key={e} e={e}>{v}</Wiersz>)}
+                        {tomy && <div className="ot-cala">{tomy}</div>}
                     </KartaPozycji>
                 )
             })}
         </div>
+    )
+}
+
+/** Tomy zespołu – rozwijane (wspólne dla obu wariantów). */
+function Tomy({ k }: { k: Ksiega }) {
+    return (
+        <details className="ksiega-tomy" style={male}>
+            <summary>{ileTomow(k.jednostki.length)}: roczniki, sygnatury, skany</summary>
+            <ul>
+                {k.jednostki.map((j, i) => (
+                    <li key={i}>
+                        <b>{j.lata}</b>
+                        {j.sygnatura && <span className="text-[var(--tekst-etykieta)]"> · {j.sygnatura}</span>}
+                        {j.skany && <> · <Odnosnik href={j.skany}>skany</Odnosnik></>}
+                        {j.digitalizacja === 'brak' && <span className="text-[var(--tekst-etykieta)]"> · bez skanów online</span>}
+                        {j.liczbaSkanow !== null && j.liczbaSkanow > 0 && <span className="text-[var(--tekst-etykieta)]"> · {j.liczbaSkanow} skanów</span>}
+                        {j.tytul && j.tytul !== k.nazwa && <span className="block text-[var(--tekst-etykieta)]">{j.tytul}</span>}
+                        {j.uwagi && <span className="block text-[var(--tekst-etykieta)]">{j.uwagi}</span>}
+                    </li>
+                ))}
+            </ul>
+        </details>
     )
 }

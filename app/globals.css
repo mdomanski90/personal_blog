@@ -1559,6 +1559,20 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 /* P7F-3 · KSIĘGI JAKO KARTY (styl kart osoby/obiektu) */
 /* ============================================ */
 .karty-ksiag{display:flex;flex-direction:column;gap:12px}
+/* v1.85: księgi wewnątrz tabeli karty (karta miejscowości, instytucji) – bez własnej ramki; kolumna etykiet jak w karcie */
+.ksiegi-w-karcie{display:flex;flex-direction:column}
+.ksiega-blok{display:flex;flex-direction:column;gap:4px;padding:10px 0}
+.ksiega-blok+.ksiega-blok{border-top:1px solid var(--linia-podzialu)}
+.ksiega-blok:first-child{padding-top:2px}
+.kb-nagl{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.kb-nagl h3{margin:0;font-size:calc(15px * var(--font-scale,1));font-weight:700;color:var(--tekst)}
+.kb-lata{font-weight:700;color:var(--tekst);font-size:calc(14px * var(--font-scale,1))}
+.kb-pola{margin:0;display:flex;flex-direction:column;gap:3px}
+.kb-w{display:grid;grid-template-columns:150px minmax(0,1fr);column-gap:16px;line-height:1.5}
+.kb-w dt{margin:0;color:var(--tekst-etykieta);font-size:calc(13px * var(--font-scale,1));padding-top:2px}
+.kb-w dd{margin:0;min-width:0;overflow-wrap:anywhere;font-size:calc(14px * var(--font-scale,1))}
+.ksiega-blok .ksiega-tomy ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+@media (max-width:640px){.kb-w{grid-template-columns:1fr;row-gap:0}}
 .karta-pozycji .ot-nagl h3{margin:0;font-size:calc(15px * var(--font-scale,1));font-weight:700;color:var(--tekst)}
 .karta-pozycji .ks-lata{font-weight:700;color:var(--tekst);font-size:calc(14px * var(--font-scale,1))}
 .ks-serwis{color:var(--tekst-etykieta);font-weight:400}

@@ -37,3 +37,13 @@ test('każdy plik z listą odnośników do bytów jest na mapie szablonów', () 
     const brak = pliki('app').map((p) => p.split(path.sep).join('/')).filter((p) => BYTY.test(fs.readFileSync(path.join(ROOT, p), 'utf8')) && !znane.has(p))
     assert.deepEqual(brak, [], `Nowe miejsca wyświetlania bytów bez wpisu w lib/szablony/rejestr.ts: ${brak.join(', ')}`)
 })
+
+// v1.85: karty nie zagnieżdżamy w karcie – plik z tabelą karty używa pozycji w wariancie „wiersze”
+test('w tabeli karty pozycje są blokami, nie osobnymi kartami', () => {
+    for (const p of pliki('app').map((x) => x.split(path.sep).join('/'))) {
+        const kod = fs.readFileSync(path.join(ROOT, p), 'utf8')
+        if (!/<Tabela[\s>]/.test(kod)) continue
+        assert.ok(!kod.includes('<KartaPozycji'), `${p}: KartaPozycji wewnątrz tabeli karty`)
+        for (const m of kod.matchAll(/<TabelaKsiag\b[\s\S]*?\/>/g)) assert.ok(m[0].includes('wariant="wiersze"'), `${p}: TabelaKsiag w tabeli karty bez wariant="wiersze"`)
+    }
+})

@@ -5,7 +5,7 @@
  * Przełączniki wariantów – osobny etap (decyzja właściciela 15.11.2026: najpierw mapa).
  */
 
-export type IdWzorca = 'karta' | 'karta-lista' | 'pozycja' | 'lista-dzialu' | 'lista-obiektow' | 'linia' | 'siatka' | 'spis' | 'zapowiedz' | 'wlasny'
+export type IdWzorca = 'karta' | 'karta-lista' | 'pozycja' | 'pozycja-w-karcie' | 'lista-dzialu' | 'lista-obiektow' | 'linia' | 'siatka' | 'spis' | 'zapowiedz' | 'wlasny'
 export type Status = 'zgodne' | 'do-ujednolicenia' | 'swiadomie-inne'
 
 export interface Wzorzec { id: IdWzorca; nazwa: string; opis: string; komponent: string; /** ciąg, który musi wystąpić w pliku używającym wzorca */ znacznik: string[] }
@@ -14,6 +14,7 @@ export const WZORCE: Wzorzec[] = [
     { id: 'karta', nazwa: 'tabela karty', opis: 'Karta bytu: nagłówki części z tłem, wiersze etykieta–wartość. Wzór: karta osoby i obiektu.', komponent: 'Tabela / Czesc / W (Karta.tsx)', znacznik: ['<Tabela', 'osoba-tabela'] },
     { id: 'karta-lista', nazwa: 'lista w karcie', opis: 'Krótka lista odnośników w części tabeli karty (np. miejscowości instytucji).', komponent: 'WCaly + ul.karta-lista', znacznik: ['karta-lista'] },
     { id: 'pozycja', nazwa: 'karta pozycji', opis: 'Pozycja spisu z metadanymi w stylu karty: nagłówek (tytuł + informacja), wiersze, odnośniki z nazwą serwisu.', komponent: 'KartaPozycji', znacznik: ['KartaPozycji', 'TabelaKsiag'] },
+    { id: 'pozycja-w-karcie', nazwa: 'pozycja w karcie', opis: 'Ta sama pozycja (nagłówek + wiersze etykieta–wartość) jako blok w części tabeli karty, bez własnej ramki – karty nie zagnieżdżamy w karcie.', komponent: 'TabelaKsiag wariant="wiersze"', znacznik: ['wariant="wiersze"'] },
     { id: 'lista-dzialu', nazwa: 'lista pozycji działu', opis: 'Indeks działu: tytuł, spokojna linia, linia podziału.', komponent: 'ul.lista-pozycji', znacznik: ['lista-pozycji', 'lista-pozycja'] },
     { id: 'lista-obiektow', nazwa: 'lista obiektów', opis: 'Tarcza rodzaju + nazwa; rodzaj nie powtarzany tekstem.', komponent: 'ListaObiektow', znacznik: ['ListaObiektow'] },
     { id: 'linia', nazwa: 'linia karty', opis: 'Powiązania w jednym wierszu tabeli karty, rozdzielone kropką.', komponent: 'LiniaKarty', znacznik: ['LiniaKarty'] },
@@ -58,8 +59,8 @@ export const MIEJSCA: Miejsce[] = [
     { byt: 'instytucja', gdzie: 'katalog ksiąg – grupa', plik: 'app/components/KatalogKsiegiNaZywo.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'Rozwijana grupa z osią lat; księgi w środku – karta pozycji.', adres: '/biblioteka/ksiegi?widok=parafie' },
     // księgi
     { byt: 'księga metrykalna', gdzie: 'katalog ksiąg', plik: 'app/components/KatalogKsiegiNaZywo.tsx', wzorzec: 'pozycja', status: 'zgodne', adres: '/biblioteka/ksiegi' },
-    { byt: 'księga metrykalna', gdzie: 'karta miejscowości', plik: 'app/miejsca/[slug]/page.tsx', wzorzec: 'pozycja', status: 'zgodne', adres: '/miejsca/…' },
-    { byt: 'księga metrykalna', gdzie: 'karta instytucji', plik: 'app/parafie/[slug]/page.tsx', wzorzec: 'pozycja', status: 'zgodne', adres: '/parafie/…' },
+    { byt: 'księga metrykalna', gdzie: 'karta miejscowości', plik: 'app/miejsca/[slug]/page.tsx', wzorzec: 'pozycja-w-karcie', status: 'zgodne', adres: '/miejsca/…' },
+    { byt: 'księga metrykalna', gdzie: 'karta instytucji', plik: 'app/parafie/[slug]/page.tsx', wzorzec: 'pozycja-w-karcie', status: 'zgodne', adres: '/parafie/…' },
     // publikacje
     { byt: 'publikacja', gdzie: 'spis publikacji', plik: 'app/biblioteka/publikacje/page.tsx', wzorzec: 'pozycja', status: 'zgodne', adres: '/biblioteka/publikacje' },
     { byt: 'publikacja', gdzie: 'karta publikacji', plik: 'app/biblioteka/publikacje/[slug]/page.tsx', wzorzec: 'karta', status: 'zgodne', adres: '/biblioteka/publikacje/…' },

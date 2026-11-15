@@ -173,7 +173,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                                         <span>{p.parafia.id === 'nieustalona-instytucja'
                                             ? <span>{p.parafia.nazwa}</span>
                                             : <Link href={`/parafie/${p.parafia.id}`} className="odn">{p.parafia.nazwa}</Link>}<span className="ot-drobne"> · {WYZNANIA_PARAFII[p.parafia.wyznanie] ?? p.parafia.wyznanie}</span></span>
-                                        <TabelaKsiag ksiegi={p.ksiegi} nazwyMiejsc={Object.fromEntries(wszystkie.map((x) => [x.id, x.nazwa]))} kontekst={{ miejsce: m.id }} />
+                                        <TabelaKsiag ksiegi={p.ksiegi} nazwyMiejsc={Object.fromEntries(wszystkie.map((x) => [x.id, x.nazwa]))} kontekst={{ miejsce: m.id }} wariant="wiersze" />
                                     </div>
                                 ))}
                                 <Link href={`/biblioteka/ksiegi?miejsce=${m.id}`} className="odn w-fit" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>pełny spis z paskiem lat →</Link>

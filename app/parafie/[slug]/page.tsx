@@ -93,7 +93,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
                 {spisKsieg.length > 0 && <WCaly>
                     <div className="flex flex-col" style={{ gap: 12 }}>
                         <PasekLat ksiegi={spisKsieg} />
-                        <TabelaKsiag ksiegi={spisKsieg} nazwyMiejsc={nazwyMiejsc} kontekst={{ instytucja: p.id }} />
+                        <TabelaKsiag ksiegi={spisKsieg} nazwyMiejsc={nazwyMiejsc} kontekst={{ instytucja: p.id }} wariant="wiersze" />
                         <Link href={`/biblioteka/ksiegi?widok=parafie#${encodeURIComponent(p.id)}`} className="odn" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>pełny katalog ksiąg →</Link>
                     </div>
                 </WCaly>}
