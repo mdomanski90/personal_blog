@@ -30,7 +30,10 @@ const NARZEDZIA: { id: Narzedzie; nazwa: string; klawisz: string }[] = [
     { id: 'miarka', nazwa: 'miarka', klawisz: '7' },
     { id: 'stempel', nazwa: 'stempel', klawisz: '8' },
 ]
-type Filtr = '' | 'bezNapisu' | 'bezZdjecia' | 'niesprawdzone'
+type Filtr = '' | 'bezNapisu' | 'bezZdjecia' | 'niesprawdzone' | 'nieopracowane'
+/** Tryby pracy (etap 1): Rysuj – geometria; Opracuj – napis, osoby, zdjęcia, źródła; Sprawdź – porównanie ze zdjęciem i zatwierdzenie. */
+type Tryb = 'rysuj' | 'opracuj' | 'sprawdz'
+const TRYBY: [Tryb, string, string][] = [['rysuj', 'Rysuj', 'kształty, położenie, typy'], ['opracuj', 'Opracuj', 'napis, osoby, zdjęcia, źródła · N = następny nieopracowany'], ['sprawdz', 'Sprawdź', 'porównanie ze zdjęciem, zatwierdzenie · N = następny niesprawdzony']]
 type SkrotOsoby = { id: string; nazwa: string; imiona: string; nazwisko: string; lata: string; miejsce: string }
 const API = (slug: string) => `/api/keystatic/plany/${slug}`
 const plikUrl = (slug: string, plik: string) => `${API(slug)}/plik/${plik}`
@@ -89,6 +92,7 @@ export default function Edytor({ slug }: { slug: string }) {
     const [wzorStempla, ustawWzorStempla] = React.useState<WzorStempla | null>(null)
     const [filtr, ustawFiltr] = React.useState<Filtr>('')
     const [teren, ustawTeren] = React.useState(false)
+    const [tryb, ustawTrybSurowo] = React.useState<Tryb>(() => { try { const t = localStorage.getItem('plan-tryb'); return t === 'opracuj' || t === 'sprawdz' ? t : 'rysuj' } catch { return 'rysuj' } })
     const [pozycja, ustawPozycja] = React.useState<{ lat: number; lon: number; acc: number } | null>(null)
     const [osobyDrzewa, ustawOsobyDrzewa] = React.useState<SkrotOsoby[] | null>(null)
     const svgRef = React.useRef<SVGSVGElement>(null)
@@ -310,6 +314,19 @@ export default function Edytor({ slug }: { slug: string }) {
         else if (d > 0) e = L.find((x) => grobyKolejno.indexOf(x) > pos) ?? L[0]
         else e = [...L].reverse().find((x) => grobyKolejno.indexOf(x) < pos) ?? L[L.length - 1]
         zaznacz([e.id]); pokazElement(e)
+    }
+    const ustawTryb = (t: Tryb) => {
+        ustawTrybSurowo(t); try { localStorage.setItem('plan-tryb', t) } catch { /* nic */ }
+        if (t !== 'rysuj') { ustawNarz('wybierz'); ustawRys([]) }
+    }
+    /** N: następny grób do zrobienia w bieżącym trybie (kolejność numeracji, od zaznaczonego, w kółko). */
+    const nastepnyDoZrobienia = (pomin?: string) => {
+        const czeka = (e: Element) => e.id !== pomin && (tryb === 'sprawdz' ? etapElementu(e) !== 'sprawdzony' : etapElementu(e) === 'narysowany')
+        const L = grobyKolejno.filter(czeka)
+        if (!L.length) { pokaz(tryb === 'sprawdz' ? 'Wszystkie groby są sprawdzone.' : 'Wszystkie groby są opracowane.'); return }
+        const pos = wzor ? grobyKolejno.findIndex((e) => e.id === wzor.id) : -1
+        const e = L.find((x) => grobyKolejno.indexOf(x) > pos) ?? L[0]
+        zaznacz([e.id]); pokazElement(e); ustawZakl('element')
     }
 
     // tryb terenowy: położenie z telefonu na planie
@@ -697,8 +714,9 @@ export default function Edytor({ slug }: { slug: string }) {
             if (mod) return
             if (e.key === 'Escape') { ustawRys([]); zaznacz([]); ustawNarz('wybierz'); ustawDop(null); return }
             if (e.key === 'Enter') { zakonczRysowanie(); return }
+            if (k === 'n' && tryb !== 'rysuj') { nastepnyDoZrobienia(); return }
             const n = NARZEDZIA.find((x) => x.klawisz === e.key)
-            if (n) { wybierzNarzedzie(n.id); return }
+            if (n) { if (tryb === 'rysuj' || n.id === 'wybierz') wybierzNarzedzie(n.id); return }
             if (k === 'g') { wybierzTyp('grob'); return }
             if (k === 'k') { wybierzTyp('krzyz'); return }
             if (e.key === 'Tab') { e.preventDefault(); nastepnyGrob(e.shiftKey ? -1 : 1); return }
@@ -813,7 +831,7 @@ export default function Edytor({ slug }: { slug: string }) {
         <Pelny>
             <style>{CSS}</style>
             <WzoryProbek prefix={`${prefix}-sw`} />
-            <header className={`ed-pasek${teren ? ' ed-pasek-teren' : ''}`}>
+            <header className={`ed-pasek${teren ? ' ed-pasek-teren' : ''} ed-tryb-${tryb}`}>
                 <a href="/keystatic/plany" className="ed-btn">← plany</a>
                 <b className="ed-tytul">{plan.tytul}</b>
                 <span className={`ed-zapis ed-zapis-${zapis}`}>{{ ok: 'zapisano', zmiany: 'zmiany…', zapisuje: 'zapisuję…', blad: 'błąd zapisu – ponawiam', konflikt: 'plan zmieniono w innym oknie – zmiany z tego okna nie są jeszcze zapisane' }[zapis]}</span>
@@ -826,20 +844,23 @@ export default function Edytor({ slug }: { slug: string }) {
                 <button className="ed-btn" onClick={zapiszTeraz} disabled={zapis === 'zapisuje'} title="Zapisz na serwerze teraz (Ctrl+S)">zapisz teraz</button>
                 <button className="ed-btn ed-nie-teren" onClick={pobierzPlik} title="Pobierz plan z tego okna jako plik .plan.json (kopia na komputer; można go zaimportować na liście planów)">pobierz</button>
                 <span className="ed-sep ed-nie-teren" />
-                <div className="ed-seg ed-nie-teren">{NARZEDZIA.map((n) => <button key={n.id} aria-pressed={narz === n.id} title={`${n.nazwa} (${n.klawisz})`} onClick={() => wybierzNarzedzie(n.id)}>{n.nazwa}</button>)}</div>
+                <div className="ed-seg ed-nie-teren" role="group" aria-label="tryb pracy">{TRYBY.map(([t, n, o]) => <button key={t} aria-pressed={tryb === t} title={o} onClick={() => ustawTryb(t)}>{n}</button>)}</div>
+                {tryb !== 'rysuj' && <button className="ed-btn ed-nie-teren" onClick={() => nastepnyDoZrobienia()} title="klawisz N">{tryb === 'sprawdz' ? 'następny niesprawdzony' : 'następny nieopracowany'}</button>}
+                <span className="ed-sep ed-nie-teren ed-tylko-rysuj" />
+                <div className="ed-seg ed-nie-teren ed-tylko-rysuj">{NARZEDZIA.map((n) => <button key={n.id} aria-pressed={narz === n.id} title={`${n.nazwa} (${n.klawisz})`} onClick={() => wybierzNarzedzie(n.id)}>{n.nazwa}</button>)}</div>
                 <span className="ed-sep ed-nie-teren" />
                 <button className="ed-btn" onClick={cofnij} disabled={!historia.current.length} title="Cofnij (Ctrl+Z)">cofnij</button>
                 <button className="ed-btn" onClick={ponow} disabled={!naprzod.current.length} title="Ponów (Ctrl+Shift+Z)">ponów</button>
-                <label className="ed-ch ed-nie-teren" title="Przyciąganie do wierzchołków i krawędzi (Alt podczas rysowania wyłącza)"><input type="checkbox" checked={przyc.punkty} onChange={(e) => ustawPrzyc({ ...przyc, punkty: e.target.checked })} /> przyciąganie</label>
-                <label className="ed-ch ed-nie-teren"><input type="checkbox" checked={przyc.siatka} onChange={(e) => ustawPrzyc({ ...przyc, siatka: e.target.checked })} /> siatka</label>
+                <label className="ed-ch ed-nie-teren ed-tylko-rysuj" title="Przyciąganie do wierzchołków i krawędzi (Alt podczas rysowania wyłącza)"><input type="checkbox" checked={przyc.punkty} onChange={(e) => ustawPrzyc({ ...przyc, punkty: e.target.checked })} /> przyciąganie</label>
+                <label className="ed-ch ed-nie-teren ed-tylko-rysuj"><input type="checkbox" checked={przyc.siatka} onChange={(e) => ustawPrzyc({ ...przyc, siatka: e.target.checked })} /> siatka</label>
                 {przyc.siatka && <input className="ed-in" style={{ width: 64 }} type="number" min={1} value={przyc.krok} onChange={(e) => ustawPrzyc({ ...przyc, krok: Math.max(1, +e.target.value || 1) })} title="krok siatki (jednostki planu)" />}
                 {plan.podklady.some((p) => !ukrytePodklady.has(p.id)) && <label className="ed-ch" title="krycie rysunku nad podkładem">rysunek <input type="range" min={0.1} max={1} step={0.05} value={kryRys} onChange={(e) => ustawKryRys(+e.target.value)} style={{ width: 80 }} /></label>}
                 <span style={{ flex: 1 }} />
                 <button className="ed-btn" aria-pressed={teren} onClick={() => { if (!teren && plan.geo.length < 2) { pokaz('Tryb terenowy potrzebuje co najmniej 2 punktów geo (zakładka „plan”).'); return } ustawTeren(!teren); ustawNarz('wybierz') }} title="Na cmentarzu z telefonem: twoje położenie na planie, zdjęcie i „sprawdzony” jednym dotknięciem">w terenie</button>
                 <a className="ed-btn ed-nie-teren" href={`/plany/${plan.slug}`} target="_blank" rel="noreferrer">zobacz na stronie ↗</a>
             </header>
-            <div className={`ed-glowna${teren ? ' ed-glowna-teren' : ''}`} style={{ gridTemplateColumns: teren ? 'minmax(0,1fr) 320px' : paletaOtwarta ? '230px minmax(0,1fr) 320px' : '36px minmax(0,1fr) 320px' }}>
-                {!teren && <aside className="ed-paleta">
+            <div className={`ed-glowna${teren ? ' ed-glowna-teren' : ''}`} style={{ gridTemplateColumns: teren || tryb !== 'rysuj' ? 'minmax(0,1fr) 320px' : paletaOtwarta ? '230px minmax(0,1fr) 320px' : '36px minmax(0,1fr) 320px' }}>
+                {!teren && tryb === 'rysuj' && <aside className="ed-paleta">
                     <button className="ed-btn" style={{ width: '100%' }} onClick={() => ustawPaletaOtwarta((o) => !o)} title="pokaż / ukryj typy">{paletaOtwarta ? '« typy' : '»'}</button>
                     {paletaOtwarta && (
                         <>
@@ -908,7 +929,7 @@ export default function Edytor({ slug }: { slug: string }) {
                     <div className="ed-pomoc">{podpowiedz(narz, rys.length, typAktywny, dop)}{(narz === 'miarka' && rys.length > 1) && <b> · {fmt(dlugosc(rys))}</b>}{wymiaryNaZywo() && <b> · {wymiaryNaZywo()}</b>}</div>
                     {grobyKolejno.length > 0 && !teren && (() => {
                         const n = (f: Filtr) => grobyKolejno.filter((e) => pasujeDoFiltra(e, f)).length
-                        const fl: [Filtr, string, number][] = [['bezNapisu', 'bez napisu', n('bezNapisu')], ['bezZdjecia', 'bez zdjęcia', n('bezZdjecia')], ['niesprawdzone', 'niesprawdzone', n('niesprawdzone')]]
+                        const fl: [Filtr, string, number][] = [['bezNapisu', 'bez napisu', n('bezNapisu')], ['bezZdjecia', 'bez zdjęcia', n('bezZdjecia')], ['niesprawdzone', 'niesprawdzone', n('niesprawdzone')], ['nieopracowane', 'nieopracowane', n('nieopracowane')]]
                         return (
                             <div className="ed-staty">
                                 <span title="groby na planie (z numeracją kwatera · rząd · miejsce)">{grobyKolejno.length} grobów</span>
@@ -930,7 +951,7 @@ export default function Edytor({ slug }: { slug: string }) {
                             </div>
                             <div className="ed-rzad ed-maly">
                                 <span>kolejne:</span>
-                                <span className="ed-seg">{([['', 'wszystkie'], ['bezZdjecia', 'bez zdjęcia'], ['niesprawdzone', 'niesprawdzone'], ['bezNapisu', 'bez napisu']] as [Filtr, string][]).map(([f, t]) => <button key={f} aria-pressed={filtr === f} onClick={() => ustawFiltr(f)}>{t}</button>)}</span>
+                                <span className="ed-seg">{([['', 'wszystkie'], ['bezZdjecia', 'bez zdjęcia'], ['niesprawdzone', 'niesprawdzone'], ['nieopracowane', 'nieopracowane'], ['bezNapisu', 'bez napisu']] as [Filtr, string][]).map(([f, t]) => <button key={f} aria-pressed={filtr === f} onClick={() => ustawFiltr(f)}>{t}</button>)}</span>
                             </div>
                         </div>
                     )}
@@ -959,6 +980,7 @@ export default function Edytor({ slug }: { slug: string }) {
                         ) : zaznaczone.length === 1 && wzor ? (
                             <PanelElementu e={wzor} plan={plan} typy={typy} ukryteTypy={ukryteTypy} numer={numery.get(wzor.id)} skala={skala} fmt={fmt} slug={slug}
                                 zmiana={(zm) => zmienElementy(new Map([[wzor.id, zm]]))} usun={usunZaznaczone} duplikuj={duplikuj}
+                                tryb={tryb} nastepny={() => nastepnyDoZrobienia()} zatwierdz={() => { oznaczSprawdzony(wzor.id); nastepnyDoZrobienia(wzor.id) }}
                                 powielOtwarte={pw.otwarte} przelaczPowiel={() => ustawPw((s) => ({ ...s, otwarte: !s.otwarte }))}
                                 osobyDrzewa={osobyDrzewa} wczytajOsoby={wczytajOsoby}
                                 wgrajZdjecie={async (f) => { try { const w = await wyslijPlik(f, 'zdjecie'); zmienElementy(new Map([[wzor.id, { zdjecia: [...(wzor.zdjecia ?? []), { plik: w.plik }] }]])) } catch (e) { pokaz(e instanceof Error ? e.message : 'błąd') } }} />
@@ -1143,6 +1165,7 @@ function podpowiedziOsob(L: SkrotOsoby[] | null, q: string): SkrotOsoby[] {
 function pasujeDoFiltra(e: Element, f: Filtr): boolean {
     if (f === 'bezNapisu') return !(e.napis?.trim() || e.opis?.trim() || e.osoby?.some((o) => o.nazwa.trim()) || e.nazwa?.trim())
     if (f === 'bezZdjecia') return !e.zdjecia?.length
+    if (f === 'nieopracowane') return etapElementu(e) === 'narysowany'
     if (f === 'niesprawdzone') return etapElementu(e) !== 'sprawdzony' || !!polozenie(e) || e.stan === 'do-sprawdzenia'
     return true
 }
@@ -1150,7 +1173,8 @@ function etykietaNumeru(n?: { kwatera: string; rzad: number; miejsce: number }) 
     return n ? `${n.kwatera ? `kw. ${n.kwatera}, ` : ''}rząd ${n.rzad}, miejsce ${n.miejsce}` : ''
 }
 
-function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmiana, usun, duplikuj, powielOtwarte, przelaczPowiel, wgrajZdjecie, osobyDrzewa, wczytajOsoby }: {
+function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmiana, usun, duplikuj, powielOtwarte, przelaczPowiel, wgrajZdjecie, osobyDrzewa, wczytajOsoby, tryb, nastepny, zatwierdz }: {
+    tryb: Tryb; nastepny: () => void; zatwierdz: () => void
     e: Element; plan: Plan; typy: Map<string, TypElementu>; ukryteTypy: Set<string>; numer?: { kwatera: string; rzad: number; miejsce: number }; skala: number | null
     fmt: (j: number, r?: 'dl' | 'pole') => string; slug: string; zmiana: (zm: Partial<Element>) => void; usun: () => void; duplikuj: () => void
     powielOtwarte: boolean; przelaczPowiel: () => void; wgrajZdjecie: (f: File) => void
@@ -1163,18 +1187,26 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
     const osoby = e.osoby ?? []
     const ustOsoby = (o: Osoba[]) => zmiana({ osoby: o.length ? o : undefined })
     void skala
+    // Rysuj: kształt i położenie; Opracuj / Sprawdź: dane grobu (napis, osoby, zdjęcia, źródła)
+    const rysuj = tryb === 'rysuj', dane = !rysuj || !t?.grob, etap = t?.grob ? etapElementu(e) : null
     return (
         <div className="ed-sekcja">
-            <div className="ed-gt">{numer ? `${numer.kwatera ? `kwatera ${numer.kwatera} · ` : ''}rząd ${numer.rzad} · miejsce ${numer.miejsce}` : t?.nazwa}</div>
+            <div className="ed-gt">{numer ? `${numer.kwatera ? `kwatera ${numer.kwatera} · ` : ''}rząd ${numer.rzad} · miejsce ${numer.miejsce}` : t?.nazwa}{etap ? ` · ${ETYKIETA_ETAPU[etap]}` : ''}</div>
             <div className="ed-rzad">
-                <button className="ed-btn" onClick={duplikuj} title="Ctrl+D">duplikuj</button>
-                <button className="ed-btn" aria-pressed={powielOtwarte} onClick={przelaczPowiel}>powiel…</button>
-                {t?.grob && etapElementu(e) !== 'sprawdzony' && <button className="ed-btn" onClick={() => zmiana({ etap: 'sprawdzony' })}>sprawdzony ✓</button>}
-                <button className="ed-btn" onClick={usun}>usuń</button>
+                {rysuj && <button className="ed-btn" onClick={duplikuj} title="Ctrl+D">duplikuj</button>}
+                {rysuj && <button className="ed-btn" aria-pressed={powielOtwarte} onClick={przelaczPowiel}>powiel…</button>}
+                {t?.grob && tryb === 'sprawdz' && etap !== 'sprawdzony' && <button className="ed-btn ed-btn-gl" onClick={zatwierdz} title="zatwierdź i przejdź do następnego niesprawdzonego">sprawdzony ✓ → następny</button>}
+                {t?.grob && !rysuj && <button className="ed-btn" onClick={nastepny} title="klawisz N">{tryb === 'sprawdz' ? 'pomiń →' : 'następny nieopracowany →'}</button>}
+                {rysuj && <button className="ed-btn" onClick={usun}>usuń</button>}
             </div>
-            <Pole etykieta="typ">
+            {t?.grob && tryb === 'sprawdz' && (e.zdjecia?.length
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <a href={plikUrl(slug, e.zdjecia[0].plik)} target="_blank" rel="noreferrer"><img className="ed-podglad" src={plikUrl(slug, e.zdjecia[0].plik)} alt="zdjęcie nagrobka – porównaj z napisem poniżej" /></a>
+                : <span className="ed-uwaga">Brak zdjęcia – sprawdź w terenie albo dodaj zdjęcie niżej.</span>)}
+            {rysuj && t?.grob && <span className="ed-maly">dane: {[e.napis?.trim() && 'napis', e.osoby?.length && `osoby: ${e.osoby.length}`, e.zdjecia?.length && `zdjęcia: ${e.zdjecia.length}`, e.zrodla?.trim() && 'źródła'].filter(Boolean).join(' · ') || 'brak'} – wpisuje się je w trybie „Opracuj”.</span>}
+            {rysuj && <Pole etykieta="typ">
                 <select className="ed-in" value={e.typ} onChange={(x) => zmiana({ typ: x.target.value })}>{zgodne.map((x) => <option key={x.id} value={x.id}>{x.nazwa}</option>)}</select>
-            </Pole>
+            </Pole>}
             <Pole etykieta={t?.rys === 'napis' ? 'treść napisu' : t?.id === 'kwatera' ? 'nazwa kwatery' : 'nazwa / napis na planie'}>
                 <input id={`pole-nazwa-${e.id}`} className="ed-in" value={e.nazwa ?? ''} onChange={(x) => zmiana({ nazwa: x.target.value || undefined })} />
             </Pole>
@@ -1186,6 +1218,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
                     <select className="ed-in" value={e.kolor ?? ''} onChange={(x) => zmiana({ kolor: (x.target.value || undefined) as Element['kolor'] })}><option value="">kolor domyślny</option><option value="tekst">czarny</option><option value="szary">szary</option><option value="woda">woda</option><option value="las">roślinność</option><option value="teren">teren</option><option value="pamiec">pamięć</option></select>
                 </div>
             )}
+            {rysuj && (<>
             {(e.etykieta) && <button className="ed-maly" onClick={() => zmiana({ etykieta: undefined })}>przywróć położenie napisu</button>}
             {g.k === 't' && <Pole etykieta="obrót napisu (°)"><input className="ed-in" type="number" value={g.a} onChange={(x) => zmiana({ g: { ...g, a: +x.target.value || 0 } })} /></Pole>}
             {g.k === 'r' && (
@@ -1199,15 +1232,16 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
             {g.k === 'l' && <span className="ed-maly">długość {fmt(dlugosc(g.p))}</span>}
             {(t?.rodzaj === 'linia') && <Pole etykieta="grubość (jednostki planu, puste = domyślna)"><input className="ed-in" type="number" step={0.5} value={e.szer ?? ''} onChange={(x) => zmiana({ szer: x.target.value ? Math.max(0.1, +x.target.value) : undefined })} /></Pole>}
             {t?.id === 'kwatera' && <Pole etykieta="kąt rzędów (°)"><input className="ed-in" type="number" step={0.5} value={e.kat ?? 0} onChange={(x) => zmiana({ kat: +x.target.value || 0 })} /></Pole>}
-            {t?.grob ? (
+            </>)}
+            {t?.grob ? (dane && (
                 <>
                     <Pole etykieta="napis z nagrobka – transkrypcja dosłowna (pisownia, język i wiersze jak na kamieniu)"><textarea className="ed-in ed-napis" rows={5} value={e.napis ?? ''} onChange={(x) => zmiana({ napis: x.target.value || undefined })} placeholder={'Ś. † P.\nJAN …\nŻYŁ LAT …'} /></Pole>
                     <Pole etykieta="weryfikacja źródeł"><select className="ed-in" value={stanZrodel(e)} onChange={(x) => zmiana({ zrodlaStan: x.target.value === 'brak' ? undefined : (x.target.value as StanZrodel) })}>{STANY_ZRODEL.map((z) => <option key={z} value={z}>{ETYKIETA_ZRODEL[z]}</option>)}</select></Pole>
                     <Pole etykieta="weryfikacja w źródłach (co potwierdzają księgi, z podaniem źródła)"><textarea className="ed-in" rows={3} value={e.zrodla ?? ''} onChange={(x) => zmiana({ zrodla: x.target.value || undefined })} placeholder="np. zgon 12 III 1943 – księga zgonów parafii Próchenki 1943, akt nr 15 (AP Siedlce, sygn. …)" /></Pole>
                     {e.opis && <Pole etykieta="uwagi (dawne pole)"><textarea className="ed-in" rows={2} value={e.opis} onChange={(x) => zmiana({ opis: x.target.value || undefined })} /></Pole>}
                 </>
-            ) : <Pole etykieta="opis"><textarea className="ed-in" rows={3} value={e.opis ?? ''} onChange={(x) => zmiana({ opis: x.target.value || undefined })} /></Pole>}
-            {t?.grob && (
+            )) : <Pole etykieta="opis"><textarea className="ed-in" rows={3} value={e.opis ?? ''} onChange={(x) => zmiana({ opis: x.target.value || undefined })} /></Pole>}
+            {t?.grob && dane && (
                 <>
                     <div className="ed-gt">pochowani</div>
                     {osoby.map((o, i) => {
@@ -1255,13 +1289,13 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
             <Pole etykieta="widoczność"><select className="ed-in" value={e.widocznosc ?? 'publiczne'} onChange={(x) => zmiana({ widocznosc: x.target.value === 'publiczne' ? undefined : (x.target.value as Element['widocznosc']) })}><option value="publiczne">publiczne</option><option value="bliscy">dla bliskich</option><option value="ja">tylko ja</option></select></Pole>
             {t?.grob && (
                 <div className="ed-rzad">
-                    <Pole etykieta="etap opracowania"><select className="ed-in" value={etapElementu(e)} onChange={(x) => zmiana({ etap: x.target.value as Etap })}>{ETAPY.map((z) => <option key={z} value={z}>{ETYKIETA_ETAPU[z]}</option>)}</select></Pole>
+                    <Pole etykieta="etap opracowania"><select className="ed-in" value={etapElementu(e)} onChange={(x) => zmiana({ etap: x.target.value as Etap })}>{ETAPY.map((z) => <option key={z} value={z} disabled={z === 'sprawdzony' && tryb !== 'sprawdz' && etap !== 'sprawdzony'}>{ETYKIETA_ETAPU[z]}{z === 'sprawdzony' && tryb !== 'sprawdz' ? ' (w trybie „Sprawdź”)' : ''}</option>)}</select></Pole>
                     <Pole etykieta="położenie"><select className="ed-in" value={polozenie(e) ?? 'pewne'} onChange={(x) => zmiana({ polozenie: x.target.value === 'pewne' ? undefined : (x.target.value as Polozenie) })}>{(['pewne', 'auto', 'przyp'] as const).map((z) => <option key={z} value={z}>{ETYKIETA_POLOZENIA[z]}</option>)}</select></Pole>
                 </div>
             )}
             <Pole etykieta="notatka (tylko w panelu)"><textarea className="ed-in" rows={2} value={e.notatka ?? ''} onChange={(x) => zmiana({ notatka: x.target.value || undefined })} /></Pole>
-            <div className="ed-gt">zdjęcia</div>
-            <div className="ed-rzad" style={{ flexWrap: 'wrap' }}>
+            {dane && <div className="ed-gt">zdjęcia</div>}
+            {dane && <div className="ed-rzad" style={{ flexWrap: 'wrap' }}>
                 {(e.zdjecia ?? []).map((z) => (
                     <span key={z.plik} className="ed-miniatura">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1270,7 +1304,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
                     </span>
                 ))}
                 <label className="ed-btn">+ zdjęcie<input type="file" accept="image/*" hidden onChange={(x) => x.target.files?.[0] && wgrajZdjecie(x.target.files[0])} /></label>
-            </div>
+            </div>}
             <span className="ed-maly">plan: {plan.tytul}</span>
         </div>
     )
@@ -1421,7 +1455,7 @@ textarea.ed-in{height:auto;padding:6px 8px;resize:vertical}
 .ed-wiersz{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .ed-maly{font-size:11.5px;color:#6b665c;line-height:1.45;background:none;border:0;padding:0;text-align:left;font-family:inherit;cursor:pointer}
 p.ed-maly,span.ed-maly{cursor:default}
-.ed-uwaga{font-size:12px;color:#92400e;background:#fef3c7;border-radius:6px;padding:6px 8px;margin:0}
+.ed-btn-gl{font-weight:700}.ed-podglad{display:block;width:100%;max-height:280px;object-fit:contain;border-radius:7px;background:#f2f0eb}.ed-uwaga{font-size:12px;color:#92400e;background:#fef3c7;border-radius:6px;padding:6px 8px;margin:0}
 .ed-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
 .ed-zoom button{width:32px;justify-content:center;padding:0}
 .ed-pomoc{position:absolute;left:10px;bottom:10px;right:10px;font-size:11.5px;color:#4f4a41;background:rgba(255,255,255,.88);border-radius:6px;padding:4px 8px;pointer-events:none;width:fit-content;max-width:calc(100% - 20px)}
@@ -1453,5 +1487,5 @@ p.ed-maly,span.ed-maly{cursor:default}
 .ed-siatka{stroke:#a39d91;stroke-opacity:.35;stroke-width:1;vector-effect:non-scaling-stroke;fill:none}
 .ed-zapis{font-size:12px;color:#6b665c}.ed-ostatni{font-size:12px;color:#6b665c;white-space:nowrap;font-variant-numeric:tabular-nums}.ed-napis{font-family:var(--font-jetbrains),monospace;text-align:center;white-space:pre}.ed-uch-bok{cursor:ew-resize}.ed-duch-ok{stroke:#15803d!important;fill:rgba(21,128,61,.15)!important}.ed-filtr{fill:none;stroke:#ea580c;stroke-width:2.2;vector-effect:non-scaling-stroke}.ed-ja{fill:#4c3cc4;stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}.ed-ja-acc{fill:rgba(76,60,196,.12);stroke:rgba(76,60,196,.5);stroke-width:1;vector-effect:non-scaling-stroke}.ed-staty{position:absolute;left:10px;top:10px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:11.5px;background:rgba(255,255,255,.92);border:1px solid #d6d1c6;border-radius:8px;padding:3px 6px;max-width:calc(100% - 70px)}.dark .ed-staty{background:rgba(28,31,36,.92);border-color:#3a3f48}.ed-staty button{font:inherit;border:1px solid #d6d1c6;border-radius:6px;background:transparent;padding:1px 7px;cursor:pointer;color:inherit}.ed-staty button[aria-pressed=true]{background:#ea580c;border-color:#ea580c;color:#fff}.ed-staty button:disabled{opacity:.45;cursor:default}.ed-teren{position:absolute;left:8px;right:8px;bottom:8px;display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid #d6d1c6;border-radius:10px;padding:8px;box-shadow:0 2px 12px rgb(0 0 0/.15)}.dark .ed-teren{background:#1c1f24;border-color:#3a3f48}.ed-teren .ed-rzad{flex-wrap:wrap}.ed-teren-info{font-size:13px;font-weight:600}.ed-wyl{opacity:.45;pointer-events:none}.ed-glowna-teren .ed-pomoc,.ed-glowna-teren .ed-akcje{display:none}.ed-osoba{display:flex;flex-direction:column;gap:3px;position:relative}.ed-podp{display:flex;flex-direction:column;border:1px solid #d6d1c6;border-radius:7px;overflow:hidden;background:#fff}.dark .ed-podp{background:#1c1f24;border-color:#3a3f48}.ed-podp button{display:flex;justify-content:space-between;gap:8px;text-align:left;font:inherit;font-size:12.5px;padding:5px 8px;border:0;border-bottom:1px solid #eeeae2;background:transparent;color:inherit;cursor:pointer}.ed-podp button:hover{background:rgba(76,60,196,.08)}.ed-link{border:0;background:none;padding:0;font:inherit;color:#4c3cc4;cursor:pointer;text-decoration:underline}.ed-kopia{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;background:#fef3c7;color:#78350f;padding:2px 8px;border-radius:7px}.ed-zapis-blad,.ed-zapis-konflikt{color:#b91c1c}.ed-zapis-ok{color:#15803d}
 @media (max-width:900px){.ed-glowna{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto minmax(55vh,1fr) auto}.ed-paleta{border-right:0;border-bottom:1px solid #d6d1c6;max-height:30vh}.ed-panel{border-left:0;border-top:1px solid #d6d1c6;max-height:45vh}}
-.ed-pasek-teren .ed-nie-teren{display:none!important}@media (max-width:900px){.ed-glowna-teren{grid-template-rows:minmax(64vh,1fr) auto!important}.ed-glowna-teren .ed-panel{max-height:32vh}.ed-teren{left:4px;right:4px;bottom:4px;padding:6px;gap:4px}}@media (pointer:coarse){.ed-btn,.ed-seg button,.ed-zakl button,.ed-akcje button,.ed-in{height:36px}.ed-uch{stroke-width:3}}
+.ed-pasek-teren .ed-nie-teren{display:none!important}.ed-pasek:not(.ed-tryb-rysuj) .ed-tylko-rysuj{display:none!important}@media (max-width:900px){.ed-glowna-teren{grid-template-rows:minmax(64vh,1fr) auto!important}.ed-glowna-teren .ed-panel{max-height:32vh}.ed-teren{left:4px;right:4px;bottom:4px;padding:6px;gap:4px}}@media (pointer:coarse){.ed-btn,.ed-seg button,.ed-zakl button,.ed-akcje button,.ed-in{height:36px}.ed-uch{stroke-width:3}}
 `
