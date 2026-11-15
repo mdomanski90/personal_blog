@@ -6,6 +6,7 @@ import { zajawka } from '@/lib/markdoc'
 import { Kreski, Strona } from './components/Uklad'
 import MetkiWpisu from './components/MetkiWpisu'
 import Zgloszenie from './components/Zgloszenie'
+import { pozycjaKadru } from '@/lib/kadr'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,9 +48,11 @@ export default async function StronaGlowna() {
     // miniatury zapowiedzi: tylko materiały widoczne dla czytelnika; skan albo plik graficzny
     const mats = new Map((await materialy(poziom)).map((m) => [m.id, m]))
     const miniatury = new Map<string, string>()
+    const kadry = new Map<string, string>()
     for (const w of pokazane) {
         const m = w.miniatura ? mats.get(w.miniatura) : undefined
         if (!m) continue
+        kadry.set(m.id, pozycjaKadru(m.kadr))
         const skan = m.strony[0]?.adres
         if (skan) miniatury.set(m.id, skan.startsWith('/pliki/strony/') ? `${skan}?w=640` : skan)
         else if (m.plik && /\.(jpe?g|png|webp)$/i.test(m.plik)) miniatury.set(m.id, `${m.plik}?w=640`)
@@ -93,7 +96,7 @@ export default async function StronaGlowna() {
                         {obraz && (
                             <Link href={`/wpisy/${w.id}`} className="zapowiedz-obraz" tabIndex={-1} aria-hidden="true">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={obraz} alt="" loading={wyr ? 'eager' : 'lazy'} />
+                                <img src={obraz} alt="" loading={wyr ? 'eager' : 'lazy'} style={{ objectPosition: kadry.get(w.miniatura!) }} />
                             </Link>
                         )}
                         <div className="zapowiedz-tresc">
