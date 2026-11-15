@@ -1,9 +1,9 @@
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
-import { nazwy, opowiesci, poziomCzytelnika, kontekstTresci, pozycjeLosowe, wstepStronyGlownej, type PozycjaLosowa } from '@/lib/archiwum'
+import { materialy, nazwy, opowiesci, poziomCzytelnika, kontekstTresci, pozycjeLosowe, wstepStronyGlownej, type PozycjaLosowa } from '@/lib/archiwum'
 import LosowaKarta from './components/LosowaKarta'
-import { naHtml } from '@/lib/markdoc'
-import { Kreski, Strona, Tresc } from './components/Uklad'
+import { zajawka } from '@/lib/markdoc'
+import { Kreski, Strona } from './components/Uklad'
 import MetkiWpisu from './components/MetkiWpisu'
 import Zgloszenie from './components/Zgloszenie'
 
@@ -44,6 +44,16 @@ export default async function StronaGlowna() {
     const wstep = await wstepStronyGlownej()
     const doOkna = zestawDoOkna(await pozycjeLosowe())
     const pokazane = wpisy.slice(0, WPISOW_NA_GLOWNEJ)
+    // miniatury zapowiedzi: tylko materiały widoczne dla czytelnika; skan albo plik graficzny
+    const mats = new Map((await materialy(poziom)).map((m) => [m.id, m]))
+    const miniatury = new Map<string, string>()
+    for (const w of pokazane) {
+        const m = w.miniatura ? mats.get(w.miniatura) : undefined
+        if (!m) continue
+        const skan = m.strony[0]?.adres
+        if (skan) miniatury.set(m.id, skan.startsWith('/pliki/strony/') ? `${skan}?w=640` : skan)
+        else if (m.plik && /\.(jpe?g|png|webp)$/i.test(m.plik)) miniatury.set(m.id, `${m.plik}?w=640`)
+    }
     const wszystkie = `wszystkie wpisy (${wpisy.length}) →`
 
     return (
@@ -72,17 +82,29 @@ export default async function StronaGlowna() {
 
             {wpisy.length === 0 && <p className="text-[var(--tekst-etykieta)] italic lowercase">brak wpisów.</p>}
 
-            {pokazane.map((w) => (
-                // id = identyfikator wpisu, więc stare odnośniki „/#identyfikator” nadal przewijają do wpisu
-                <article key={w.id} id={w.id} className="flex flex-col scroll-mt-6" style={{ gap: 'calc(1rem * var(--font-scale, 1))' }}>
-                    <MetkiWpisu wpis={w} nazwy={n} />
-                    <h3 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }}>
-                        <Link href={`/wpisy/${w.id}`} className="!no-underline hover:underline">{w.tytul}</Link>
-                    </h3>
-                    <Tresc html={naHtml(w.tresc, kontekst)} />
-                    <Kreski />
-                </article>
-            ))}
+            {/* P7E-1 (SG-02, SG-11, SG-15): zapowiedzi zamiast pełnych wpisów; najnowszy wyróżniony dłuższą zapowiedzią */}
+            {pokazane.map((w, i) => {
+                const wyr = i === 0
+                const tekst = w.zapowiedz || zajawka(w.tresc, wyr ? 700 : 320, kontekst.rozwiaz)
+                const obraz = w.miniatura ? miniatury.get(w.miniatura) : undefined
+                return (
+                    // id = identyfikator wpisu, więc stare odnośniki „/#identyfikator” nadal przewijają do wpisu
+                    <article key={w.id} id={w.id} className={`zapowiedz scroll-mt-6${wyr ? ' zapowiedz--wyrozniona' : ''}${obraz ? ' z-obrazem' : ''}`}>
+                        {obraz && (
+                            <Link href={`/wpisy/${w.id}`} className="zapowiedz-obraz" tabIndex={-1} aria-hidden="true">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={obraz} alt="" loading={wyr ? 'eager' : 'lazy'} />
+                            </Link>
+                        )}
+                        <div className="zapowiedz-tresc">
+                            <MetkiWpisu wpis={w} nazwy={n} />
+                            <h3 className="zapowiedz-tytul"><Link href={`/wpisy/${w.id}`}>{w.tytul}</Link></h3>
+                            {tekst && <p className="zapowiedz-tekst">{tekst}</p>}
+                            <Link href={`/wpisy/${w.id}`} className="zapowiedz-dalej">czytaj dalej <span aria-hidden="true">→</span><span className="sr-only">: {w.tytul}</span></Link>
+                        </div>
+                    </article>
+                )
+            })}
 
             {wpisy.length > pokazane.length && (
                 <div className="flex justify-end">

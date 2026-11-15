@@ -178,14 +178,15 @@ export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string): Tag {
         const obraz = pierwsza.startsWith('/pliki/strony/') ? `${pierwsza}?w=1200` : pierwsza
         const n = m.strony.length
         const ile = n === 1 ? '' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? `${n} strony` : `${n} stron`
-        const opis: RenderableTreeNode[] = [new Tag('a', { href: adres }, [podpis || m.nazwa]), ' · ', new Tag('button', { type: 'button', class: 'dok-otworz' }, [ile ? `przeglądaj ${ile} ⤢` : 'powiększ ⤢'])]
+        // P7E-1 (SG-04, SG-05): jedna czynność powiększania i jeden odnośnik „szczegóły w archiwum →”
+        const opis: RenderableTreeNode[] = [new Tag('span', {}, [podpis || m.nazwa]), ' · ', new Tag('button', { type: 'button', class: 'dok-otworz' }, [ile ? `przeglądaj ${ile} ⤢` : 'powiększ skan ⤢']), ' · ', new Tag('a', { href: adres }, ['szczegóły w archiwum →'])]
         return new Tag('figure', { class: 'material-wstawka', 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony, ...(m.objasnienia?.length ? { objasnienia: m.objasnienia } : {}) }) }, [
             // wysoki (pionowy) skan pokazany do pewnej wysokości; DokumentyWTresci dodaje cieniowanie i przycisk,
             // gdy obraz faktycznie jest dłuższy od kadru
             new Tag('span', { class: 'dok-kadr' }, [
                 new Tag('img', { src: obraz, alt: podpis || m.nazwa, loading: 'lazy', decoding: 'async', class: 'rounded-none w-full', 'data-dokument-img': '' }),
                 new Tag('span', { class: 'dok-kadr-cien', 'aria-hidden': 'true' }, []),
-                new Tag('button', { type: 'button', class: 'dok-otworz dok-kadr-przycisk', tabindex: '-1' }, ['obejrzyj cały dokument ⤢']),
+                new Tag('button', { type: 'button', class: 'dok-otworz dok-kadr-przycisk', tabindex: '-1' }, ['powiększ skan ⤢']),
             ]),
             new Tag('figcaption', {}, opis),
         ])
@@ -197,7 +198,7 @@ export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string): Tag {
     } else if (m.plik && typ === 'film') {
         podglad.push(new Tag('video', { controls: true, preload: 'metadata', src: m.plik, class: 'w-full' }))
     }
-    const opis: RenderableTreeNode[] = [new Tag('a', { href: adres }, [podpis || m.nazwa])]
+    const opis: RenderableTreeNode[] = [new Tag('span', {}, [podpis || m.nazwa]), ' · ', new Tag('a', { href: adres }, ['szczegóły w archiwum →'])]
     if (m.plik && (typ === 'pdf' || typ === 'inny')) opis.push(' · ', new Tag('a', { href: m.plik }, [typ === 'pdf' ? 'otwórz PDF' : 'otwórz plik']))
     return new Tag('figure', { class: 'material-wstawka' }, [...podglad, new Tag('figcaption', {}, opis)])
 }

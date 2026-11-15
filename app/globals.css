@@ -1491,3 +1491,28 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .stopka-dol>*+*::before{content:"·";margin:0 10px;color:var(--tekst-etykieta)}
 .odp .stopka-dol a{color:var(--tekst-opis);text-decoration:none}
 .odp .stopka-dol a:hover{color:var(--akcent);text-decoration:underline}
+
+/* ============================================ */
+/* P7E-1 · ZAPOWIEDZI NA STRONIE GŁÓWNEJ (SG)    */
+/* ============================================ */
+/* redakcyjna zapowiedź zamiast pełnego wpisu; miniatura opcjonalna (bez pustego miejsca); najnowszy wyróżniony */
+.zapowiedz{display:grid;grid-template-columns:minmax(0,1fr);gap:16px 24px;padding:18px 0;border-bottom:1px solid var(--linia-podzialu)}
+.zapowiedz.z-obrazem{grid-template-columns:calc(150px * var(--font-scale,1)) minmax(0,1fr)}
+.zapowiedz--wyrozniona{padding:22px 24px;border:0;border-radius:var(--promien-duzy);background:var(--tlo-sekcji);margin-bottom:6px}
+.zapowiedz--wyrozniona.z-obrazem{grid-template-columns:minmax(0,1fr) calc(240px * var(--font-scale,1))}
+.zapowiedz--wyrozniona .zapowiedz-obraz{order:2}
+.zapowiedz-obraz{display:block;align-self:start;border-radius:var(--promien-maly);overflow:hidden;border:1px solid var(--linia-podzialu);background:var(--tlo-kontrolki);aspect-ratio:4/3}
+.zapowiedz-obraz img{display:block;width:100%;height:100%;object-fit:cover}
+.zapowiedz-tresc{display:flex;flex-direction:column;gap:8px;min-width:0}
+.zapowiedz-tytul{margin:0;font-weight:700;line-height:1.25;font-size:calc(1.3rem * var(--font-scale,1));overflow-wrap:anywhere}
+.zapowiedz--wyrozniona .zapowiedz-tytul{font-size:calc(1.6rem * var(--font-scale,1))}
+.odp .zapowiedz-tytul a{color:var(--tekst);text-decoration:none}
+.odp .zapowiedz-tytul a:hover{color:var(--akcent);text-decoration:underline}
+.zapowiedz-tekst{margin:0;font-size:var(--blog-font-size,18px);line-height:1.6;color:var(--tekst-opis);white-space:pre-line}
+.odp a.zapowiedz-dalej{align-self:flex-start;font-weight:700;font-size:calc(15px * var(--font-scale,1));color:var(--akcent);text-decoration:none}
+.odp a.zapowiedz-dalej:hover{text-decoration:underline}
+@media (max-width:640px){
+  .zapowiedz.z-obrazem,.zapowiedz--wyrozniona.z-obrazem{grid-template-columns:minmax(0,1fr)}
+  .zapowiedz--wyrozniona{padding:18px}
+  .zapowiedz-obraz,.zapowiedz--wyrozniona .zapowiedz-obraz{order:0;max-height:220px}
+}

@@ -187,6 +187,17 @@ export default config({
           ],
           defaultValue: 'o-zrodle',
         }),
+        // P7E-1 (SG-02, SG-10…13): redakcyjna zapowiedź na stronie głównej zamiast pełnego wpisu
+        lead: fields.text({
+          label: 'Zapowiedź na stronie głównej',
+          multiline: true,
+          description: '2–3 zdania, które zaczynają historię: człowiek, wydarzenie, wierny cytat albo pytanie (bez clickbaitu). Najnowszy wpis jest wyróżniony – tu warto dłużej, ok. 120–200 słów. Puste – początek tekstu wpisu.',
+        }),
+        cover: fields.relationship({
+          label: 'Miniatura zapowiedzi (materiał z archiwum)',
+          collection: 'materialy',
+          description: 'Opcjonalnie. Puste – pierwszy materiał wstawiony w tekst; bez materiału zapowiedź jest bez obrazu.',
+        }),
         spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
         subject: fields.multiRelationship({ label: 'Tematy', collection: 'tematy' }),
         about: fields.text({

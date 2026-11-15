@@ -155,6 +155,10 @@ export interface Opowiesc {
     widocznosc: Widocznosc
     tresc: Node | null
     zajawka: string
+    /** P7E-1: zapowiedź redakcyjna (pole „lead”) – pusta, gdy autor jej nie napisał */
+    zapowiedz: string
+    /** P7E-1: materiał na miniaturę – wybrany („cover”) albo pierwszy wstawiony w tekst */
+    miniatura: string | null
     /** dzień, którego dotyczy wpis (RRRR-MM-DD) – do „ten dzień w historii” */
     dzien: string | null
 }
@@ -476,10 +480,28 @@ const wszystkieOpowiesciSurowe = cache(async (): Promise<Opowiesc[]> => {
                 widocznosc: entry.visibility as Widocznosc,
                 tresc,
                 zajawka: zajawka(tresc),
+                zapowiedz: ((entry as { lead?: string }).lead ?? '').trim(),
+                miniatura: (entry as { cover?: string | null }).cover || pierwszyMaterial(tresc),
             }
         })
         .sort((a, b) => (b.data ?? '').localeCompare(a.data ?? ''))
 })
+
+/** Wszystkie materiały wstawione w treść wpisu (znacznik „material”), w kolejności. */
+function wszystkieMaterialy(n: Node | null | undefined, wyn: string[] = []): string[] {
+    if (!n) return wyn
+    if (n.type === 'tag' && n.tag === 'material' && n.attributes?.id) wyn.push(String(n.attributes.id))
+    for (const c of n.children ?? []) wszystkieMaterialy(c, wyn)
+    return wyn
+}
+
+/** Pierwszy materiał wstawiony w treść wpisu (znacznik „material”). */
+function pierwszyMaterial(n: Node | null | undefined): string | null {
+    if (!n) return null
+    if (n.type === 'tag' && n.tag === 'material' && n.attributes?.id) return String(n.attributes.id)
+    for (const c of n.children ?? []) { const w = pierwszyMaterial(c); if (w) return w }
+    return null
+}
 
 // ---------- funkcje dla stron (z filtrem widoczności) ----------
 
@@ -628,7 +650,7 @@ export const opowiesci = cache(async (poziom: Widocznosc): Promise<Opowiesc[]> =
     ])
     return (await wszystkieOpowiesciSurowe())
         .filter((o) => widoczne(o.widocznosc, poziom))
-        .map((o) => ({ ...o, zajawka: zajawka(o.tresc, 220, rozwiaz) }))
+        .map((o) => ({ ...o, zajawka: o.zapowiedz || zajawka(o.tresc, 220, rozwiaz) }))
 })
 
 export async function opowiesc(id: string, poziom: Widocznosc): Promise<Opowiesc | null> {
@@ -818,6 +840,17 @@ const indeksPowiazan = cache(async (poziom: Widocznosc): Promise<Map<string, Pow
             for (const linia of linie) {
                 for (const tr of znajdzWzmianki(linia, wzorzec)) dodaj('wzmianki', klucz, t.zrodlo, fragment(linia, tr.start, tr.koniec, rozwiaz))
             }
+        }
+    }
+    // P7E-1 (SG-04, HOME-06): materiał wstawiony we wpis to też powiązanie – karta materiału pokazuje „we wpisach”
+    const cele = new Map(pozycje.map((p) => [kluczCelu(p.cel), p.cel]))
+    for (const o of await opowiesci(poziom)) {
+        const zrodlo = cele.get(`wpis:${o.id}`)
+        if (!zrodlo) continue
+        for (const id of new Set(wszystkieMaterialy(o.tresc))) {
+            const klucz = `material:${id}`
+            if (!cele.has(klucz) || indeks.get(klucz)?.odnosniki.some((z) => kluczCelu(z.zrodlo) === kluczCelu(zrodlo))) continue
+            dodaj('odnosniki', klucz, zrodlo, { przed: '', trafienie: 'materiał wstawiony we wpis', po: '' })
         }
     }
     // najpierw wpisy, potem reszta; w grupie alfabetycznie
