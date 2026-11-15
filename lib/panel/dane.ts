@@ -8,6 +8,7 @@ import { randomBytes } from 'node:crypto'
 import { hasla, ksiegi, materialy, miejsca, obiekty, opowiesci, parafie, tematy } from '../archiwum'
 import { listaPlanow, listaZgloszen, wczytajUstawienia, type Zgloszenie } from '../plany/dane'
 import { katalog, typGrobu } from '../plany/typy'
+import { etapElementu } from '../plany/statusy'
 import { stanOsob, sladImportu } from '../osoby/dane'
 import { nazwaOsoby } from '../osoby/model'
 import { ostrzezeniaWgOsob } from '../osoby/serwer'
@@ -122,7 +123,7 @@ export async function postepPlanow(): Promise<PostepPlanu[]> {
         const g = p.elementy.filter((e) => typGrobu(typy.get(e.typ)))
         return {
             slug: p.slug, tytul: p.tytul, widocznosc: p.widocznosc, zmieniono: p.zmieniono, geo: p.geo.length, grobow: g.length,
-            sprawdzone: g.filter((e) => e.weryfikacja !== 'auto' && e.weryfikacja !== 'przyp' && e.stan !== 'do-sprawdzenia').length,
+            sprawdzone: g.filter((e) => etapElementu(e) === 'sprawdzony').length,
             zNapisem: g.filter((e) => e.napis?.trim() || e.opis?.trim() || e.osoby?.some((o) => o.nazwa.trim()) || e.nazwa?.trim()).length,
             zeZdjeciem: g.filter((e) => e.zdjecia?.length).length,
         }

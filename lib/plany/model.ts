@@ -2,6 +2,7 @@
 
 import type { Warstwa } from './typy'
 import { katalog, typGrobu, type TypElementu, type UstawieniaPlanow } from './typy'
+import type { Etap, Polozenie, StanZrodel } from './statusy'
 
 export type Widocznosc = 'publiczne' | 'bliscy' | 'ja'
 export type Pkt = [number, number]
@@ -62,7 +63,13 @@ export interface Element {
     ukryjNapis?: boolean
     /** kwatera: kąt rzędów (°) */
     kat?: number
-    /** robocze: auto | przyp | ok (sprawdzony) – tylko w edytorze */
+    /** robocze (grób): etap opracowania – narysowany / opracowany / sprawdzony (lib/plany/statusy.ts) */
+    etap?: Etap
+    /** robocze (grób): weryfikacja źródeł – brak / częściowa / potwierdzona; opis w polu `zrodla` */
+    zrodlaStan?: StanZrodel
+    /** robocze (grób): pewność położenia – rozpoznane automatycznie / przypuszczalne; brak pola = pewne */
+    polozenie?: Polozenie
+    /** @deprecated dawne jedno pole statusu (auto | przyp | ok) – zastępuje je migracja `npm run plany:statusy` */
     weryfikacja?: 'auto' | 'przyp' | 'ok'
     notatka?: string
     /** wyliczone przy wydawaniu: napis i osoby ukryte przed czytelnikiem */
@@ -346,9 +353,13 @@ export function dlaCzytelnika(plan: Plan, poziom: Widocznosc, u: UstawieniaPlano
     const elementy: Element[] = []
     for (const e of plan.elementy) {
         if (ukryte.has(e.typ) || !typy.has(e.typ) || !widoczne(e.widocznosc, poziom)) continue
-        const { weryfikacja: _w, notatka: _n, ...czysty } = e
+        // statusy pracy i notatki są robocze; współrzędne GPS zdjęć – tylko dla zalogowanych (decyzja 16.11),
+        // bo punkty geo planu też są przed czytelnikiem publicznym ukryte
+        const { weryfikacja: _w, notatka: _n, etap: _e, zrodlaStan: _z, polozenie: _p, ...czysty } = e
         if (poziom === 'publiczne' && grobOgraniczony(e, typy.get(e.typ), u.progLat)) {
             elementy.push({ id: e.id, typ: e.typ, g: e.g, stan: e.stan, ograniczony: true })
+        } else if (poziom === 'publiczne' && czysty.zdjecia?.length) {
+            elementy.push({ ...czysty, zdjecia: czysty.zdjecia.map(({ lat: _la, lon: _lo, ...z }) => z) })
         } else elementy.push(czysty)
     }
     const podklady = plan.podklady.filter((p) => p.widocznosc === 'publiczne' || (p.widocznosc === 'bliscy' && poziom !== 'publiczne'))

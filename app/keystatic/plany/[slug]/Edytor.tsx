@@ -10,6 +10,7 @@ import {
 } from '@/lib/plany/model'
 import { GRUPY, katalog, typGrobu, WARSTWY, type TypElementu, type UstawieniaPlanow, type Warstwa } from '@/lib/plany/typy'
 import { katWMiejscu, kopia, obrocGeom, pozycjaStempla, przesun, przyciagnij, przyciagnijKat, rozlozRowno, rozmiarBokiem, rozmiarGrobu, wektor, wyrownajWLinie, type Przyciaganie, type WzorStempla } from '@/lib/plany/edycja'
+import { ETAPY, ETYKIETA_ETAPU, ETYKIETA_POLOZENIA, ETYKIETA_ZRODEL, etapElementu, polozenie, poZmianieDanych, STANY_ZRODEL, stanZrodel, type Etap, type Polozenie, type StanZrodel } from '@/lib/plany/statusy'
 import { odczytajExif } from '@/lib/plany/exif'
 import { RysunekPlanu, Wzory } from '@/app/components/plan/Rysunek'
 import { Probka, WzoryProbek } from '@/app/components/plan/Probka'
@@ -155,8 +156,9 @@ export default function Edytor({ slug }: { slug: string }) {
         ustawZapis('zmiany')
     }, [])
     const zmienElementy = React.useCallback((zm: Map<string, Partial<Element> | null>, nowe: Element[] = []) => {
-        zmien((p) => ({ ...p, elementy: [...p.elementy.flatMap((e) => (zm.has(e.id) ? (zm.get(e.id) === null ? [] : [{ ...e, ...zm.get(e.id) } as Element]) : [e])), ...nowe] }))
-    }, [zmien])
+        // poZmianieDanych: grób „narysowany” po wpisaniu danych → „opracowany”; dawne pole `weryfikacja` znika przy zmianie statusu
+        zmien((p) => ({ ...p, elementy: [...p.elementy.flatMap((e) => (zm.has(e.id) ? (zm.get(e.id) === null ? [] : [{ ...e, ...poZmianieDanych(e, zm.get(e.id)!, typy.get(e.typ)) } as Element]) : [e])), ...nowe] }))
+    }, [zmien, typy])
     const cofnij = () => {
         const p = historia.current.pop()
         if (!p || !plan) return
@@ -332,7 +334,7 @@ export default function Edytor({ slug }: { slug: string }) {
     }
     const oznaczSprawdzony = (id: string) => {
         const e = el(id)
-        zmienElementy(new Map([[id, { weryfikacja: 'ok', ...(e?.stan === 'do-sprawdzenia' ? { stan: undefined } : {}) }]]))
+        zmienElementy(new Map([[id, { etap: 'sprawdzony', ...(e?.stan === 'do-sprawdzenia' ? { stan: undefined } : {}) }]]))
     }
     const zdjecieZTerenu = async (f: File) => {
         const id = wzor?.id
@@ -341,7 +343,7 @@ export default function Edytor({ slug }: { slug: string }) {
         try {
             const w = await wyslijPlik(f, 'zdjecie')
             const zd: Zdjecie = { plik: w.plik, ...(pozycja ? { lat: +pozycja.lat.toFixed(6), lon: +pozycja.lon.toFixed(6) } : {}), data: new Date().toISOString().slice(0, 19) }
-            zmien((p) => ({ ...p, elementy: p.elementy.map((x) => (x.id === id ? { ...x, zdjecia: [...(x.zdjecia ?? []), zd] } : x)) }))
+            zmien((p) => ({ ...p, elementy: p.elementy.map((x) => (x.id === id ? { ...x, ...poZmianieDanych(x, { zdjecia: [...(x.zdjecia ?? []), zd] }, typy.get(x.typ)) } : x)) }))
             natychmiast.current = true
             pokaz('Zdjęcie przypięte.')
         } catch (e) { pokaz(e instanceof Error ? e.message : 'błąd') }
@@ -378,7 +380,7 @@ export default function Edytor({ slug }: { slug: string }) {
         ustawRys([])
     }
     const dodaj = (g: Geometria, reszta: Partial<Element> = {}) => {
-        const e: Element = { id: noweId(), typ: typId, g, ...(typAktywny?.grob ? { weryfikacja: 'ok' as const } : {}), ...reszta }
+        const e: Element = { id: noweId(), typ: typId, g, ...(typAktywny?.grob ? { etap: 'narysowany' as const } : {}), ...reszta }
         zmien((p) => ({ ...p, elementy: [...p.elementy, e] }))
         zaznacz([e.id])
         return e
@@ -634,7 +636,7 @@ export default function Edytor({ slug }: { slug: string }) {
                 const wz = wzorDlaStempla(p)
                 const q = e.altKey ? { x: p[0], y: p[1], a: wz.a } : pozycjaStempla(plan, p, wz)
                 const t = typy.get(wz.typ)
-                const nowy: Element = { id: noweId(), typ: wz.typ, g: { k: 'r', x: q.x, y: q.y, w: wz.w, h: wz.h, a: q.a }, ...(t?.grob ? { weryfikacja: 'ok' as const } : {}) }
+                const nowy: Element = { id: noweId(), typ: wz.typ, g: { k: 'r', x: q.x, y: q.y, w: wz.w, h: wz.h, a: q.a }, ...(t?.grob ? { etap: 'narysowany' as const } : {}) }
                 zmien((pl) => ({ ...pl, elementy: [...pl.elementy, nowy] }))
                 ustawZazn(new Set([nowy.id])); ustawWzorId(nowy.id)
                 break
@@ -769,7 +771,7 @@ export default function Edytor({ slug }: { slug: string }) {
         try {
             const w = await wyslijPlik(z.plik, 'zdjecie')
             const zd: Zdjecie = { plik: w.plik, ...(z.lat !== undefined ? { lat: z.lat, lon: z.lon } : {}), ...(z.data ? { data: z.data } : {}) }
-            zmien((p) => ({ ...p, elementy: p.elementy.map((x) => (x.id === elementId ? { ...x, zdjecia: [...(x.zdjecia ?? []), zd] } : x)) }))
+            zmien((p) => ({ ...p, elementy: p.elementy.map((x) => (x.id === elementId ? { ...x, ...poZmianieDanych(x, { zdjecia: [...(x.zdjecia ?? []), zd] }, typy.get(x.typ)) } : x)) }))
             ustawZdjecia((L) => L.filter((_, j) => j !== i))
             pokaz('Zdjęcie przypięte.')
         } catch (e) { pokaz(e instanceof Error ? e.message : 'błąd') }
@@ -787,7 +789,7 @@ export default function Edytor({ slug }: { slug: string }) {
                 dodane.set(z.propozycja!, [...(dodane.get(z.propozycja!) ?? []), zd]); gotowe.add(z.url)
             } catch { bledy++ }
         }
-        if (dodane.size) zmien((p) => ({ ...p, elementy: p.elementy.map((x) => (dodane.has(x.id) ? { ...x, zdjecia: [...(x.zdjecia ?? []), ...dodane.get(x.id)!] } : x)) }))
+        if (dodane.size) zmien((p) => ({ ...p, elementy: p.elementy.map((x) => (dodane.has(x.id) ? { ...x, ...poZmianieDanych(x, { zdjecia: [...(x.zdjecia ?? []), ...dodane.get(x.id)!] }, typy.get(x.typ)) } : x)) }))
         ustawZdjecia((Z) => Z.filter((z) => !gotowe.has(z.url)))
         pokaz(`Przypięto ${gotowe.size} zdjęć${bledy ? `, ${bledy} nie udało się wysłać` : ''}.`)
     }
@@ -1141,7 +1143,7 @@ function podpowiedziOsob(L: SkrotOsoby[] | null, q: string): SkrotOsoby[] {
 function pasujeDoFiltra(e: Element, f: Filtr): boolean {
     if (f === 'bezNapisu') return !(e.napis?.trim() || e.opis?.trim() || e.osoby?.some((o) => o.nazwa.trim()) || e.nazwa?.trim())
     if (f === 'bezZdjecia') return !e.zdjecia?.length
-    if (f === 'niesprawdzone') return e.weryfikacja === 'auto' || e.weryfikacja === 'przyp' || e.stan === 'do-sprawdzenia'
+    if (f === 'niesprawdzone') return etapElementu(e) !== 'sprawdzony' || !!polozenie(e) || e.stan === 'do-sprawdzenia'
     return true
 }
 function etykietaNumeru(n?: { kwatera: string; rzad: number; miejsce: number }) {
@@ -1167,7 +1169,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
             <div className="ed-rzad">
                 <button className="ed-btn" onClick={duplikuj} title="Ctrl+D">duplikuj</button>
                 <button className="ed-btn" aria-pressed={powielOtwarte} onClick={przelaczPowiel}>powiel…</button>
-                {t?.grob && e.weryfikacja !== 'ok' && <button className="ed-btn" onClick={() => zmiana({ weryfikacja: 'ok' })}>sprawdzony ✓</button>}
+                {t?.grob && etapElementu(e) !== 'sprawdzony' && <button className="ed-btn" onClick={() => zmiana({ etap: 'sprawdzony' })}>sprawdzony ✓</button>}
                 <button className="ed-btn" onClick={usun}>usuń</button>
             </div>
             <Pole etykieta="typ">
@@ -1200,6 +1202,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
             {t?.grob ? (
                 <>
                     <Pole etykieta="napis z nagrobka – transkrypcja dosłowna (pisownia, język i wiersze jak na kamieniu)"><textarea className="ed-in ed-napis" rows={5} value={e.napis ?? ''} onChange={(x) => zmiana({ napis: x.target.value || undefined })} placeholder={'Ś. † P.\nJAN …\nŻYŁ LAT …'} /></Pole>
+                    <Pole etykieta="weryfikacja źródeł"><select className="ed-in" value={stanZrodel(e)} onChange={(x) => zmiana({ zrodlaStan: x.target.value === 'brak' ? undefined : (x.target.value as StanZrodel) })}>{STANY_ZRODEL.map((z) => <option key={z} value={z}>{ETYKIETA_ZRODEL[z]}</option>)}</select></Pole>
                     <Pole etykieta="weryfikacja w źródłach (co potwierdzają księgi, z podaniem źródła)"><textarea className="ed-in" rows={3} value={e.zrodla ?? ''} onChange={(x) => zmiana({ zrodla: x.target.value || undefined })} placeholder="np. zgon 12 III 1943 – księga zgonów parafii Próchenki 1943, akt nr 15 (AP Siedlce, sygn. …)" /></Pole>
                     {e.opis && <Pole etykieta="uwagi (dawne pole)"><textarea className="ed-in" rows={2} value={e.opis} onChange={(x) => zmiana({ opis: x.target.value || undefined })} /></Pole>}
                 </>
@@ -1250,7 +1253,12 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
                 <Pole etykieta="stan"><select className="ed-in" value={e.stan ?? 'istnieje'} onChange={(x) => zmiana({ stan: x.target.value === 'istnieje' ? undefined : (x.target.value as Element['stan']) })}><option value="istnieje">istnieje</option><option value="nie-istnieje">nie istnieje</option><option value="do-sprawdzenia">do sprawdzenia</option></select></Pole>
             </div>
             <Pole etykieta="widoczność"><select className="ed-in" value={e.widocznosc ?? 'publiczne'} onChange={(x) => zmiana({ widocznosc: x.target.value === 'publiczne' ? undefined : (x.target.value as Element['widocznosc']) })}><option value="publiczne">publiczne</option><option value="bliscy">dla bliskich</option><option value="ja">tylko ja</option></select></Pole>
-            {t?.grob && <Pole etykieta="weryfikacja"><select className="ed-in" value={e.weryfikacja ?? 'ok'} onChange={(x) => zmiana({ weryfikacja: x.target.value as Element['weryfikacja'] })}><option value="auto">rozpoznany automatycznie</option><option value="przyp">przypuszczalny</option><option value="ok">sprawdzony</option></select></Pole>}
+            {t?.grob && (
+                <div className="ed-rzad">
+                    <Pole etykieta="etap opracowania"><select className="ed-in" value={etapElementu(e)} onChange={(x) => zmiana({ etap: x.target.value as Etap })}>{ETAPY.map((z) => <option key={z} value={z}>{ETYKIETA_ETAPU[z]}</option>)}</select></Pole>
+                    <Pole etykieta="położenie"><select className="ed-in" value={polozenie(e) ?? 'pewne'} onChange={(x) => zmiana({ polozenie: x.target.value === 'pewne' ? undefined : (x.target.value as Polozenie) })}>{(['pewne', 'auto', 'przyp'] as const).map((z) => <option key={z} value={z}>{ETYKIETA_POLOZENIA[z]}</option>)}</select></Pole>
+                </div>
+            )}
             <Pole etykieta="notatka (tylko w panelu)"><textarea className="ed-in" rows={2} value={e.notatka ?? ''} onChange={(x) => zmiana({ notatka: x.target.value || undefined })} /></Pole>
             <div className="ed-gt">zdjęcia</div>
             <div className="ed-rzad" style={{ flexWrap: 'wrap' }}>
