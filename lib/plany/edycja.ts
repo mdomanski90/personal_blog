@@ -26,9 +26,17 @@ export function obrocGeom(g: Geometria, da: number, wokol?: Pkt): Geometria {
 export const kat = (g: Geometria) => (g.k === 'r' || g.k === 't' ? g.a : 0)
 
 /** Kopia elementu w nowym miejscu: kształt, rozmiar, kąt i typ te same; napis, osoby, zdjęcia – puste. */
+/**
+ * Kopia elementu = sam kształt i wygląd (audyt nr 2, AUD-P-01/09). Lista dozwolonych pól, nie zakazanych:
+ * nowe pole z danymi nigdy nie skopiuje się przypadkiem. Napis, źródła, osoby, zdjęcia, daty, stan i weryfikacja
+ * zostają w oryginale; przeniesienie danych to osobne, jawne polecenie. Nazwa tylko dla kwater i napisów (etykieta planu).
+ */
 export function kopia(e: Element, dx: number, dy: number): Element {
-    const { id: _i, opis: _o, osoby: _os, zdjecia: _z, rokZgonu: _r, ukryjNapis: _u, notatka: _n, nazwa, ...reszta } = e
-    return { ...reszta, id: noweId(), g: przesun(e.g, dx, dy), weryfikacja: reszta.weryfikacja ? 'ok' : undefined, ...(e.typ === 'kwatera' || e.typ === 'napis' ? { nazwa } : {}) }
+    const { typ, szer, kat, rozmiar, styl, kolor, pokazNazwe, etykieta, widocznosc, nazwa } = e
+    const k: Element = { id: noweId(), typ, g: przesun(e.g, dx, dy), szer, kat, rozmiar, styl, kolor, pokazNazwe, etykieta, widocznosc }
+    if (e.typ === 'kwatera' || e.typ === 'napis') k.nazwa = nazwa
+    for (const p of Object.keys(k) as (keyof Element)[]) if (k[p] === undefined) delete k[p]
+    return k
 }
 
 /** Typowa odległość środków sąsiadów (mediana) w kierunku u – dla grobów w rzędzie i między rzędami. */

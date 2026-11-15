@@ -111,7 +111,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
     const opisElementu = (e: Element): string => {
         const t = typy.get(e.typ), n = numery.get(e.id)
         if (typGrobu(t)) {
-            const kto = e.ograniczony ? 'grób – napis dla bliskich' : e.osoby?.map((o) => o.nazwa).filter(Boolean).join(', ') || e.nazwa || (e.napis ? e.napis.split('\n').find((l) => /\p{L}{3,}/u.test(l))?.trim() : '') || 'grób'
+            const kto = e.ograniczony ? 'grób – opis niedostępny publicznie' : e.osoby?.map((o) => o.nazwa).filter(Boolean).join(', ') || e.nazwa || (e.napis ? e.napis.split('\n').find((l) => /\p{L}{3,}/u.test(l))?.trim() : '') || 'grób'
             return `${kto}${n ? ` · ${numerKrotki(n)}` : ''}`
         }
         return e.nazwa || t?.nazwa || ''
@@ -430,7 +430,8 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
             <div className="plan-karta-tresc">
                 {el.ograniczony ? (
                     <p className="text-[var(--tekst-opis)]" style={{ margin: 0, lineHeight: 1.5 }}>
-                        Napis, nazwiska i zdjęcia tego grobu są widoczne tylko dla bliskich (osoby zmarłe w ciągu ostatnich {progLat} lat albo na nagrobku są wymienione osoby żyjące).
+                        {/* decyzja 15.11: bez podawania powodu ograniczenia */}
+                        Opis niedostępny publicznie.
                         {!zalogowany && <> <a href={`/zaloguj?wroc=${encodeURIComponent(typeof location !== 'undefined' ? location.pathname : `/plany/${plan.slug}`)}`}>Zaloguj się</a>.</>}
                     </p>
                 ) : (

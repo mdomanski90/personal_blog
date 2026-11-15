@@ -71,3 +71,20 @@ test('edytor: stempel obok sąsiada, wyrównanie, rozmiar jednym bokiem', async 
     const b = rozmiarBokiem({ k: 'r', x: 0, y: 0, w: 10, h: 20, a: 0 }, 0, [10, 3], 1, false)
     assert.equal(b.w, 15); assert.equal(b.x, 2.5); assert.equal(b.h, 20)
 })
+
+// audyt nr 2 (AUD-P-01/09): kopia grobu = sam kształt; dane (także „ukryj napis”) zostają w oryginale
+test('kopia grobu nie przenosi napisu, źródeł, osób, zdjęć, dat ani weryfikacji', async () => {
+    const { kopia } = await import('./edycja')
+    const grob = {
+        id: 'g1', typ: 'grob', g: { k: 'r' as const, x: 1, y: 2, w: 2, h: 1, r: 0 }, widocznosc: 'bliscy' as const,
+        napis: 'Ś.P. Jan Testowy', zrodla: 'księga testowa', czas: '1901', stan: 'istnieje' as const, rokZgonu: 1901, ukryjNapis: true,
+        osoby: [{ nazwa: 'Jan Testowy' }], zdjecia: [{ plik: 'zdjecie-x.jpg' }], weryfikacja: 'ok' as const, notatka: 'robocza', nazwa: 'grób Testowych', opis: 'opis',
+    } as unknown as Parameters<typeof kopia>[0]
+    const k = kopia(grob, 3, 0)
+    assert.notEqual(k.id, 'g1')
+    assert.equal(k.typ, 'grob')
+    assert.equal(k.widocznosc, 'bliscy')
+    for (const p of ['napis', 'zrodla', 'czas', 'stan', 'rokZgonu', 'ukryjNapis', 'osoby', 'zdjecia', 'weryfikacja', 'notatka', 'nazwa', 'opis']) assert.ok(!(p in k), p)
+    const kw = kopia({ id: 'k', typ: 'kwatera', g: grob.g, nazwa: 'A' } as Parameters<typeof kopia>[0], 0, 0)
+    assert.equal(kw.nazwa, 'A')
+})

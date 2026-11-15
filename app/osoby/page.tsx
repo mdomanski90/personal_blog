@@ -29,7 +29,7 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
     })
     const miejscaOsoby = (o: Osoba) => [...o.zdarzenia, ...(s.relacje.get(o.id)?.malzenstwa ?? []).flatMap((f) => f.zdarzenia)]
     const wKregu = (o: Osoba, k: (typeof kregi)[number]) => miejscaOsoby(o).some((z) => (z.miejsceId && k.ids.has(z.miejsceId)) || (z.miejsce && k.nazwy.has(kluczMiejsca(z.miejsce.split(',')[0]))))
-    const krag = sp.krag === 'wszystkie' ? 'wszystkie' : kregi.find((k) => k.id === sp.krag)?.id ?? '1'
+    const krag = kregi.find((k) => k.id === sp.krag)?.id ?? 'wszystkie' // decyzja 15.11 (F03): domyślnie wszystkie
     const ileWKregu = Object.fromEntries(kregi.map((k) => [k.id, wszystkie.filter((o) => wKregu(o, k)).length]))
     // cała lista kręgu idzie do przeglądarki – wyszukiwanie zawęża ją na żywo (ListaOsob)
     const lista: OsobaNaLiscie[] = wszystkie

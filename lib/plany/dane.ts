@@ -86,7 +86,7 @@ export function sciezkaPliku(slug: string, plik: string): string | null {
     return p.startsWith(baza + path.sep) ? p : null
 }
 
-/** Zapis wgranego obrazu: duże zmniejszamy (sharp), zwracamy nazwę pliku i wymiary. */
+/** Zapis wgranego obrazu: duże zmniejszamy (sharp), metadane (EXIF, GPS) zawsze usuwamy; zwracamy nazwę pliku i wymiary. */
 export async function zapiszObraz(slug: string, dane: Buffer, nazwaOryg: string, przedrostek: string, maks = 6000): Promise<{ plik: string; szer: number; wys: number }> {
     const roz = (nazwaOryg.match(/\.([a-z0-9]+)$/i)?.[1] ?? '').toLowerCase()
     const id = `${przedrostek}-${Date.now().toString(36)}${randomBytes(3).toString('hex')}`
@@ -103,8 +103,10 @@ export async function zapiszObraz(slug: string, dane: Buffer, nazwaOryg: string,
             szer = Math.round(szer * k); wys = Math.round(wys * k)
             wynik = await obraz.resize(szer, wys).webp({ quality: 86 }).toBuffer()
             rozW = 'webp'
-        } else if (meta.orientation && meta.orientation > 1) {
-            wynik = await obraz.toBuffer()
+        } else {
+            // zawsze ponowny zapis bez metadanych (audyt nr 2, AUD-P-02): sharp domyślnie nie przenosi EXIF – także GPS z telefonu;
+            // .rotate() wyżej utrwala orientację w pikselach, więc obraz wygląda tak samo
+            wynik = rozW === 'png' ? await obraz.png().toBuffer() : rozW === 'webp' ? await obraz.webp({ quality: 90 }).toBuffer() : await obraz.jpeg({ quality: 90, mozjpeg: true }).toBuffer()
             const m2 = await sharp(wynik).metadata(); szer = m2.width ?? szer; wys = m2.height ?? wys
         }
     } catch (e) {
