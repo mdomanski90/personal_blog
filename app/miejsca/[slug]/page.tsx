@@ -6,7 +6,7 @@ import { licznikiMiejsc, materialy, miejsca, miejsce, obiekty, obiektyDlaMiejsca
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
-import { tarczaObiektu } from '@/lib/tarcze'
+import ListaObiektow from '../../components/ListaObiektow'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml, zajawka } from '@/lib/markdoc'
 import { Strona, Tresc, maTekst } from '../../components/Uklad'
@@ -155,15 +155,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                         <Czesc tytul="w terenie">{swiatynie.length ? `${swiatynie.length} ${swiatynie.length === 1 ? 'obiekt' : swiatynie.length < 5 ? 'obiekty' : 'obiektów'}` : 'kapliczki, krzyże, cmentarze, szkoły, młyny…'}</Czesc>
                         <WCaly>
                             {swiatynie.length > 0 && (
-                                <ul className="flex flex-col" style={{ gap: 6, marginBottom: 8 }}>
-                                    {swiatynie.map((o) => (
-                                        <li key={o.id} className="flex items-center" style={{ gap: 8 }}>
-                                            <span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaObiektu(o.rodzaj, RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, 24, o.istnieje) }} />
-                                            <Link href={`/obiekty/${o.id}`} className="odn">{o.nazwa}</Link>
-                                            <span className="ot-drobne">{[RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, o.czas && formatujEdtf(o.czas), !o.istnieje && 'nie istnieje'].filter(Boolean).join(' · ')}</span>
-                                        </li>
-                                    ))}
-                                </ul>
+                                <ListaObiektow pozycje={swiatynie.map((o) => ({ id: o.id, nazwa: o.nazwa, rodzaj: o.rodzaj, nazwaRodzaju: RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, istnieje: o.istnieje }))} />
                             )}
                             <span className="ot-drobne">{swiatynie.length ? 'Brakuje miejsca pamięci, kapliczki albo zabytku? ' : 'Nie ma tu jeszcze żadnych obiektów. Znasz miejsce pamięci, kapliczkę albo zabytek? '}<Zgloszenie rodzaj="miejsce" adres={`/miejsca/${m.id}`} tytul={m.nazwa} wariant="link" etykieta="zgłoś brakujące miejsce" /></span>
                         </WCaly>
@@ -181,7 +173,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                                         <span>{p.parafia.id === 'nieustalona-instytucja'
                                             ? <span>{p.parafia.nazwa}</span>
                                             : <Link href={`/parafie/${p.parafia.id}`} className="odn">{p.parafia.nazwa}</Link>}<span className="ot-drobne"> · {WYZNANIA_PARAFII[p.parafia.wyznanie] ?? p.parafia.wyznanie}</span></span>
-                                        <TabelaKsiag ksiegi={p.ksiegi} nazwyMiejsc={Object.fromEntries(wszystkie.map((x) => [x.id, x.nazwa]))} />
+                                        <TabelaKsiag ksiegi={p.ksiegi} nazwyMiejsc={Object.fromEntries(wszystkie.map((x) => [x.id, x.nazwa]))} kontekst={{ miejsce: m.id }} />
                                     </div>
                                 ))}
                                 <Link href={`/biblioteka/ksiegi?miejsce=${m.id}`} className="odn w-fit" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>pełny spis z paskiem lat →</Link>

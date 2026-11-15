@@ -147,13 +147,14 @@ export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyz
                                 {g.nieprzypisane && <p className="text-[var(--tekst-opis)]" style={male}>Brak potwierdzonego powiązania w danych. Księgi pozostają dostępne w katalogu, zamiast znikać z wyników.</p>}
                                 {par && (
                                     <p className="text-[var(--tekst-opis)]" style={{ ...male, margin: 0 }}>
-                                        {[WYZNANIA_PARAFII[par.wyznanie] ?? par.wyznanie, par.czas && formatujEdtf(par.czas), par.diecezja].filter(Boolean).join(' · ')}
+                                        {[WYZNANIA_PARAFII[par.wyznanie] ?? par.wyznanie, par.czas && `okres: ${formatujEdtf(par.czas)}`, par.diecezja].filter(Boolean).join(' · ')}
                                         {par.siedziba && nazwyMiejsc[par.siedziba] && <> · siedziba: <Link href={`/miejsca/${par.siedziba}`} className="odn">{nazwyMiejsc[par.siedziba]}</Link></>}
                                         {' · '}<Link href={`/parafie/${par.id}`} className="odn">karta parafii / urzędu →</Link>
                                     </p>
                                 )}
                                 <PasekLat ksiegi={g.ksiegi} />
-                                <TabelaKsiag ksiegi={g.ksiegi} nazwyMiejsc={nazwyMiejsc} nazwyParafii={nazwyParafii} kotwiceKsieg={g.kotwice} />
+                                <TabelaKsiag ksiegi={g.ksiegi} nazwyMiejsc={nazwyMiejsc} nazwyParafii={nazwyParafii} kotwiceKsieg={g.kotwice}
+                                    kontekst={g.nieprzypisane ? undefined : widok === 'miejscowosci' ? { miejsce: g.id } : { instytucja: g.id }} />
                             </div>
                         </details>
                     )

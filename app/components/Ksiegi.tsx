@@ -2,9 +2,9 @@
 // rodzaju ksiąg) i tabela z miejscem przechowania, sygnaturą i odnośnikami.
 import * as React from 'react'
 import type { Ksiega } from '@/lib/archiwum'
+import { KartaPozycji, OdnosnikZewn as Odnosnik, Wiersz } from './KartaPozycji'
 import { RODZAJE_KSIAG, DOSTEP_KSIAG, KOLEJNOSC_KSIAG } from '@/lib/ksiegi'
 
-const LINIA = 'border-[var(--linia-podzialu)]'
 const male = { fontSize: 'calc(13px * var(--font-scale, 1))' }
 
 /** Zakres osi: od pełnej dekady przed najstarszą księgą do pełnej dekady po najmłodszej. */
@@ -57,76 +57,63 @@ export function PasekLat({ ksiegi, os }: { ksiegi: Ksiega[]; os?: [number, numbe
 
 const ileTomow = (n: number) => `${n} ${n === 1 ? 'tom' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'tomy' : 'tomów'}`
 
-function Odnosnik({ href, children }: { href: string; children: React.ReactNode }) {
-    return <a href={href} target="_blank" rel="noopener noreferrer">{children} ↗</a>
-}
-
-export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg }: { ksiegi: Ksiega[]; /** id wsi → nazwa */ nazwyMiejsc?: Record<string, string>; /** id instytucji → nazwa */ nazwyParafii?: Record<string, string>; /** Dla powtórzonych ksiąg w grupach: identyfikator DOM tylko w jednej grupie. */ kotwiceKsieg?: ReadonlySet<string> }) {
+/**
+ * P7F-3: księgi jako karty w stylu kart osoby i obiektu (wspólna tabela karty: nagłówek części + wiersze etykieta–wartość).
+ * Nagłówek: rodzaje aktów i lata. Bez powtórzeń: miejscowość / instytucja z kontekstu (grupa katalogu, karta miejscowości,
+ * karta instytucji) nie jest powtarzana w każdej księdze. Odnośniki z nazwą serwisu; brak skanów – słownie, skąd je wziąć.
+ */
+export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg, kontekst }: {
+    ksiegi: Ksiega[]
+    /** id wsi → nazwa */ nazwyMiejsc?: Record<string, string>
+    /** id instytucji → nazwa */ nazwyParafii?: Record<string, string>
+    /** Dla powtórzonych ksiąg w grupach: identyfikator DOM tylko w jednej grupie. */ kotwiceKsieg?: ReadonlySet<string>
+    /** miejscowość albo instytucja, w której kontekście pokazujemy księgi – nie powtarzamy jej w każdej karcie */
+    kontekst?: { miejsce?: string; instytucja?: string }
+}) {
     if (!ksiegi.length) return null
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full border-collapse tabela-karty" style={{ fontSize: 'calc(14px * var(--font-scale, 1))', tableLayout: 'fixed', minWidth: '34rem' }}>
-                <colgroup><col style={{ width: '22%' }} /><col style={{ width: '30%' }} /><col style={{ width: '28%' }} /><col style={{ width: '20%' }} /></colgroup>
-                <thead>
-                    <tr className={`border-b ${LINIA} text-left text-[var(--tekst-opis)]`} style={male}>
-                        <th className="font-normal py-1 pr-3">rodzaj</th>
-                        <th className="font-normal py-1 pr-3">lata</th>
-                        <th className="font-normal py-1 pr-3">gdzie i sygnatura</th>
-                        <th className="font-normal py-1">dostęp</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {ksiegi.map((k) => (
-                        <React.Fragment key={k.id}>
-                        <tr id={!kotwiceKsieg || kotwiceKsieg.has(k.id) ? `ksiega-${k.id}` : undefined} className={`${k.jednostki.length ? '' : 'border-b '}border-[var(--linia-podzialu)] align-top scroll-mt-6`}>
-                            <td data-etykieta="rodzaj" className="py-1.5 pr-3">
-                                <strong className="block">{k.nazwa}</strong>
-                                {k.rodzaje.map((r) => RODZAJE_KSIAG[r] ?? r).join(', ')}
-                                {k.miejsca.length > 0 && <span className="block text-[var(--tekst-etykieta)]" style={male}>dotyczy: {k.miejsca.map((m) => nazwyMiejsc?.[m] ?? m).join(', ')}</span>}
-                                {nazwyParafii && k.instytucje.length > 0 && <span className="block text-[var(--tekst-etykieta)]" style={male}>instytucje: {k.instytucje.map((id) => nazwyParafii[id] ?? id).join(', ')}</span>}
-                            </td>
-                            <td data-etykieta="lata" className="py-1.5 pr-3">
-                                <span className="font-bold">{k.lata}</span>
-                                {(k.braki || k.jezyk) && <span className="block text-[var(--tekst-etykieta)]" style={male}>{[k.braki, k.jezyk].filter(Boolean).join(' · ')}</span>}
-                            </td>
-                            <td data-etykieta="gdzie i sygnatura" className="py-1.5 pr-3">
-                                {k.gdzie || <span className="brak-danych">jeszcze nie opracowane</span>}
-                                {k.sygnatura && <span className="block text-[var(--tekst-etykieta)]" style={male}>{k.sygnatura}</span>}
-                            </td>
-                            <td data-etykieta="dostęp" className="py-1.5">
-                                <span className="flex flex-wrap" style={{ gap: '2px 10px' }}>
-                                    {k.skany && <Odnosnik href={k.skany}>skany</Odnosnik>}
-                                    {k.indeks && <Odnosnik href={k.indeks}>indeks</Odnosnik>}
-                                    {!k.skany && !k.indeks && <span className="text-[var(--tekst-etykieta)]">{DOSTEP_KSIAG[k.dostep] ?? k.dostep}</span>}
-                                </span>
-                            </td>
-                        </tr>
+        <div className="karty-ksiag">
+            {ksiegi.map((k) => {
+                const miejsca = k.miejsca.filter((m) => m !== kontekst?.miejsce)
+                const instytucje = k.instytucje.filter((i) => i !== kontekst?.instytucja)
+                const rodzaje = k.rodzaje.map((r) => RODZAJE_KSIAG[r] ?? r).join(' · ')
+                return (
+                    <KartaPozycji key={k.id} id={!kotwiceKsieg || kotwiceKsieg.has(k.id) ? `ksiega-${k.id}` : undefined}
+                        etykieta={`${rodzaje}, ${k.lata}`} tytul={rodzaje || 'księga'} prawa={k.lata}>
+                        <Wiersz e="luki i uwagi">{k.braki}</Wiersz>
+                        <Wiersz e="język">{k.jezyk}</Wiersz>
+                        <Wiersz e="przechowuje">{k.gdzie || <span className="brak-danych">jeszcze nie opracowane</span>}</Wiersz>
+                        <Wiersz e="sygnatura">{k.sygnatura}</Wiersz>
+                        <Wiersz e="skany">{k.skany ? <Odnosnik href={k.skany}>{k.jednostki.length ? 'skany zespołu' : 'zobacz skany'}</Odnosnik>
+                            : k.jednostki.some((j) => j.skany) ? 'przy poszczególnych tomach – niżej'
+                            : <span className="ks-brak">{DOSTEP_KSIAG[k.dostep] ?? k.dostep}</span>}</Wiersz>
+                        <Wiersz e="indeks">{k.indeks && <Odnosnik href={k.indeks}>indeks aktów</Odnosnik>}</Wiersz>
+                        <Wiersz e="miejscowości">{miejsca.length > 0 && miejsca.map((m) => nazwyMiejsc?.[m] ?? m).join(', ')}</Wiersz>
+                        <Wiersz e={instytucje.length > 1 ? 'instytucje' : 'instytucja'}>{nazwyParafii && instytucje.length > 0 && instytucje.map((id) => nazwyParafii[id] ?? id).join(', ')}</Wiersz>
+                        <Wiersz e="tytuł w archiwum">{k.nazwa}</Wiersz>
                         {k.jednostki.length > 0 && (
-                            <tr className="border-b border-[var(--linia-podzialu)]">
-                                <td colSpan={4} className="pb-2">
-                                    <details className="ksiega-tomy" style={male}>
-                                        <summary>{ileTomow(k.jednostki.length)}: roczniki, sygnatury, skany</summary>
-                                        <ul>
-                                            {k.jednostki.map((j, i) => (
-                                                <li key={i}>
-                                                    <b>{j.lata}</b>
-                                                    {j.sygnatura && <span className="text-[var(--tekst-etykieta)]"> {j.sygnatura}</span>}
-                                                    {j.skany && <> <Odnosnik href={j.skany}>skany</Odnosnik></>}
-                                                    {j.digitalizacja === 'brak' && <span className="text-[var(--tekst-etykieta)]"> · bez skanów online</span>}
-                                                    {j.liczbaSkanow !== null && <span className="text-[var(--tekst-etykieta)]"> · {j.liczbaSkanow} skanów</span>}
-                                                    {j.tytul && <span className="block text-[var(--tekst-etykieta)]">{j.tytul}</span>}
-                                                    {j.uwagi && <span className="block text-[var(--tekst-etykieta)]">{j.uwagi}</span>}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </details>
-                                </td>
-                            </tr>
+                            <div className="ot-cala">
+                                <details className="ksiega-tomy" style={male}>
+                                    <summary>{ileTomow(k.jednostki.length)}: roczniki, sygnatury, skany</summary>
+                                    <ul>
+                                        {k.jednostki.map((j, i) => (
+                                            <li key={i}>
+                                                <b>{j.lata}</b>
+                                                {j.sygnatura && <span className="text-[var(--tekst-etykieta)]"> · {j.sygnatura}</span>}
+                                                {j.skany && <> · <Odnosnik href={j.skany}>skany</Odnosnik></>}
+                                                {j.digitalizacja === 'brak' && <span className="text-[var(--tekst-etykieta)]"> · bez skanów online</span>}
+                                                {j.liczbaSkanow !== null && j.liczbaSkanow > 0 && <span className="text-[var(--tekst-etykieta)]"> · {j.liczbaSkanow} skanów</span>}
+                                                {j.tytul && j.tytul !== k.nazwa && <span className="block text-[var(--tekst-etykieta)]">{j.tytul}</span>}
+                                                {j.uwagi && <span className="block text-[var(--tekst-etykieta)]">{j.uwagi}</span>}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </details>
+                            </div>
                         )}
-                        </React.Fragment>
-                    ))}
-                </tbody>
-            </table>
+                    </KartaPozycji>
+                )
+            })}
         </div>
     )
 }

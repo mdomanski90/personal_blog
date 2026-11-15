@@ -1535,3 +1535,43 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
   .dok-pelny .dok-srodek{flex-direction:column;gap:8px}
   .dok-bok{flex:0 0 auto;max-height:38vh}
 }
+
+/* ============================================ */
+/* P7F-1 · PEŁNY WIDOK WPISU – NIC NIE UCIĘTE    */
+/* ============================================ */
+/* skan wstawiony we wpis: cały obraz (bez kadru z cieniowaniem), najwyżej na wysokość okna, wyśrodkowany */
+.post-content .dok-kadr{display:flex;justify-content:center;max-height:none;overflow:visible;border-radius:0}
+.post-content .dok-kadr img,.post-content figure.material-wstawka[data-dokument] .dok-kadr img{width:auto;max-width:100%;max-height:85vh;height:auto;object-fit:contain}
+.post-content .dok-kadr .dok-kadr-cien,.post-content .dok-kadr .dok-kadr-przycisk{display:none!important}
+@media (max-width:640px){.post-content .dok-kadr{max-height:none}.post-content .dok-kadr img{max-height:75vh}}
+/* zwykłe obrazy i tabele we wpisie – nigdy nie wychodzą poza kolumnę, szerokie tabele przewijają się w poziomie */
+.post-content figure,.post-content img,.post-content video,.post-content iframe{max-width:100%}
+.post-content table{display:block;max-width:100%;overflow-x:auto}
+/* P7F-2 · lista obiektów (tarcza + nazwa) – karty miejscowości i instytucji */
+.lista-obiektow{display:flex;flex-direction:column;gap:8px;margin:0 0 8px;padding:0;list-style:none}
+.lista-obiektow li{display:flex;align-items:flex-start;gap:10px;min-height:28px}
+.lo-tarcza{display:inline-flex;flex:none;margin-top:1px}
+.lo-tresc{display:flex;flex-direction:column;gap:1px;min-width:0}
+.lo-dopisek{font-size:calc(13px * var(--font-scale,1));color:var(--tekst-etykieta)}
+.lista-pozycja--z-tarcza{flex-direction:row;align-items:flex-start;gap:12px}
+
+/* ============================================ */
+/* P7F-3 · KSIĘGI JAKO KARTY (styl kart osoby/obiektu) */
+/* ============================================ */
+.karty-ksiag{display:flex;flex-direction:column;gap:12px}
+.karta-pozycji .ot-nagl h3{margin:0;font-size:calc(15px * var(--font-scale,1));font-weight:700;color:var(--tekst)}
+.karta-pozycji .ks-lata{font-weight:700;color:var(--tekst);font-size:calc(14px * var(--font-scale,1))}
+.ks-serwis{color:var(--tekst-etykieta);font-weight:400}
+.ks-brak{color:var(--tekst-opis)}
+.karta-pozycji .ksiega-tomy ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+/* karta księgi: zwarta – wiele ksiąg pod sobą */
+.karta-pozycji>.ot-w{padding-top:5px;padding-bottom:5px;min-height:0}
+.karta-pozycji>.ot-w .ot-e,.karta-pozycji>.ot-w .ot-t{font-size:calc(14px * var(--font-scale,1))}
+.karta-pozycji>.ot-nagl{padding-top:8px;padding-bottom:8px}
+.odp .karta-pozycji a.kp-tytul{color:var(--tekst);text-decoration:none}
+.odp .karta-pozycji a.kp-tytul:hover{color:var(--akcent);text-decoration:underline}
+.karta-pozycji .kp-prawa{font-weight:700;color:var(--tekst);font-size:calc(14px * var(--font-scale,1))}
+.karta-pozycji>.ot-nagl .kp-prawa{font-weight:700;color:var(--tekst);font-size:calc(14px * var(--font-scale,1))}
+/* kontrast nocą: szarości ksiąg z tokenu etykiety zamiast stałego rgb(107 114 128) */
+.ksiega-tomy>summary,.pasek-lat-lata{color:var(--tekst-etykieta)}
+.ksiega-tomy>summary:hover{color:var(--tekst)}

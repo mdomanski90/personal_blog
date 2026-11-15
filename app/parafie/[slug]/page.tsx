@@ -1,3 +1,4 @@
+import * as React from 'react'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
@@ -9,6 +10,7 @@ import { Strona } from '../../components/Uklad'
 import { Czesc, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke } from '../../components/Karta'
 import { PasekLat, TabelaKsiag } from '../../components/Ksiegi'
 import CopyLinkButton from '../../components/CopyLinkButton'
+import ListaObiektow from '../../components/ListaObiektow'
 
 export const dynamic = 'force-dynamic'
 type Parametry = { params: Promise<{ slug: string }> }
@@ -65,13 +67,14 @@ export default async function ParafiaStrona({ params }: Parametry) {
 
                 {budynki.length > 0 && <Czesc tytul="powiązane obiekty" id="obiekty">{budynki.length}</Czesc>}
                 {budynki.length > 0 && <WCaly>
-                    <ul className="karta-lista">
-                        {budynki.map(({ obiekt: o, relacje }) => <li key={o.id}>
-                            <Link href={`/obiekty/${o.id}`} className="odn">{o.nazwa}</Link>
-                            <span>{[RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, relacje.map((r) => zapiszOkres(r.od, r.do)).join(', ')].filter(Boolean).join(' · ')}</span>
-                            {relacje.some((r) => r.zrodlo) && <span>{relacje.filter((r) => r.zrodlo).map((r, i) => <span key={i}><ZAdresami tekst={r.zrodlo} />{i < relacje.filter((r) => r.zrodlo).length - 1 ? ' · ' : ''}</span>)}</span>}
-                        </li>)}
-                    </ul>
+                    {/* P7F-2: ta sama lista obiektów co na karcie miejscowości – tarcza rodzaju, nazwa, okres przynależności, źródło */}
+                    <ListaObiektow pozycje={budynki.map(({ obiekt: o, relacje }) => ({
+                        id: o.id, nazwa: o.nazwa, rodzaj: o.rodzaj, nazwaRodzaju: RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, istnieje: o.istnieje,
+                        dopisek: (relacje.some((r) => r.od || r.do) || relacje.some((r) => r.zrodlo)) ? <>
+                            {relacje.map((r) => zapiszOkres(r.od, r.do)).filter(Boolean).join(', ')}
+                            {relacje.filter((r) => r.zrodlo).map((r, i) => <React.Fragment key={i}> · <ZAdresami tekst={r.zrodlo} /></React.Fragment>)}
+                        </> : undefined,
+                    }))} />
                 </WCaly>}
 
                 {osobyInstytucji.length > 0 && <Czesc tytul="osoby związane z instytucją" id="osoby">{osobyInstytucji.length}</Czesc>}
@@ -90,7 +93,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
                 {spisKsieg.length > 0 && <WCaly>
                     <div className="flex flex-col" style={{ gap: 12 }}>
                         <PasekLat ksiegi={spisKsieg} />
-                        <TabelaKsiag ksiegi={spisKsieg} nazwyMiejsc={nazwyMiejsc} />
+                        <TabelaKsiag ksiegi={spisKsieg} nazwyMiejsc={nazwyMiejsc} kontekst={{ instytucja: p.id }} />
                         <Link href={`/biblioteka/ksiegi?widok=parafie#${encodeURIComponent(p.id)}`} className="odn" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>pełny katalog ksiąg →</Link>
                     </div>
                 </WCaly>}
