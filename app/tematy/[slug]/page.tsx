@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import { Link } from 'next-view-transitions'
 import { nazwy, opowiesciDlaTematu, materialyDla, powiazania, poziomCzytelnika, kontekstTresci, RODZAJE_TEMATOW, temat, tematy } from '@/lib/archiwum'
 import { formatujEdtf } from '@/lib/edtf'
@@ -25,7 +25,7 @@ export default async function TematStrona({ params }: Parametry) {
     const { slug } = await params
     const poziom = await poziomCzytelnika()
     const t = await temat(slug, poziom)
-    if (!t) notFound()
+    if (!t) return brakLubPrzekierowanie('tematy', slug)
     const n = await nazwy(poziom)
     const ktx = await kontekstTresci(poziom)
     const opow = await opowiesciDlaTematu(t.id, poziom)

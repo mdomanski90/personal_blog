@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
+import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import OtworzWMapach from '../../components/OtworzWMapach'
-import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
 import { licznikiMiejsc, materialy, miejsca, miejsce, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, opisWyznan, materialyDla, powiazania, kontekstTresci, ksiegiDlaMiejsca, parafie } from '@/lib/archiwum'
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
@@ -34,7 +34,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const { slug } = await params
     const poziom = await poziomCzytelnika()
     const m = await miejsce(slug, poziom)
-    if (!m) notFound()
+    if (!m) return brakLubPrzekierowanie('miejsca', slug)
 
     const wszystkie = await miejsca(poziom)
     const nadrzedne = m.nalezyDo ? wszystkie.find((x) => x.id === m.nalezyDo) : null

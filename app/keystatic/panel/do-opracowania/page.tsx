@@ -4,7 +4,7 @@ import * as React from 'react'
 type Stan = 'aktywne' | 'odlozone' | 'ignorowane'
 type Uwaga = { id: string; kolekcja: string; rekord: string; tytul: string; regula: string; opis: string; wskazowka: string; edytuj: string; stan: Stan; notatka: string }
 const API = '/api/keystatic/panel/jakosc'
-const NAZWY: Record<string,string> = { miejsca: 'miejscowości', obiekty:'obiekty', parafie:'instytucje', materialy:'materiały archiwalne', ksiegi:'księgi', publikacje:'publikacje', zbiory:'zbiory', posts:'wpisy', tematy:'tematy', hasla:'słownik', zespoly:'zespoły', biogramy:'biogramy' }
+const NAZWY: Record<string,string> = { miejsca: 'miejscowości', obiekty:'obiekty', parafie:'instytucje', materialy:'materiały archiwalne', ksiegi:'księgi', publikacje:'publikacje', zbiory:'zbiory', posts:'wpisy', tematy:'tematy', hasla:'słownik', zespoly:'zespoły', biogramy:'biogramy', przekierowania:'przekierowania adresów' }
 
 export default function DoOpracowania() {
     const [lista, ustaw] = React.useState<Uwaga[]>([])

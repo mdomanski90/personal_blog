@@ -36,3 +36,28 @@ test('P6: kolejkowanie, trwałe ignorowanie i automatyczne domknięcie ostrzeże
         await fs.rm(tmp, { recursive: true, force: true })
     }
 })
+
+test('0C: powiązanie do nieistniejącego wpisu i błędne przekierowania (dane syntetyczne)', async () => {
+    const przed = process.cwd()
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'odniepamieci-0c-test-'))
+    try {
+        process.chdir(tmp)
+        for (const k of ['miejsca', 'parafie', 'ksiegi', '_panel']) await fs.mkdir(`content/${k}`, { recursive: true })
+        await fs.writeFile('content/miejsca/wies-a.mdoc', `---\ntitle: Wieś A\ntype: wies\n---\nOpis.\n`)
+        await fs.writeFile('content/parafie/urzad-nowy.yaml', `title: Urząd nowy\n`)
+        await fs.writeFile('content/ksiegi/ksiega-a.yaml', `title: Księga A\nparish: urzad-stary\nspatial:\n  - wies-a\n  - wies-usunieta\nrepository: Archiwum\nidentifier: 1/2/3\nyears: 1800\n`)
+        await fs.writeFile('content/_panel/przekierowania.json', JSON.stringify({ wpisy: [
+            { rodzaj: 'parafie', stary: 'urzad-stary', nowy: 'urzad-nowy' },
+            { rodzaj: 'miejsca', stary: 'wies-a', nowy: 'wies-b' },
+            { rodzaj: 'parafie', stary: 'inny-stary', nowy: 'nie-ma-takiego' },
+        ] }))
+        const w = await uwagiJakosci()
+        const rel = w.filter((x) => x.regula === 'relacja-do-nieistniejacego' && x.rekord === 'ksiega-a')
+        assert.equal(rel.length, 2, JSON.stringify(rel.map((x) => x.opis)))
+        assert.ok(rel.some((x) => x.opis.includes('urzad-stary') && x.wskazowka.includes('urzad-nowy')))
+        assert.ok(rel.some((x) => x.opis.includes('wies-usunieta')))
+        assert.ok(!rel.some((x) => x.opis.includes('„wies-a”')))
+        const prz = w.filter((x) => x.regula === 'przekierowanie-bledne').map((x) => x.opis).sort()
+        assert.deepEqual(prz, ['Nowy identyfikator nie istnieje', 'Stary identyfikator nadal istnieje'])
+    } finally { process.chdir(przed); await fs.rm(tmp, { recursive: true, force: true }) }
+})

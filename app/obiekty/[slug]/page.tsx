@@ -1,7 +1,7 @@
 import { parafie } from '@/lib/archiwum'
+import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import { zapiszOkres } from '@/lib/parafie-powiazania'
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
 import { miejsca, obiekt, obiekty, materialyDla, powiazania, poziomCzytelnika, kontekstTresci, RODZAJE_OBIEKTOW } from '@/lib/archiwum'
 import { formatujEdtf } from '@/lib/edtf'
@@ -37,7 +37,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     const { slug } = await params
     const poziom = await poziomCzytelnika()
     const o = await obiekt(slug, poziom)
-    if (!o) notFound()
+    if (!o) return brakLubPrzekierowanie('obiekty', slug)
     const wszystkie = await miejsca(poziom)
     const listaParafii = await parafie()
     const wies = o.miejsce ? wszystkie.find((m) => m.id === o.miejsce) : undefined

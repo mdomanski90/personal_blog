@@ -1,6 +1,6 @@
 import * as React from 'react'
+import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
 import { Link } from 'next-view-transitions'
 import { ksiegi, miejsca, obiekty, parafie, poziomCzytelnika, RODZAJE_OBIEKTOW, materialy } from '@/lib/archiwum' // PACZKA5_2026
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
@@ -28,7 +28,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
         parafie(), miejsca(poziom), obiekty(poziom), ksiegi(poziom),
     ])
     const p = instytucje.find((x) => x.id === slug)
-    if (!p) notFound()
+    if (!p) return brakLubPrzekierowanie('parafie', slug)
     const matInstytucji = (await materialy(poziom)).filter(m => m.instytucje.includes(p.id))
     const siedziba = p.siedziba ? wszystkieMiejsca.find((m) => m.id === p.siedziba) : null
     const miejscowosci = miejscowosciInstytucji(p.id, wszystkieMiejsca)

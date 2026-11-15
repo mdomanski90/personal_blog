@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import { nazwy, opowiesc, powiazania, poziomCzytelnika, kontekstTresci } from '@/lib/archiwum'
 import { naHtml } from '@/lib/markdoc'
 import { Kreski, Strona, Tresc, TytulStrony } from '../../components/Uklad'
@@ -24,7 +24,7 @@ export default async function OpowiescStrona({ params }: Parametry) {
     const { slug } = await params
     const poziom = await poziomCzytelnika()
     const o = await opowiesc(slug, poziom)
-    if (!o) notFound()
+    if (!o) return brakLubPrzekierowanie('wpisy', slug)
     const n = await nazwy(poziom)
     const siec = await powiazania('wpis', o.id, poziom)
 

@@ -6,6 +6,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import matter from 'gray-matter'
+import { wczytajPrzekierowania, celPrzekierowania, RODZAJE_PRZEKIEROWAN } from '../przekierowania'
 
 export type StanUwagi = 'aktywne' | 'odlozone' | 'ignorowane'
 export type UwagaJakosci = {
@@ -18,7 +19,8 @@ const REGULY = [
     'bez-opisu', 'brak-wspolrzednych', 'brak-zrodla-opisu', 'przynaleznosc-bez-dat',
     'brak-miejscowosci', 'brak-siedziby', 'brak-pochodzenia', 'brak-praw',
     'brak-lat', 'brak-archiwum', 'brak-sygnatury', 'brak-autora',
-    'brak-roku', 'brak-linku', 'brak-definicji', 'brak-instytucji'
+    'brak-roku', 'brak-linku', 'brak-definicji', 'brak-instytucji',
+    'relacja-do-nieistniejacego', 'przekierowanie-bledne'
 ] as const
 const KOLEKCJE = ['posts', 'miejsca', 'tematy', 'obiekty', 'materialy', 'zbiory', 'publikacje', 'parafie', 'hasla', 'biogramy', 'zespoly', 'ksiegi'] as const
 const DB = () => path.join(process.cwd(), 'content', '_panel', 'jakosc.json')
@@ -74,11 +76,42 @@ async function rekordy(kolekcja: typeof KOLEKCJE[number]): Promise<{ slug: strin
     return result
 }
 
+/**
+ * Etap 0C (audyt nr 2, REL-06): pola powiązań → kolekcja docelowa. „[]” = pole listy, „x[].y” = pole w liście obiektów.
+ * Zgodne z keystatic.config.ts; nowe pole powiązania trzeba tu dopisać (test sprawdza zgodność).
+ */
+export const POWIAZANIA: Record<string, [string, string][]> = {
+    posts: [['spatial[]', 'miejsca'], ['subject[]', 'tematy'], ['cover', 'materialy']],
+    miejsca: [['isPartOf', 'miejsca'], ['parishes[].parish', 'parafie']],
+    tematy: [['spatial[]', 'miejsca']],
+    obiekty: [['spatial', 'miejsca'], ['institutions[].parish', 'parafie']],
+    materialy: [['spatial[]', 'miejsca'], ['subject[]', 'tematy'], ['relation[]', 'obiekty'], ['collections[]', 'zbiory'], ['institutions[]', 'parafie']],
+    publikacje: [['spatial[]', 'miejsca'], ['subject[]', 'tematy']],
+    parafie: [['seat', 'miejsca']],
+    ksiegi: [['fonds', 'zespoly'], ['parish', 'parafie'], ['relatedParishes[]', 'parafie'], ['spatial[]', 'miejsca']],
+}
+const NAZWY_POL: Record<string, string> = { spatial: 'miejsca', subject: 'tematy', cover: 'miniatura', isPartOf: 'należy do', parishes: 'parafie', institutions: 'instytucje', relation: 'przedstawia obiekty', collections: 'zbiory', seat: 'siedziba', fonds: 'zespół', parish: 'instytucja główna', relatedParishes: 'pozostałe instytucje' }
+const KOLEKCJA_RODZAJU: Record<string, string> = { miejsca: 'miejsca', parafie: 'parafie', obiekty: 'obiekty', tematy: 'tematy', wpisy: 'posts', archiwum: 'materialy' }
+const RODZAJ_KOLEKCJI: Record<string, string> = Object.fromEntries(Object.entries(KOLEKCJA_RODZAJU).map(([r, k]) => [k, r]))
+
+/** Wartości pola powiązania z rekordu (obsługa „a[]” i „a[].b”). */
+export function wartosciPola(d: Record<string, unknown>, sciezka: string): string[] {
+    const [glowa, ogon] = sciezka.split('[].')
+    if (ogon !== undefined) return Array.isArray(d[glowa]) ? (d[glowa] as unknown[]).flatMap((x) => x && typeof x === 'object' && typeof (x as Record<string, unknown>)[ogon] === 'string' ? [(x as Record<string, string>)[ogon]] : []) : []
+    const k = sciezka.replace('[]', ''), v = d[k]
+    if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string' && x.trim() !== '')
+    return typeof v === 'string' && v.trim() ? [v] : []
+}
+
 export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
     const stany = await pamiec()
     const wynik: UwagaJakosci[] = []
+    const wszystkie = new Map<string, Awaited<ReturnType<typeof rekordy>>>()
+    for (const k of KOLEKCJE) wszystkie.set(k, await rekordy(k))
+    const istnieje = new Map([...wszystkie].map(([k, l]) => [k, new Set(l.map((r) => r.slug))]))
+    const przekierowania = await wczytajPrzekierowania()
     for (const kolekcja of KOLEKCJE) {
-        const lista = await rekordy(kolekcja)
+        const lista = wszystkie.get(kolekcja)!
         for (const r of lista) {
             const d = r.d
             const tytul = nazwa(d.title) || nazwa(d.name) || r.slug
@@ -127,10 +160,36 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
                 if (!pole(d,'repository')) dodaj('brak-archiwum','Brak miejsca przechowywania','Uzupełnij archiwum lub inną instytucję przechowującą.')
                 if (!pole(d,'identifier','fonds') && !pole(d,'volumes')) dodaj('brak-sygnatury','Brak identyfikatora księgi','Ustal sygnaturę lub powiąż z zespołem.')
             }
+            for (const [sciezka, cel] of POWIAZANIA[kolekcja] ?? []) {
+                const zbior = istnieje.get(cel)
+                if (!zbior) continue
+                wartosciPola(d, sciezka).forEach((id, i) => {
+                    if (zbior.has(id)) return
+                    const rodzaj = RODZAJ_KOLEKCJI[cel], nowy = rodzaj ? celPrzekierowania(przekierowania, rodzaj, id) : null
+                    const pole_ = NAZWY_POL[sciezka.split('[')[0]] ?? sciezka
+                    dodaj('relacja-do-nieistniejacego', `Powiązanie „${pole_}” wskazuje „${id}”, którego nie ma`,
+                        nowy ? `W przekierowaniach: „${id}” → „${nowy}”. Wybierz nowy wpis w tym polu.` : 'Identyfikator zmieniono albo wpis usunięto. Wybierz właściwy wpis w tym polu albo usuń powiązanie.', i + 100 * (POWIAZANIA[kolekcja].findIndex((x) => x[0] === sciezka)))
+                })
+            }
             if (kolekcja === 'hasla' && !pole(d,'meaning')) dodaj('brak-definicji','Hasło bez definicji','Uzupełnij znaczenie słowa.')
             if (kolekcja === 'zespoly' && !pole(d,'repository')) dodaj('brak-archiwum','Brak instytucji przechowującej','Uzupełnij archiwum.')
         }
     }
+    // tabela przekierowań: nowy musi istnieć, stary nie może istnieć (inaczej przekierowanie nigdy nie zadziała)
+    przekierowania.forEach((w, i) => {
+        const kol = KOLEKCJA_RODZAJU[w.rodzaj]
+        const zbior = kol ? istnieje.get(kol) : undefined
+        if (!zbior) return
+        const id = key('przekierowania', w.stary || String(i), 'przekierowanie-bledne', i)
+        const dodaj = (opis: string, wskazowka: string) => {
+            const dec = stany.decyzje[id]
+            wynik.push({ id, kolekcja: 'przekierowania', rekord: w.stary, tytul: `${RODZAJE_PRZEKIEROWAN[w.rodzaj as keyof typeof RODZAJE_PRZEKIEROWAN]?.etykieta ?? w.rodzaj}: ${w.stary} → ${w.nowy}`, regula: 'przekierowanie-bledne', opis, wskazowka,
+                edytuj: '/keystatic/singleton/przekierowania', stan: dec?.stan ?? 'aktywne', notatka: dec?.notatka ?? '' })
+        }
+        const cel = celPrzekierowania(przekierowania, w.rodzaj, w.stary)
+        if (zbior.has(w.stary)) dodaj('Stary identyfikator nadal istnieje', 'Przekierowanie nie zadziała, dopóki wpis o starym identyfikatorze istnieje. Usuń wpis z tabeli albo zmień identyfikator.')
+        else if (!cel || !zbior.has(cel)) dodaj('Nowy identyfikator nie istnieje', 'Wpisz identyfikator istniejącego wpisu – inaczej stary adres nadal da „nie znaleziono”.')
+    })
     return wynik.sort((a,b) => a.kolekcja.localeCompare(b.kolekcja,'pl') || a.tytul.localeCompare(b.tytul,'pl') || a.regula.localeCompare(b.regula,'pl'))
 }
 

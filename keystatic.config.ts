@@ -165,7 +165,7 @@ export default config({
       'Biblioteka': ['publikacje'],
       'Księgi metrykalne': ['parafie', 'ksiegi'],
       'Słownik': ['hasla'],
-      'Strony': ['stronaGlowna', 'wstepyDzialow', 'oProjekcie'],
+      'Strony': ['stronaGlowna', 'wstepyDzialow', 'oProjekcie', 'przekierowania'],
     },
   },
   collections: {
@@ -626,6 +626,30 @@ export default config({
     }),
   },
   singletons: {
+    przekierowania: singleton({
+      label: 'Przekierowania adresów',
+      path: 'content/_panel/przekierowania',
+      format: { data: 'json' },
+      schema: {
+        wpisy: fields.array(
+          fields.object({
+            rodzaj: fields.select({
+              label: 'Rodzaj',
+              options: [
+                { label: 'miejscowość', value: 'miejsca' }, { label: 'parafia / urząd', value: 'parafie' },
+                { label: 'obiekt', value: 'obiekty' }, { label: 'temat', value: 'tematy' },
+                { label: 'wpis', value: 'wpisy' }, { label: 'materiał archiwalny', value: 'archiwum' },
+              ],
+              defaultValue: 'parafie',
+            }),
+            stary: fields.text({ label: 'Stary identyfikator', description: 'Część adresu po ukośniku, np. gmina-prochenki-powiat-losice.', validation: { isRequired: true } }),
+            nowy: fields.text({ label: 'Nowy identyfikator', description: 'Istniejący wpis. Przy podziale wybierz ten, który najlepiej zastępuje stary.', validation: { isRequired: true } }),
+            uwaga: fields.text({ label: 'Uwaga (dla Ciebie)' }),
+          }),
+          { label: 'Przekierowania', description: 'Stary adres po zmianie identyfikatora prowadzi do nowego (zamiast „nie znaleziono”). Panel jakości sprawdza, czy nowy istnieje.', itemLabel: (p) => `${p.fields.stary.value || '…'} → ${p.fields.nowy.value || '…'}` },
+        ),
+      },
+    }),
     wstepyDzialow: singleton({
       label: 'Wstępy działów',
       path: 'content/_panel/wstepy-dzialow',

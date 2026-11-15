@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import { kontekstTresci, material, nazwy, obiekty, objasnieniaDoWidoku, powiazania, poziomCzytelnika } from '@/lib/archiwum'
 import { RODZAJE_MATERIALOW } from '@/lib/materialy'
 import { formatujEdtf } from '@/lib/edtf'
@@ -38,7 +38,7 @@ export default async function MaterialStrona({ params }: Parametry) {
     const { slug } = await params
     const poziom = await poziomCzytelnika()
     const m = await material(slug, poziom)
-    if (!m) notFound()
+    if (!m) return brakLubPrzekierowanie('archiwum', slug)
     const n = await nazwy(poziom)
     const nazwyObiektow = new Map((await obiekty(poziom)).map((o) => [o.id, o.nazwa]))
     const siec = await powiazania('material', m.id, poziom)
