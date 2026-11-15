@@ -8,7 +8,8 @@ type P = { params: Promise<{ slug: string }> }
 export async function GET(req: Request, { params }: P) {
     const b = brakDostepu(req); if (b) return b
     const s = await wczytajSzkic((await params).slug)
-    return s ? Response.json(s, { headers: { 'Cache-Control': 'no-store' } }) : Response.json({ blad: 'brak szkicu' }, { status: 404 })
+    // brak szkicu = null (200), żeby zwykłe wejście do edytora nie zostawiało błędu w konsoli
+    return Response.json(s ?? null, { headers: { 'Cache-Control': 'no-store' } })
 }
 
 export async function PUT(req: Request, { params }: P) {
