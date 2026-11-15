@@ -9,7 +9,7 @@ import {
     type Element, type Geometria, type Macierz, type Osoba, type Pkt, type Plan, type Podklad, type Zdjecie,
 } from '@/lib/plany/model'
 import { GRUPY, katalog, typGrobu, WARSTWY, type TypElementu, type UstawieniaPlanow, type Warstwa } from '@/lib/plany/typy'
-import { katWMiejscu, kopia, obrocGeom, pozycjaStempla, przesun, przyciagnij, przyciagnijKat, rozlozRowno, rozmiarBokiem, rozmiarGrobu, wektor, wyrownajWLinie, type Przyciaganie, type WzorStempla } from '@/lib/plany/edycja'
+import { katWMiejscu, kopia, obrocGeom, podgladDanych, przeniesDane, zamienDane, pozycjaStempla, przesun, przyciagnij, przyciagnijKat, rozlozRowno, rozmiarBokiem, rozmiarGrobu, wektor, wyrownajWLinie, type Przyciaganie, type WzorStempla } from '@/lib/plany/edycja'
 import { ETAPY, ETYKIETA_ETAPU, ETYKIETA_POLOZENIA, ETYKIETA_ZRODEL, etapElementu, polozenie, poZmianieDanych, STANY_ZRODEL, stanZrodel, type Etap, type Polozenie, type StanZrodel } from '@/lib/plany/statusy'
 import { odczytajExif } from '@/lib/plany/exif'
 import { RysunekPlanu, Wzory } from '@/app/components/plan/Rysunek'
@@ -988,7 +988,8 @@ export default function Edytor({ slug }: { slug: string }) {
                             <PanelWielu zaznaczone={zaznaczone} wzor={wzor} typy={typy} duplikuj={duplikuj} usun={usunZaznaczone} obroc={obrocZaznaczone}
                                 powielOtwarte={pw.otwarte} przelaczPowiel={() => ustawPw((s) => ({ ...s, otwarte: !s.otwarte }))}
                                 zmienWszystkie={(f) => zmienElementy(new Map(zaznaczone.map((e) => [e.id, f(e)])))}
-                                zastosuj={(m, t) => { if (!m.size) { pokaz('Nic do zmiany.'); return } zmienElementy(m); pokaz(t) }} />
+                                zastosuj={(m, t) => { if (!m.size) { pokaz('Nic do zmiany.'); return } zmienElementy(m); pokaz(t) }}
+                                numery={numery} wykonaj={(f, t) => { const w = f(plan.elementy); if ('blad' in w) { pokaz(w.blad); return } zmien((p) => ({ ...p, elementy: w })); pokaz(`${t} Ctrl+Z cofa całą operację.`) }} />
                         )
                     )}
                     {zakl === 'element' && pw.otwarte && zaznaczone.length > 0 && (
@@ -1310,7 +1311,55 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
     )
 }
 
-function PanelWielu({ zaznaczone, wzor, typy, duplikuj, usun, obroc, powielOtwarte, przelaczPowiel, zmienWszystkie, zastosuj }: {
+/** Przenieś / zamień dane dwóch zaznaczonych grobów: wybór operacji → podgląd skutku → zatwierdzenie (jeden krok cofania). */
+function DaneDwochGrobow({ a, b, numery, wykonaj }: {
+    a: Element; b: Element; numery: Map<string, { kwatera: string; rzad: number; miejsce: number }>
+    wykonaj: (f: (L: Element[]) => Element[] | { blad: string }, komunikat: string) => void
+}) {
+    const [op, ustawOp] = React.useState<null | 'zamien' | 'ab' | 'ba'>(null)
+    const pg = podgladDanych(a, b), odwr = podgladDanych(b, a)
+    const nA = etykietaNumeru(numery.get(a.id)) || 'grób 1', nB = etykietaNumeru(numery.get(b.id)) || 'grób 2'
+    const ma = (strona: 'a' | 'b', p: (typeof pg.pola)[number]) => {
+        if (op === 'zamien') return strona === 'a' ? p.b : p.a
+        if (op === 'ab') return strona === 'a' ? false : p.a
+        if (op === 'ba') return strona === 'a' ? p.b : false
+        return strona === 'a' ? p.a : p.b
+    }
+    return (
+        <div className="ed-sekcja">
+            <div className="ed-gt">dane dwóch grobów</div>
+            {!pg.pola.length ? <span className="ed-maly">Żaden z grobów nie ma danych.</span> : (
+                <table className="ed-tab">
+                    <caption className="ed-maly">{op ? 'po operacji' : 'teraz'} – ● pole wypełnione</caption>
+                    <thead><tr><th scope="col">pole</th><th scope="col">{nA}</th><th scope="col">{nB}</th></tr></thead>
+                    <tbody>{pg.pola.map((p) => <tr key={p.pole}><th scope="row">{p.nazwa}</th><td>{ma('a', p) ? '●' : '–'}</td><td>{ma('b', p) ? '●' : '–'}</td></tr>)}</tbody>
+                </table>
+            )}
+            {op ? (
+                <div className="ed-rzad">
+                    <button className="ed-btn ed-btn-gl" onClick={() => {
+                        if (op === 'zamien') wykonaj((L) => zamienDane(L, a.id, b.id), `Zamieniono dane: ${nA} ↔ ${nB}.`)
+                        else if (op === 'ab') wykonaj((L) => przeniesDane(L, a.id, b.id), `Przeniesiono dane: ${nA} → ${nB}.`)
+                        else wykonaj((L) => przeniesDane(L, b.id, a.id), `Przeniesiono dane: ${nB} → ${nA}.`)
+                        ustawOp(null)
+                    }}>zatwierdź</button>
+                    <button className="ed-btn" onClick={() => ustawOp(null)}>anuluj</button>
+                </div>
+            ) : pg.pola.length > 0 && (
+                <div className="ed-rzad" style={{ flexWrap: 'wrap' }}>
+                    <button className="ed-btn" onClick={() => ustawOp('zamien')}>zamień dane…</button>
+                    <button className="ed-btn" disabled={pg.celZajety || !pg.pola.some((p) => p.a)} onClick={() => ustawOp('ab')} title={pg.celZajety ? 'cel ma już dane – użyj „zamień”' : ''}>przenieś {nA} → {nB}…</button>
+                    <button className="ed-btn" disabled={odwr.celZajety || !pg.pola.some((p) => p.b)} onClick={() => ustawOp('ba')} title={odwr.celZajety ? 'cel ma już dane – użyj „zamień”' : ''}>przenieś {nB} → {nA}…</button>
+                </div>
+            )}
+            <span className="ed-maly">Kształt, położenie i numer zostają; z danymi idą widoczność i „ukryj napis”. Przeniesione dane wracają do etapu „opracowany”.</span>
+        </div>
+    )
+}
+
+function PanelWielu({ zaznaczone, wzor, typy, duplikuj, usun, obroc, powielOtwarte, przelaczPowiel, zmienWszystkie, zastosuj, numery, wykonaj }: {
+    numery: Map<string, { kwatera: string; rzad: number; miejsce: number }>
+    wykonaj: (f: (L: Element[]) => Element[] | { blad: string }, komunikat: string) => void
     zaznaczone: Element[]; wzor: Element | null; typy: Map<string, TypElementu>; duplikuj: () => void; usun: () => void; obroc: (d: number) => void
     powielOtwarte: boolean; przelaczPowiel: () => void; zmienWszystkie: (f: (e: Element) => Partial<Element>) => void
     zastosuj: (m: Map<string, Partial<Element>>, komunikat: string) => void
@@ -1319,6 +1368,7 @@ function PanelWielu({ zaznaczone, wzor, typy, duplikuj, usun, obroc, powielOtwar
     const wg = wzor?.g
     return (
         <div className="ed-sekcja">
+            {zaznaczone.length === 2 && zaznaczone.every((x) => typy.get(x.typ)?.grob) && <DaneDwochGrobow a={zaznaczone[0]} b={zaznaczone[1]} numery={numery} wykonaj={wykonaj} />}
             <div className="ed-gt">zaznaczono {zaznaczone.length}{ileTypow > 1 ? ` · ${ileTypow} typy` : ` · ${typy.get(zaznaczone[0].typ)?.nazwa ?? ''}`}</div>
             <div className="ed-rzad">
                 <button className="ed-btn" onClick={duplikuj}>duplikuj</button>
@@ -1455,7 +1505,7 @@ textarea.ed-in{height:auto;padding:6px 8px;resize:vertical}
 .ed-wiersz{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .ed-maly{font-size:11.5px;color:#6b665c;line-height:1.45;background:none;border:0;padding:0;text-align:left;font-family:inherit;cursor:pointer}
 p.ed-maly,span.ed-maly{cursor:default}
-.ed-btn-gl{font-weight:700}.ed-podglad{display:block;width:100%;max-height:280px;object-fit:contain;border-radius:7px;background:#f2f0eb}.ed-uwaga{font-size:12px;color:#92400e;background:#fef3c7;border-radius:6px;padding:6px 8px;margin:0}
+.ed-btn-gl{font-weight:700}.ed-tab{border-collapse:collapse;font-size:12px;width:100%}.ed-tab th,.ed-tab td{text-align:left;padding:2px 4px;font-weight:400}.ed-tab td{text-align:center}.ed-tab caption{text-align:left}.ed-podglad{display:block;width:100%;max-height:280px;object-fit:contain;border-radius:7px;background:#f2f0eb}.ed-uwaga{font-size:12px;color:#92400e;background:#fef3c7;border-radius:6px;padding:6px 8px;margin:0}
 .ed-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
 .ed-zoom button{width:32px;justify-content:center;padding:0}
 .ed-pomoc{position:absolute;left:10px;bottom:10px;right:10px;font-size:11.5px;color:#4f4a41;background:rgba(255,255,255,.88);border-radius:6px;padding:4px 8px;pointer-events:none;width:fit-content;max-width:calc(100% - 20px)}

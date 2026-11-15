@@ -228,3 +228,64 @@ export function rozmiarBokiem(g: R, bok: number, p: Pkt, min: number, symetryczn
     const h = Math.max(min, bok === 1 ? ly + g.h / 2 : g.h / 2 - ly), s = ((h - g.h) / 2) * (bok === 1 ? 1 : -1)
     return { ...g, h, x: g.x + vx * s, y: g.y + vy * s }
 }
+
+// ---------- przenieś / zamień dane grobów (etap 1, CEM-15/16) ----------
+// Dane opracowania wędrują razem; kształt, położenie, typ, identyfikator, stan obiektu i pewność położenia zostają.
+// Widoczność i „ukryj napis” idą z danymi – inaczej napis chroniony mógłby trafić na grób publiczny.
+// Etap po operacji: z danymi „opracowany”, bez danych „narysowany” – przeniesione dane trzeba sprawdzić od nowa.
+
+export const POLA_DANYCH_GROBU = ['nazwa', 'napis', 'opis', 'zrodla', 'zrodlaStan', 'osoby', 'zdjecia', 'rokZgonu', 'ukryjNapis', 'widocznosc', 'notatka', 'czas'] as const
+type PoleDanych = (typeof POLA_DANYCH_GROBU)[number]
+export const NAZWY_POL_DANYCH: Record<PoleDanych, string> = {
+    nazwa: 'nazwa na planie', napis: 'napis z nagrobka', opis: 'uwagi (dawne pole)', zrodla: 'weryfikacja w źródłach', zrodlaStan: 'stan weryfikacji źródeł',
+    osoby: 'pochowani', zdjecia: 'zdjęcia', rokZgonu: 'rok śmierci', ukryjNapis: 'ukryj napis', widocznosc: 'widoczność', notatka: 'notatka', czas: 'czas',
+}
+
+function puste(v: unknown) { return v === undefined || v === '' || (Array.isArray(v) && !v.length) }
+
+/** Pola danych, które grób ma wypełnione. */
+export function poleDanychZ(e: Element): PoleDanych[] {
+    return POLA_DANYCH_GROBU.filter((p) => !puste(e[p]))
+}
+
+function zDanymi(e: Element, zrodlo: Element): Element {
+    const n: Element = { ...e }
+    for (const p of POLA_DANYCH_GROBU) { delete n[p]; if (!puste(zrodlo[p])) (n as unknown as Record<string, unknown>)[p] = zrodlo[p] }
+    const { weryfikacja, ...bez } = n
+    const pol = e.polozenie ?? (weryfikacja === 'auto' || weryfikacja === 'przyp' ? weryfikacja : undefined)
+    const wyn: Element = { ...bez, etap: poleDanychZ(bez).some((p) => ['napis', 'zrodla', 'osoby', 'zdjecia'].includes(p)) ? 'opracowany' : 'narysowany' }
+    if (pol) wyn.polozenie = pol
+    return wyn
+}
+
+export interface PodgladDanych {
+    /** pola, które się zmienią: [pole, przed w A, przed w B] */
+    pola: { pole: PoleDanych; nazwa: string; a: boolean; b: boolean }[]
+    /** przenieś: docelowy grób ma już dane – wtedy tylko „zamień” */
+    celZajety: boolean
+}
+
+export function podgladDanych(a: Element, b: Element): PodgladDanych {
+    const pa = new Set(poleDanychZ(a)), pb = new Set(poleDanychZ(b))
+    return {
+        pola: POLA_DANYCH_GROBU.filter((p) => pa.has(p) || pb.has(p)).map((p) => ({ pole: p, nazwa: NAZWY_POL_DANYCH[p], a: pa.has(p), b: pb.has(p) })),
+        celZajety: [...pb].some((p) => p !== 'widocznosc'),
+    }
+}
+
+/** Przenosi dane z grobu `zId` do pustego grobu `doId`. Zwraca nową listę elementów albo błąd. */
+export function przeniesDane(elementy: Element[], zId: string, doId: string): Element[] | { blad: string } {
+    const a = elementy.find((e) => e.id === zId), b = elementy.find((e) => e.id === doId)
+    if (!a || !b || zId === doId) return { blad: 'Wybierz dwa różne groby.' }
+    if (podgladDanych(a, b).celZajety) return { blad: 'Docelowy grób ma już dane – użyj „zamień”.' }
+    if (!poleDanychZ(a).length) return { blad: 'Grób źródłowy nie ma danych do przeniesienia.' }
+    const pustyA: Element = { id: a.id, typ: a.typ, g: a.g }
+    return elementy.map((e) => (e.id === zId ? zDanymi(a, pustyA) : e.id === doId ? zDanymi(b, a) : e))
+}
+
+/** Zamienia dane dwóch grobów jedną operacją. */
+export function zamienDane(elementy: Element[], aId: string, bId: string): Element[] | { blad: string } {
+    const a = elementy.find((e) => e.id === aId), b = elementy.find((e) => e.id === bId)
+    if (!a || !b || aId === bId) return { blad: 'Wybierz dwa różne groby.' }
+    return elementy.map((e) => (e.id === aId ? zDanymi(a, b) : e.id === bId ? zDanymi(b, a) : e))
+}
