@@ -1389,3 +1389,12 @@ select.k-pole{padding-right:8px;cursor:pointer}
 /* podpis źródła pod skanem / mapą archiwalną */
 .podpis-zrodla{margin:6px 0 0;font-size:calc(13px * var(--font-scale,1));color:var(--tekst-opis);line-height:1.5}
 .podpis-zrodla span{color:var(--tekst-etykieta)}
+/* spis działów zwinięty do jednego wiersza, gdy panel filtrów jest rozwinięty (uwaga właściciela 15.11) */
+.sd-wiecej{display:none}
+body:has(.k-filtry-ramka[open]) .spis-ramka{display:flex;align-items:center;gap:8px 16px;padding-block:10px}
+body:has(.k-filtry-ramka[open]) .spis-ramka .sd-wiecej{display:inline-flex;flex:none;margin-left:auto}
+body:has(.k-filtry-ramka[open]) .spis-ramka .spis-dzialow{flex:1;min-width:0}
+body:has(.k-filtry-ramka[open]) .spis-ramka:not(.sd-pokaz) .spis-dzialow{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-auto-flow:row}
+body:has(.k-filtry-ramka[open]) .spis-ramka:not(.sd-pokaz) .spis-dzialow li:not(:has(>a[aria-current])){display:none}
+body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz{flex-direction:column;align-items:stretch}
+body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-end}
