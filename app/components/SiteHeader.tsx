@@ -138,6 +138,12 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
             {glowna ? (
                 <div id="wysz-start" tabIndex={-1} style={{ marginTop: '1.25rem' }}>
                     <Suspense fallback={<div style={{ height: 50 }} />}><Wyszukiwarka wariant="duzy" /></Suspense>
+                    {/* P7A-4: druga droga obok wyszukiwania – dla tych, którzy przychodzą bez konkretnego pytania */}
+                    <nav aria-label="przeglądaj" className="glowna-przegladaj">
+                        <Link href="/archiwum" className="glowna-przegladaj-glowny">przeglądaj archiwum →</Link>
+                        <Link href="/miejsca" className="odn">miejscowości</Link>
+                        <Link href="/osoby" className="odn">osoby</Link>
+                    </nav>
                 </div>
             ) : (
                 <div className="flex flex-wrap items-center gap-2" style={{ marginTop: '1rem' }}>

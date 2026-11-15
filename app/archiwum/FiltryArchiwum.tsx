@@ -24,9 +24,8 @@ function adres(w: WartosciFiltrow): string {
  * krótkiej przerwie w pisaniu (fraza od 2 liter). Adres strony zmienia się tak jak przy formularzu,
  * więc odnośniki i „wstecz” działają. Bez JavaScriptu działa zwykły przycisk „filtruj”.
  */
-export default function FiltryArchiwum({ poczatkowe, rodzaje, miejscowosci, tematy, obiekty, osoby, zbiory }: {
+export default function FiltryArchiwum({ poczatkowe, miejscowosci, tematy, obiekty, osoby, zbiory }: {
     poczatkowe: WartosciFiltrow
-    rodzaje: [string, string][]
     miejscowosci: OpcjaWyboru[]
     tematy: OpcjaWyboru[]
     obiekty: OpcjaWyboru[]
@@ -74,11 +73,8 @@ export default function FiltryArchiwum({ poczatkowe, rodzaje, miejscowosci, tema
             <label className="k-etykieta k-filtry-szeroki">szukaj w metadanych i transkrypcjach
                 <input name="q" type="search" value={w.q} onChange={(e) => zmien('q', e.target.value, false)} className="k-pole" placeholder="wpisz frazę (min. 2 litery)…" />
             </label>
-            <label className="k-etykieta">rodzaj
-                <select name="rodzaj" value={w.rodzaj} onChange={(e) => zmien('rodzaj', e.target.value)} className="k-pole">
-                    <option value="">wszystkie</option>{rodzaje.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-            </label>
+            {/* dział (rodzaj) wybiera się w spisie działów nad filtrami; tu tylko go zachowujemy */}
+            <input type="hidden" name="rodzaj" value={w.rodzaj} />
             <PoleWyboru name="miejsce" etykieta="miejscowość" opcje={miejscowosci} wartosc={w.miejsce} naZmiane={(v) => zmien('miejsce', v)} />
             <PoleWyboru name="obiekt" etykieta="obiekt" opcje={obiekty} wartosc={w.obiekt} naZmiane={(v) => zmien('obiekt', v)} />
             <PoleWyboru name="osoba" etykieta="osoba" opcje={osoby} wartosc={w.osoba} naZmiane={(v) => zmien('osoba', v)} />
@@ -96,7 +92,7 @@ export default function FiltryArchiwum({ poczatkowe, rodzaje, miejscowosci, tema
             </label>
             <span className="k-filtry-akcje">
                 <noscript><button type="submit" className="k-btn k-btn--glowny">filtruj</button></noscript>
-                <button type="button" className="odn k-filtry-wyczysc" onClick={() => { const puste = Object.fromEntries(KLUCZE.map((k) => [k, ''])) as WartosciFiltrow; ustawW(puste); zastosuj(puste) }}>wyczyść wszystko</button>
+                <button type="button" className="odn k-filtry-wyczysc" onClick={() => { const puste = { ...(Object.fromEntries(KLUCZE.map((k) => [k, ''])) as WartosciFiltrow), rodzaj: w.rodzaj }; ustawW(puste); zastosuj(puste) }}>wyczyść wszystko</button>
                 {czeka && <span className="k-podpowiedz" role="status">wczytuję…</span>}
             </span>
         </form>

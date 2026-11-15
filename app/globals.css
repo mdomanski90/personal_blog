@@ -1205,10 +1205,9 @@ select.k-pole{padding-right:8px;cursor:pointer}
 /* aktualne miejsce: pełne wypełnienie (jedyny taki element w menu) */
 .odp .menu-zakladki .zakladka[aria-current=page],.dark .odp .menu-zakladki .zakladka[aria-current=page],.odp .menu-zakladki .menu-archiwum>.zakladka[aria-current=page]{background:var(--akcent-wypelnienie);border-color:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu);border-top-width:1px;font-weight:700;margin-bottom:0;padding-bottom:0;text-decoration:none}
 .menu-zakladki .menu-grupa:has(>.zakladka[aria-current=page])>.menu-rozwij{color:var(--akcent-na-wypelnieniu)}
-.menu-zakladki .menu-grupa:has(>.zakladka[aria-current=page])>.menu-rozwij:hover{background:rgba(255,255,255,.14)}
 .menu-zakladki .menu-archiwum:not(:has(>.zakladka[aria-current=page]))>.menu-rozwij{color:var(--akcent-na-tle)}
-.menu-zakladki .menu-rozwij{min-width:24px;border-left:1px solid transparent}
-.menu-zakladki .menu-grupa:has(>.zakladka[aria-current=page])>.menu-rozwij{border-left-color:rgba(255,255,255,.35)}
+.menu-zakladki .menu-rozwij{min-width:24px;border-left:0}
+.menu-zakladki .menu-rozwij:hover{background:transparent;text-decoration:underline}
 .odp .menu-zakladki .menu-rozwij:focus-visible{outline:2px solid currentColor;outline-offset:-3px}
 /* podmenu: kartka spod zakładki */
 .menu-zakladki .menu-podlista{top:calc(100% + 2px);min-width:230px;padding:6px;border:1px solid var(--linia-podzialu);border-top:0;border-radius:0 0 10px 10px;background:var(--tlo-kontrolki);box-shadow:0 10px 24px rgba(28,27,24,.10)}
@@ -1230,3 +1229,70 @@ select.k-pole{padding-right:8px;cursor:pointer}
   .menu-zakladki .menu-podlista{position:static;flex-basis:calc(100% - 16px);min-width:0;max-width:none;margin:4px 0 6px 16px;box-shadow:none;border-top:1px solid var(--linia-podzialu);border-radius:8px}
   .menu-zakladki .menu-podlista a{min-height:44px}
 }
+
+/* ============================================ */
+/* P7A-4 · ARCHIWUM I STRONA GŁÓWNA (JV-07, 08)  */
+/* ============================================ */
+/* spis działów jak w katalogu kartkowym */
+.spis-ramka{border-radius:var(--promien-duzy);background:var(--tlo-sekcji);padding:16px 28px;margin:4px 0 2px}
+.spis-dzialow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;margin:0;padding:0;list-style:none}
+.spis-dzialow li{border-bottom:1px solid var(--linia-podzialu)}
+.odp .spis-dzialow a{display:grid;grid-template-columns:2.4em minmax(0,auto) 1fr auto;align-items:baseline;gap:6px;min-height:calc(40px * var(--font-scale,1));padding:9px 8px;margin:0 -8px;box-sizing:border-box;border-radius:6px;color:var(--tekst);text-decoration:none;font-size:calc(16px * var(--font-scale,1))}
+.spis-dzialow a i{font-style:normal;font-size:calc(13px * var(--font-scale,1));color:var(--tekst-etykieta)}
+.spis-dzialow .sd-kropki{border-bottom:1px dotted #9a9488;transform:translateY(-4px);min-width:16px}
+.spis-dzialow .sd-liczba{color:var(--tekst-etykieta);font-size:calc(14px * var(--font-scale,1))}
+.odp .spis-dzialow a:hover{color:var(--akcent)}
+.odp .spis-dzialow a:hover .sd-nazwa{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+.odp .spis-dzialow a[aria-current=page]{background:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu);font-weight:700}
+.spis-dzialow a[aria-current=page] i,.spis-dzialow a[aria-current=page] .sd-liczba{color:var(--akcent-na-wypelnieniu);opacity:.85}
+.spis-dzialow a[aria-current=page] .sd-kropki{border-color:currentColor;opacity:.5}
+.spis-zwiniety details{border-radius:var(--promien-duzy);background:var(--tlo-sekcji);padding:10px 20px;margin:4px 0 2px}
+.spis-zwiniety summary{display:flex;flex-wrap:wrap;align-items:center;gap:10px;cursor:pointer;list-style:none}
+.spis-zwiniety summary::-webkit-details-marker{display:none}
+.spis-zwiniety .sd-etykieta{font-size:calc(14px * var(--font-scale,1));color:var(--tekst-etykieta)}
+.spis-zwiniety .sd-pastylka{display:inline-flex;align-items:center;min-height:calc(28px * var(--font-scale,1));padding:0 12px;border-radius:999px;background:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu);font-weight:700}
+.spis-zwiniety .sd-inne{margin-left:auto}
+.spis-zwiniety details[open] .sd-inne span{display:inline-block;transform:rotate(180deg)}
+.spis-zwiniety details[open] .spis-dzialow{margin-top:10px}
+@media (max-width:640px){
+  .spis-ramka{padding:12px 16px}
+  .spis-dzialow{grid-template-columns:1fr}
+  .odp .spis-dzialow a{grid-template-columns:minmax(0,1fr) auto;min-height:44px}
+  .spis-dzialow a i,.spis-dzialow .sd-kropki{display:none}
+  .spis-zwiniety .sd-inne{margin-left:0}
+}
+/* okno „z archiwum” – materiał tygodnia w ramce */
+.karta-losowa,.dark .karta-losowa{height:auto;min-height:calc(262px * var(--font-scale,1));gap:14px;padding:22px 26px 18px;border:0;border-radius:var(--promien-duzy);background:var(--tlo-sekcji)}
+.kl-naglowek{margin:0;font-size:calc(20px * var(--font-scale,1));font-weight:700;color:var(--akcent);text-transform:lowercase}
+.kl-srodek{grid-template-columns:minmax(0,1fr) calc(112px * var(--font-scale,1));gap:18px;flex:1}
+.kl-mini,.dark .kl-mini{border-radius:var(--promien-maly);background:var(--tlo-kontrolki);border-color:var(--linia-podzialu);max-height:calc(150px * var(--font-scale,1))}
+.kl-rodzaj{font-size:calc(14px * var(--font-scale,1));color:var(--tekst-opis);white-space:normal}
+.odp a.kl-tytul{font-size:calc(17px * var(--font-scale,1));color:var(--tekst);text-decoration:none}
+.odp a.kl-tytul:hover{text-decoration:underline}
+.kl-opis{font-size:calc(14px * var(--font-scale,1));color:var(--tekst-opis)}
+.kl-stopka{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--linia-podzialu);padding-top:12px}
+.kl-strzalki{display:flex;align-items:center;gap:8px}
+.kl-strzalka{width:calc(40px * var(--font-scale,1));padding:0}
+.kl-strzalka svg{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.kl-licznik{font-size:calc(14px * var(--font-scale,1));color:var(--tekst-opis)}
+.kl-odnosniki{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.odp a.kl-dalej{margin:0;font-weight:700;font-size:calc(15px * var(--font-scale,1));color:var(--akcent);text-decoration:none}
+.odp a.kl-dalej:hover{text-decoration:underline}
+.kl-wiecej{font-size:calc(14px * var(--font-scale,1))}
+@media (max-width:640px){.karta-losowa,.dark .karta-losowa{padding:18px}.kl-srodek{grid-template-columns:minmax(0,1fr) calc(88px * var(--font-scale,1))}.kl-strzalka{width:44px;min-height:44px}}
+/* „pomóż uzupełnić archiwum” – lista czynności jak w referencji */
+.glowna-pomoz,.dark .glowna-pomoz{display:grid;grid-template-columns:minmax(0,15rem) minmax(0,1fr);gap:16px 36px;align-items:start;border:0;border-radius:var(--promien-duzy);background:var(--tlo-sekcji);padding:24px 28px}
+.glowna-pomoz h2{margin:0;font-size:calc(20px * var(--font-scale,1));color:var(--akcent)}
+.glowna-pomoz-wstep{display:flex;flex-direction:column;gap:8px}
+.glowna-pomoz-wstep p{margin:0;font-size:calc(15px * var(--font-scale,1));color:var(--tekst-opis);line-height:1.55}
+.glowna-pomoz-siatka{display:flex;flex-direction:column;gap:0;font-size:calc(15px * var(--font-scale,1))}
+.glowna-pomoz-siatka>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 16px;padding:12px 0;border-top:1px solid var(--linia-podzialu)}
+.glowna-pomoz-siatka>div:last-child{border-bottom:1px solid var(--linia-podzialu)}
+.glowna-pomoz-siatka>div>button.odn{font-weight:700;white-space:nowrap;text-decoration:none;min-height:calc(32px * var(--font-scale,1))}
+.glowna-pomoz-siatka>div>button.odn:hover{text-decoration:underline}
+.glowna-pomoz-siatka>div:has(form),.glowna-pomoz-siatka>div:has([role=status]){grid-template-columns:1fr}
+@media (max-width:760px){.glowna-pomoz,.dark .glowna-pomoz{grid-template-columns:1fr;padding:18px}}
+/* druga droga pod wyszukiwarką na stronie głównej */
+.glowna-przegladaj{display:flex;flex-wrap:wrap;align-items:center;gap:4px 18px;margin-top:10px;font-size:calc(15px * var(--font-scale,1))}
+.odp a.glowna-przegladaj-glowny{font-weight:700;color:var(--akcent);text-decoration:none;padding:8px 0}
+.odp a.glowna-przegladaj-glowny:hover{text-decoration:underline}

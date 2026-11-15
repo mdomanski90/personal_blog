@@ -11,18 +11,29 @@ export const dynamic = 'force-dynamic'
 
 /** Ile wpisów w pełnej formie na stronie głównej; reszta pod „wszystkie wpisy”. */
 const WPISOW_NA_GLOWNEJ = 5
-/** Ile pozycji krąży w oknie „z archiwum”. */
+/** Ile pozycji w oknie „z archiwum”: materiał tego tygodnia + wcześniejsze. */
 const W_OKNIE = 6
 
-/** Losowy zestaw do okna „z archiwum”: najpierw po jednej z każdego rodzaju (materiał, osoba, miejscowość…), potem reszta. */
-function zestawDoOkna(wszystkie: PozycjaLosowa[]): PozycjaLosowa[] {
-    const l = [...wszystkie]
-    for (let a = l.length - 1; a > 0; a--) { const b = Math.floor(Math.random() * (a + 1)); [l[a], l[b]] = [l[b], l[a]] }
-    const wybrane: PozycjaLosowa[] = []
-    const rodzaje = new Set<string>()
-    for (const p of l) { const r = p.klucz.split(':')[0]; if (!rodzaje.has(r)) { rodzaje.add(r); wybrane.push(p) } }
-    for (const p of l) if (wybrane.length < W_OKNIE && !wybrane.includes(p)) wybrane.push(p)
-    return wybrane.slice(0, W_OKNIE)
+/** Numer tygodnia ISO (poniedziałek–niedziela) – ta sama pozycja przez cały tydzień. */
+function tydzien(d: Date): number {
+    const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+    const dzien = t.getUTCDay() || 7
+    t.setUTCDate(t.getUTCDate() + 4 - dzien)
+    const start = new Date(Date.UTC(t.getUTCFullYear(), 0, 1))
+    return t.getUTCFullYear() * 100 + Math.ceil(((t.getTime() - start.getTime()) / 86400000 + 1) / 7)
+}
+
+/** P7A-4: stała kolejność (wg klucza, przetasowana stałym ziarnem), pozycja tygodnia = numer tygodnia modulo liczba. */
+function zestawDoOkna(wszystkie: PozycjaLosowa[], teraz = new Date()): PozycjaLosowa[] {
+    if (!wszystkie.length) return []
+    const l = [...wszystkie].sort((a, b) => a.klucz.localeCompare(b.klucz))
+    let ziarno = 20261115
+    const los = () => { ziarno = (ziarno * 1103515245 + 12345) % 2147483648; return ziarno / 2147483648 }
+    for (let a = l.length - 1; a > 0; a--) { const b = Math.floor(los() * (a + 1)); [l[a], l[b]] = [l[b], l[a]] }
+    // tygodnie liczone ciągle (rok*52 + tydzień), żeby przełom roku nie przeskakiwał
+    const tw = tydzien(teraz); const ciagly = Math.floor(tw / 100) * 53 + (tw % 100)
+    const ile = Math.min(W_OKNIE, l.length)
+    return Array.from({ length: ile }, (_, j) => l[(((ciagly - j) % l.length) + l.length) % l.length])
 }
 
 export default async function StronaGlowna() {
@@ -81,7 +92,10 @@ export default async function StronaGlowna() {
 
             {/* zaproszenie do współtworzenia – zgłoszenia trafiają do redakcji, nic nie publikuje się samo */}
             <section id="pomoz" aria-labelledby="pomoz-tytul" className="glowna-pomoz scroll-mt-6">
-                <h2 id="pomoz-tytul" className="font-bold lowercase">pomóż uzupełnić archiwum</h2>
+                <div className="glowna-pomoz-wstep">
+                    <h2 id="pomoz-tytul" className="font-bold lowercase">pomóż uzupełnić archiwum</h2>
+                    <p>Każde zdjęcie, dokument i wspomnienie z tych wsi coś dopowiada.</p>
+                </div>
                 <div className="glowna-pomoz-siatka">
                     <div>
                         <p>Masz stare zdjęcie albo dokument z tych wsi?</p>

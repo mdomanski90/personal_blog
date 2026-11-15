@@ -1,17 +1,11 @@
 'use client'
 
-// Okno „z archiwum” na stronie głównej: kilka losowych pozycji (dokument, osoba, miejscowość, obiekt, temat –
-// tylko publiczne i z opisem; zestaw wybiera serwer) zmienia się samo co 12 s. Zawsze ten sam układ i stała
-// wysokość, więc nic pod spodem się nie przesuwa. Kropki pokazują wybraną pozycję, ❚❚ wstrzymuje (zapamiętane
-// w przeglądarce). Samo się nie zmienia, gdy kursor albo fokus jest w oknie, karta jest w tle albo w systemie
-// włączone jest „ogranicz ruch” (wtedy tylko kropki).
+// Okno „z archiwum” na stronie głównej (P7A-4): materiał tygodnia i kilka z poprzednich tygodni – tylko publiczne
+// pozycje z opisem; zestaw wybiera serwer. Bez samoczynnej zmiany treści (recenzja UX, JV-07).
 
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
 import type { PozycjaLosowa } from '@/lib/archiwum'
-
-const CO_ILE = 12_000
-const KLUCZ = 'z-archiwum-pauza'
 
 function rodzajPozycji(p: PozycjaLosowa): 'material' | 'osoba' | 'miejsce' | 'obiekt' | 'temat' {
     return (p.klucz.split(':')[0] as ReturnType<typeof rodzajPozycji>) ?? 'temat'
@@ -23,7 +17,6 @@ const DALEJ: Record<ReturnType<typeof rodzajPozycji>, string> = {
     obiekt: 'zobacz obiekt →',
     temat: 'czytaj o temacie →',
 }
-const NAZWA: Record<ReturnType<typeof rodzajPozycji>, string> = { material: 'materiał', osoba: 'osoba', miejsce: 'miejscowość', obiekt: 'obiekt', temat: 'temat' }
 
 /** Zastępcza miniatura, gdy pozycja nie ma zdjęcia – ten sam rozmiar, prosta ikonka rodzaju. */
 function Ikonka({ rodzaj }: { rodzaj: ReturnType<typeof rodzajPozycji> }) {
@@ -34,81 +27,55 @@ function Ikonka({ rodzaj }: { rodzaj: ReturnType<typeof rodzajPozycji> }) {
     return <svg width="50" height="50" viewBox="0 0 50 50" aria-hidden="true"><path d="M8 10h34v30H8zM14 18h22M14 25h22M14 32h14" /></svg>
 }
 
+/** Etykieta pozycji: pierwsza to materiał tego tygodnia, kolejne – z poprzednich tygodni. */
+const kiedy = (j: number) => (j === 0 ? 'materiał tygodnia' : j === 1 ? 'tydzień temu' : `${j} tyg. temu`)
+
+/**
+ * P7A-4 (JV-07): „materiał tygodnia” zamiast samoczynnej zmiany co 12 s. Pozycja jest stała przez cały
+ * tydzień (wybiera serwer), strzałki pokazują kilka wcześniejszych; nic nie zmienia się samo.
+ */
 export default function LosowaKarta({ pozycje }: { pozycje: PozycjaLosowa[] }) {
     const [i, ustawI] = React.useState(0)
-    const [pauza, ustawPauze] = React.useState(false)
-    const [spokoj, ustawSpokoj] = React.useState(false) // „ogranicz ruch” w systemie
-    const [wstrzymana, ustawWstrzymana] = React.useState(false) // kursor/fokus w oknie
-    const [zmienionaRecznie, ustawZmienionaRecznie] = React.useState(false)
-
-    React.useEffect(() => {
-        try { ustawPauze(localStorage.getItem(KLUCZ) === '1') } catch { /* bez pamięci */ }
-        const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-        ustawSpokoj(mq.matches)
-        const zmiana = () => ustawSpokoj(mq.matches)
-        mq.addEventListener('change', zmiana)
-        return () => mq.removeEventListener('change', zmiana)
-    }, [])
-
+    const [recznie, ustawRecznie] = React.useState(false)
     const n = pozycje.length
-    const krecisie = n > 1 && !pauza && !spokoj && !wstrzymana
-    React.useEffect(() => {
-        if (!krecisie) return
-        const t = window.setInterval(() => { if (!document.hidden) ustawI((x) => (x + 1) % n) }, CO_ILE)
-        return () => window.clearInterval(t)
-    }, [krecisie, n, i])
-
     const p = pozycje[i % Math.max(n, 1)]
     if (!p) return null
     const rodzaj = rodzajPozycji(p)
-    const przelaczPauze = () => {
-        const nowa = !pauza
-        ustawPauze(nowa)
-        try { localStorage.setItem(KLUCZ, nowa ? '1' : '0') } catch { /* bez pamięci */ }
-    }
+    const idz = (o: number) => { ustawI((x) => Math.min(Math.max(x + o, 0), n - 1)); ustawRecznie(true) }
 
     return (
-        <aside
-            className="karta-losowa"
-            aria-roledescription="karuzela"
-            aria-label="z archiwum"
-            onMouseEnter={() => ustawWstrzymana(true)}
-            onMouseLeave={() => ustawWstrzymana(false)}
-            onFocus={() => ustawWstrzymana(true)}
-            onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) ustawWstrzymana(false) }}
-        >
-            <div className="kl-gora">
-                <b>z archiwum</b>
-                {n > 1 && (
-                    <span className="kl-sterowanie">
-                        <span role="group" aria-label="wybierz propozycję" className="kl-kropki">
-                            {pozycje.map((x, j) => (
-                                <button key={x.klucz} type="button" className="kl-kropka" aria-label={`${j + 1} z ${n}: ${NAZWA[rodzajPozycji(x)]}`} aria-current={j === i ? 'true' : undefined}
-                                    onClick={() => { ustawI(j); ustawZmienionaRecznie(true) }}><i /></button>
-                            ))}
-                        </span>
-                        {!spokoj && (
-                            <button type="button" className="kl-pauza" onClick={przelaczPauze} aria-label={pauza ? 'wznów zmienianie' : 'wstrzymaj zmienianie'} title={pauza ? 'wznów' : 'wstrzymaj'}>
-                                {pauza ? '▶' : '❚❚'}
-                            </button>
-                        )}
-                    </span>
-                )}
-            </div>
-            {/* przy samoczynnej zmianie czytnik ekranu nie przerywa; po kliknięciu kropki – odczytuje nową pozycję */}
-            <div key={p.klucz} className="kl-srodek" aria-live={krecisie && !zmienionaRecznie ? 'off' : 'polite'} aria-atomic="true">
+        <aside className="karta-losowa" aria-label="z archiwum">
+            <h2 className="kl-naglowek">z archiwum</h2>
+            {/* po przejściu strzałką czytnik ekranu odczytuje nową pozycję */}
+            <div key={p.klucz} className="kl-srodek" aria-live={recznie ? 'polite' : 'off'} aria-atomic="true">
+                <div className="kl-tekst">
+                    <span className="kl-rodzaj">{kiedy(i)} · {p.rodzaj}</span>
+                    <Link href={p.href} className="kl-tytul">{p.tytul}</Link>
+                    <p className="kl-opis">{p.tekst}</p>
+                </div>
                 <Link href={p.href} className="kl-mini" tabIndex={-1} aria-hidden="true">
                     {p.zdjecie
                         // eslint-disable-next-line @next/next/no-img-element
                         ? <img src={`${p.zdjecie}?w=320`} alt="" loading="lazy" />
                         : <Ikonka rodzaj={rodzaj} />}
                 </Link>
-                <div className="kl-tekst">
-                    <span className="kl-rodzaj">{p.rodzaj}</span>
-                    <Link href={p.href} className="kl-tytul">{p.tytul}</Link>
-                    <p className="kl-opis">{p.tekst}</p>
-                    <Link href={p.href} className="odn kl-dalej">{DALEJ[rodzaj]}</Link>
-                </div>
+            </div>
+            <div className="kl-stopka">
+                {n > 1 ? (
+                    <span className="kl-strzalki">
+                        <button type="button" className="k-btn kl-strzalka" onClick={() => idz(-1)} disabled={i === 0} aria-label="nowszy (bliżej tego tygodnia)">
+                            <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" /></svg>
+                        </button>
+                        <button type="button" className="k-btn kl-strzalka" onClick={() => idz(1)} disabled={i === n - 1} aria-label="wcześniejszy tydzień">
+                            <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4l6 6-6 6" /></svg>
+                        </button>
+                        <span className="kl-licznik">{i + 1} z {n}</span>
+                    </span>
+                ) : <span />}
+                <span className="kl-odnosniki">
+                    <Link href={p.href} className="kl-dalej">{DALEJ[rodzaj]}</Link>
+                    <Link href="/archiwum" className="odn kl-wiecej">więcej z archiwum</Link>
+                </span>
             </div>
         </aside>
     )
