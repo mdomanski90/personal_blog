@@ -6,6 +6,7 @@
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
 import type { PozycjaLosowa } from '@/lib/archiwum'
+import { pozycjaKadru } from '@/lib/kadr'
 
 function rodzajPozycji(p: PozycjaLosowa): 'material' | 'osoba' | 'miejsce' | 'obiekt' | 'temat' {
     return (p.klucz.split(':')[0] as ReturnType<typeof rodzajPozycji>) ?? 'temat'
@@ -56,7 +57,7 @@ export default function LosowaKarta({ pozycje }: { pozycje: PozycjaLosowa[] }) {
                 <Link href={p.href} className="kl-mini" tabIndex={-1} aria-hidden="true">
                     {p.zdjecie
                         // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={`${p.zdjecie}?w=320`} alt="" loading="lazy" />
+                        ? <img src={`${p.zdjecie}?w=320`} alt="" loading="lazy" style={{ objectPosition: pozycjaKadru(p.kadr) }} />
                         : <Ikonka rodzaj={rodzaj} />}
                 </Link>
             </div>

@@ -5,6 +5,7 @@ import { RODZAJE_MATERIALOW } from '@/lib/materialy'
 import { formatujEdtf } from '@/lib/edtf'
 import { typPliku } from '@/lib/pliki'
 import { RAMKA } from './Uklad'
+import { pozycjaKadru } from '@/lib/kadr'
 
 const ZNAK: Record<string, string> = { obraz: '▣', dzwiek: '♪', film: '▶', pdf: 'PDF', inny: '▤' }
 
@@ -21,7 +22,7 @@ export default function ListaMaterialow({ materialy }: { materialy: Material[] }
                             <div className="bg-muted flex items-center justify-center" style={{ aspectRatio: '4 / 3', overflow: 'hidden' }}>
                                 {m.strony.length > 0 ? (
                                     // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={m.strony[0].adres.startsWith('/pliki/strony/') ? `${m.strony[0].adres}?w=480` : m.strony[0].adres} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={m.strony[0].adres.startsWith('/pliki/strony/') ? `${m.strony[0].adres}?w=480` : m.strony[0].adres} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: pozycjaKadru(m.kadr) }} />
                                 ) : (
                                     <span className="text-gray-500" style={{ fontSize: 28 }} aria-hidden="true">{typ ? ZNAK[typ] : '—'}</span>
                                 )}

@@ -101,7 +101,7 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
                     </p>
                     </div>
                 </div>
-                <div className="flex shrink-0 items-center justify-end gap-2">
+                <div className="naglowek-przyciski flex shrink-0 items-center justify-end gap-2">
                     <button type="button" className="k-btn k-btn--s menu-przelacz" aria-expanded={menuOtwarte} aria-controls="menu-glowne"
                         onClick={() => setMenuOtwarte((o) => !o)}>
                         <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><path d="M1 1h14M1 6h14M1 11h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>

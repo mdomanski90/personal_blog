@@ -1434,3 +1434,9 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
   .dok-pelny .dok-miniatury button{width:40px}
 }
 .dok-grupa>button{gap:5px}
+/* P7C-3: telefon – przyciski nagłówka do lewej; wyznania w jednym przewijanym rzędzie */
+@media (max-width:640px){
+  .naglowek-przyciski{justify-content:flex-start;width:100%}
+  .kk-wyznania{width:100%;min-width:0;flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding:2px 2px 6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+  .kk-wyznania>a{flex:none;white-space:nowrap}
+}

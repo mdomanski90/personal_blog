@@ -15,6 +15,13 @@ const RZYMSKIE = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X']
  */
 export default function SpisDzialow({ dzialy, wybrany }: { dzialy: Dzial[]; wybrany: string }) {
     const [pokaz, ustawPokaz] = React.useState(false)
+    // po każdym otwarciu/zamknięciu panelu filtrów i po zmianie działu spis znów zwinięty
+    React.useEffect(() => { ustawPokaz(false) }, [wybrany])
+    React.useEffect(() => {
+        const h = (e: Event) => { if ((e.target as Element)?.classList?.contains('k-filtry-ramka')) ustawPokaz(false) }
+        document.addEventListener('toggle', h, true)
+        return () => document.removeEventListener('toggle', h, true)
+    }, [])
     const lista = (
         <ul className="spis-dzialow" style={{ ['--wiersze' as string]: Math.ceil(dzialy.length / 2) } as React.CSSProperties}>
             {dzialy.map((d, i) => (

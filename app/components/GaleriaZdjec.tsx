@@ -4,8 +4,9 @@
 // strzałki / klawiatura, Esc zamyka. Pod zdjęciem zawsze autor, data i prawa (źródło).
 
 import * as React from 'react'
+import { pozycjaKadru } from '@/lib/kadr'
 
-export interface Zdjecie { plik: string; podpis?: string; data?: string; autor?: string; prawa?: string }
+export interface Zdjecie { plik: string; podpis?: string; data?: string; autor?: string; prawa?: string; kadr?: string }
 const opisZrodla = (z: Zdjecie) => [z.data, z.autor && `fot. ${z.autor}`, z.prawa].filter(Boolean).join(' · ')
 
 export default function GaleriaZdjec({ zdjecia, tytul }: { zdjecia: Zdjecie[]; tytul: string }) {
@@ -31,7 +32,7 @@ export default function GaleriaZdjec({ zdjecia, tytul }: { zdjecia: Zdjecie[]; t
                     <figure key={x.plik} style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <button type="button" onClick={() => ustaw(j)} aria-label={`powiększ: ${x.podpis || `zdjęcie ${j + 1}`}`} className="galeria-miniatura">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={`${x.plik}?w=480`} alt={x.podpis || tytul} loading="lazy" />
+                            <img src={`${x.plik}?w=480`} alt={x.podpis || tytul} loading="lazy" style={{ objectPosition: pozycjaKadru(x.kadr) }} />
                         </button>
                         {(x.podpis || opisZrodla(x)) && <figcaption style={{ fontSize: 'calc(12.5px * var(--font-scale, 1))', lineHeight: 1.45 }}>{x.podpis}{x.podpis && opisZrodla(x) ? <br /> : null}<span className="text-gray-500">{opisZrodla(x)}</span></figcaption>}
                     </figure>

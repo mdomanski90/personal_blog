@@ -94,7 +94,7 @@ export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyz
                 {wyznaniaObecne.length > 1 && (
                     <div className="flex flex-wrap items-center" style={{ gap: 10 }}>
                         <span className="text-gray-600 dark:text-gray-400" style={male}>wyznanie:</span>
-                        <div className="flex flex-wrap" style={{ gap: 7 }}>
+                        <div className="flex flex-wrap kk-wyznania" style={{ gap: 7 }}>
                             <Link href={adres({ wyznanie: undefined })} className="szukaj-filtr" aria-current={!wyznanie ? 'true' : undefined}>{!wyznanie ? <b>wszystkie</b> : 'wszystkie'}</Link>
                             {wyznaniaObecne.map((w) => <Link key={w} href={adres({ wyznanie: w })} className="szukaj-filtr" aria-current={wyznanie === w ? 'true' : undefined}>{wyznanie === w ? <b>{WYZNANIA_PARAFII[w]}</b> : WYZNANIA_PARAFII[w]}</Link>)}
                         </div>
@@ -105,7 +105,7 @@ export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyz
                         <PoleSzukania
                             id="ks-miejsce-szukaj" etykieta="miejscowość"
                             value={fraza} onChange={zmienFraze} onSubmit={zmienFraze}
-                            placeholder="wpisz min. 2 litery miejscowości…"
+                            placeholder="min. 2 litery…"
                             style={{ width: 'min(100%, 420px)' }}
                         />
                         {fraza && <button type="button" onClick={() => zmienFraze('')} className="szukaj-filtr" aria-label="wyczyść wyszukiwanie miejscowości">wyczyść</button>}

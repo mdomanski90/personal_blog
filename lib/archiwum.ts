@@ -185,7 +185,7 @@ export interface Obiekt {
     zdjecia: ZdjecieObiektu[]
     zrodla: string[]
 }
-export interface ZdjecieObiektu { plik: string; podpis: string; data: string; autor: string; prawa: string }
+export interface ZdjecieObiektu { plik: string; podpis: string; data: string; autor: string; prawa: string; kadr?: string }
 export { RODZAJE_MATERIALOW }
 
 export interface Material {
@@ -216,6 +216,7 @@ export interface Material {
     miejscePrzechowywania: string
     /** P7C-1: krótki podpis źródła widoczny pod skanem/mapą (pole „credit”) */
     podpisZrodla: string
+    kadr: string
     transkrypcja: string
     widocznosc: Widocznosc
     dodano: string | null
@@ -413,7 +414,7 @@ const wszystkieObiektySurowe = cache(async (): Promise<Obiekt[]> => {
             dodano: entry.dateSubmitted,
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             opis: entry.description?.node ?? null,
-            zdjecia: (entry.photos ?? []).filter((z) => z.image).map((z) => ({ plik: String(z.image), podpis: z.caption, data: z.date, autor: z.creator, prawa: z.rights })),
+            zdjecia: (entry.photos ?? []).filter((z) => z.image).map((z) => ({ plik: String(z.image), podpis: z.caption, data: z.date, autor: z.creator, prawa: z.rights, kadr: z.focus })),
         }))
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
@@ -449,6 +450,7 @@ const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
             osobyIds: [...(entry.peopleIds ?? [])].filter(Boolean),
             miejscePrzechowywania: entry.repository ?? '',
             podpisZrodla: entry.credit ?? '',
+            kadr: entry.focus ?? 'srodek',
             transkrypcja: entry.transcription ?? '',
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
@@ -1004,7 +1006,7 @@ export async function hasla(poziom: Widocznosc): Promise<Haslo[]> {
 }
 
 /** Pozycja do losowej karty na stronie głównej. */
-export interface PozycjaLosowa { klucz: string; rodzaj: string; tytul: string; href: string; tekst: string; zdjecie?: string }
+export interface PozycjaLosowa { klucz: string; rodzaj: string; tytul: string; href: string; tekst: string; zdjecie?: string; kadr?: string }
 
 /** Publiczne miejsca, obiekty, tematy, materiały archiwum i osoby z biogramem – do „wylosuj” na stronie głównej. */
 export async function pozycjeLosowe(): Promise<PozycjaLosowa[]> {
@@ -1018,7 +1020,7 @@ export async function pozycjeLosowe(): Promise<PozycjaLosowa[]> {
     }
     for (const o of await obiekty(poziom)) {
         const t = opis(o.opis)
-        if (t.length > 40) wyn.push({ klucz: `obiekt:${o.id}`, rodzaj: `w terenie · ${NAZWY_OBIEKTOW[o.rodzaj] ?? o.rodzaj}`, tytul: o.nazwa, href: `/obiekty/${o.id}`, tekst: t, zdjecie: o.zdjecia[0]?.plik })
+        if (t.length > 40) wyn.push({ klucz: `obiekt:${o.id}`, rodzaj: `w terenie · ${NAZWY_OBIEKTOW[o.rodzaj] ?? o.rodzaj}`, tytul: o.nazwa, href: `/obiekty/${o.id}`, tekst: t, zdjecie: o.zdjecia[0]?.plik, kadr: o.zdjecia[0]?.kadr })
     }
     for (const tm of await tematy(poziom)) {
         const t = opis(tm.opis)
@@ -1032,7 +1034,7 @@ export async function pozycjeLosowe(): Promise<PozycjaLosowa[]> {
         const skan = m.strony.find((s) => s.adres.startsWith('/pliki/strony/'))?.adres
         if (t.length > 40 || skan) {
             const rodzaj = [`archiwum · ${RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj}`, m.czas && formatujEdtf(m.czas), najnowsze.has(m.id) && 'nowe'].filter(Boolean).join(' · ')
-            wyn.push({ klucz: `material:${m.id}`, rodzaj, tytul: m.nazwa, href: `/archiwum/${m.id}`, tekst: t, zdjecie: skan })
+            wyn.push({ klucz: `material:${m.id}`, rodzaj, tytul: m.nazwa, href: `/archiwum/${m.id}`, tekst: t, zdjecie: skan, kadr: m.kadr })
         }
     }
     for (const b of await biogramy(poziom)) {
