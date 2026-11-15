@@ -1309,3 +1309,11 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .k-filtry-przelacz{margin-left:auto}
 .odp .k-filtry-naglowek:focus-visible{outline:2px solid var(--fokus);outline-offset:2px;border-radius:var(--promien-duzy)}
 @media (max-width:640px){.k-filtry-naglowek{padding-left:16px}}
+/* P7A-4: stała wysokość okna „z archiwum” – nic nie skacze przy przechodzeniu strzałkami */
+.karta-losowa,.dark .karta-losowa{height:calc(300px * var(--font-scale,1));min-height:0;box-sizing:border-box;overflow:hidden}
+.karta-losowa .kl-srodek{flex:1 1 auto;min-height:0;overflow:hidden}
+.karta-losowa .kl-tekst{min-height:0;overflow:hidden}
+.odp .karta-losowa a.kl-tytul{-webkit-line-clamp:2}
+.karta-losowa .kl-opis{-webkit-line-clamp:3}
+.karta-losowa .kl-stopka{flex:none}
+@media (max-width:640px){.karta-losowa,.dark .karta-losowa{height:calc(320px * var(--font-scale,1))}.karta-losowa .kl-opis{-webkit-line-clamp:4}}
