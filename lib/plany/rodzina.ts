@@ -39,7 +39,7 @@ export async function osobyPlanu(plan: Plan, poziom: Widocznosc): Promise<Record
             if (sp && widac(sp)) malzonkowie.push(`${rola(p, 'mąż', 'żona', 'małżonek')}: ${nazwaOsoby(p!)}`)
             for (const c of f.dzieci) dodaj(c, rola(s.drzewo.osoby.get(c), 'syn', 'córka', 'dziecko'))
         }
-        const czesci = [rodzice.length ? `${rola(o, 'syn', 'córka', 'dziecko')}: ${rodzice.join(' i ')}` : '', ...malzonkowie].filter(Boolean)
+        const czesci = [rodzice.length ? `rodzice: ${rodzice.join(' i ')}` : '', ...malzonkowie].filter(Boolean)
         wyn[id] = { id, nazwa: nazwaOsoby(o), lata: lataZycia(o), zdanie: czesci.join(' · '), krewni }
     }
     return wyn
