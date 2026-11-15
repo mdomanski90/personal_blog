@@ -15,8 +15,10 @@ stop() { echo "STOP: $*" >&2; exit 1; }
 git -C "$ZRODLO" fetch -q origin
 
 # brakujące commity: idziemy po main od najstarszego; commit jest „na serwerze”, gdy jego temat jest wśród ostatnich 300 tematów gałęzi local
-mapfile -t TEMATY < <(git log -300 --format=%s)
-jest() { local t; t=$(git -C "$ZRODLO" log -1 --format=%s "$1"); printf '%s\n' "${TEMATY[@]}" | grep -qxF -- "$t"; }
+# tematy w tablicy asocjacyjnej – bez potoku „printf | grep -q”, który przy pipefail losowo dawał fałsz (SIGPIPE; lekcja 16.11)
+declare -A TEMATY=()
+while IFS= read -r t; do TEMATY["$t"]=1; done < <(git log -300 --format=%s)
+jest() { local t; t=$(git -C "$ZRODLO" log -1 --format=%s "$1"); [ -n "${TEMATY[$t]+x}" ]; }
 mapfile -t MAIN < <(git -C "$ZRODLO" rev-list --reverse --max-count=40 origin/main)
 # do wdrożenia: wszystko PO najnowszym commicie main obecnym na serwerze (po temacie). Starsze commity bez odpowiednika
 # na local (np. „Kod z serwera” – powstały na GitHubie z kodu serwera) tylko wypisujemy jako ostrzeżenie.

@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url'
 const compat = new FlatCompat({ baseDirectory: dirname(fileURLToPath(import.meta.url)) })
 
 export default [
-    { ignores: ['.next/**', 'node_modules/**', 'content/**', 'pliki-archiwum/**', 'data/**', 'public/**', 'eksport/**', 'src_backup/**', 'next-env.d.ts'] },
+    // .next-poprzedni – zapas poprzedniego buildu robiony przez scripts/wdroz.sh (lekcja 16.11: lint sprawdzał skompilowany kod)
+    { ignores: ['.next/**', '.next-poprzedni/**', 'node_modules/**', 'content/**', 'pliki-archiwum/**', 'data/**', 'public/**', 'eksport/**', 'src_backup/**', 'next-env.d.ts'] },
     ...compat.extends('next/core-web-vitals', 'next/typescript'),
     // panel (app/keystatic): zwykłe <a> do stron panelu – dług do etapu 5 (przejścia bez przeładowania); na razie ostrzeżenie
     { files: ['app/keystatic/**'], rules: { '@next/next/no-html-link-for-pages': 'warn' } },
