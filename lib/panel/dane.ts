@@ -1,5 +1,6 @@
 // Panel administracyjny (/keystatic/panel): podsumowanie, wyszukiwarka, zgłoszenia, kosz, stan serwera.
 // Tylko odczyt plików strony i drobne zapisy w content/ (stan zgłoszeń, przywracanie z kosza).
+import { wczytajZnacznik } from './kopia'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -159,10 +160,10 @@ export interface StanSerwera {
     dziala: number; node: string; commit: string | null; zbudowano: string | null
     dysk: { wolne: number; calosc: number } | null; pamiec: { wolna: number; calosc: number }
     archiwum: { bajty: number; pliki: number; ucieto: boolean }
-    restart: boolean; kopia: string | null; logowanieBliskich: boolean
+    restart: boolean; kopia: string | null; kopiaSerwer: string | null; logowanieBliskich: boolean
 }
 
-async function commit(): Promise<string | null> {
+export async function commit(): Promise<string | null> {
     try {
         const git = path.join(process.cwd(), '.git')
         const head = (await fs.promises.readFile(path.join(git, 'HEAD'), 'utf8')).trim()
@@ -194,7 +195,7 @@ async function rozmiar(kat: string, limit = 50000) {
 
 const istnieje = (p: string) => fs.promises.access(p).then(() => true, () => false)
 
-/** Plik ze znacznikiem ostatniej kopii – zapisze go mechanizm kopii (węzeł domowy), gdy powstanie. */
+/** Znacznik węzła domowego (gdy powstanie). Kopie z panelu: content/_panel/kopia.json (lib/panel/kopia.ts). */
 const PLIK_KOPII = () => process.env.PLIK_KOPII || '/var/lib/blog-kopia/ostatnia'
 
 export async function stanSerwera(): Promise<StanSerwera> {
@@ -204,12 +205,15 @@ export async function stanSerwera(): Promise<StanSerwera> {
     try { zbudowano = (await fs.promises.stat(path.join(process.cwd(), '.next', 'BUILD_ID'))).mtime.toISOString() } catch { /* dev */ }
     let kopia: string | null = null
     try { kopia = (await fs.promises.readFile(/*turbopackIgnore: true*/ PLIK_KOPII(), 'utf8')).trim().slice(0, 40) || null } catch { /* brak kopii */ }
+    // kopia poza serwerem = węzeł domowy albo pobranie z panelu na komputer – liczy się nowsza
+    const zn = await wczytajZnacznik()
+    if (zn.komputer?.czas && (!kopia || Date.parse(zn.komputer.czas) > Date.parse(kopia))) kopia = zn.komputer.czas
     return {
         dziala: Math.round(process.uptime()), node: process.version, commit: await commit(), zbudowano, dysk,
         pamiec: { wolna: os.freemem(), calosc: os.totalmem() },
         archiwum: await rozmiar(path.join(process.cwd(), 'pliki-archiwum')),
         restart: (await istnieje('/run/reboot-required')) || (await istnieje('/var/run/reboot-required')),
-        kopia, logowanieBliskich: logowanieWlaczone(),
+        kopia, kopiaSerwer: zn.serwer?.czas ?? null, logowanieBliskich: logowanieWlaczone(),
     }
 }
 

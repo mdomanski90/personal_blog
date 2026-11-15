@@ -7,7 +7,7 @@ type System = {
     serwer: {
         dziala: number; node: string; commit: string | null; zbudowano: string | null
         dysk: { wolne: number; calosc: number } | null; pamiec: { wolna: number; calosc: number }
-        archiwum: { bajty: number; pliki: number; ucieto: boolean }; restart: boolean; kopia: string | null; logowanieBliskich: boolean
+        archiwum: { bajty: number; pliki: number; ucieto: boolean }; restart: boolean; kopia: string | null; kopiaSerwer: string | null; logowanieBliskich: boolean
     }
     kosz: { rodzaj: 'plan' | 'osoba' | 'rodzina' | 'import'; plik: string; nazwa: string; czas: string }[]
     omeka: { nazwa: string; bajty: number; czas: string }[]
@@ -53,6 +53,61 @@ function Prog() {
     )
 }
 
+type StanKopii = { znacznik: { komputer?: { czas: string; bajty: number }; serwer?: { czas: string; bajty: number; plik: string }; katalog?: string }; pliki: { nazwa: string; bajty: number; czas: string }[] }
+
+/** Etap 0A: kopia zapasowa z panelu – pobranie na komputer (kopia poza serwerem) albo zapis w katalogu na serwerze. */
+function Kopie({ kopia, wczytano }: { kopia: string | null; wczytano: boolean }) {
+    const { dane: k, odswiez } = useDane<StanKopii>('/api/keystatic/panel/kopia?tryb=stan')
+    const [katalog, ustawKatalog] = React.useState('')
+    const [kom, ustawKom] = React.useState('')
+    const [pracuje, ustawPracuje] = React.useState(false)
+    React.useEffect(() => { if (k?.znacznik.katalog) ustawKatalog(k.znacznik.katalog) }, [k?.znacznik.katalog])
+    const zapiszKatalog = async () => {
+        const b = await wyslijJson('/api/keystatic/panel/kopia', 'POST', { akcja: 'katalog', katalog })
+        ustawKom(b ?? 'Zapisano katalog kopii.'); odswiez()
+    }
+    const naSerwerze = async () => {
+        ustawPracuje(true); ustawKom('Tworzę kopię na serwerze – przy dużym archiwum skanów to może potrwać kilka minut…')
+        try {
+            const r = await fetch('/api/keystatic/panel/kopia', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ akcja: 'serwer' }) })
+            const j = await r.json().catch(() => ({})) as { blad?: string; plik?: string; bajty?: number; uwaga?: string }
+            ustawKom(j.blad ?? `Zapisano: ${j.plik} (${bajty(j.bajty ?? 0)}).${j.uwaga ? ` ${j.uwaga}` : ''}`)
+        } catch { ustawKom('Nie udało się połączyć z serwerem.') }
+        ustawPracuje(false); odswiez()
+    }
+    const z = k?.znacznik
+    return (
+        <section className="pn-karta" aria-labelledby="kopie" style={{ borderColor: wczytano && !kopia ? 'var(--ostrz-linia)' : undefined }}>
+            <div className="pn-rzad" style={{ justifyContent: 'space-between' }}>
+                <h2 id="kopie">kopie zapasowe</h2>
+                {wczytano && <span className={kopia ? 'pn-info' : 'pn-ostrz'} style={{ padding: '4px 10px' }}>{kopia ? `ostatnia poza serwerem: ${kiedy(kopia)}` : 'brak kopii poza serwerem'}</span>}
+            </div>
+            <dl className="pn-dl">
+                <dt>co obejmuje</dt><dd>treści (content/), pliki archiwum (pliki-archiwum/), bazy (data/ – skopiowane spójnie) i opis kopii (kopia.json) – jeden plik .tar.gz</dd>
+                <dt>na komputer</dt><dd>{z?.komputer ? `ostatnio ${kiedy(z.komputer.czas)} · ${bajty(z.komputer.bajty)}` : 'jeszcze nie pobierano'}</dd>
+                <dt>na serwerze</dt><dd>{z?.serwer ? `ostatnio ${kiedy(z.serwer.czas)} · ${bajty(z.serwer.bajty)}` : 'jeszcze nie zapisywano'}{k && k.pliki.length > 0 ? ` · w katalogu: ${k.pliki.length} (zostaje 5 najnowszych)` : ''}</dd>
+            </dl>
+            <div className="pn-rzad">
+                <a className="pn-btn pn-btn-gl" href="/api/keystatic/panel/kopia?tryb=pobierz" onClick={() => { ustawKom('Pobieranie rozpoczęte. Gdy przeglądarka skończy, odśwież stronę – pojawi się czas ostatniej kopii.'); window.setTimeout(odswiez, 15000) }}>pobierz kopię na komputer</a>
+                <button type="button" className="pn-btn" disabled={pracuje || !z?.katalog} onClick={naSerwerze}>{pracuje ? 'tworzę…' : 'zapisz kopię na serwerze'}</button>
+            </div>
+            <span className="pn-maly">Kopia na komputerze chroni przed awarią serwera; kopia na serwerze – tylko przed pomyłką w treściach. Miejsce zapisu na komputerze wybierasz w przeglądarce („pytaj, gdzie zapisać”) – najlepiej dysk zewnętrzny albo folder synchronizowany.</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label htmlFor="katalog-kopii" className="pn-etyk">katalog kopii na serwerze (poza katalogiem strony)</label>
+                <div className="pn-rzad">
+                    <input id="katalog-kopii" className="pn-in" value={katalog} onChange={(e) => ustawKatalog(e.target.value)} placeholder="/var/backups/odniepamieci" style={{ flex: '1 1 260px', maxWidth: 420 }} />
+                    <button type="button" className="pn-btn" disabled={!katalog || katalog === z?.katalog} onClick={zapiszKatalog}>zapisz</button>
+                </div>
+            </div>
+            {kom && <span className="pn-maly" role="status">{kom}</span>}
+            <details className="pn-maly">
+                <summary>jak sprawdzić i przywrócić kopię</summary>
+                <p>Sprawdzenie: <code>tar -tzf odniepamieci-kopia-….tar.gz | head</code> – lista plików bez błędu. Przywracanie zawsze najpierw do pustego katalogu: <code>mkdir /tmp/test-kopii &amp;&amp; tar -xzf plik.tar.gz -C /tmp/test-kopii</code>, porównanie z bieżącymi danymi, dopiero potem świadoma podmiana wybranych plików.</p>
+            </details>
+        </section>
+    )
+}
+
 export default function System() {
     const { dane: d, blad, odswiez } = useDane<System>('/api/keystatic/panel?czesc=system')
     const [kom, ustawKom] = React.useState('')
@@ -72,18 +127,7 @@ export default function System() {
             {blad && <p className="pn-kom" style={{ margin: 0 }}>{blad}</p>}
             {kom && <p className="pn-info" style={{ margin: 0 }} role="status">{kom}</p>}
 
-            <section className="pn-karta" aria-labelledby="kopie" style={{ borderColor: s && !s.kopia ? 'var(--ostrz-linia)' : undefined }}>
-                <div className="pn-rzad" style={{ justifyContent: 'space-between' }}>
-                    <h2 id="kopie">kopie zapasowe</h2>
-                    {s && <span className={s.kopia ? 'pn-info' : 'pn-ostrz'} style={{ padding: '4px 10px' }}>{s.kopia ? `ostatnia: ${kiedy(s.kopia)}` : 'brak kopii poza serwerem'}</span>}
-                </div>
-                <dl className="pn-dl">
-                    <dt>co obejmie</dt><dd>treści (content/), pliki archiwum (pliki-archiwum/), bazy (data/)</dd>
-                    <dt>dokąd</dt><dd>węzeł domowy – kopie zaszyfrowane (restic) na Ceph; serwer tylko udostępnia pliki do odczytu, nie może kopii skasować</dd>
-                    <dt>stan</dt><dd>w przygotowaniu – po konfiguracji tu pojawi się czas ostatniej kopii i ostrzeżenie, gdy kopii długo nie będzie</dd>
-                </dl>
-                <span className="pn-maly">Zalecane przed importem drzewa z Ancestry.</span>
-            </section>
+            <Kopie kopia={s?.kopia ?? null} wczytano={Boolean(s)} />
 
             <div className="pn-siatka">
                 <section className="pn-karta" aria-labelledby="eksport">
