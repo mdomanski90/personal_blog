@@ -123,7 +123,7 @@ export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyz
                 {widok === 'miejscowosci' && ksiegiFiltrowane.length > 0 && ' · jedna księga może dotyczyć kilku miejscowości'}
             </p>
             {!ksiegiFiltrowane.length && (
-                <p className="text-gray-600 dark:text-gray-400" role="status">
+                <p className="k-kom k-kom--pusto k-kom--prosty" role="status">
                     {aktywneSzukanie ? 'Nie znaleziono ksiąg przypisanych do wpisanej miejscowości. Spróbuj krótszej nazwy lub innej pisowni.' : 'Dla wybranych filtrów nie ma jeszcze opisanych ksiąg. Brak wpisu nie oznacza, że księga się nie zachowała.'}
                     {' '}<Link href="/biblioteka/ksiegi">wyczyść filtry</Link>
                 </p>

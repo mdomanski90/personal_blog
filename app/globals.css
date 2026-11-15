@@ -1317,3 +1317,40 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .karta-losowa .kl-opis{-webkit-line-clamp:3}
 .karta-losowa .kl-stopka{flex:none}
 @media (max-width:640px){.karta-losowa,.dark .karta-losowa{height:calc(320px * var(--font-scale,1))}.karta-losowa .kl-opis{-webkit-line-clamp:4}}
+
+/* ============================================ */
+/* P7B · STANY I KOMUNIKATY (JV-11)             */
+/* + poprawki 7A-4: mniej linii w spisie, tytuł */
+/*   materiału tygodnia bez ucinania            */
+/* ============================================ */
+.spis-dzialow li{border-bottom:0}
+.karta-losowa .kl-rodzaj{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
+.odp .karta-losowa a.kl-tytul{-webkit-line-clamp:3;line-height:1.3;flex:none}
+.karta-losowa .kl-opis{-webkit-line-clamp:2}
+@media (max-width:640px){.karta-losowa .kl-opis{-webkit-line-clamp:3}}
+.k-kom{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;margin:8px 0;padding:14px 16px;border-radius:var(--promien-duzy);font-size:calc(15px * var(--font-scale,1));line-height:1.55;color:var(--tekst)}
+.k-kom p{margin:0}
+.k-kom-tresc{display:flex;flex-direction:column;gap:6px;min-width:0}
+.k-kom-tytul{font-weight:700}
+.k-kom-ikona{margin-top:2px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.k-kom--info{background:var(--tlo-sekcji)}
+.k-kom--uwaga{background:var(--uwaga-tlo)}.k-kom--uwaga .k-kom-ikona,.k-kom--uwaga .k-kom-slowo{color:var(--uwaga)}
+.k-kom--blad{background:var(--blad-tlo)}.k-kom--blad .k-kom-ikona,.k-kom--blad .k-kom-slowo{color:var(--blad)}
+.k-kom--ok{background:var(--ok-tlo)}.k-kom--ok .k-kom-ikona,.k-kom--ok .k-kom-slowo{color:var(--ok)}
+.k-kom--pusto{border:1px dashed var(--krawedz-kontrolki);background:transparent}.k-kom--pusto .k-kom-ikona{color:var(--tekst-etykieta)}
+.k-kom--prosty{display:block}
+.k-kom-akcje{display:flex;flex-wrap:wrap;gap:4px 18px}
+.k-kom ul{color:var(--tekst-opis)}
+/* rząd „wybrane” nad wynikami */
+.k-wybrane{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 2px}
+.k-wybrane-etykieta{font-size:calc(14px * var(--font-scale,1));color:var(--tekst-etykieta)}
+.odp a.k-wybrany{display:inline-flex;align-items:center;gap:8px;min-height:calc(32px * var(--font-scale,1));padding:0 12px 0 14px;border-radius:999px;background:var(--akcent-tlo);color:var(--akcent-na-tle);font-size:calc(14px * var(--font-scale,1));font-weight:700;text-decoration:none}
+.odp a.k-wybrany:hover{text-decoration:line-through;text-decoration-thickness:2px}
+.k-wybrane-wyczysc{font-size:calc(14px * var(--font-scale,1));margin-left:6px}
+@media (max-width:640px){.odp a.k-wybrany{min-height:44px}}
+/* formularz zgłoszenia */
+.k-formularz{display:flex;flex-direction:column;gap:10px;width:100%;max-width:36rem}
+.k-pole--tekst{min-height:calc(110px * var(--font-scale,1));padding:10px 12px;line-height:1.5;resize:vertical}
+.k-formularz .k-pole{width:100%}
+.k-formularz-akcje{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.k-formularz .k-etykieta b{color:var(--tekst);font-weight:700}

@@ -48,14 +48,17 @@ export default async function Szukaj({ searchParams }: { searchParams: Promise<{
                 </nav>
             )}
             {q && !wszystkie.length && (
-                <div className="flex flex-col" style={{ gap: 8 }}>
-                    <p style={{ margin: 0 }}>„{q}” – nic nie znaleziono.</p>
+                <div className="k-kom k-kom--pusto" role="status">
+                    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" className="k-kom-ikona"><circle cx="8.5" cy="8.5" r="6" /><path d="M13 13l5 5" /></svg>
+                    <div className="k-kom-tresc">
+                    <p className="k-kom-tytul">„{q}” – nic nie znaleziono.</p>
                     <ul className="flex flex-col text-gray-700 dark:text-gray-300" style={{ gap: 4, margin: 0, paddingLeft: '1.1rem', ...male }}>
                         {krotsze && <li>spróbuj krótszego zapytania: <Link href={`/szukaj?q=${encodeURIComponent(krotsze)}`}>{krotsze}</Link></li>}
                         <li>sprawdź pisownię albo wpisz inny wariant nazwy (np. dawną nazwę wsi, nazwisko panieńskie)</li>
                         <li>osoby z drzewa: <Link href={`/osoby?krag=wszystkie&q=${encodeURIComponent(q)}`}>szukaj w dziale osoby</Link> · miejscowości: <Link href="/miejsca">mapa i spis</Link> · księgi metrykalne: <Link href="/biblioteka/ksiegi">spis ksiąg</Link></li>
                         <li>archiwum jest w opracowaniu – brak wyniku nie znaczy, że o tym nic nie ma</li>
                     </ul>
+                    </div>
                 </div>
             )}
             {wyniki.length > 0 && (
