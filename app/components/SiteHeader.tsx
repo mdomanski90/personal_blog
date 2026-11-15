@@ -59,8 +59,10 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
     const pathname = usePathname()
     const glowna = pathname === '/'
     const [rozwiniete, setRozwiniete] = React.useState<string | null>(null)
+    // P7A-3: na telefonie menu schowane pod przyciskiem ≡ (lista z działami, podmenu rozwijane w miejscu)
+    const [menuOtwarte, setMenuOtwarte] = React.useState(false)
     const navRef = React.useRef<HTMLElement>(null)
-    React.useEffect(() => { setRozwiniete(null) }, [pathname])
+    React.useEffect(() => { setRozwiniete(null); setMenuOtwarte(false) }, [pathname])
     React.useEffect(() => {
         const key = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && rozwiniete) {
@@ -100,12 +102,17 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
                     </div>
                 </div>
                 <div className="flex shrink-0 items-center justify-end gap-2">
+                    <button type="button" className="k-btn k-btn--s menu-przelacz" aria-expanded={menuOtwarte} aria-controls="menu-glowne"
+                        onClick={() => setMenuOtwarte((o) => !o)}>
+                        <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><path d="M1 1h14M1 6h14M1 11h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+                        menu
+                    </button>
                     <Logowanie />
                     <ThemeToggle />
                 </div>
             </div>
 
-            <nav ref={navRef} aria-label="menu główne" className="menu-zakladki">
+            <nav ref={navRef} id="menu-glowne" aria-label="menu główne" className={`menu-zakladki${menuOtwarte ? ' menu-otwarte' : ''}`}>
                 {MENU.map((m) => {
                     const akt = aktywny(pathname, m.href) ||
                         (m.href === '/miejsca' && (!!pathname?.startsWith('/parafie') || !!pathname?.startsWith('/obiekty')))
@@ -115,14 +122,14 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
                         onMouseLeave={() => { if (pod && window.matchMedia('(hover: hover) and (pointer: fine)').matches) setRozwiniete(null) }}
                         onBlurCapture={(e) => { if (pod && !e.currentTarget.contains(e.relatedTarget as Node | null)) setRozwiniete(null) }}
                     >
-                        <Link href={m.href} aria-current={akt ? 'page' : undefined} className="zakladka" onFocus={() => { if (pod) setRozwiniete(m.href) }}>
+                        <Link href={m.href} aria-current={akt ? 'page' : undefined} className="zakladka">
                             {m.tekst}
                         </Link>
-                        {pod && <button type="button" className="menu-rozwij" aria-label={`rozwiń: ${m.tekst}`}
+                        {pod && <button type="button" className="menu-rozwij" aria-label={`podstrony: ${m.tekst}`}
                             aria-controls={rozwiniete === m.href ? `podmenu-${m.href.slice(1)}` : undefined} aria-expanded={rozwiniete === m.href}
-                            onClick={() => setRozwiniete(rozwiniete === m.href ? null : m.href)}>▾</button>}
+                            onClick={() => setRozwiniete(rozwiniete === m.href ? null : m.href)}>{rozwiniete === m.href ? '▴' : '▾'}</button>}
                         {pod && rozwiniete === m.href && <div id={`podmenu-${m.href.slice(1)}`} className="menu-podlista">
-                            {pod.map((x) => <Link key={x.href} href={x.href} onClick={() => setRozwiniete(null)}>{x.tekst}</Link>)}
+                            {pod.map((x) => <Link key={x.href} href={x.href} aria-current={!x.href.includes('?') && pathname === x.href ? 'page' : undefined} onClick={() => setRozwiniete(null)}>{x.tekst}</Link>)}
                         </div>}
                     </div>
                 })}

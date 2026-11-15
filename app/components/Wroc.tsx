@@ -10,8 +10,8 @@ import { Link } from 'next-view-transitions'
 
 const KLUCZ = 'odp-sciezki'
 const DZIALY: Record<string, string> = { miejsca: '/miejsca', obiekty: '/miejsca', plany: '/miejsca', osoby: '/osoby', wpisy: '/wpisy', tematy: '/tematy', archiwum: '/archiwum', biblioteka: '/biblioteka', szukaj: '/' }
-const styl: React.CSSProperties = { fontSize: 'calc(14px * var(--font-scale, 1))', minHeight: 'calc(28px * var(--font-scale, 1))', padding: '0 10px', borderRadius: '7px', fontFamily: 'inherit' }
-const klasy = 'border border-[#d6d1c6] dark:border-[#4b5563] lowercase whitespace-nowrap !no-underline text-current hover:bg-muted transition-colors inline-flex items-center bg-transparent cursor-pointer'
+const styl: React.CSSProperties = {}
+const klasy = 'k-btn k-btn--s lowercase'
 
 function czytaj(): string[] {
     try { return JSON.parse(sessionStorage.getItem(KLUCZ) ?? '[]') } catch { return [] }

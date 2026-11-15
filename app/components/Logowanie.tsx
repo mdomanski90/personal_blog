@@ -7,15 +7,8 @@ import { usePathname } from 'next/navigation'
 // „zaloguj” / „wyloguj” w nagłówku. Stan z ciasteczka pomocniczego (nic nie odblokowuje –
 // dostęp sprawdza serwer na podstawie ciasteczka HttpOnly).
 
-const styl = {
-    fontSize: '14px',
-    height: '28px',
-    padding: '0 10px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    borderRadius: '7px',
-}
-const KLASY = 'border border-[#d6d1c6] dark:border-[#4b5563] lowercase whitespace-nowrap !no-underline text-current hover:bg-muted transition-colors bg-transparent cursor-pointer'
+const styl = {}
+const KLASY = 'k-btn k-btn--s lowercase'
 
 export default function Logowanie() {
     const sciezka = usePathname() ?? '/'

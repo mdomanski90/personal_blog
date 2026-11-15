@@ -1193,3 +1193,40 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .k-wybor-lista li[aria-selected=true]{background:var(--tlo-sekcji);text-decoration:underline;text-decoration-color:var(--akcent);text-decoration-thickness:2px;text-underline-offset:4px}
 .k-wybor-opis{font-size:calc(13px * var(--font-scale,1));color:var(--tekst-etykieta);text-decoration:none}
 @media (max-width:640px){.k-filtry{padding:16px}.k-wybor-pastylka>button{width:40px;height:40px}.k-wybor-lista li{min-height:44px;justify-content:center}}
+/* ============================================ */
+/* P7A-3 · MENU I NAWIGACJA (JV-06)             */
+/* ============================================ */
+.menu-zakladki{border-bottom:2px solid var(--akcent)}
+.odp .menu-zakladki .zakladka{height:calc(36px * var(--font-scale,1));max-height:44px;background:var(--tlo-sekcji);border-color:#c9c3b7;color:var(--akcent);font-size:calc(14px * var(--font-scale,1))}
+.dark .odp .menu-zakladki .zakladka{border-color:#4a4640;background:var(--tlo-sekcji)}
+.odp .menu-zakladki .zakladka:hover{background:var(--tlo-kontrolki)}
+/* „archiwum”: stałe wyróżnienie – jasny fiolet, obwódka akcentu, pogrubienie (bez pełnego wypełnienia) */
+.odp .menu-zakladki .menu-archiwum>.zakladka,.dark .odp .menu-zakladki .menu-archiwum>.zakladka{background:var(--akcent-tlo);border-color:var(--akcent);color:var(--akcent-na-tle);font-weight:700}
+/* aktualne miejsce: pełne wypełnienie (jedyny taki element w menu) */
+.odp .menu-zakladki .zakladka[aria-current=page],.dark .odp .menu-zakladki .zakladka[aria-current=page],.odp .menu-zakladki .menu-archiwum>.zakladka[aria-current=page]{background:var(--akcent-wypelnienie);border-color:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu);border-top-width:1px;font-weight:700;margin-bottom:0;padding-bottom:0;text-decoration:none}
+.menu-zakladki .menu-grupa:has(>.zakladka[aria-current=page])>.menu-rozwij{color:var(--akcent-na-wypelnieniu)}
+.menu-zakladki .menu-grupa:has(>.zakladka[aria-current=page])>.menu-rozwij:hover{background:rgba(255,255,255,.14)}
+.menu-zakladki .menu-archiwum:not(:has(>.zakladka[aria-current=page]))>.menu-rozwij{color:var(--akcent-na-tle)}
+.menu-zakladki .menu-rozwij{min-width:24px;border-left:1px solid transparent}
+.menu-zakladki .menu-grupa:has(>.zakladka[aria-current=page])>.menu-rozwij{border-left-color:rgba(255,255,255,.35)}
+.odp .menu-zakladki .menu-rozwij:focus-visible{outline:2px solid currentColor;outline-offset:-3px}
+/* podmenu: kartka spod zakładki */
+.menu-zakladki .menu-podlista{top:calc(100% + 2px);min-width:230px;padding:6px;border:1px solid var(--linia-podzialu);border-top:0;border-radius:0 0 10px 10px;background:var(--tlo-kontrolki);box-shadow:0 10px 24px rgba(28,27,24,.10)}
+.menu-zakladki .menu-podlista a{display:flex;align-items:center;min-height:calc(40px * var(--font-scale,1));padding:0 12px;border-radius:6px;color:var(--tekst);font-size:calc(15px * var(--font-scale,1));text-transform:lowercase}
+.menu-zakladki .menu-podlista a+a{margin-top:2px}
+.menu-zakladki .menu-podlista a:hover,.menu-zakladki .menu-podlista a:focus-visible{background:var(--tlo-sekcji);text-decoration:underline;text-decoration-color:var(--akcent);text-decoration-thickness:2px;text-underline-offset:5px}
+.menu-zakladki .menu-podlista a[aria-current=page]{background:var(--akcent-tlo);color:var(--akcent-na-tle);font-weight:700}
+/* przycisk ≡ tylko na telefonie */
+.menu-przelacz{display:none}
+@media (max-width:640px){
+  .menu-przelacz{display:inline-flex}
+  .menu-zakladki{display:none;grid-template-columns:1fr;gap:4px;padding:8px 0 10px;border-bottom:2px solid var(--akcent)}
+  .menu-zakladki.menu-otwarte{display:grid}
+  .odp .menu-zakladki .zakladka{min-height:44px;border-radius:8px;border-width:1px;font-size:calc(15px * var(--font-scale,1));padding:0 12px}
+  .odp .menu-zakladki .zakladka[aria-current=page]{border-width:1px;padding:0 12px}
+  .menu-zakladki .menu-rozwij{min-width:44px;border-left:1px solid var(--linia-podzialu)}
+  .menu-zakladki .menu-grupa{flex-wrap:wrap}
+  .menu-zakladki .menu-rozwij{height:44px}
+  .menu-zakladki .menu-podlista{position:static;flex-basis:calc(100% - 16px);min-width:0;max-width:none;margin:4px 0 6px 16px;box-shadow:none;border-top:1px solid var(--linia-podzialu);border-radius:8px}
+  .menu-zakladki .menu-podlista a{min-height:44px}
+}
