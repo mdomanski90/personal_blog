@@ -97,7 +97,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const jestTeren = swiatynie.length > 0 || !obszar
     const jestKsiegi = ksiegiSa || m.parafie.length > 0
     const tytulHistorii = obszar ? 'opis' : 'historia'
-    const spis = spisCzesci(['podstawowe', m.rodzaj === 'gmina' && potomkowie.length > 0 && 'wsie gminy', tytulHistorii, jestTeren && 'w terenie', jestKsiegi && 'księgi metrykalne', planyWsi.length > 0 && 'plany i schematy', 'powiązane', (m.zrodla.length > 0 || !!zrodlo) && 'źródła'])
+    const spis = spisCzesci(['podstawowe', m.rodzaj === 'gmina' && potomkowie.length > 0 && 'wsie gminy', tytulHistorii, jestTeren && 'w terenie', planyWsi.length > 0 && 'plany i schematy', jestKsiegi && 'księgi metrykalne', 'powiązane', (m.zrodla.length > 0 || !!zrodlo) && 'źródła'])
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
@@ -159,7 +159,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                 )}
             </Sekcja>
 
-            {(jestTeren || jestKsiegi) && <Tabela etykieta={`${m.nazwa} – w terenie i księgi`}>
+            {(jestTeren || jestKsiegi || planyWsi.length > 0) && <Tabela etykieta={`${m.nazwa} – w terenie, plany i księgi`}>
                 {(swiatynie.length > 0 || !obszar) && (
                     <>
                         <Czesc tytul="w terenie">{swiatynie.length ? `${swiatynie.length} ${swiatynie.length === 1 ? 'obiekt' : swiatynie.length < 5 ? 'obiekty' : 'obiektów'}` : 'kapliczki, krzyże, cmentarze, szkoły, młyny…'}</Czesc>
@@ -172,6 +172,13 @@ export default async function MiejsceStrona({ params }: Parametry) {
                     </>
                 )}
 
+                {planyWsi.length > 0 && (
+                    // PH-23: plany jako „pozycja w karcie” z miniaturą; w tabeli 2 między „w terenie” a księgami (decyzja właściciela 16.11)
+                    <>
+                        <Czesc tytul="plany i schematy">{odmiana(planyWsi.length, ['plan', 'plany', 'planów'])}</Czesc>
+                        <WCaly><ListaPlanow plany={planyWsi} wszystkie={`/plany?miejsce=${m.id}`} /></WCaly>
+                    </>
+                )}
                 {(ksiegiSa || m.parafie.length > 0) && (
                     <>
                         <Czesc tytul="księgi metrykalne">zachowane roczniki</Czesc>
@@ -194,13 +201,6 @@ export default async function MiejsceStrona({ params }: Parametry) {
             </Tabela>}
 
             <Tabela etykieta={`${m.nazwa} – powiązane i źródła`}>
-                {planyWsi.length > 0 && (
-                    // PH-23: plany jako „pozycja w karcie” z miniaturą przy prawej krawędzi – jak księgi metrykalne
-                    <>
-                        <Czesc tytul="plany i schematy">{odmiana(planyWsi.length, ['plan', 'plany', 'planów'])}</Czesc>
-                        <WCaly><ListaPlanow plany={planyWsi} wszystkie={`/plany?miejsce=${m.id}`} /></WCaly>
-                    </>
-                )}
                 <Czesc tytul="powiązane">{[opow.length && 'wpisy', mat.length && 'materiały', tematy.length && 'tematy'].filter(Boolean).join(' · ')}</Czesc>
                 <W e="wpisy">{opow.length > 0 && <KrotkieWpisy wpisy={opow} />}</W>
                 <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
