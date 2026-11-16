@@ -15,7 +15,8 @@
     "formy": "tsx scripts/formy-odmiany.ts",
     "wzmianki": "tsx scripts/wzmianki.ts",
     "haslo": "tsx scripts/haslo.ts",
-    "plany:statusy": "tsx scripts/plany-statusy.ts"
+    "plany:statusy": "tsx scripts/plany-statusy.ts",
+    "plany:oznaczenia": "tsx scripts/plany-oznaczenia.ts"
   },
   "dependencies": {
     "@annotorious/openseadragon": "3.9.5",
