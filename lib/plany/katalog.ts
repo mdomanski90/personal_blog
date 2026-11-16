@@ -11,7 +11,7 @@ import { odmiana } from '../tekst'
  * o ile czytelnik widzi ten materiał; inaczej strona planu jak dotąd.
  */
 export const adresPlanu = (p: Pick<Plan, 'slug' | 'zrodlo'>, widoczneMaterialy: ReadonlySet<string> = new Set()) =>
-    p.zrodlo?.material && widoczneMaterialy.has(p.zrodlo.material) ? `/archiwum/${p.zrodlo.material}#rekonstrukcja` : `/plany/${p.slug}`
+    p.zrodlo?.material && widoczneMaterialy.has(p.zrodlo.material) ? `/archiwum/${p.zrodlo.material}#warstwa-rekonstrukcji` : `/plany/${p.slug}`
 
 export interface OpisPlanu { prawa: string; linia: string; pola: [string, string][] }
 

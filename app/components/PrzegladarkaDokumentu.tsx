@@ -77,12 +77,12 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const n = strony.length
     const [warstwy, ustawWarstwy] = React.useState<TrybWarstw>('skan')
     const [krycie, ustawKrycie] = React.useState(0.75)
-    // wejście z listy planów (#rekonstrukcja): od razu skan z rekonstrukcją, na stronie podkładu
-    React.useEffect(() => { if (rekonstrukcja && window.location.hash === '#rekonstrukcja') ustawWarstwy('oba') }, [rekonstrukcja])
+    // wejście z listy planów (#warstwa-rekonstrukcji): od razu skan z rekonstrukcją, na stronie podkładu
+    React.useEffect(() => { if (rekonstrukcja && window.location.hash === '#warstwa-rekonstrukcji') ustawWarstwy('oba') }, [rekonstrukcja])
     React.useEffect(() => {
         if (!rekonstrukcja || warstwy === 'skan' || wersja === 0) return
         const v = widz.current
-        if (v && v.currentPage() !== rekonstrukcja.podklad.strona && window.location.hash === '#rekonstrukcja') v.goToPage(rekonstrukcja.podklad.strona)
+        if (v && v.currentPage() !== rekonstrukcja.podklad.strona && window.location.hash === '#warstwa-rekonstrukcji') v.goToPage(rekonstrukcja.podklad.strona)
         // tylko po pierwszym otwarciu skanu
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [wersja === 0])
@@ -214,7 +214,7 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const trybPokazu: TrybObjasnien = tryb === 'ukryj' ? (wybranyTrybPokazu.current ?? 'numery') : tryb
 
     return (
-        <div ref={ramka} className={`dok${pelny ? ' dok-pelny' : ''}${karta ? ' dok-karta' : ''}`}>
+        <div ref={ramka} id={rekonstrukcja ? 'warstwa-rekonstrukcji' : undefined} className={`dok${pelny ? ' dok-pelny' : ''}${karta ? ' dok-karta' : ''}`}>
             {/* P7C-2 (JV-19): jeden pasek w karcie i na pełnym ekranie – ta sama kolejność i te same kontrolki;
                 na pełnym ekranie dochodzą tytuł, skala w %, dopasuj, obróć i transkrypcja; na telefonie pasek u dołu, przyciski 44 px */}
             <div className="dok-pasek dok-pasek-karta" role="toolbar" aria-label="przeglądanie dokumentu">

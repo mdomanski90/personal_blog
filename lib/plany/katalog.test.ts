@@ -25,7 +25,7 @@ test('opis planu historycznego: rodzaj, dwie daty, źródło; prawa = stan przed
 
 test('adres planu ze skanu: strona materiału tylko, gdy czytelnik widzi materiał', () => {
     const p = popraw({ slug: 'h', zrodlo: { material: 'skan-a' } })
-    assert.equal(adresPlanu(p, new Set(['skan-a'])), '/archiwum/skan-a#rekonstrukcja')
+    assert.equal(adresPlanu(p, new Set(['skan-a'])), '/archiwum/skan-a#warstwa-rekonstrukcji')
     assert.equal(adresPlanu(p, new Set()), '/plany/h')
     assert.equal(adresPlanu(popraw({ slug: 'c' }), new Set(['skan-a'])), '/plany/c')
 })
