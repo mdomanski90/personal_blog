@@ -17,6 +17,7 @@ import CopyLinkButton from '../../components/CopyLinkButton'
 import Zgloszenie from '../../components/Zgloszenie'
 import { Strona, Tresc, TytulStrony } from '../../components/Uklad'
 import Powiazania from '../../components/Powiazania'
+import { PastylkaOsoby } from '@/app/components/Wzorce'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,7 +85,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
         if (!x || !s.drzewo.osoby.has(x)) return <span className="text-[var(--tekst-etykieta)]">{rola ? `${rola} nieznany` : 'nieznany'}</span>
         if (!widac(x)) return <span className="osoba-ukryta">widoczne dla zalogowanych</span>
         const p = s.drzewo.osoby.get(x)!
-        return <span><Link href={`/osoby/${p.id}`} className={`osoba-link osoba-${p.plec}`}>{nazwaOsoby(p)}</Link>{lataZycia(p) && <span className="text-[var(--tekst-opis)]"> {lataZycia(p)}</span>}</span>
+        return <span><PastylkaOsoby href={`/osoby/${p.id}`} plec={p.plec}>{nazwaOsoby(p)}</PastylkaOsoby>{lataZycia(p) && <span className="text-[var(--tekst-opis)]"> {lataZycia(p)}</span>}</span>
     }
     const Miejsce = ({ z }: { z: Zdarzenie }) => {
         if (z.miejsceId && miejsceId.has(z.miejsceId)) return <Link href={`/miejsca/${z.miejsceId}`}>{z.miejsce?.split(',')[0] || miejsceId.get(z.miejsceId)}</Link>
@@ -157,7 +158,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                     </div>
                 )}
                 <div className="osoba-karta-opis">
-                    <h1 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.75rem * var(--font-scale, 1))', margin: 0 }}>{tytul}</h1>
+                    <h1 className="tytul-strony">{tytul}</h1>
                     {(lataZycia(o) || o.inneNazwiska?.length || o.przydomek) ? (
                         <p className="text-[var(--tekst-opis)]" style={{ margin: 0 }}>
                             {[

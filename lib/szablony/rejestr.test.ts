@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { MIEJSCA, POZA_MAPA, WZORCE } from './rejestr'
+import { KOMPONENTY_BAZOWE, MIEJSCA, POZA_MAPA, WZORCE } from './rejestr'
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 const BYTY = /href=\{`\/(obiekty|parafie|miejsca|osoby|archiwum|biblioteka\/publikacje|archiwum\/zbiory|tematy|wpisy|plany)\/\$\{/
@@ -45,5 +45,15 @@ test('w tabeli karty pozycje są blokami, nie osobnymi kartami', () => {
         if (!/<Tabela[\s>]/.test(kod)) continue
         assert.ok(!kod.includes('<KartaPozycji'), `${p}: KartaPozycji wewnątrz tabeli karty`)
         for (const m of kod.matchAll(/<TabelaKsiag\b[\s\S]*?\/>/g)) assert.ok(m[0].includes('wariant="wiersze"'), `${p}: TabelaKsiag w tabeli karty bez wariant="wiersze"`)
+    }
+})
+
+// JW-1: komponenty bazowe – eksportowane ze wskazanego pliku, z regułą CSS dla swojej klasy
+test('każdy komponent bazowy istnieje i ma klasę w app/globals.css', () => {
+    const css = fs.readFileSync(path.join(ROOT, 'app/globals.css'), 'utf8')
+    for (const k of KOMPONENTY_BAZOWE) {
+        const kod = fs.readFileSync(path.join(ROOT, k.plik), 'utf8')
+        assert.match(kod, new RegExp(`export (default )?function ${k.komponent}\\b`), `${k.plik}: brak eksportu ${k.komponent}`)
+        assert.ok(new RegExp(`\\.${k.klasa}\\b`).test(css), `app/globals.css: brak reguły .${k.klasa} (${k.nazwa})`)
     }
 })

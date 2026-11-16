@@ -112,9 +112,42 @@
   --uwaga: #7a5200; --uwaga-tlo: #fbf3df;
   --ok: #2f6b3a; --ok-tlo: #ecf4ea;
   --niedostepne-tlo: #f6f4ef;
-  --szer-tekstu: 66ch;
-  --szer-ukladu: 1120px;
   --promien-maly: 6px; --promien: 8px; --promien-duzy: 12px;
+
+  /* JW-1 · skala rozmiarów tekstu (zasada 5.1c) – jedyne dozwolone rozmiary; wszystkie × --font-scale (A−/A+) */
+  --rozmiar-drobny: calc(12px * var(--font-scale, 1));
+  --rozmiar-etykieta: calc(13px * var(--font-scale, 1));
+  --rozmiar-opis: calc(14px * var(--font-scale, 1));
+  --rozmiar-maly: calc(15px * var(--font-scale, 1));
+  --rozmiar-tekst: calc(16px * var(--font-scale, 1));
+  --rozmiar-tresc: calc(18px * var(--font-scale, 1));
+  --rozmiar-tytul-sekcji: calc(20px * var(--font-scale, 1));
+  --rozmiar-tytul: calc(1.3rem * var(--font-scale, 1));
+  --rozmiar-tytul-strony: calc(1.75rem * var(--font-scale, 1));
+
+  /* JW-1 · szerokość B (decyzja 16.11): układ 1200 px (treść 1160), kolumna tekstu 66 znaków przy 18 px
+     (JetBrains Mono: 0,6 em × 18 px × 66 ≈ 713 px), pasek boczny = reszta po odstępie 40 px */
+  --szer-ukladu: 1200px;
+  --margines-ukladu: 20px;
+  --szer-tekstu: calc(713px * var(--font-scale, 1));
+  --odstep-kolumn: 40px;
+  --odstep-sekcji: 24px;
+  --kreska-tytulu: 3px;
+
+  /* JW-1 · płeć osób – pastylka osoby (osoba-link) i drzewo (.dr-K/.dr-M/.dr-U) z tych samych tokenów */
+  --osoba-k-tlo: #fdf2f6; --osoba-k-ramka: #f3d3df;
+  --osoba-m-tlo: #eff4fb; --osoba-m-ramka: #cfdcef;
+  --osoba-u-tlo: #f4f3f0; --osoba-u-ramka: #e2e0da;
+
+  /* JW-1 · druk (JW-17): czarny tekst na białym, szara stopka, cienkie linie tabel – niezależnie od motywu */
+  --druk-tlo: #ffffff;
+  --druk-tekst: #000000;
+  --druk-szary: #555555;
+  --druk-linia: #bbbbbb;
+  --data-wydruku: "";
+  --tytul-druku: "";
+  --adres-druku: "";
+  --nr-kat-druku: "";
 }
 
 /* ============================================ */
@@ -171,6 +204,10 @@
   --uwaga: #e0b25c; --uwaga-tlo: #33291a;
   --ok: #8ccf96; --ok-tlo: #1f2e22;
   --niedostepne-tlo: #232220;
+  /* JW-1 · płeć osób nocą */
+  --osoba-k-tlo: #3a2730; --osoba-k-ramka: #5a3a48;
+  --osoba-m-tlo: #233040; --osoba-m-ramka: #34485f;
+  --osoba-u-tlo: #2a2a2a; --osoba-u-ramka: #404040;
 }
 
 /* ============================================ */
@@ -571,15 +608,12 @@ body {
 
 /* Osoby: lista, odnośniki w kolorach płci, obrządek, drzewo (klepsydra na komputerze, lista na telefonie) */
 .osoby-lista { display: flex; flex-direction: column; gap: 2px; list-style: none; padding: 0; margin: 0; font-size: calc(15px * var(--font-scale, 1)); }
-.osoba-link { text-decoration: underline !important; text-decoration-color: rgb(28 27 24 / .3) !important; text-underline-offset: 3px; padding: 0 4px; border-radius: 4px; }
-.osoba-link:hover { text-decoration-color: currentColor !important; }
-.dark .osoba-link { text-decoration-color: rgb(229 231 235 / .35) !important; }
-.osoba-K { background: #fcf3f6; box-shadow: inset 0 0 0 1px #f1d9e2; }
-.osoba-M { background: #f2f7fc; box-shadow: inset 0 0 0 1px #d5e3f3; }
-.osoba-U { background: #f4f3f0; box-shadow: inset 0 0 0 1px #e2e0da; }
-.dark .osoba-K { background: #3a2730; box-shadow: inset 0 0 0 1px #5a3a48; }
-.dark .osoba-M { background: #233040; box-shadow: inset 0 0 0 1px #34485f; }
-.dark .osoba-U { background: #2a2a2a; box-shadow: inset 0 0 0 1px #404040; }
+/* JW-1 · pastylka osoby (PastylkaOsoby): 40 px, pełne zaokrąglenie, tło i ramka z tokenów płci (jak w drzewie) */
+.odp .osoba-link { display: inline-flex; align-items: center; gap: 8px; min-height: calc(40px * var(--font-scale, 1)); padding: 0 16px; box-sizing: border-box; border-radius: 999px; border: 1px solid var(--osoba-u-ramka); background: var(--osoba-u-tlo); color: var(--tekst); text-decoration: none; font-size: var(--rozmiar-maly); line-height: 1.2; }
+.odp .osoba-link.osoba-K { background: var(--osoba-k-tlo); border-color: var(--osoba-k-ramka); }
+.odp .osoba-link.osoba-M { background: var(--osoba-m-tlo); border-color: var(--osoba-m-ramka); }
+.odp .osoba-link:hover { border-color: var(--akcent); color: var(--akcent); }
+.odp .osoba-link:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px; }
 .osoba-ukryta { color: #6b665c; font-style: italic; }
 .obrzadek { display: inline-block; font-size: 0.82em; padding: 0 6px; border-radius: 5px; color: var(--kolor); box-shadow: inset 0 0 0 1px var(--kolor); white-space: nowrap; }
 .dark .obrzadek { filter: brightness(1.6); }
@@ -611,9 +645,9 @@ body {
 .dark .drzewo .dr-karta:focus-visible { outline-color: #419cff; }
 .drzewo .dr-lata { color: #6b665c; font-size: 11px; margin-top: 2px; }
 
-.drzewo .dr-K { background: #fdf2f6; border: 1px solid #f3d3df; }
-.drzewo .dr-M { background: #eff4fb; border: 1px solid #cfdcef; }
-.drzewo .dr-U { background: #f4f3f0; border: 1px solid #e2e0da; }
+.drzewo .dr-K { background: var(--osoba-k-tlo); border: 1px solid var(--osoba-k-ramka); }
+.drzewo .dr-M { background: var(--osoba-m-tlo); border: 1px solid var(--osoba-m-ramka); }
+.drzewo .dr-U { background: var(--osoba-u-tlo); border: 1px solid var(--osoba-u-ramka); }
 .drzewo .dr-glowna { font-weight: 700; border: 2px solid #1c1b18; }
 .drzewo .dr-glowna .dr-lata { font-weight: 400; }
 .drzewo .dr-ukryta { background: #efece5; border: 1px dashed #c9c3b6; color: #6b665c; }
@@ -624,9 +658,7 @@ body {
 .dark .drzewo .dr-wiersz:nth-child(odd) { background: #161b26; }
 .dark .drzewo .dr-pokol, .dark .drzewo .dr-lata { color: #a8a296; }
 .dark .drzewo .dr-linie path { stroke: #8b93a0; }
-.dark .drzewo .dr-K { background: #3a2730; border-color: #5a3a48; }
-.dark .drzewo .dr-M { background: #233040; border-color: #34485f; }
-.dark .drzewo .dr-U, .dark .drzewo .dr-ukryta { background: #2a2a2a; border-color: #404040; }
+.dark .drzewo .dr-ukryta { background: var(--osoba-u-tlo); border-color: var(--osoba-u-ramka); }
 .dark .drzewo .dr-glowna { border-color: #ece8df; }
 .dark .drzewo .dr-slub { background: #232220; border-color: #8b93a0; color: #c9c3b7; }
 .drzewo { position: relative; }
@@ -637,10 +669,8 @@ body {
 .drzewo .dr-t-osoba { font-weight: 700; margin: 0 0 4px; }
 .drzewo .dr-t-naglowek { margin: 8px 0 2px; color: #6b665c; }
 .drzewo .dr-t-ukryta { color: #6b665c; font-style: italic; }
-.drzewo .dr-t-K { background: #fcf3f6; padding: 0 3px; border-radius: 3px; }
-.drzewo .dr-t-M { background: #f2f7fc; padding: 0 3px; border-radius: 3px; }
-.dark .drzewo .dr-t-K { background: #3a2730; }
-.dark .drzewo .dr-t-M { background: #233040; }
+.drzewo .dr-t-K { background: var(--osoba-k-tlo); padding: 0 3px; border-radius: 3px; }
+.drzewo .dr-t-M { background: var(--osoba-m-tlo); padding: 0 3px; border-radius: 3px; }
 @media (max-width: 640px) {
   .drzewo .dr-przewijanie, .drzewo .dr-narzedzia { display: none; }
   .drzewo .dr-tekst { display: block; padding: 10px 14px; white-space: normal; overflow-wrap: anywhere; }
@@ -1589,3 +1619,121 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 /* kontrast nocą: szarości ksiąg z tokenu etykiety zamiast stałego rgb(107 114 128) */
 .ksiega-tomy>summary,.pasek-lat-lata{color:var(--tekst-etykieta)}
 .ksiega-tomy>summary:hover{color:var(--tekst)}
+
+/* ============================================ */
+/* JW-1 · KOMPONENTY BAZOWE (zasada 5.1c)       */
+/* Strona, TytulStrony, TytulSekcji, SpisTresci, PastylkaOsoby (wyżej, przy osobach), PastylkaFiltra, Okruszki */
+/* Rejestr: lib/szablony/rejestr.ts; podgląd: /keystatic/panel/wzorce */
+/* ============================================ */
+
+/* Strona – szerokość B: jedna szerokość układu (1200 px, treść 1160) dla nagłówka, treści i stopki */
+.odp{max-width:var(--szer-ukladu);margin:0 auto;padding:2rem var(--margines-ukladu) 5rem;box-sizing:border-box;min-height:100vh}
+.strona-tresc.uklad-kolumna{max-width:var(--szer-tekstu)}
+.strona-tresc.uklad-pelna{max-width:none}
+.tresc-czytana{font-size:var(--rozmiar-tresc)}
+
+/* Strona uklad="karta": kolumna tekstu + pasek boczny (obraz nagłówka, spis treści); pasek zaczyna się przy nagłówku karty.
+   Element <PelnaSzerokosc> przerywa kolumnę; w następnym odcinku spis wraca (przyklejony). */
+.karta-odcinek{display:grid;grid-template-columns:minmax(0,var(--szer-tekstu)) minmax(0,1fr);column-gap:var(--odstep-kolumn);row-gap:var(--odstep-sekcji);align-items:start}
+.karta-odcinek-pierwszy{grid-template-areas:"nagl bok" "kol bok";grid-template-rows:auto 1fr}
+.karta-naglowek{grid-area:nagl;min-width:0;display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
+.karta-odcinek-pierwszy>.karta-bok{grid-area:bok}
+.karta-odcinek-pierwszy>.karta-kolumna{grid-area:kol}
+.karta-odcinek>.karta-kolumna{grid-column:1}
+.karta-kolumna{min-width:0;display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
+.karta-bok{grid-column:2;align-self:stretch;min-width:0;display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
+.karta-spis{position:sticky;top:24px;max-height:calc(100vh - 48px);overflow-y:auto}
+.pelna-szerokosc{min-width:0}
+@media (max-width:900px){
+  .karta-odcinek{grid-template-columns:minmax(0,1fr)}
+  .karta-odcinek-pierwszy{grid-template-areas:"nagl" "bok" "kol";grid-template-rows:auto}
+  .karta-bok{grid-column:1}
+  .karta-spis{position:static;max-height:none;overflow:visible}
+  .karta-bok-dalej{display:none}
+}
+
+/* TytulStrony – h1 w kolorze akcentu z kreską 40 × 3 px (decyzja 16.11, wszystkie strony) */
+.tytul-strony-blok{display:flex;flex-direction:column;gap:.4rem}
+.pasek-akcji{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:.6rem}
+.odp h1.tytul-strony{margin:0;font-weight:700;font-size:var(--rozmiar-tytul-strony);line-height:1.25;overflow-wrap:break-word;color:var(--akcent)}
+.odp h1.tytul-strony::after{content:"";display:block;width:40px;height:var(--kreska-tytulu);border-radius:2px;background:var(--akcent);margin-top:10px}
+
+/* TytulSekcji – małe litery, 20 px, akcent, kreska 32 × 3 px (wzorzec strony głównej) */
+.sekcja{display:flex;flex-direction:column;gap:calc(.75rem * var(--font-scale,1))}
+.odp .tytul-sekcji{margin:0;font-size:var(--rozmiar-tytul-sekcji);font-weight:700;line-height:1.3;text-transform:lowercase;color:var(--akcent);letter-spacing:0}
+.odp .tytul-sekcji::after{content:"";display:block;width:32px;height:var(--kreska-tytulu);border-radius:2px;background:var(--akcent);margin-top:8px}
+
+/* SpisTresci – pozycje 14 px, min. 32 px, linia z lewej; aktywna w akcencie z kreską 3 px */
+.spis-tresci details>summary{list-style:none}
+.spis-tresci details>summary::-webkit-details-marker{display:none}
+.spis-tresci-tytul{margin:0 0 8px;font-size:var(--rozmiar-etykieta);color:var(--tekst-etykieta);text-transform:lowercase}
+.spis-tresci ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-left:1px solid var(--linia-podzialu)}
+.odp .spis-tresci li a{display:flex;align-items:center;min-height:calc(32px * var(--font-scale,1));padding:0 14px;margin-left:-1px;border-left:3px solid transparent;color:var(--tekst-opis);text-decoration:none;font-size:var(--rozmiar-opis);text-transform:lowercase}
+.odp .spis-tresci li a:hover{color:var(--akcent)}
+.odp .spis-tresci li a[aria-current]{border-left-color:var(--akcent);color:var(--akcent);font-weight:700}
+@media (min-width:901px){.spis-tresci summary{pointer-events:none}}
+@media (max-width:900px){
+  .spis-tresci{border:1px solid var(--linia-podzialu);border-radius:var(--promien);padding:0 14px}
+  .spis-tresci-tytul{display:flex;align-items:center;min-height:calc(40px * var(--font-scale,1));margin:0;cursor:pointer;font-size:var(--rozmiar-opis);color:var(--tekst)}
+  .spis-tresci-tytul::after{content:"▾";margin-left:auto;color:var(--tekst-etykieta)}
+  .spis-tresci details[open]>.spis-tresci-tytul::after{content:"▴"}
+  .spis-tresci ol{margin-bottom:10px}
+}
+
+/* PastylkaFiltra / RzadFiltrow – pastylki .szukaj-filtr (wyżej); drugi rząd z podpisem */
+.filtry-rzad{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.filtry-podpis{margin-right:4px;font-size:var(--rozmiar-etykieta);color:var(--tekst-etykieta)}
+.szukaj-filtr-liczba{font-weight:400;color:var(--tekst-etykieta)}
+.szukaj-filtr[aria-current=true] .szukaj-filtr-liczba{color:inherit}
+
+/* elementy tylko do druku – na ekranie ukryte */
+.druk-naglowek,.druk-koniec,.druk-tylko{display:none}
+
+/* ============================================ */
+/* JW-1 · WSPÓLNY ARKUSZ DRUKU (JW-17)          */
+/* makiety wydruku A4 przyjęte 16.11: stopka w polach marginesu (Chromium; gdzie indziej stopka przeglądarki),  */
+/* blok na końcu treści w każdej przeglądarce; tło się nie drukuje → kreski i podziały ramką, nie tłem          */
+/* ============================================ */
+@page{
+  size:A4;margin:14mm 16mm 18mm 16mm;
+  @bottom-left{content:"odniepamieci.pl · " var(--tytul-druku);font-family:var(--font-jetbrains),ui-monospace,monospace;font-size:7.5pt;color:var(--druk-szary);vertical-align:top;padding-top:5mm}
+  @bottom-right{content:var(--nr-kat-druku) "wydrukowano " var(--data-wydruku) " · strona " counter(page) " z " counter(pages);font-family:var(--font-jetbrains),ui-monospace,monospace;font-size:7.5pt;color:var(--druk-szary);vertical-align:top;padding-top:5mm;white-space:nowrap}
+}
+@media print{
+  html,body{background:var(--druk-tlo)!important;color:var(--druk-tekst)!important}
+  body{font-size:10pt;line-height:1.45}
+  *{transition:none!important}
+  /* pusta ostatnia kartka: min-height strony i ogłaszacz zmiany trasy Next */
+  .odp{max-width:none;padding:0;margin:0;min-height:0}
+  next-route-announcer{display:none!important}
+  .strona-tresc.uklad-kolumna{max-width:none}
+  .karta-odcinek{display:flex;flex-direction:column;gap:4mm}
+  /* bez menu, stopki strony, filtrów, przycisków, formularzy, prośby o zdjęcie, spisu treści i paska bocznego */
+  .odp>.strona-pion>header,.odp>.strona-pion>footer,nav.okruszki,.pasek-akcji,.karta-zglos,.k-btn,.odp button,.szukaj-filtr,.filtry-rzad,.odp form,
+  .osoba-bez-zdjecia,.osoba-bez-zdjecia-krotko,.ot-seg,.ot-przycisk,.ot-drzewo,#drzewo,.spis-tresci,.karta-bok,.karta-bok-dalej{display:none!important}
+  /* odnośniki jako zwykły tekst */
+  .odp a,.odp a.odn,.odp button.odn{color:var(--druk-tekst)!important;text-decoration:none!important}
+  /* tytuł strony czarny (decyzja 16.11), kreska czarną ramką; tytuły sekcji tak samo */
+  .odp h1.tytul-strony{color:var(--druk-tekst);font-size:17pt}
+  .odp h1.tytul-strony::after{height:0;background:none;border-top:var(--kreska-tytulu) solid var(--druk-tekst)}
+  .odp .tytul-sekcji{color:var(--druk-tekst)}
+  .odp .tytul-sekcji::after{height:0;background:none;border-top:var(--kreska-tytulu) solid var(--druk-tekst)}
+  .post-content,.tresc-czytana{font-size:10pt!important;color:var(--druk-tekst)}
+  /* tabela karty: części oddzielone linią 1,2 pt, wiersze 0,5 pt */
+  .osoba-tabela{border:0!important;background:none!important;font-size:9.5pt}
+  .ot-nagl{background:none!important;border:0!important;border-top:1.2pt solid var(--druk-tekst)!important;break-after:avoid}
+  .ot-w{grid-template-columns:36mm 1fr;border-bottom:.5pt solid var(--druk-linia)!important;break-inside:avoid}
+  .ot-e{font-size:8.5pt;color:var(--druk-szary)!important}
+  /* osoby pogrubione, bez tła pastylek; obrządki z cienką ramką */
+  .odp .osoba-link{min-height:0;padding:0;border:0;background:none;color:var(--druk-tekst);font-weight:700}
+  .obrzadek{box-shadow:none;border:.5pt solid currentColor;filter:none}
+  h2,h3,.tytul-sekcji{break-after:avoid}
+  img,figure,tr,li,.karta-pozycji{break-inside:avoid}
+  img{max-width:100%;max-height:190mm}
+  /* na górze pierwszej kartki „odniepamieci.pl / dział” i adres zamiast okruszków; na końcu treści adres i data */
+  .druk-naglowek{display:block!important;margin:0 0 5mm;font-size:8.5pt;color:var(--druk-szary)}
+  .druk-naglowek::after{content:" · " var(--adres-druku)}
+  .druk-koniec{display:block!important;margin:8mm 0 0;padding-top:3mm;border-top:.5pt solid var(--druk-linia);font-size:8.5pt;color:var(--druk-szary)}
+  .druk-koniec::before{content:var(--nr-kat-druku) "adres strony: " var(--adres-druku) " · wydrukowano " var(--data-wydruku)}
+  .druk-tylko{display:block!important}
+}

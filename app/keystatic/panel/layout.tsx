@@ -50,6 +50,7 @@ const GRUPY: Grupa[] = [
         { href: '/keystatic/panel/dostep', nazwa: 'dostęp' },
         { href: '/keystatic/panel/wyglad', nazwa: 'wygląd strony' },
         { href: '/keystatic/panel/szablony', nazwa: 'mapa szablonów' },
+        { href: '/keystatic/panel/wzorce', nazwa: 'wzorce języka wizualnego' },
         { href: '/keystatic/panel/system', nazwa: 'kopie, eksport, ustawienia' },
     ] },
 ]

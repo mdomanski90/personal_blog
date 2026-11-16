@@ -7,6 +7,7 @@ import * as React from 'react'
 import { Link } from 'next-view-transitions'
 import PoleSzukania from '../components/PoleSzukania'
 import { normalizuj, odmiana } from '@/lib/tekst'
+import { PastylkaOsoby } from '@/app/components/Wzorce'
 
 // (jak RAMKA w Uklad.tsx – tamten plik ciągnie komponenty serwerowe)
 const RAMKA = 'border border-[var(--linia-podzialu)]'
@@ -55,7 +56,7 @@ export default function ListaOsob({ osoby, kregi, krag, poczatek }: { osoby: Oso
                         <ul className="osoby-lista">
                             {os.map((o) => (
                                 <li key={o.id}>
-                                    <Link href={`/osoby/${o.id}`} className={`osoba-link osoba-${o.plec}`}>{o.nazwa}</Link>
+                                    <PastylkaOsoby href={`/osoby/${o.id}`} plec={o.plec}>{o.nazwa}</PastylkaOsoby>
                                     <span className="text-[var(--tekst-opis)]"> {o.opis}</span>
                                     {o.biogram !== undefined && <span className="osoba-biogram"> · {o.biogram || 'biogram'}</span>}
                                 </li>

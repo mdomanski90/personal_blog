@@ -6,6 +6,7 @@ import { RODZAJE_MATERIALOW } from '@/lib/materialy'
 import { formatujEdtf } from '@/lib/edtf'
 import { dataWpisu } from './Uklad'
 import Zgloszenie from './Zgloszenie'
+import { Okruszki } from './Wzorce'
 
 // Wspólny układ kart (miejscowość, obiekt, materiał, temat – jak karta osoby):
 // ① nagłówek: obraz (zdjęcie, skan, mapa) | tytuł, spokojna linia, krótki opis; bez obrazu – na całą szerokość;
@@ -45,17 +46,12 @@ export function NaglowekKarty({ sciezka, tytul, obraz, szerokiObraz, linia, lead
 }) {
     return (
         <>
-            {/* P7B-2 (JV-15): te same okruszki co w TytulStrony */}
-            {sciezka.length > 0 && <nav aria-label="okruszki" className="okruszki">
-                <ol>
-                    <li><Link href="/">strona główna</Link></li>
-                    {sciezka.map((s) => <li key={s.href}><Link href={s.href}>{s.tekst}</Link></li>)}
-                </ol>
-            </nav>}
+            {/* P7B-2 (JV-15), JW-1: te same okruszki co w TytulStrony */}
+            {sciezka.length > 0 && <Okruszki sciezka={sciezka} />}
             <div className={`osoba-karta${obraz ? ' z-portretem' : ''}${obraz && szerokiObraz ? ' z-szerokim' : ''}`}>
                 {obraz && <div className="karta-obraz">{obraz}</div>}
                 <div className="osoba-karta-opis">
-                    <h1 className="font-bold break-words leading-tight" style={{ fontSize: 'calc(1.75rem * var(--font-scale, 1))', margin: 0 }}>{tytul}</h1>
+                    <h1 className="tytul-strony">{tytul}</h1>
                     {linia && <LiniaKarty elementy={linia} />}
                     {lead && <div className="osoba-lead">{lead}</div>}
                     {children}

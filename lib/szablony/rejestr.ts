@@ -86,6 +86,23 @@ export const MIEJSCA: Miejsce[] = [
 ]
 
 /**
+ * JW-1 · komponenty bazowe języka wizualnego (zasada 5.1c): strony składamy z nich, nie piszemy ręcznie.
+ * Podgląd: /keystatic/panel/wzorce. Test: każdy komponent jest eksportowany ze wskazanego pliku, a jego klasa ma regułę w app/globals.css.
+ */
+export interface KomponentBazowy { id: string; nazwa: string; komponent: string; plik: string; klasa: string; opis: string }
+
+export const KOMPONENTY_BAZOWE: KomponentBazowy[] = [
+    { id: 'strona', nazwa: 'strona', komponent: 'Strona', plik: 'app/components/Uklad.tsx', klasa: 'uklad-kolumna', opis: 'Szerokość B: układ 1200 px (treść 1160). uklad="kolumna" – kolumna tekstu 66 znaków; "pelna" – 1160 px (plany, skany, mapy, katalogi); "karta" – kolumna + pasek boczny (gniazda naglowek / bok / spis), <PelnaSzerokosc> przerywa kolumnę, spis wraca po nim.' },
+    { id: 'tytul-strony', nazwa: 'tytuł strony', komponent: 'TytulStrony', plik: 'app/components/Uklad.tsx', klasa: 'tytul-strony', opis: 'h1 w kolorze akcentu z kreską 40 × 3 px, nad nim pasek akcji i okruszki; w druku czarny, kreska czarną ramką. Ta sama klasa w nagłówku karty (NaglowekKarty).' },
+    { id: 'tytul-sekcji', nazwa: 'tytuł sekcji', komponent: 'TytulSekcji', plik: 'app/components/Wzorce.tsx', klasa: 'tytul-sekcji', opis: 'Małe litery, 20 px, akcent, kreska 32 × 3 px (wzorzec strony głównej). Sekcja = section + TytulSekcji.' },
+    { id: 'okruszki', nazwa: 'okruszki', komponent: 'Okruszki', plik: 'app/components/Wzorce.tsx', klasa: 'okruszki', opis: '„strona główna / dział / …” na każdej stronie poza główną; w druku „odniepamieci.pl / dział” + adres.' },
+    { id: 'spis-tresci', nazwa: 'spis treści', komponent: 'SpisTresci', plik: 'app/components/SpisTresci.tsx', klasa: 'spis-tresci', opis: 'W pasku bocznym karty, przyklejony; aktywna część w akcencie (IntersectionObserver); telefon – zwijany wiersz „na tej stronie”.' },
+    { id: 'pastylka-osoby', nazwa: 'pastylka osoby', komponent: 'PastylkaOsoby', plik: 'app/components/Wzorce.tsx', klasa: 'osoba-link', opis: '40 px, pełne zaokrąglenie, tło i ramka z tokenów płci (--osoba-k/m/u-…) wspólnych z drzewem; w druku pogrubiona, bez tła.' },
+    { id: 'pastylka-filtra', nazwa: 'pastylka filtra', komponent: 'PastylkaFiltra', plik: 'app/components/Wzorce.tsx', klasa: 'szukaj-filtr', opis: 'Filtry katalogów pod tytułem; „wszyscy” pierwszy; filtr z wynikiem 0 ukryty; drugi rząd z podpisem (RzadFiltrow).' },
+    { id: 'drukuj', nazwa: 'drukuj', komponent: 'PrzyciskDrukuj', plik: 'app/components/Druk.tsx', klasa: 'druk-koniec', opis: 'Przycisk w pasku akcji karty + wspólny arkusz druku A4 (stopka „odniepamieci.pl · tytuł | wydrukowano … · strona X z Y”, blok na końcu treści).' },
+]
+
+/**
  * Pliki z odnośnikami do bytów, które NIE są listą bytów (nawigacja, panel, pojedynczy odnośnik w tekście).
  * Test nie wymaga dla nich wpisu w MIEJSCA.
  */
@@ -96,4 +113,5 @@ export const POZA_MAPA: { plik: string; dlaczego: string }[] = [
     { plik: 'app/components/SpisMiejsc.tsx', dlaczego: 'opakowanie siatki miejscowości (wpis: SiatkaMiejsc)' },
     { plik: 'app/obiekty/[slug]/page.tsx', dlaczego: 'pojedyncze odnośniki w wierszach karty' },
     { plik: 'app/archiwum/[slug]/page.tsx', dlaczego: 'pojedyncze odnośniki w wierszach karty' },
+    { plik: 'app/components/Wzorce.tsx', dlaczego: 'komponenty bazowe (JW-1): okruszki, pastylki – definicje wzorców' },
 ]

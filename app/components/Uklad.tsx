@@ -1,42 +1,96 @@
 import * as React from 'react'
-import { Link } from 'next-view-transitions'
 import SiteHeader from './SiteHeader'
 import Footer from './Footer'
 import ScrollToTop from './ScrollToTop'
 import ImageZoom from './ImageZoom'
 import DokumentyWTresci from './DokumentyWTresci'
 import DrzewaLinie from './DrzewaLinie'
+import { Okruszki, TytulSekcji, type Sciezka } from './Wzorce'
+import { UstawieniaDruku } from './Druk'
 
-// Wspólne elementy wyglądu: obramowane „segmenty”, linia z kresek, nagłówki sekcji.
+// Wspólne elementy wyglądu (JW-1): Strona (szerokość B), tytuł strony, sekcja z tytułem sekcji, treść.
 
 export const RAMKA = 'border border-[var(--linia-podzialu)]'
-export const RAMKA_L = 'border-l border-[var(--linia-podzialu)]'
 
-const segmentStyl: React.CSSProperties = {
-    margin: '-1px 0 0 -1px',
-    fontSize: 'calc(15px * var(--font-scale, 1))',
-    minHeight: 'calc(28px * var(--font-scale, 1))',
-    padding: '0 10px',
-    display: 'flex',
-    alignItems: 'center',
+/**
+ * Układ treści strony (szerokość B, decyzja 16.11):
+ * – „kolumna” – kolumna tekstu 66 znaków (wpisy, opisy, karty bez paska bocznego);
+ * – „pelna” – pełna szerokość 1160 px (plany, skany, mapy, katalogi, siatki);
+ * – „karta” – kolumna tekstu + pasek boczny (obraz nagłówka i spis treści, przyklejony);
+ *   element <PelnaSzerokosc> przerywa kolumnę, a spis treści wraca po nim.
+ */
+export type UkladStrony = 'kolumna' | 'pelna' | 'karta'
+
+/** Element na pełną szerokość wewnątrz strony w układzie „karta” (skan materiału, wstawka we wpisie). */
+export function PelnaSzerokosc({ children }: { children: React.ReactNode }) {
+    return <div className="pelna-szerokosc">{children}</div>
 }
 
-/** Strona z nagłówkiem, stopką i powiększaniem obrazków. */
-export function Strona({ children, szeroka = false, akcje }: { children: React.ReactNode; szeroka?: boolean; akcje?: React.ReactNode }) {
+function UkladKarty({ children, naglowek, bok, spis }: { children: React.ReactNode; naglowek?: React.ReactNode; bok?: React.ReactNode; spis?: React.ReactNode }) {
+    // podział na odcinki: kolumna z paskiem bocznym | element pełnej szerokości | kolumna z paskiem (spis wraca) …
+    const odcinki: { pelny: boolean; el: React.ReactNode[] }[] = []
+    for (const el of React.Children.toArray(children)) {
+        const pelny = React.isValidElement(el) && el.type === PelnaSzerokosc
+        const ost = odcinki[odcinki.length - 1]
+        if (!pelny && ost && !ost.pelny) ost.el.push(el)
+        else odcinki.push({ pelny, el: [el] })
+    }
+    if (!odcinki.length || odcinki[0].pelny) odcinki.unshift({ pelny: false, el: [] })
     return (
         <>
-            <div style={{ maxWidth: szeroka ? '64rem' : '52rem', margin: '0 auto', padding: '2rem 1.25rem 5rem 1.25rem', minHeight: '100vh' }} className="odp">
-                <div className="space-y-6 w-full">
-                    <div style={szeroka ? { maxWidth: '52rem', margin: '0 auto' } : undefined}>
-                        <SiteHeader akcje={akcje} />
+            {odcinki.map((o, i) => {
+                if (o.pelny) return <React.Fragment key={i}>{o.el}</React.Fragment>
+                if (i === 0) return (
+                    <div key={i} className="karta-odcinek karta-odcinek-pierwszy">
+                        {naglowek && <div className="karta-naglowek">{naglowek}</div>}
+                        {(bok || spis) && <aside className="karta-bok" aria-label="obok treści">{bok}{spis && <div className="karta-spis">{spis}</div>}</aside>}
+                        <div className="karta-kolumna">{o.el}</div>
                     </div>
-                    <main id="tresc" tabIndex={-1} className="space-y-6 outline-none">{children}</main>
+                )
+                return (
+                    <div key={i} className="karta-odcinek">
+                        <div className="karta-kolumna">{o.el}</div>
+                        {/* ten sam spis wraca po elemencie pełnej szerokości; kopia bez fokusu i bez czytnika (inert) – pierwszy spis pozostaje jedynym w drzewie dostępności */}
+                        {spis && <div className="karta-bok karta-bok-dalej" {...({ inert: true } as object)}><div className="karta-spis">{spis}</div></div>}
+                    </div>
+                )
+            })}
+        </>
+    )
+}
+
+/** Strona z nagłówkiem, stopką i powiększaniem obrazków. Jedna szerokość układu (1200 px) – nagłówek, treść i stopka mają tę samą krawędź. */
+export function Strona({ children, szeroka = false, uklad, akcje, naglowek, bok, spis }: {
+    children: React.ReactNode
+    /** dawny przełącznik „szeroka” = uklad="pelna" */
+    szeroka?: boolean
+    uklad?: UkladStrony
+    akcje?: React.ReactNode
+    /** uklad="karta": nagłówek karty (okruszki, tytuł, linia) – pasek boczny zaczyna się na jego wysokości */
+    naglowek?: React.ReactNode
+    /** uklad="karta": gniazdo paska bocznego – obraz nagłówka (mapa, zdjęcie, portret / prośba o zdjęcie) */
+    bok?: React.ReactNode
+    /** uklad="karta": spis treści (SpisTresci) pod obrazem, przyklejony przy przewijaniu */
+    spis?: React.ReactNode
+}) {
+    const u: UkladStrony = uklad ?? (szeroka ? 'pelna' : 'kolumna')
+    return (
+        <>
+            <div className="odp">
+                <div className="strona-pion space-y-6 w-full">
+                    <SiteHeader akcje={akcje} />
+                    <main id="tresc" tabIndex={-1} className={`strona-tresc uklad-${u} space-y-6 outline-none`}>
+                        {u === 'karta' ? <UkladKarty naglowek={naglowek} bok={bok} spis={spis}>{children}</UkladKarty> : children}
+                    </main>
+                    {/* JW-17: koniec treści w druku – pełny adres i data wydruku (każda przeglądarka; wartości z UstawieniaDruku) */}
+                    <p className="druk-koniec" aria-hidden="true" />
                     <ImageZoom />
                     <DokumentyWTresci />
                     <DrzewaLinie />
                     <Footer />
                 </div>
             </div>
+            <UstawieniaDruku />
             <ScrollToTop />
         </>
     )
@@ -50,58 +104,24 @@ export function Kreski({ className = '' }: { className?: string }) {
     )
 }
 
-/** Rząd obramowanych etykiet, np. data · rodzaj · miejsca. Pierwsza wyróżniona tłem. */
-export function Metki({ elementy }: { elementy: (React.ReactNode | { tekst: React.ReactNode; href: string })[] }) {
-    const widoczne = elementy.filter((e) => e !== null && e !== undefined && e !== false && e !== '')
-    if (!widoczne.length) return null
-    return (
-        // pełne ramki nachodzące o 1px – po zawinięciu na telefonie kreski się nie dublują
-        <div className="flex flex-wrap items-stretch w-fit" style={{ paddingLeft: 1, paddingTop: 1 }}>
-            {widoczne.map((e, i) => {
-                const klasy = `${RAMKA} ${i === 0 ? 'bg-muted' : ''} text-current whitespace-nowrap`
-                if (e && typeof e === 'object' && 'href' in (e as object)) {
-                    const l = e as { tekst: React.ReactNode; href: string }
-                    return (
-                        <Link key={i} href={l.href} style={segmentStyl} className={`${klasy} !no-underline hover:opacity-80`}>
-                            {l.tekst}
-                        </Link>
-                    )
-                }
-                return (
-                    <span key={i} style={segmentStyl} className={klasy}>
-                        {e as React.ReactNode}
-                    </span>
-                )
-            })}
-        </div>
-    )
-}
-
+/** Sekcja z tytułem sekcji (jeden wzorzec tytułu – jak na stronie głównej). */
 export function Sekcja({ tytul, children, id }: { tytul: string; children: React.ReactNode; id?: string }) {
     return (
-        <section id={id} className="flex flex-col" style={{ gap: 'calc(0.75rem * var(--font-scale, 1))' }}>
-            <h2 className="font-bold lowercase" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{tytul}</h2>
+        <section id={id} className="sekcja">
+            <TytulSekcji>{tytul}</TytulSekcji>
             {children}
         </section>
     )
 }
 
-/** Tytuł strony; „akcje” (np. ← mapa, kopiuj link) stoją nad ścieżką, po lewej. */
-export function TytulStrony({ children, sciezka, akcje }: { children: React.ReactNode; sciezka?: { tekst: string; href: string }[]; akcje?: React.ReactNode }) {
+/** Tytuł strony: h1 w kolorze akcentu z kreską; „akcje” (np. ← mapa, kopiuj link, drukuj) nad okruszkami, po lewej. */
+export function TytulStrony({ children, sciezka, akcje }: { children: React.ReactNode; sciezka?: Sciezka; akcje?: React.ReactNode }) {
     return (
-        <div className="flex flex-col" style={{ gap: '0.4rem' }}>
-            {akcje && <div className="flex flex-wrap items-center gap-2" style={{ marginBottom: '0.6rem' }}>{akcje}</div>}
-            {/* P7B-2 (JV-15): okruszki – od strony głównej do działu; bieżąca strona to tytuł pod spodem (aria-current) */}
-            {/* P7D-1 (AUD-07): okruszki na każdej stronie poza główną – na stronie działu samo „strona główna” */}
-            <nav aria-label="okruszki" className="okruszki">
-                <ol>
-                    <li><Link href="/">strona główna</Link></li>
-                    {(sciezka ?? []).map((s) => <li key={s.href}><Link href={s.href}>{s.tekst}</Link></li>)}
-                </ol>
-            </nav>
-            <h1 className="font-bold break-words leading-tight" aria-current="page" style={{ fontSize: 'calc(1.75rem * var(--font-scale, 1))' }}>
-                {children}
-            </h1>
+        <div className="tytul-strony-blok">
+            {akcje && <div className="pasek-akcji">{akcje}</div>}
+            {/* P7B-2 (JV-15), P7D-1 (AUD-07): okruszki na każdej stronie poza główną; bieżąca strona to tytuł (aria-current) */}
+            <Okruszki sciezka={sciezka ?? []} />
+            <h1 className="tytul-strony" aria-current="page">{children}</h1>
         </div>
     )
 }
@@ -113,18 +133,8 @@ export const maTekst = (html: string | null | undefined) => !!html && (/<img|<if
 export function Tresc({ html, pusta = 'treść nie została jeszcze dodana.' }: { html: string; pusta?: string | null }) {
     if (!maTekst(html)) return pusta ? <p className="text-[var(--tekst-etykieta)] italic lowercase">{pusta}</p> : null
     return (
-        <div className="post-content" style={{ fontSize: 'var(--blog-font-size, 18px)' }}>
+        <div className="post-content tresc-czytana">
             <div dangerouslySetInnerHTML={{ __html: html }} />
-        </div>
-    )
-}
-
-/** Wiersz metryczki: etykieta – wartość. */
-export function Wiersz({ etykieta, children }: { etykieta: string; children: React.ReactNode }) {
-    return (
-        <div className="flex gap-3 border-b border-[var(--linia-podzialu)] py-2" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
-            <span className="text-[var(--tekst-opis)] shrink-0" style={{ width: '9rem', fontSize: 'calc(13px * var(--font-scale, 1))' }}>{etykieta}</span>
-            <span className="min-w-0 break-words">{children}</span>
         </div>
     )
 }
