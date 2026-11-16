@@ -41,6 +41,7 @@ export default function WarstwaRekonstrukcji({ widz, osd, wersja, strona, dane, 
     React.useEffect(() => {
         if (!kontener) return
         kontener.classList.toggle('rek-ukryta', tryb === 'skan')
+        kontener.classList.toggle('rek-na-skanie', tryb === 'oba')
         kontener.style.opacity = tryb === 'oba' ? String(krycie) : '1'
     }, [kontener, tryb, krycie])
     const typy = React.useMemo(() => katalog(dane.ustawienia), [dane.ustawienia])
