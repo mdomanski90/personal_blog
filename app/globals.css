@@ -105,6 +105,8 @@
   --akcent: var(--link);
   --akcent-tlo: #ebe8f8;
   --akcent-na-tle: #3a2d9e;
+  /* pasek pełnego ekranu dokumentu – wariant B „grafit” (decyzja właściciela 16.11) */
+  --pasek-pelny-tlo: #3a3631; --pasek-pelny-grupa: #4a4640; --pasek-pelny-krawedz: #6b655b; --pasek-pelny-tekst: #f2efe8; --pasek-pelny-opis: #d6d1c6; --pasek-pelny-hover: #5a554d;
   --akcent-wypelnienie: var(--link);
   --akcent-na-wypelnieniu: #ffffff;
   --fokus: var(--link);
@@ -201,6 +203,7 @@
   --linia-podzialu: #3b3833;
   --akcent-tlo: rgba(65, 156, 255, .18);
   --akcent-na-tle: #cfe4ff;
+  --pasek-pelny-tlo: var(--tlo-strony); --pasek-pelny-grupa: var(--tlo-kontrolki); --pasek-pelny-krawedz: var(--krawedz-kontrolki); --pasek-pelny-tekst: var(--tekst); --pasek-pelny-opis: var(--tekst-opis); --pasek-pelny-hover: var(--akcent-tlo);
   --akcent-wypelnienie: #0a6fd6;
   --akcent-na-wypelnieniu: #ffffff;
   --blad: #ef8f7e; --blad-tlo: #3a2420;
@@ -1435,18 +1438,18 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .dok-pasek-lewa{display:flex;align-items:center;gap:10px;min-width:0}
 .dok-pasek-prawa{flex-wrap:wrap;justify-content:flex-end}
 .dok-pelny .dok-pasek.dok-pasek-karta{min-height:calc(46px * var(--font-scale,1));padding:6px 10px;border:1px solid #4a4640;border-radius:var(--promien);background:#1f1d1a}
-/* PH-24 (uwaga właściciela 16.11): pasek pełnego ekranu w kolorach strony z tokenów – w jasnym motywie jasny, w ciemnym ciemny
-   z wyraźniejszymi ramkami; aktywny przycisk jak k-btn[aria-pressed=true]; obszar skanu zostaje ciemny */
-.dok-pelny .dok-pasek.dok-pasek-karta{background:var(--tlo-strony);border-color:var(--krawedz-kontrolki);color:var(--tekst)}
-.dok-pelny .dok-pasek .dok-grupa{background:var(--tlo-kontrolki);border-color:var(--krawedz-kontrolki)}
-.dok-pelny .dok-pasek .dok-grupa>button,.dok-pelny .dok-pasek .dok-grupa>.dok-stan{color:var(--tekst);border-left-color:var(--krawedz-kontrolki)}
+/* PH-24: pasek pełnego ekranu – tokeny --pasek-pelny-* (jasny motyw: grafit, wariant B, aktywny przycisk w pełnym akcencie –
+   decyzja 16.11 po „za jasnym” pasku; ciemny motyw: kolory strony); obszar skanu zostaje ciemny */
+.dok-pelny .dok-pasek.dok-pasek-karta{background:var(--pasek-pelny-tlo);border-color:var(--pasek-pelny-krawedz);color:var(--pasek-pelny-tekst)}
+.dok-pelny .dok-pasek .dok-grupa{background:var(--pasek-pelny-grupa);border-color:var(--pasek-pelny-krawedz)}
+.dok-pelny .dok-pasek .dok-grupa>button,.dok-pelny .dok-pasek .dok-grupa>.dok-stan{color:var(--pasek-pelny-tekst);border-left-color:var(--pasek-pelny-krawedz)}
 .dok-pelny .dok-pasek .dok-grupa>:first-child{border-left:0}
-.dok-pelny .dok-pasek .dok-grupa>button:hover:not(:disabled){background:var(--akcent-tlo)}
-.dok-pelny .dok-pasek .dok-grupa>button[aria-pressed=true]{background:var(--akcent-tlo);color:var(--akcent-na-tle);font-weight:700}
-.dok-pelny .dok-pasek .dok-stan,.dok-pelny .dok-pasek .dok-stan-tekst{color:var(--tekst-opis)}
-.dok-pelny .dok-pasek .dok-tytul{color:var(--tekst)}
-.dok-pelny .dok-pasek .dok-menu{background:var(--tlo-kontrolki);border-color:var(--krawedz-kontrolki);color:var(--tekst)}
-.dok-pelny .dok-pasek .dok-menu button:hover{background:var(--akcent-tlo)}
+.dok-pelny .dok-pasek .dok-grupa>button:hover:not(:disabled){background:var(--pasek-pelny-hover)}
+.dok-pelny .dok-pasek .dok-grupa>button[aria-pressed=true]{background:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu);font-weight:700}
+.dok-pelny .dok-pasek .dok-stan,.dok-pelny .dok-pasek .dok-stan-tekst{color:var(--pasek-pelny-opis)}
+.dok-pelny .dok-pasek .dok-tytul{color:var(--pasek-pelny-tekst)}
+.dok-pelny .dok-pasek .dok-menu{background:var(--pasek-pelny-grupa);border-color:var(--pasek-pelny-krawedz);color:var(--pasek-pelny-tekst)}
+.dok-pelny .dok-pasek .dok-menu button:hover{background:var(--pasek-pelny-hover)}
 .dok-pelny .dok-tytul{margin-right:0}
 .dok-pelny .dok-grupa>button[aria-pressed=true]{background:var(--akcent-wypelnienie,#0a6fd6);color:#fff}
 .dok-pelny .dok-licznik{background:#e8e6e1;color:#141311}
