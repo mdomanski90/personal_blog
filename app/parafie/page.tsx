@@ -8,7 +8,7 @@ import { Strona, TytulStrony } from '../components/Uklad'
 import Komunikat from '../components/Komunikat'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = { title: 'parafie i urzędy · odniepamieci.pl' }
+export const metadata: Metadata = { title: 'instytucje · odniepamieci.pl' }
 
 /** Spis instytucji: nie są obiektami w terenie ani osobnymi miejscowościami. */
 export default async function ParafieStrona() {
@@ -16,7 +16,7 @@ export default async function ParafieStrona() {
     const nazwyMiejsc = new Map(listaMiejsc.map((m) => [m.id, m.nazwa]))
     return (
         <Strona uklad="pelna">
-            <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }]}><TytulDzialu dzial="instytucje" domyslny="parafie i urzędy" /></TytulStrony>
+            <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }]}><TytulDzialu dzial="instytucje" domyslny="instytucje" /></TytulStrony>
             <p className="leading-relaxed" style={{ fontSize: 'calc(16px * var(--font-scale, 1))' }}>
                 <WstepTekst dzial="instytucje" domyslny={"Instytucje prowadzące księgi metrykalne i akta stanu cywilnego. Ich okres działania jest czymś innym niż okres przynależności konkretnej miejscowości czy zachowane roczniki akt."} />
             </p>

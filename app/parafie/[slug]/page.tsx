@@ -22,7 +22,7 @@ type Parametry = { params: Promise<{ slug: string }> }
 export async function generateMetadata({ params }: Parametry): Promise<Metadata> {
     const { slug } = await params
     const p = (await parafie()).find((x) => x.id === slug)
-    return { title: p ? `${p.nazwa} · parafie i urzędy · odniepamieci.pl` : 'odniepamieci.pl' }
+    return { title: p ? `${p.nazwa} · instytucje · odniepamieci.pl` : 'odniepamieci.pl' }
 }
 
 export default async function ParafiaStrona({ params }: Parametry) {
