@@ -15,27 +15,28 @@ export function pozycjeMiejsc(m: { id: string; nazwa: string }[], liczniki: Licz
 }
 
 /**
- * Spis miejscowości podzielony na krainy i gminy (pod mapą na stronie „miejsca”) – ten sam wzorzec co spis działów
- * archiwum (SpisDzialow, bez numeracji – decyzja 16.11); tytuły grup jako tytuły sekcji.
+ * Spis miejscowości pod mapą na stronie „miejsca” – wzorzec spisu działów (SpisDzialow, bez numeracji – decyzja 16.11).
+ * Odbiór 16.11, wariant A2: jedna ramka na krainę; najpierw miejscowości należące wprost do krainy, potem gminy
+ * jako podgrupy w tej samej ramce (nagłówek + wcięta lista), żeby było widać, że gmina należy do krainy.
+ * Miejscowości bez krainy – ostatnia sekcja „inne miejscowości” z takim samym tytułem i tą samą regułą.
  */
 export default function SpisMiejsc({ grupy, liczniki }: { grupy: GrupaMiejsc[]; liczniki: LicznikiMiejsc }) {
     const tylkoInne = grupy.length === 1 && !grupy[0].obszar
     return (
         <div className="spis-miejsc-grupy">
-            {grupy.map((g) => (
-                <section key={g.obszar?.id ?? 'inne'} className="sekcja">
-                    {!tylkoInne && (
-                        <TytulSekcji>{g.obszar ? <Link href={`/miejsca/${g.obszar.id}`} className="tytul-sekcji-odn">{g.obszar.nazwa}</Link> : 'inne'}</TytulSekcji>
-                    )}
-                    {g.miejsca.length > 0 && <SpisDzialow dzialy={pozycjeMiejsc(g.miejsca, liczniki)} wybrany="" numeracja={false} etykieta={`miejscowości: ${g.obszar?.nazwa ?? 'inne'}`} />}
-                    {g.podgrupy.map((pg) => (
-                        <div key={pg.obszar.id} className="spis-miejsc-podgrupa">
-                            <TytulSekcji poziom={3}><Link href={`/miejsca/${pg.obszar.id}`} className="tytul-sekcji-odn">{pg.obszar.nazwa}</Link></TytulSekcji>
-                            <SpisDzialow dzialy={pozycjeMiejsc(pg.miejsca, liczniki)} wybrany="" numeracja={false} etykieta={`miejscowości: ${pg.obszar.nazwa}`} />
-                        </div>
-                    ))}
-                </section>
-            ))}
+            {grupy.map((g) => {
+                const nazwa = g.obszar?.nazwa ?? 'inne miejscowości'
+                return (
+                    <section key={g.obszar?.id ?? 'inne'} className="sekcja">
+                        {!tylkoInne && (
+                            <TytulSekcji>{g.obszar ? <Link href={`/miejsca/${g.obszar.id}`} className="tytul-sekcji-odn">{nazwa}</Link> : nazwa}</TytulSekcji>
+                        )}
+                        {!g.obszar && !tylkoInne && <p className="tekst-opis-maly">spoza krain opisanych wyżej</p>}
+                        <SpisDzialow dzialy={pozycjeMiejsc(g.miejsca, liczniki)} wybrany="" numeracja={false} etykieta={`miejscowości: ${nazwa}`}
+                            podgrupy={g.podgrupy.map((pg) => ({ klucz: pg.obszar.id, nazwa: pg.obszar.nazwa, href: `/miejsca/${pg.obszar.id}`, dzialy: pozycjeMiejsc(pg.miejsca, liczniki) }))} />
+                    </section>
+                )
+            })}
         </div>
     )
 }

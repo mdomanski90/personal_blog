@@ -12,9 +12,16 @@ const RZYMSKIE = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X']
  * Zawsze pełny spis, także działy jeszcze puste (liczba 0, stonowane) – decyzja właściciela 15.11.2026.
  * P7C-1: gdy panel filtrów jest rozwinięty, spis zwija się do jednego wiersza (wybrany dział)
  * z przyciskiem „wszystkie działy” – samo zwijanie robi CSS (:has), przycisk tylko je odwraca.
- * Wzorzec „spis działów” z rejestru szablonów – także spis miejscowości i krain (numeracja={false}, decyzja 16.11).
+ * Wzorzec „spis działów” z rejestru szablonów – także spis miejscowości i krain (numeracja={false}, decyzja 16.11);
+ * gminy jako podgrupy w ramce swojej krainy (wariant A2, odbiór 16.11).
  */
-export default function SpisDzialow({ dzialy, wybrany, etykieta = 'działy archiwum', zwiniety = false, numeracja = true }: { dzialy: Dzial[]; wybrany: string; etykieta?: string; zwiniety?: boolean; numeracja?: boolean }) {
+export type PodgrupaDzialow = { klucz: string; nazwa: string; href: string; dzialy: Dzial[] }
+
+export default function SpisDzialow({ dzialy, wybrany, etykieta = 'działy archiwum', zwiniety = false, numeracja = true, podgrupy = [] }: {
+    dzialy: Dzial[]; wybrany: string; etykieta?: string; zwiniety?: boolean; numeracja?: boolean
+    /** odbiór 16.11 (wariant A2): grupy niższego rzędu w tej samej ramce – nagłówek z odnośnikiem i wcięta lista (np. gmina w krainie) */
+    podgrupy?: PodgrupaDzialow[]
+}) {
     const [pokaz, ustawPokaz] = React.useState(false)
     // po każdym otwarciu/zamknięciu panelu filtrów i po zmianie działu spis znów zwinięty
     React.useEffect(() => { ustawPokaz(false) }, [wybrany])
@@ -23,9 +30,9 @@ export default function SpisDzialow({ dzialy, wybrany, etykieta = 'działy archi
         document.addEventListener('toggle', h, true)
         return () => document.removeEventListener('toggle', h, true)
     }, [])
-    const lista = (
-        <ul className={`spis-dzialow${numeracja ? '' : ' sd-bez-numerow'}`} style={{ ['--wiersze' as string]: Math.ceil(dzialy.length / 2) } as React.CSSProperties}>
-            {dzialy.map((d, i) => (
+    const wiersze = (lista: Dzial[], wciete = false) => (
+        <ul className={`spis-dzialow${numeracja ? '' : ' sd-bez-numerow'}${wciete ? ' sd-wciete' : ''}`} style={{ ['--wiersze' as string]: Math.ceil(lista.length / 2) } as React.CSSProperties}>
+            {lista.map((d, i) => (
                 <li key={d.klucz}>
                     <Link href={d.href} aria-current={d.klucz === wybrany ? 'page' : undefined} className={d.liczba === 0 ? 'sd-pusty' : undefined}>
                         {numeracja && <i aria-hidden="true">{RZYMSKIE[i] ?? i + 1}.</i>}
@@ -36,6 +43,17 @@ export default function SpisDzialow({ dzialy, wybrany, etykieta = 'działy archi
                 </li>
             ))}
         </ul>
+    )
+    const lista = (
+        <>
+            {dzialy.length > 0 && wiersze(dzialy)}
+            {podgrupy.map((g) => (
+                <div key={g.klucz} className="sd-podgrupa">
+                    <Link href={g.href} className="sd-podgrupa-naglowek">{g.nazwa}</Link>
+                    {wiersze(g.dzialy, true)}
+                </div>
+            ))}
+        </>
     )
     return (
         <nav aria-label={etykieta} className={`spis-ramka${pokaz ? ' sd-pokaz' : ''}${zwiniety ? ' sd-zwiniety' : ''}`}>

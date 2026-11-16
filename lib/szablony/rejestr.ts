@@ -19,7 +19,7 @@ export const WZORCE: Wzorzec[] = [
     { id: 'lista-obiektow', nazwa: 'lista obiektów', opis: 'Tarcza rodzaju + nazwa; rodzaj nie powtarzany tekstem.', komponent: 'ListaObiektow', znacznik: ['ListaObiektow'] },
     { id: 'linia', nazwa: 'linia karty', opis: 'Powiązania w jednym wierszu tabeli karty, rozdzielone kropką.', komponent: 'LiniaKarty', znacznik: ['LiniaKarty'] },
     { id: 'siatka', nazwa: 'siatka miniatur', opis: 'Materiały z obrazem: miniatura, tytuł, rodzaj, data.', komponent: 'ListaMaterialow', znacznik: ['ListaMaterialow'] },
-    { id: 'spis', nazwa: 'spis działów', opis: 'Katalog kartkowy: numer, nazwa, kropki, liczba. Także spis miejscowości i krain (bez numeracji, decyzja 16.11).', komponent: 'SpisDzialow', znacznik: ['SpisDzialow', 'SpisBiblioteki'] },
+    { id: 'spis', nazwa: 'spis działów', opis: 'Katalog kartkowy: numer, nazwa, kropki, liczba. Także spis miejscowości i krain (bez numeracji, decyzja 16.11); gminy jako podgrupy w ramce krainy (wariant A2).', komponent: 'SpisDzialow', znacznik: ['SpisDzialow', 'SpisBiblioteki'] },
     { id: 'pastylki-osob', nazwa: 'pastylki osób', opis: 'JW-10: osoby jako pastylki w kolorach płci (tokeny wspólne z drzewem); lata, miejscowość, biogram obok zwykłym tekstem.', komponent: 'PastylkaOsoby', znacznik: ['PastylkaOsoby'] },
     { id: 'zapowiedz', nazwa: 'zapowiedź wpisu', opis: 'Metryczka, miniatura po lewej, tytuł, zapowiedź, „czytaj dalej”.', komponent: 'article.zapowiedz / ListaOpowiesci', znacznik: ['zapowiedz', 'ListaOpowiesci'] },
     { id: 'wlasny', nazwa: 'własny układ', opis: 'Znaczniki napisane w miejscu, bez wspólnego komponentu – wymaga uzasadnienia albo ujednolicenia.', komponent: '—', znacznik: [] },
