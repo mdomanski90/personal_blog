@@ -793,15 +793,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dark .post-content .dok-kadr.przyciety .dok-kadr-cien{background:linear-gradient(rgba(2,6,23,0),var(--background) 85%)}
 .dark .post-content .dok-kadr.przyciety .dok-kadr-przycisk{background:var(--background)}
 @media (max-width:640px){.post-content .dok-kadr{max-height:calc(300px * var(--font-scale,1))}.post-content .dok-kadr.przyciety .dok-kadr-cien{height:90px}}
-.osoby-krag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;text-decoration:none!important;color:inherit;font-size:calc(14px * var(--font-scale,1))}
-.osoby-krag[aria-current=true]{background:var(--muted);border-color:#4c3cc4}
-.osoby-krag[aria-current=true] b{color:#4c3cc4}
-.dark .osoby-krag[aria-current=true] b{color:#419cff}
 .osoby-litery{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,22rem),1fr));gap:8px 2rem;align-items:start}
-.osoby-litera{border-bottom:1px solid var(--linia-podzialu);padding:4px 0}
-.dark .osoby-litera{border-bottom-color:#3b3833}
-.osoby-litera>summary{cursor:pointer;font-size:calc(15px * var(--font-scale,1));padding:2px 0}
-.osoby-litera[open]>summary{margin-bottom:4px}
 .osoba-portret{margin:0;display:flex;flex-direction:column;gap:4px}
 .osoba-portret img{width:100%;border-radius:6px;border:1px solid var(--linia-podzialu);display:block}
 .osoba-portret figcaption{font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta);line-height:1.4}
@@ -1021,14 +1013,12 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 
 /* spokojna linia nad wpisem i przycisk „kopiuj link” */
 .metki-wpisu{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px}
-.metki-linia{margin:0;font-size:calc(14px * var(--font-scale,1));color:#6b665c;line-height:1.6}
-.dark .metki-linia{color:#a8a296}
+.metki-linia{margin:0;font-size:var(--rozmiar-opis);color:var(--tekst-etykieta);line-height:1.6}
 .kopiuj-link{display:inline-flex;align-items:center;gap:6px}
 
 /* wstęp i okno „z archiwum” */
 .glowna-wstep{display:grid;gap:1.25rem 1.75rem;grid-template-columns:1fr;align-items:start}
 @media (min-width:860px){.glowna-wstep.z-oknem{grid-template-columns:minmax(0,1fr) 27.5rem}}
-.glowna-etykieta{font-size:calc(13px * var(--font-scale,1));color:#6b665c;text-transform:lowercase}
 .karta-losowa{height:calc(262px * var(--font-scale,1));box-sizing:border-box;gap:10px}
 .karta-losowa .kl-gora{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:calc(14px * var(--font-scale,1))}
 .kl-sterowanie{display:flex;align-items:center;gap:6px}
@@ -1068,8 +1058,6 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 /* ============================================ */
 /* KARTY – WSPÓLNY UKŁAD (paczka 2, 14.11)      */
 /* ============================================ */
-.karta-sciezka{margin:0;font-size:calc(13px * var(--font-scale,1));color:#6b665c;text-transform:lowercase}
-.odp .karta-sciezka a{color:inherit}
 .osoba-karta.z-szerokim{grid-template-columns:320px minmax(0,1fr)}
 .karta-obraz{min-width:0}
 .karta-linia{margin:0;color:#6b665c;font-size:calc(15px * var(--font-scale,1));line-height:1.6}
@@ -1087,14 +1075,13 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .karta-mapa{margin:0;display:flex;flex-direction:column;gap:5px}
 .karta-mapa-ramka{border:1px solid var(--linia-podzialu);border-radius:6px;overflow:hidden;background:var(--tlo-sekcji)}
 .karta-mapa-ramka.widok-pelny{border-radius:0;padding:0}
-.karta-mapa figcaption{font-size:calc(12px * var(--font-scale,1));color:#6b665c;line-height:1.4}
+.karta-mapa figcaption{font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta);line-height:1.4}
 .karta-mapa-przycisk{border:1px solid var(--linia-podzialu);border-radius:8px;background:#fdfcf9;font:inherit;font-size:13px;padding:2px 10px;cursor:pointer}
-.karta-polozenie{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:14px;align-items:start}
-.dark .karta-linia,.dark .karta-sciezka,.dark .karta-lista li>span,.dark .karta-mapa figcaption{color:#a8a296}
+.dark .karta-linia,.dark .karta-lista li>span,.dark .karta-mapa figcaption{color:var(--tekst-etykieta)}
 .dark .karta-zrodla,.dark .karta-zglos{color:#c9c3b7}
 .dark .osoba-tabela>.ot-cala{border-color:#3b3833}
 .dark .karta-mapa-ramka{border-color:#7d776c}
-@media (max-width:640px){.osoba-karta.z-szerokim{grid-template-columns:1fr}.karta-polozenie{grid-template-columns:1fr}}
+@media (max-width:640px){.osoba-karta.z-szerokim{grid-template-columns:1fr}}
 
 /* skan i tekst obok siebie (karta materiału) */
 /* JW-2: podział jak siatka strony – skan na szerokość kolumny tekstu, tekst od linii paska bocznego */
@@ -1172,7 +1159,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 }
 
 /* P7A-1: etykiety strony głównej nocą (kontrast 3,1 → 6,9:1) */
-.dark .glowna-etykieta,.dark .kl-rodzaj{color:var(--tekst-etykieta)}
+.dark .kl-rodzaj{color:var(--tekst-etykieta)}
 
 /* ============================================ */
 /* P7A-2 · KONTROLKI (JV-04, JV-05)             */
@@ -1303,7 +1290,6 @@ select.k-pole{padding-right:8px;cursor:pointer}
 }
 /* okno „z archiwum” – materiał tygodnia w ramce */
 .karta-losowa,.dark .karta-losowa{height:auto;min-height:calc(262px * var(--font-scale,1));gap:14px;padding:22px 26px 18px;border:0;border-radius:var(--promien-duzy);background:var(--tlo-sekcji)}
-.kl-naglowek{margin:0;font-size:calc(20px * var(--font-scale,1));font-weight:700;color:var(--akcent);text-transform:lowercase}
 .kl-srodek{grid-template-columns:minmax(0,1fr) calc(112px * var(--font-scale,1));gap:18px;flex:1}
 .kl-mini,.dark .kl-mini{border-radius:var(--promien-maly);background:var(--tlo-kontrolki);border-color:var(--linia-podzialu);max-height:calc(150px * var(--font-scale,1))}
 .kl-rodzaj{font-size:calc(14px * var(--font-scale,1));color:var(--tekst-opis);white-space:normal}
@@ -1497,7 +1483,6 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .bib-opisy dt{font-weight:700;color:var(--tekst)}
 .bib-opisy dd{margin:2px 0 0;color:var(--tekst-opis);line-height:1.5}
 @media (max-width:640px){.bib-opisy{grid-template-columns:1fr}}
-.karta-sekcja-tytul{margin:8px 0 0;font-size:calc(17px * var(--font-scale,1));font-weight:700}
 
 /* ============================================ */
 /* P7D-3 · LISTY I FILTRY DZIAŁÓW (AUD-03, 04)   */
@@ -1540,19 +1525,17 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .zapowiedz{display:flex;flex-direction:column;gap:10px;padding:18px 0;border-bottom:1px solid var(--linia-podzialu)}
 .zapowiedz-uklad{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
 .zapowiedz.z-obrazem .zapowiedz-uklad{grid-template-columns:calc(160px * var(--font-scale,1)) minmax(0,1fr)}
-.zapowiedz--wyrozniona.z-obrazem .zapowiedz-uklad{grid-template-columns:calc(240px * var(--font-scale,1)) minmax(0,1fr)}
 .zapowiedz-obraz{display:block;position:relative;align-self:stretch;min-height:calc(120px * var(--font-scale,1));border-radius:var(--promien-maly);overflow:hidden;border:1px solid var(--linia-podzialu);background:var(--tlo-kontrolki)}
 .zapowiedz-obraz img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover}
 .zapowiedz-tresc{display:flex;flex-direction:column;gap:8px;min-width:0}
 .zapowiedz-tytul{margin:0;font-weight:700;line-height:1.25;font-size:calc(1.3rem * var(--font-scale,1));overflow-wrap:anywhere}
-.zapowiedz--wyrozniona .zapowiedz-tytul{font-size:calc(1.6rem * var(--font-scale,1))}
 .odp .zapowiedz-tytul a{color:var(--tekst);text-decoration:none}
 .odp .zapowiedz-tytul a:hover{color:var(--akcent);text-decoration:underline}
 .zapowiedz-tekst{margin:0;font-size:var(--blog-font-size,18px);line-height:1.6;color:var(--tekst-opis);white-space:pre-line}
 .odp a.zapowiedz-dalej{align-self:flex-start;font-weight:700;font-size:calc(15px * var(--font-scale,1));color:var(--akcent);text-decoration:none}
 .odp a.zapowiedz-dalej:hover{text-decoration:underline}
 @media (max-width:640px){
-  .zapowiedz.z-obrazem .zapowiedz-uklad,.zapowiedz--wyrozniona.z-obrazem .zapowiedz-uklad{grid-template-columns:calc(96px * var(--font-scale,1)) minmax(0,1fr);gap:14px}
+  .zapowiedz.z-obrazem .zapowiedz-uklad{grid-template-columns:calc(96px * var(--font-scale,1)) minmax(0,1fr);gap:14px}
 }
 
 /* ============================================ */
