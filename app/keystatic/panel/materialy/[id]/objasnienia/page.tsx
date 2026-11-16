@@ -20,7 +20,7 @@ type Obj = {
     ksztalt?: Ksztalt
 }
 type Cel = CelPowiazania
-type Dane = { id: string; nazwa: string; widocznosc: string; opracowal: string; strony: Strona[]; objasnienia: Obj[]; cele: Cel[] }
+type Dane = { id: string; nazwa: string; widocznosc: string; opracowal: string; strony: Strona[]; objasnienia: Obj[]; cele: Cel[]; uzycia?: Record<string, { slug: string; tytul: string; element: string }[]> }
 
 const KLUCZ_AUTORA = 'pn-objasnienia-opracowal'
 const noweId = () => `o-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
@@ -308,6 +308,9 @@ export default function ObjasnieniaMaterialu() {
                                         {Object.entries(JEZYKI).map(([k, n]) => <option key={k} value={k}>{n}</option>)}
                                     </select>
                                 </label>
+                                {(dane.uzycia?.[w.id]?.length ?? 0) > 0 && (
+                                    <span className="pn-maly">podstawa elementów planu: {dane.uzycia![w.id].map((u, i) => <React.Fragment key={`${u.slug}-${i}`}>{i > 0 && ' · '}<a href={`/keystatic/plany/${u.slug}`}>{u.tytul} – {u.element}</a></React.Fragment>)}</span>
+                                )}
                                 <style>{CSS_POLA_POWIAZAN}</style>
                                 <PolePowiazan wartosc={w.powiazania} cele={dane.cele} zmien={(v) => ustaw(w.id, { powiazania: v })} idListy="obj-cele" />
                                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

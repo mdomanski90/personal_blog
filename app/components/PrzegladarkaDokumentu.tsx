@@ -13,6 +13,9 @@ import type { ObjasnienieWidoku } from '@/lib/objasnienia-widok'
 import ObjasnieniaSkanu, { ListaObjasnien, TekstZrodla, type ApiWarstwy, type ObjasnienieNaStronie, type TrybObjasnien } from './ObjasnieniaSkanu'
 import { obrazStrony } from '@/lib/pliki'
 import WarstwaRekonstrukcji, { type DaneRekonstrukcji, type TrybWarstw } from './plan/WarstwaRekonstrukcji'
+import OpisElementu from './plan/OpisElementu'
+import { elementPod, naPlan } from '@/lib/plany/rekonstrukcja'
+import { katalog } from '@/lib/plany/typy'
 
 export interface StronaPodgladu { adres: string; podpis?: string }
 
@@ -77,6 +80,10 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const n = strony.length
     const [warstwy, ustawWarstwy] = React.useState<TrybWarstw>('skan')
     const [krycie, ustawKrycie] = React.useState(0.75)
+    // PH2: wybrany element rekonstrukcji (karta pod skanem, podświetlenie objaśnienia z jego „podstawy”)
+    const [element, ustawElement] = React.useState<string | null>(null)
+    const rekRef = React.useRef({ rekonstrukcja, warstwy })
+    rekRef.current = { rekonstrukcja, warstwy }
     // wejście z listy planów (#warstwa-rekonstrukcji): od razu skan z rekonstrukcją, na stronie podkładu
     React.useEffect(() => { if (rekonstrukcja && window.location.hash === '#warstwa-rekonstrukcji') ustawWarstwy('oba') }, [rekonstrukcja])
     React.useEffect(() => {
@@ -123,13 +130,31 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
             }
             v.addHandler('zoom', odswiezSkale)
             v.addHandler('open', () => { odswiezSkale(); v.viewport.setRotation(0); ustawObrot(0); ustawWersje((x) => x + 1) })
-            v.addHandler('page', (e) => { const p = (e as unknown as { page: number }).page; ustawStrone(p); ustawAktywne(null); naStroneRef.current?.(p) })
+            v.addHandler('page', (e) => { const p = (e as unknown as { page: number }).page; ustawStrone(p); ustawAktywne(null); ustawElement(null); naStroneRef.current?.(p) })
             // krótkie kliknięcie (nie przeciągnięcie): w objaśnienie – pokazuje je; gdzie indziej – pełny ekran
             v.addHandler('canvas-click', (e) => {
                 const ev = e as unknown as { quick: boolean; position: { x: number; y: number }; preventDefaultAction: boolean }
                 if (!ev.quick) return
                 const id = warstwa.current?.trafienie(ev.position.x, ev.position.y)
-                if (id) { ev.preventDefaultAction = true; ustawAktywne(aktywneRef.current === id ? null : id); return }
+                if (id) { ev.preventDefaultAction = true; ustawElement(null); ustawAktywne(aktywneRef.current === id ? null : id); return }
+                // PH2: klik w element rekonstrukcji (warstwa widoczna, strona podkładu) – karta elementu i podświetlenie odczytu
+                const r = rekRef.current
+                if (r.rekonstrukcja && r.warstwy !== 'skan' && v.currentPage() === r.rekonstrukcja.podklad.strona) {
+                    const ti = v.world.getItemAt(0), sz = ti?.getContentSize()
+                    if (ti && sz) {
+                        const ip = ti.viewportToImageCoordinates(v.viewport.pointFromPixel(new OSD.Point(ev.position.x, ev.position.y), true))
+                        const [px, py] = naPlan(r.rekonstrukcja.podklad, ip.x / sz.x, ip.y / sz.y)
+                        const eid = elementPod(r.rekonstrukcja.plan, px, py, (x) => !r.rekonstrukcja!.plan.elementy.find((e) => e.id === x)?.ograniczony)
+                        if (eid) {
+                            ev.preventDefaultAction = true
+                            ustawElement(eid)
+                            const pod = r.rekonstrukcja.plan.elementy.find((e) => e.id === eid)?.podstawa?.find((q) => q.objasnienie)?.objasnienie
+                            ustawAktywne(pod ?? null)
+                            return
+                        }
+                    }
+                }
+                ustawElement(null)
                 if (aktywneRef.current) { ustawAktywne(null); return }
                 if (!pelnyRef.current) otworz()
             })
@@ -210,6 +235,16 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const uklad = bok ? 'sam' : efTryb === 'margines' || (efTryb === 'numery' && pelny) ? (pelny && efTryb === 'margines' ? 'obie' : 'prawa') : 'sam'
 
     const karta = wariant === 'karta' && !pelny
+    // PH2: podświetlone elementy – wybrany element i elementy oparte na wybranym objaśnieniu
+    const wyroznione = React.useMemo(() => {
+        const z = new Set<string>()
+        if (!rekonstrukcja) return z
+        if (element) z.add(element)
+        if (aktywne) for (const e of rekonstrukcja.plan.elementy) if (e.podstawa?.some((q) => q.objasnienie === aktywne)) z.add(e.id)
+        return z
+    }, [rekonstrukcja, element, aktywne])
+    const el = rekonstrukcja && element ? rekonstrukcja.plan.elementy.find((e) => e.id === element) : undefined
+    const typyRek = React.useMemo(() => (rekonstrukcja ? katalog(rekonstrukcja.ustawienia) : null), [rekonstrukcja])
     const objWlaczone = efTryb !== 'ukryj'
     const trybPokazu: TrybObjasnien = tryb === 'ukryj' ? (wybranyTrybPokazu.current ?? 'numery') : tryb
 
@@ -286,7 +321,7 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
             <div className={`dok-srodek${bok ? ' z-bokiem' : ''}`}>
             <div ref={obszar} className={`dok-obszar dok-uklad-${uklad}`}>
                 <div ref={pole} className="dok-pole" style={{ gridArea: 'pole', ...(pelny ? {} : { height: wysokosc }) }} aria-label={`skan: ${tytul}${n > 1 ? `, strona ${strona + 1} z ${n}` : ''}`} role="img" />
-                {rekonstrukcja && <WarstwaRekonstrukcji widz={widz} osd={osd} wersja={wersja} strona={strona} dane={rekonstrukcja} tryb={warstwy} krycie={krycie} />}
+                {rekonstrukcja && <WarstwaRekonstrukcji widz={widz} osd={osd} wersja={wersja} strona={strona} dane={rekonstrukcja} tryb={warstwy} krycie={krycie} wyroznione={wyroznione} />}
                 {sa && (
                     <ObjasnieniaSkanu widz={widz} osd={osd} pole={pole} obszar={obszar} lista={naStronie} tryb={bok && efTryb === 'margines' ? 'numery' : efTryb} pelny={pelny && !bok} aktywne={aktywne} wskazane={wskazane}
                         ustawAktywne={ustawAktywne} ustawWskazane={ustawWskazane} api={warstwa} wersja={wersja} />
@@ -304,6 +339,17 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
                 </div>
             )}
             </div>
+            {el && (
+                <div className="dok-element" role="region" aria-label="element rekonstrukcji">
+                    <div className="dok-element-glowa">
+                        <b>{el.nazwa || el.nazwaZrodlowa || typyRek?.get(el.typ)?.nazwa || 'element'}</b>
+                        <span className="dok-element-typ">{typyRek?.get(el.typ)?.nazwa}</span>
+                        <button type="button" className="dok-element-x" onClick={() => ustawElement(null)} aria-label="zamknij opis elementu">×</button>
+                    </div>
+                    {el.opis && <p className="dok-element-opis">{el.opis}</p>}
+                    <OpisElementu e={el} naPodstawe={(oid) => { ustawAktywne(oid); warstwa.current?.pokaz(oid) }} />
+                </div>
+            )}
             {efTryb === 'numery' && !pelny && !karta && <ListaObjasnien lista={naStronie} aktywne={aktywne} wskazane={wskazane} onKlik={klikListy} ustawWskazane={ustawWskazane} />}
             {transkrypcja && !karta && !pelny && doTranskrypcji.length > 0 && (
                 <div className="dok-transkrypcja" aria-label="transkrypcja tej strony">

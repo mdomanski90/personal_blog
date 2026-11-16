@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { popraw, dlaCzytelnika, type Podklad } from './model'
 import { USTAWIENIA_DOMYSLNE } from './typy'
-import { odwrocMacierz, wybierzRekonstrukcje } from './rekonstrukcja'
+import { elementPod, naPlan, odwrocMacierz, wybierzRekonstrukcje } from './rekonstrukcja'
 
 // dane wyłącznie syntetyczne
 const podklad = (r: Partial<Podklad> = {}): Podklad => ({ id: 'p', plik: '', nazwa: 'skan', szer: 2000, wys: 1500, macierz: [0.5, 0, 0, 0.5, 10, 20], krycie: 1, widocznosc: 'edycja', material: { id: 'skan-a', strona: 1 }, ...r })
@@ -27,4 +27,20 @@ test('warstwa tylko dla planu widocznego dla czytelnika, z podkładem z tego mat
     assert.equal(w?.plan.podklady.length, 0) // czytelnik nie dostaje podkładu „tylko edycja” – rysujemy na stronie materiału
     assert.equal(wybierzRekonstrukcje('skan-a', [ukryty], dla([ukryty])), null)
     assert.equal(wybierzRekonstrukcje('skan-b', [jawny], dla([jawny])), null)
+})
+
+test('PH2: trafienie w element rekonstrukcji – znak przed obszarem, mniejszy obszar przed większym, linia w pobliżu', () => {
+    const p = popraw({ slug: 'h', szer: 1000, wys: 750, elementy: [
+        { id: 'duzy', typ: 'kwartal', g: { k: 'w', p: [[0, 0], [500, 0], [500, 500], [0, 500]] } },
+        { id: 'maly', typ: 'ogrod', g: { k: 'w', p: [[100, 100], [200, 100], [200, 200], [100, 200]] } },
+        { id: 'znak', typ: 'ratusz', g: { k: 'p', x: 150, y: 150 } },
+        { id: 'ulica', typ: 'ulica', g: { k: 'l', p: [[0, 600], [1000, 600]] }, szer: 28 },
+    ] })
+    assert.equal(elementPod(p, 151, 151), 'znak')
+    assert.equal(elementPod(p, 120, 180), 'maly')
+    assert.equal(elementPod(p, 400, 400), 'duzy')
+    assert.equal(elementPod(p, 700, 610), 'ulica')
+    assert.equal(elementPod(p, 700, 700), null)
+    assert.equal(elementPod(p, 151, 151, (id) => id !== 'znak'), 'maly')
+    assert.deepEqual(naPlan({ strona: 0, szer: 2000, wys: 1500, macierz: [0.5, 0, 0, 0.5, 0, 0] }, 0.5, 0.5), [500, 375])
 })

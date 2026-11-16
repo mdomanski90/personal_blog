@@ -1613,6 +1613,12 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .pl-el-w dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .pl-el-niepewna{font-style:italic}
 .pl-el-przycisk{font:inherit;color:var(--link);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}
+/* PH2: karta wybranego elementu rekonstrukcji pod skanem (strona materiału) */
+.dok-element{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--linia-podzialu);border-radius:var(--promien);background:var(--tlo-strony);color:var(--tekst)}
+.dok-element-glowa{display:flex;align-items:baseline;gap:10px}
+.dok-element-typ{color:var(--tekst-etykieta);font-size:var(--rozmiar-etykieta)}
+.dok-element-x{margin-left:auto;font:inherit;background:none;border:0;cursor:pointer;color:var(--tekst-opis);font-size:var(--rozmiar-tytul-sekcji);line-height:1}
+.dok-element-opis{margin:0;white-space:pre-wrap;font-size:var(--rozmiar-opis)}
 /* PH-19: element o niepewnej identyfikacji – przerywany obrys na planie */
 .pl-niepewny{fill:none;stroke:var(--pl-szary);stroke-linecap:round}
 .pl-niepewny-nieustalona{stroke-opacity:.6}

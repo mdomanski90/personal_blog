@@ -15,7 +15,7 @@ import { RysunekPlanu, Wzory } from './Rysunek'
 export type TrybWarstw = 'skan' | 'oba' | 'rekonstrukcja'
 export interface DaneRekonstrukcji { plan: Plan; podklad: PodkladWarstwy; ustawienia: UstawieniaPlanow }
 
-export default function WarstwaRekonstrukcji({ widz, osd, wersja, strona, dane, tryb, krycie }: {
+export default function WarstwaRekonstrukcji({ widz, osd, wersja, strona, dane, tryb, krycie, wyroznione }: {
     widz: React.RefObject<OpenSeadragon.Viewer | null>
     osd: React.RefObject<typeof OpenSeadragon | null>
     /** rośnie przy każdym otwarciu strony w OSD – nakładkę trzeba wtedy dodać od nowa */
@@ -24,6 +24,8 @@ export default function WarstwaRekonstrukcji({ widz, osd, wersja, strona, dane, 
     dane: DaneRekonstrukcji
     tryb: TrybWarstw
     krycie: number
+    /** PH2: wybrany element i elementy oparte na wybranym objaśnieniu */
+    wyroznione?: Set<string>
 }) {
     const [kontener, ustawKontener] = React.useState<HTMLDivElement | null>(null)
     const naStronie = strona === dane.podklad.strona
@@ -54,7 +56,7 @@ export default function WarstwaRekonstrukcji({ widz, osd, wersja, strona, dane, 
             {tryb === 'rekonstrukcja' && <rect width={szer} height={wys} className="rek-tlo" />}
             <defs><Wzory prefix={prefix} u={jednostka(dane.plan)} /></defs>
             <g transform={`matrix(${inv.join(' ')})`}>
-                <RysunekPlanu plan={dane.plan} o={{ prefix, typy, ukryteTypy: new Set(dane.ustawienia.ukryteTypy ?? []) }} />
+                <RysunekPlanu plan={dane.plan} o={{ prefix, typy, ukryteTypy: new Set(dane.ustawienia.ukryteTypy ?? []), wyroznione }} />
             </g>
         </svg>,
         kontener,

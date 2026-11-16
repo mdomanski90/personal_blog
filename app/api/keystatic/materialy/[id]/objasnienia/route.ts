@@ -20,7 +20,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const id = r.id!
     const strony = stronyMaterialu(id).map((s) => ({ ...s, podglad: `/api/keystatic/materialy/${id}/strony?podglad=${encodeURIComponent(s.plik)}` }))
     const cele = (await celeSieci('ja')).filter((c) => !(c.rodzaj === 'material' && c.id === id)).map((c) => ({ id: c.id, nazwa: c.nazwa, rodzaj: c.rodzaj }))
-    return Response.json({ id, nazwa: r.m!.nazwa, widocznosc: r.m!.widocznosc, opracowal: r.m!.opracowal, strony, objasnienia: objasnieniaMaterialu(id), cele })
+    // PH-02: gdzie objaśnienia tego materiału są podstawą elementów planów (do pokazania przy objaśnieniu w panelu)
+    const { listaPlanow } = await import('@/lib/plany/dane')
+    const uzycia: Record<string, { slug: string; tytul: string; element: string }[]> = {}
+    for (const p of await listaPlanow()) for (const e of p.elementy) for (const q of e.podstawa ?? [])
+        if (q.material === id && q.objasnienie) (uzycia[q.objasnienie] ??= []).push({ slug: p.slug, tytul: p.tytul, element: e.nazwa || e.nazwaZrodlowa || e.typ })
+    return Response.json({ id, nazwa: r.m!.nazwa, widocznosc: r.m!.widocznosc, opracowal: r.m!.opracowal, strony, objasnienia: objasnieniaMaterialu(id), cele, uzycia })
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
