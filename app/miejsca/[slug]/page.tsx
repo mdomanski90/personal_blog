@@ -12,7 +12,8 @@ import { formatujEdtf } from '@/lib/edtf'
 import { naHtml, zajawka } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
 import { wystapieniaKarty } from '@/lib/plany/wystapienia'
-import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import SpisDzialow from '../../archiwum/SpisDzialow'
 import { pozycjeMiejsc } from '../../components/SpisMiejsc'
@@ -98,7 +99,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const jestTeren = swiatynie.length > 0 || !obszar
     const jestKsiegi = ksiegiSa || m.parafie.length > 0
     const tytulHistorii = obszar ? 'opis' : 'historia'
-    const spis = spisCzesci(['podstawowe', m.rodzaj === 'gmina' && potomkowie.length > 0 && 'wsie gminy', tytulHistorii, jestTeren && 'w terenie', planyWsi.length > 0 && 'plany i schematy', jestKsiegi && 'księgi metrykalne', 'powiązane', (m.zrodla.length > 0 || !!zrodlo) && 'źródła'])
+    const spis = spisCzesci(['podstawowe', m.rodzaj === 'gmina' && potomkowie.length > 0 && 'wsie gminy', tytulHistorii, jestTeren && 'w terenie', planyWsi.length > 0 && 'plany i schematy', jestKsiegi && 'księgi metrykalne', 'powiązane', 'jak cytować', (m.zrodla.length > 0 || !!zrodlo) && 'źródła'])
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
@@ -215,6 +216,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                 <WCaly>
                     <span className="ot-drobne">{opow.length === 0 && mat.length === 0 ? `Nie ma jeszcze wpisów ani materiałów o ${obszar ? 'tym obszarze' : 'tej miejscowości'}. ` : ''}Masz zdjęcie, dokument albo wspomnienie? <Zgloszenie rodzaj="material" adres={`/miejsca/${m.id}`} tytul={m.nazwa} wariant="link" etykieta="przyślij materiał" /></span>
                 </WCaly>
+                <CzescJakCytowac plik={m.id} dane={daneCytatu({ tytul: m.nazwa, sciezka: `/miejsca/${m.id}`, nrKat, rodzaj: 'miejsce' })} />
                 <Zrodla pozycje={[
                     ...m.zrodla.map((z, i) => <ZAdresami key={`z${i}`} tekst={z} />),
                     zrodlo && <ZAdresami key="opis" tekst={zrodlo} />,

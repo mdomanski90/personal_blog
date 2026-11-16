@@ -1469,8 +1469,10 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 @media (max-width:640px){
   .dok-tylko-tel{display:inline-flex}
   .dok-tylko-pc{display:none}
-  .dok-pasek-lewa{width:100%;justify-content:space-between}
-  .dok-pasek-prawa{width:100%;justify-content:flex-start;gap:6px}
+  /* uwaga 16.11: pasek w jednym wierszu – „1 strona” z lewej, grupy i ⤢ z prawej; drugi wiersz tylko, gdy grupy się nie mieszczą */
+  .dok-pasek-lewa{display:contents}
+  .dok-pasek-prawa{margin-left:auto;justify-content:flex-end;gap:6px}
+  .dok-tylko-tel{order:99}
   .dok .dok-skala{display:none}
   /* pełny ekran: notki pod skanem, nie obok */
   .dok-pelny .dok-obszar.dok-uklad-prawa,.dok-pelny .dok-obszar.dok-uklad-obie{grid-template-columns:minmax(0,1fr);grid-template-areas:"pole" "prawy";grid-template-rows:minmax(0,1fr) auto;row-gap:8px}
@@ -1546,13 +1548,18 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .odp .zapowiedz-tytul a{color:var(--tekst);text-decoration:none}
 .odp .zapowiedz-tytul a:hover{color:var(--akcent);text-decoration:underline}
 .zapowiedz-tekst{margin:0;font-size:var(--blog-font-size,18px);line-height:1.6;color:var(--tekst-opis);white-space:pre-line}
-.odp a.zapowiedz-dalej{align-self:flex-end;/* prawa krawędź tekstu: kolumna tekstu (z miniaturą) albo druga kolumna (bez miniatury) – uwaga właściciela 16.11 */font-weight:700;font-size:calc(15px * var(--font-scale,1));color:var(--akcent);text-decoration:none}
+.odp a.zapowiedz-dalej{align-self:flex-end;/* prawa krawędź bloku tekstu: wpisu albo – przy krótkiej zapowiedzi – końca tekstu (uwagi 16.11) */font-weight:700;font-size:calc(15px * var(--font-scale,1));color:var(--akcent);text-decoration:none}
 .odp a.zapowiedz-dalej:hover{text-decoration:underline}
 /* telefon i wąskie okno (uwagi właściciela 16.11): miniatura pod metryczką na całą szerokość treści (marginesy strony), tekst pod nią;
    próg 860 px jak wstęp strony głównej – poniżej miniatura 300 px zostawiała tekstowi za mało miejsca */
 @media (max-width:860px){
   .zapowiedz.z-obrazem .zapowiedz-uklad{grid-template-columns:minmax(0,1fr);gap:14px}
   .zapowiedz-obraz{min-height:0;aspect-ratio:3 / 2}
+  /* uwaga 16.11: metryczka → tytuł → miniatura → tekst (miniatura bezpośrednio nad treścią) */
+  .zapowiedz.z-obrazem .zapowiedz-tresc{display:contents}
+  .zapowiedz.z-obrazem .zapowiedz-tytul{order:-1}
+  /* jedna kolumna: limit wierszy z „…” */
+  .zapowiedz.z-obrazem .zapowiedz-tekst{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:7;line-clamp:7}
 }
 
 /* ============================================ */
@@ -1779,12 +1786,25 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 .karta-losowa .kl-srodek{grid-template-columns:minmax(0,1fr) calc(200px * var(--font-scale,1))}
 .karta-losowa,.dark .karta-losowa{height:calc(320px * var(--font-scale,1))}
 .glowna-naglowek-wpisow{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}
-/* miniatura 300 px obok tekstu dopiero od 861 px – węziej miniatura nad tekstem (reguła wyżej, max-width:860px) */
-@media (min-width:861px){.zapowiedz.z-obrazem .zapowiedz-uklad{grid-template-columns:calc(300px * var(--font-scale,1)) minmax(0,var(--szer-tekstu));justify-content:start}}
-.zapowiedz:not(.z-obrazem) .zapowiedz-uklad{grid-template-columns:minmax(0,calc(300px * var(--font-scale,1) + 20px + var(--szer-tekstu)))}
-/* decyzja 16.11: wpis bez miniatury na szerokość wpisu z miniaturą, zapowiedź w dwóch kolumnach (jak w gazecie); na wąskim ekranie jedna */
-.zapowiedz:not(.z-obrazem) .zapowiedz-tekst{column-count:2;column-gap:40px;column-rule:1px solid var(--linia-podzialu)}
-@media (max-width:760px){.zapowiedz:not(.z-obrazem) .zapowiedz-tekst{column-count:1}}
+/* uwagi właściciela 16.11 – wariant B (canva „lista wpisów”), ZapowiedziWpisow na stronie głównej i /wpisy:
+   tekst do prawej krawędzi wpisu, w kolumnach wyrównanych (balance) z limitem wierszy – z miniaturą 2 × 7 (od 861 px),
+   bez miniatury 3 × 9 (od 1024 px; 761–1023 px dwie, węziej jedna); krótka zapowiedź bez kolumn, „czytaj dalej” przy końcu tekstu */
+@media (min-width:861px){
+  .zapowiedz.z-obrazem .zapowiedz-uklad{grid-template-columns:calc(300px * var(--font-scale,1)) minmax(0,1fr)}
+  .zapowiedz.z-obrazem .zapowiedz-tekst{column-count:2;column-gap:var(--odstep-kolumn);column-rule:1px solid var(--linia-podzialu)}
+  .zapowiedz.z-obrazem .zapowiedz-blok.krotka{max-width:calc((100% - var(--odstep-kolumn)) / 2)}
+}
+.zapowiedz-tekst{max-height:calc(7 * 1.6em);overflow:hidden;column-fill:balance}
+.zapowiedz:not(.z-obrazem) .zapowiedz-tekst{max-height:calc(9 * 1.6em);column-count:2;column-gap:var(--odstep-kolumn);column-rule:1px solid var(--linia-podzialu)}
+@media (min-width:1024px){
+  .zapowiedz:not(.z-obrazem) .zapowiedz-tekst{column-count:3}
+  .zapowiedz:not(.z-obrazem) .zapowiedz-blok.krotka{max-width:calc((100% - 2 * var(--odstep-kolumn)) / 3)}
+}
+@media (min-width:761px) and (max-width:1023px){.zapowiedz:not(.z-obrazem) .zapowiedz-blok.krotka{max-width:calc((100% - var(--odstep-kolumn)) / 2)}}
+@media (max-width:760px){.zapowiedz:not(.z-obrazem) .zapowiedz-tekst{column-count:1;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:9;line-clamp:9}}
+.zapowiedz-blok{display:flex;flex-direction:column;gap:8px;min-width:0}
+.zapowiedz-blok.krotka{align-self:flex-start;width:fit-content;max-width:100%}
+.zapowiedz-blok.krotka .zapowiedz-tekst{column-count:1;column-rule:none;max-height:none}
 .zapowiedz-tytul{font-size:var(--rozmiar-tytul)}
 .zapowiedz-tekst{font-size:var(--rozmiar-tresc)}
 .glowna-pomoz h2.tytul-sekcji{margin:0}

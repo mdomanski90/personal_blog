@@ -29,9 +29,6 @@
     "app/components/LegendaMapy.tsx": {
       "styl": 6
     },
-    "app/components/ListaOpowiesci.tsx": {
-      "styl": 5
-    },
     "app/components/Logowanie.tsx": {
       "styl": 2
     },

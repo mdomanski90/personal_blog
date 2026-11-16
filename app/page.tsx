@@ -1,20 +1,16 @@
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
-import { materialy, nazwy, opowiesci, poziomCzytelnika, kontekstTresci, pozycjeLosowe, wstepStronyGlownej, type PozycjaLosowa } from '@/lib/archiwum'
+import { opowiesci, poziomCzytelnika, pozycjeLosowe, wstepStronyGlownej, type PozycjaLosowa } from '@/lib/archiwum'
 import LosowaKarta from './components/LosowaKarta'
-import { zajawka } from '@/lib/markdoc'
 import { Kreski, Strona } from './components/Uklad'
 import { TytulSekcji } from './components/Wzorce'
-import MetkiWpisu from './components/MetkiWpisu'
+import ZapowiedziWpisow from './components/ZapowiedziWpisow'
 import Zgloszenie from './components/Zgloszenie'
-import { pozycjaKadru } from '@/lib/kadr'
 
 export const dynamic = 'force-dynamic'
 
 /** Ile wpisów w pełnej formie na stronie głównej; reszta pod „wszystkie wpisy”. */
 const WPISOW_NA_GLOWNEJ = 5
-/** JW-04 (decyzja 16.11): równe zapowiedzi ok. 450–500 znaków (7–8 wierszy po 66 znaków), gdy pole zapowiedzi puste. */
-const DLUGOSC_ZAPOWIEDZI = 500
 /** Ile pozycji w oknie „z archiwum”: materiał tego tygodnia + wcześniejsze. */
 const W_OKNIE = 6
 
@@ -42,24 +38,10 @@ function zestawDoOkna(wszystkie: PozycjaLosowa[], teraz = new Date()): PozycjaLo
 
 export default async function StronaGlowna() {
     const poziom = await poziomCzytelnika()
-    const kontekst = await kontekstTresci(poziom)
     const wpisy = await opowiesci(poziom)
-    const n = await nazwy(poziom)
     const wstep = await wstepStronyGlownej()
     const doOkna = zestawDoOkna(await pozycjeLosowe())
     const pokazane = wpisy.slice(0, WPISOW_NA_GLOWNEJ)
-    // miniatury zapowiedzi: tylko materiały widoczne dla czytelnika; skan albo plik graficzny
-    const mats = new Map((await materialy(poziom)).map((m) => [m.id, m]))
-    const miniatury = new Map<string, string>()
-    const kadry = new Map<string, string>()
-    for (const w of pokazane) {
-        const m = w.miniatura ? mats.get(w.miniatura) : undefined
-        if (!m) continue
-        kadry.set(m.id, pozycjaKadru(m.kadr))
-        const skan = m.strony[0]?.adres
-        if (skan) miniatury.set(m.id, skan.startsWith('/pliki/strony/') ? `${skan}?w=640` : skan)
-        else if (m.plik && /\.(jpe?g|png|webp)$/i.test(m.plik)) miniatury.set(m.id, `${m.plik}?w=640`)
-    }
     const wszystkie = `wszystkie wpisy (${wpisy.length}) →`
 
     return (
@@ -86,35 +68,8 @@ export default async function StronaGlowna() {
                 {wpisy.length > pokazane.length && <Link href="/wpisy" className="odn tekst-opis-maly">{wszystkie}</Link>}
             </div>
 
-            {wpisy.length === 0 && <p className="text-[var(--tekst-etykieta)] italic lowercase">brak wpisów.</p>}
-
-            {/* P7E-1 (SG-02, SG-11, SG-15): zapowiedzi zamiast pełnych wpisów; JW-04: wszystkie równe (bez wyróżnionego najnowszego), miniatura 300 px */}
-            {pokazane.map((w) => {
-                const obraz = w.miniatura ? miniatury.get(w.miniatura) : undefined
-                // decyzja 16.11: wpis bez miniatury – ta sama szerokość co z miniaturą, zapowiedź w dwóch kolumnach i dwa razy dłuższa
-                const tekst = w.zapowiedz || (obraz ? zajawka(w.tresc, DLUGOSC_ZAPOWIEDZI, kontekst.rozwiaz) : zajawka(w.tresc, DLUGOSC_ZAPOWIEDZI * 2, kontekst.rozwiaz, { akapity: true }))
-                return (
-                    // id = identyfikator wpisu, więc stare odnośniki „/#identyfikator” nadal przewijają do wpisu
-                    <article key={w.id} id={w.id} className={`zapowiedz scroll-mt-6${obraz ? ' z-obrazem' : ''}`}>
-                        <MetkiWpisu wpis={w} nazwy={n} />
-                        {/* miniatura zawsze po lewej, na wysokość od góry tytułu do dołu zapowiedzi (wykadrowany fragment) */}
-                        <div className="zapowiedz-uklad">
-                            {obraz && (
-                                <Link href={`/wpisy/${w.id}`} className="zapowiedz-obraz" tabIndex={-1} aria-hidden="true">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={obraz} alt="" loading="lazy" style={/* styl-dynamiczny: kadr miniatury z danych materiału */ { objectPosition: kadry.get(w.miniatura!) }} />
-                                </Link>
-                            )}
-                            <div className="zapowiedz-tresc">
-                                <h3 className="zapowiedz-tytul"><Link href={`/wpisy/${w.id}`}>{w.tytul}</Link></h3>
-                                {tekst && <p className="zapowiedz-tekst">{tekst}</p>}
-                                {/* „czytaj dalej” przy prawej krawędzi tekstu (uwaga właściciela 16.11) */}
-                                <Link href={`/wpisy/${w.id}`} className="zapowiedz-dalej">czytaj dalej <span aria-hidden="true">→</span><span className="sr-only">: {w.tytul}</span></Link>
-                            </div>
-                        </div>
-                    </article>
-                )
-            })}
+            {/* P7E-1 / JW-04 / uwagi 16.11 (wariant B): zapowiedzi – wspólny komponent ze stroną /wpisy */}
+            <ZapowiedziWpisow wpisy={pokazane} poziom={poziom} />
 
             {wpisy.length > pokazane.length && (
                 <div className="flex justify-end">

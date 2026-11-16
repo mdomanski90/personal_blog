@@ -21,7 +21,7 @@ export const WZORCE: Wzorzec[] = [
     { id: 'siatka', nazwa: 'siatka miniatur', opis: 'Pozycje z obrazem: miniatura 4:3, tytuł, rodzaj, data – materiały archiwum i plany (PH-23).', komponent: 'SiatkaMiniatur (ListaMaterialow)', znacznik: ['ListaMaterialow', 'SiatkaMiniatur'] },
     { id: 'spis', nazwa: 'spis działów', opis: 'Katalog kartkowy: numer, nazwa, kropki, liczba. Także spis miejscowości i krain (bez numeracji, decyzja 16.11); gminy jako podgrupy w ramce krainy (wariant A2).', komponent: 'SpisDzialow', znacznik: ['SpisDzialow', 'SpisBiblioteki'] },
     { id: 'pastylki-osob', nazwa: 'pastylki osób', opis: 'JW-10: osoby jako pastylki w kolorach płci (tokeny wspólne z drzewem); lata, miejscowość, biogram obok zwykłym tekstem.', komponent: 'PastylkaOsoby', znacznik: ['PastylkaOsoby'] },
-    { id: 'zapowiedz', nazwa: 'zapowiedź wpisu', opis: 'Metryczka, miniatura po lewej, tytuł, zapowiedź, „czytaj dalej”.', komponent: 'article.zapowiedz / ListaOpowiesci', znacznik: ['zapowiedz', 'ListaOpowiesci'] },
+    { id: 'zapowiedz', nazwa: 'zapowiedź wpisu', opis: 'Metryczka; miniatura 300 px po lewej (wąsko: tytuł → miniatura → tekst); tekst do prawej krawędzi w kolumnach (2 × 7 / bez miniatury 3 × 9 wierszy); krótka bez kolumn; „czytaj dalej” przy końcu tekstu (uwagi 16.11).', komponent: 'ZapowiedziWpisow', znacznik: ['ZapowiedziWpisow'] },
     { id: 'wlasny', nazwa: 'własny układ', opis: 'Znaczniki napisane w miejscu, bez wspólnego komponentu – wymaga uzasadnienia albo ujednolicenia.', komponent: '—', znacznik: [] },
 ]
 
@@ -81,8 +81,8 @@ export const MIEJSCA: Miejsce[] = [
     { byt: 'temat', gdzie: 'lista tematów', plik: 'app/tematy/page.tsx', wzorzec: 'lista-dzialu', status: 'zgodne', adres: '/tematy' },
     { byt: 'temat', gdzie: 'karta tematu', plik: 'app/tematy/[slug]/page.tsx', wzorzec: 'karta', status: 'zgodne', adres: '/tematy/…' },
     { byt: 'temat', gdzie: 'karta miejscowości – oś czasu', plik: 'app/miejsca/[slug]/page.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'Oś czasu (ol.karta-os) – inny rodzaj informacji niż lista.', adres: '/miejsca/…' },
-    { byt: 'wpis', gdzie: 'strona główna – zapowiedzi', plik: 'app/page.tsx', wzorzec: 'zapowiedz', status: 'zgodne', adres: '/' },
-    { byt: 'wpis', gdzie: 'lista wpisów', plik: 'app/components/ListaOpowiesci.tsx', wzorzec: 'zapowiedz', status: 'do-ujednolicenia', uwaga: 'Starsza lista: bez miniatury i bez pola zapowiedzi w tym samym układzie co strona główna.', adres: '/wpisy' },
+    { byt: 'wpis', gdzie: 'strona główna – zapowiedzi', plik: 'app/page.tsx', wzorzec: 'zapowiedz', status: 'zgodne', uwaga: 'ZapowiedziWpisow (wspólny z /wpisy).', adres: '/' },
+    { byt: 'wpis', gdzie: 'zapowiedzi wpisów – lista /wpisy i strona główna', plik: 'app/components/ZapowiedziWpisow.tsx', wzorzec: 'zapowiedz', status: 'zgodne', uwaga: 'Uwagi 16.11: ZapowiedziWpisow – ten sam układ co strona główna (dawna ListaOpowiesci usunięta).', adres: '/wpisy' },
     { byt: 'hasło słownika', gdzie: 'słownik', plik: 'app/biblioteka/slownik/page.tsx', wzorzec: 'lista-dzialu', status: 'zgodne', adres: '/biblioteka/slownik' },
     // przekrojowe
     { byt: 'plan', gdzie: 'karta miejscowości / obiektu – plany (z miniaturą)', plik: 'app/components/plan/ListaPlanow.tsx', wzorzec: 'pozycja-w-karcie', status: 'zgodne', adres: '/miejsca/… · /obiekty/…' },

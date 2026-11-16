@@ -6,6 +6,8 @@ import { RODZAJE_MATERIALOW } from '@/lib/materialy'
 import { formatujEdtf } from '@/lib/edtf'
 import { dataWpisu } from './Uklad'
 import Zgloszenie from './Zgloszenie'
+import JakCytowac from './JakCytowac'
+import type { DaneCytatu } from '@/lib/cytowanie'
 import { Okruszki } from './Wzorce'
 import { identyfikatorZNazwy } from '@/lib/tekst'
 
@@ -116,6 +118,18 @@ export function ZAdresami({ tekst }: { tekst: string }) {
 }
 
 /** Numerowana lista źródeł (część „źródła” – zawsze ostatnia w tabeli). */
+/** „Jak cytować” jako część tabeli karty – ta sama na każdej karcie (uwaga właściciela 16.11). Dane: daneCytatu() z lib/cytowanie. */
+export function CzescJakCytowac({ plik, dane }: { plik: string; dane: DaneCytatu }) {
+    return (
+        <>
+            <Czesc tytul="jak cytować" />
+            <WCaly>
+                <JakCytowac wTabeli plik={plik} dane={dane} />
+            </WCaly>
+        </>
+    )
+}
+
 export function Zrodla({ pozycje }: { pozycje: React.ReactNode[] }) {
     const p = pozycje.filter(Boolean)
     if (!p.length) return null

@@ -156,6 +156,8 @@ export function noweIdZdarzenia(): string {
 }
 
 export const nazwaOsoby = (o: Pick<Osoba, 'imiona' | 'nazwisko'>) => `${o.imiona} ${o.nazwisko}`.trim() || 'bez imienia'
+/** Katalog osób (alfabet po nazwisku, uwaga właściciela 16.11): „Nazwisko Imiona”. Karta, drzewo i odnośniki zostają przy nazwaOsoby. */
+export const nazwaOsobyKatalog = (o: Pick<Osoba, 'imiona' | 'nazwisko'>) => `${o.nazwisko} ${o.imiona}`.trim().replace(/\s+/g, ' ') || 'bez imienia'
 
 export function zdarzenie(o: { zdarzenia: Zdarzenie[] }, ...rodzaje: RodzajZdarzenia[]): Zdarzenie | undefined {
     for (const r of rodzaje) {

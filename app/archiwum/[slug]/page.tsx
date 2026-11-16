@@ -8,10 +8,9 @@ import { typPliku } from '@/lib/pliki'
 import { rozdzielZrodla } from '@/lib/markdoc'
 import PrzegladarkaDokumentu from '../../components/PrzegladarkaDokumentu'
 import TekstyZrodla from '../../components/TekstyZrodla'
-import JakCytowac from '../../components/JakCytowac'
-import { ADRES_STRONY, AUTOR_STRONY } from '@/lib/strona'
+import { daneCytatu } from '@/lib/cytowanie'
 import { RAMKA, PelnaSzerokosc, Strona, Tresc, maTekst } from '../../components/Uklad'
-import { Czesc, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, spisCzesci } from '../../components/Karta'
 import SpisTresci from '../../components/SpisTresci'
 import { PastylkaOsoby } from '../../components/Wzorce'
 import { PrzyciskDrukuj } from '../../components/Druk'
@@ -151,10 +150,7 @@ export default async function MaterialStrona({ params }: Parametry) {
                     </>
                 )}
 
-                <Czesc tytul="jak cytować" />
-                <WCaly>
-                    <JakCytowac wTabeli plik={m.id} dane={{ tytul: m.czas && !m.nazwa.includes(formatujEdtf(m.czas)) ? `${m.nazwa}, ${formatujEdtf(m.czas)}` : m.nazwa, adres: `${ADRES_STRONY}/archiwum/${m.id}`, opracowal: m.opracowal || AUTOR_STRONY, autor: m.tworca || undefined, rok: m.czas?.slice(0, 4), oryginal: oryginal || undefined, rodzaj: 'material', nrKat, ...(nrKat ? { adres: `${ADRES_STRONY}/k/${nrKat}` } : {}) }} />
-                </WCaly>
+                <CzescJakCytowac plik={m.id} dane={daneCytatu({ tytul: m.czas && !m.nazwa.includes(formatujEdtf(m.czas)) ? `${m.nazwa}, ${formatujEdtf(m.czas)}` : m.nazwa, sciezka: `/archiwum/${m.id}`, nrKat, rodzaj: 'material', opracowal: m.opracowal || undefined, autor: m.tworca || undefined, rok: m.czas?.slice(0, 4), oryginal: oryginal || undefined })} />
                 <Zrodla pozycje={[
                     oryginal && <>oryginał: {oryginal}</>,
                     ...m.zrodla.map((z, i) => <ZAdresami key={i} tekst={z} />),

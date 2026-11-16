@@ -6,7 +6,7 @@ import { biogramy, miejsca, poziomCzytelnika, rozwiazOdnosniki, widoczne } from 
 import { KREGI, kluczMiejsca } from '@/lib/kregi'
 import { bezNawiasow } from '@/lib/odnosniki'
 import { stanOsob } from '@/lib/osoby/dane'
-import { lataZycia, nazwaOsoby, zdarzenie, type Osoba } from '@/lib/osoby/model'
+import { lataZycia, nazwaOsobyKatalog, zdarzenie, type Osoba } from '@/lib/osoby/model'
 import { normalizuj, odmiana, porownajPl } from '@/lib/tekst'
 import { Strona, TytulStrony } from '../components/Uklad'
 
@@ -42,7 +42,7 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
             const miejsce = zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce?.split(',')[0] ?? ''
             const b = bio.get(o.id)
             return {
-                id: o.id, nazwa: nazwaOsoby(o), plec: o.plec, litera: (o.nazwisko || '?').charAt(0).toLocaleUpperCase('pl'),
+                id: o.id, nazwa: nazwaOsobyKatalog(o), plec: o.plec, litera: (o.nazwisko || '?').charAt(0).toLocaleUpperCase('pl'),
                 opis: `${o.przydomek ? `„${o.przydomek}” · ` : ''}${lataZycia(o)}${miejsce ? ` · ${miejsce}` : ''}`,
                 ...(b ? { biogram: b.lead } : {}),
                 szukaj: normalizuj(`${o.imiona} ${o.nazwisko} ${(o.inneNazwiska ?? []).join(' ')} ${(o.inneZapisy ?? []).join(' ')} ${o.przydomek ?? ''} ${lataZycia(o)} ${miejsce} ${b?.lead ?? ''}`),

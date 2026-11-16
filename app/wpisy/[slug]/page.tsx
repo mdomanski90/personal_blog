@@ -5,13 +5,12 @@ import { naHtml, naglowkiZHtml, podzielWstawki } from '@/lib/markdoc'
 import { PelnaSzerokosc, Strona, Tresc, TytulStrony } from '../../components/Uklad'
 import Powiazania from '../../components/Powiazania'
 import { LiniaWpisu } from '../../components/MetkiWpisu'
-import JakCytowac from '../../components/JakCytowac'
-import { ZglosPoprawke, idCzesci } from '../../components/Karta'
+import { daneCytatu } from '@/lib/cytowanie'
+import { CzescJakCytowac, Tabela, ZglosPoprawke, idCzesci } from '../../components/Karta'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import SpisTresci from '../../components/SpisTresci'
 import WstawkaMaterialu from '../../components/WstawkaMaterialu'
 import { PrzyciskDrukuj } from '../../components/Druk'
-import { ADRES_STRONY, AUTOR_STRONY } from '@/lib/strona'
 import { numerKat } from '@/lib/katalog/dane'
 import { LiniaNrKat } from '../../components/NrKat'
 
@@ -57,9 +56,10 @@ export default async function OpowiescStrona({ params }: Parametry) {
                 ? <PelnaSzerokosc key={i}><WstawkaMaterialu id={cz.material} poziom={poziom} /></PelnaSzerokosc>
                 : <article key={i} className="wpis-tresc"><Tresc html={cz.html} /></article>))}
             {siec.odnosniki.length > 0 && <Powiazania dane={{ odnosniki: siec.odnosniki, wzmianki: [] }} />}
-            <section id={idCzesci('jak cytować')} className="wpis-cytowanie">
-                <JakCytowac plik={o.id} dane={{ tytul: o.tytul, adres: `${ADRES_STRONY}/wpisy/${o.id}`, opracowal: AUTOR_STRONY, rok: o.data?.slice(0, 4), rodzaj: 'wpis', nrKat, ...(nrKat ? { adres: `${ADRES_STRONY}/k/${nrKat}` } : {}) }} />
-            </section>
+            {/* uwaga 16.11: „jak cytować” jako część tabeli karty – jak na pozostałych kartach */}
+            <Tabela etykieta={`${o.tytul} – jak cytować`}>
+                <CzescJakCytowac plik={o.id} dane={daneCytatu({ tytul: o.tytul, sciezka: `/wpisy/${o.id}`, nrKat, rodzaj: 'wpis', rok: o.data?.slice(0, 4) })} />
+            </Tabela>
             <ZglosPoprawke adres={`/wpisy/${o.id}`} tytul={o.tytul} pytanie="Coś się nie zgadza albo wiesz więcej?" />
         </Strona>
     )

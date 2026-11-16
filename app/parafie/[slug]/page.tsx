@@ -7,7 +7,8 @@ import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
 import { miejscowosciInstytucji, obiektyInstytucji, ksiegiInstytucji, zapiszOkres } from '@/lib/parafie-powiazania'
 import { formatujEdtf } from '@/lib/edtf'
 import { Sekcja, Strona } from '../../components/Uklad'
-import { Czesc, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import { PasekLat, TabelaKsiag } from '../../components/Ksiegi'
@@ -43,7 +44,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
     const osobyInstytucji = p.osoby ?? []
     const zrodlaInstytucji = p.zrodla ?? []
     const nrKat = numerKat('instytucja', p.id)
-    const spis = spisCzesci(['podstawowe', miejscowosci.length > 0 && 'miejscowości', budynki.length > 0 && 'powiązane obiekty', osobyInstytucji.length > 0 && 'osoby związane z instytucją', matInstytucji.length > 0 && 'materiały archiwalne', spisKsieg.length > 0 && 'księgi metrykalne', 'historia', zrodlaInstytucji.length > 0 && 'źródła'])
+    const spis = spisCzesci(['podstawowe', miejscowosci.length > 0 && 'miejscowości', budynki.length > 0 && 'powiązane obiekty', osobyInstytucji.length > 0 && 'osoby związane z instytucją', matInstytucji.length > 0 && 'materiały archiwalne', spisKsieg.length > 0 && 'księgi metrykalne', 'historia', 'jak cytować', zrodlaInstytucji.length > 0 && 'źródła'])
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
@@ -112,8 +113,10 @@ export default async function ParafiaStrona({ params }: Parametry) {
                 {p.opis ? <div className="post-content tresc-czytana whitespace-pre-line">{p.opis}</div> :
                     <p className="ot-drobne">Opis historii tej instytucji jest w przygotowaniu.</p>}
             </Sekcja>
-            {zrodlaInstytucji.length > 0 && (
-                <Tabela etykieta={`${p.nazwa} – źródła`}>
+            {/* uwaga 16.11: „jak cytować” na każdej karcie – tabela zawsze, źródła gdy są */}
+            {(
+                <Tabela etykieta={`${p.nazwa} – jak cytować i źródła`}>
+                    <CzescJakCytowac plik={p.id} dane={daneCytatu({ tytul: p.nazwa, sciezka: `/parafie/${p.id}`, nrKat, rodzaj: 'instytucja' })} />
                     <Zrodla pozycje={zrodlaInstytucji.map((z, i) => <ZAdresami key={i} tekst={z} />)} />
                 </Tabela>
             )}

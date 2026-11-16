@@ -6,7 +6,8 @@ import { formatujEdtf } from '@/lib/edtf'
 import { naHtml, zajawka } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc } from '../../components/Uklad'
 import { wystapieniaKarty } from '@/lib/plany/wystapienia'
-import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj, PrzyciskDrukujCalosc } from '../../components/Druk'
 import CopyLinkButton from '../../components/CopyLinkButton'
@@ -51,7 +52,7 @@ export default async function TematStrona({ params }: Parametry) {
     const wpisyWTekstach = siec.odnosniki.filter((z) => z.zrodlo.rodzaj !== 'wpis' || !opow.some((o) => o.id === z.zrodlo.id))
 
     const nrKat = numerKat('temat', t.id)
-    const spis = spisCzesci([(!!nrKat || t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && 'w skrócie', 'opis', 'powiązane', t.zrodla.length > 0 && 'źródła'])
+    const spis = spisCzesci([(!!nrKat || t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && 'w skrócie', 'opis', 'powiązane', 'jak cytować', t.zrodla.length > 0 && 'źródła'])
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
@@ -76,12 +77,14 @@ export default async function TematStrona({ params }: Parametry) {
                 <Tresc html={opisHtml} pusta="opis tematu nie został jeszcze dodany." />
             </Sekcja>
 
-            {(opow.length > 0 || mat.length > 0 || t.zrodla.length > 0) && (
+            {/* uwaga 16.11: „jak cytować” na każdej karcie, więc tabela jest zawsze */}
+            {(
                 <Tabela etykieta={`${t.nazwa} – powiązane i źródła`}>
                     {(opow.length > 0 || mat.length > 0 || wyst.plany.length > 0 || wyst.skany.length > 0) && <Czesc tytul="powiązane">{[opow.length && 'wpisy', mat.length && 'materiały'].filter(Boolean).join(' · ')}</Czesc>}
                     <W e="wpisy">{opow.length > 0 && <KrotkieWpisy wpisy={opow} />}</W>
                     <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
                     <WierszeWystapien w={wyst} />
+                    <CzescJakCytowac plik={t.id} dane={daneCytatu({ tytul: t.nazwa, sciezka: `/tematy/${t.id}`, nrKat, rodzaj: 'temat' })} />
                     <Zrodla pozycje={t.zrodla.map((z, i) => <ZAdresami key={i} tekst={z} />)} />
                 </Tabela>
             )}

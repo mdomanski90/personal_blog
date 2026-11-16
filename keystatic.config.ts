@@ -189,9 +189,9 @@ export default config({
         }),
         // P7E-1 (SG-02, SG-10…13): redakcyjna zapowiedź na stronie głównej zamiast pełnego wpisu
         lead: fields.text({
-          label: 'Zapowiedź na stronie głównej',
+          label: 'Zapowiedź (strona główna i lista wpisów)',
           multiline: true,
-          description: '2–3 zdania, które zaczynają historię: człowiek, wydarzenie, wierny cytat albo pytanie (bez clickbaitu). Wszystkie zapowiedzi na stronie głównej są równe – ok. 450–500 znaków (7–8 wierszy). Puste – początek tekstu wpisu.',
+          description: '2–3 zdania, które zaczynają historię: człowiek, wydarzenie, wierny cytat albo pytanie (bez clickbaitu). Na stronie głównej i liście wpisów: z miniaturą do 2 kolumn × 7 wierszy (ok. 500 znaków), bez miniatury do 3 × 9 (ok. 900); dłuższy tekst zostanie skrócony, krótki stoi w jednej kolumnie. Puste – początek tekstu wpisu.',
         }),
         cover: fields.relationship({
           label: 'Miniatura zapowiedzi (materiał z archiwum)',

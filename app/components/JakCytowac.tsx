@@ -2,7 +2,8 @@
 // „Jak cytować”: gotowy opis do skopiowania i pliki BibTeX / RIS (np. do Zotero).
 import * as React from 'react'
 
-export interface DaneCytatu { tytul: string; adres: string; opracowal: string; autor?: string; rok?: string; oryginal?: string; rodzaj?: string; /** KAT-03: nr kat.; adres wtedy = stały adres /k/NR */ nrKat?: string | null }
+import type { DaneCytatu } from '@/lib/cytowanie'
+export type { DaneCytatu }
 
 const dzis = () => new Date().toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })
 const SERWIS = 'odniepamieci.pl – społeczne archiwum pamięci lokalnej'

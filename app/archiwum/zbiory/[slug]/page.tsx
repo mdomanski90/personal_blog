@@ -4,7 +4,8 @@ import { poziomCzytelnika } from '@/lib/archiwum'
 import { zbior, materialyZbioru } from '@/lib/paczka5'
 import { naHtml } from '@/lib/markdoc'
 import { PelnaSzerokosc, Sekcja, Strona, Tresc, maTekst } from '../../../components/Uklad'
-import { Czesc, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../../components/Karta'
+import { Czesc, CzescJakCytowac, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../../components/Karta'
+import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../../components/SpisTresci'
 import { PrzyciskDrukuj, PrzyciskDrukujCalosc } from '../../../components/Druk'
 import ListaMaterialow from '../../../components/ListaMaterialow'
@@ -29,7 +30,7 @@ export default async function Zbior({ params }: P) {
   return (
     <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'archiwum', href: '/archiwum' }, { tekst: 'zbiory', href: '/archiwum/zbiory' }]} akcje={<><CopyLinkButton sciezka={`/archiwum/zbiory/${z.id}`} /><PrzyciskDrukuj /><PrzyciskDrukujCalosc rodzaj="zbior" id={z.id} /></>}
       naglowek={<NaglowekKarty sciezka={[]} tytul={z.nazwa} linia={['zbiór', `${mats.length} ${mats.length === 1 ? 'materiał' : 'materiałów'}`]} />}
-      spis={<SpisTresci pozycje={spisCzesci([(!!nrKat || z.pochodzenie || z.prawa) && 'podstawowe', 'materiały w zbiorze', z.zrodla.length > 0 && 'źródła'])} />}>
+      spis={<SpisTresci pozycje={spisCzesci([(!!nrKat || z.pochodzenie || z.prawa) && 'podstawowe', 'materiały w zbiorze', 'jak cytować', z.zrodla.length > 0 && 'źródła'])} />}>
       {(!!nrKat || z.pochodzenie || z.prawa) && (
         <Tabela etykieta={`${z.nazwa} – podstawowe`}>
           <Czesc tytul="podstawowe" />
@@ -45,7 +46,11 @@ export default async function Zbior({ params }: P) {
           {mats.length ? <ListaMaterialow materialy={mats} /> : <Komunikat rodzaj="pusto">W tym zbiorze nie ma jeszcze opublikowanych materiałów.</Komunikat>}
         </Sekcja>
       </PelnaSzerokosc>
-      {z.zrodla.length > 0 && <Tabela etykieta="źródła"><Zrodla pozycje={z.zrodla.map((x, i) => <ZAdresami key={i} tekst={x} />)} /></Tabela>}
+      {/* uwaga 16.11: „jak cytować” na każdej karcie – tabela zawsze, źródła gdy są */}
+      <Tabela etykieta={`${z.nazwa} – jak cytować i źródła`}>
+        <CzescJakCytowac plik={z.id} dane={daneCytatu({ tytul: z.nazwa, sciezka: `/archiwum/zbiory/${z.id}`, nrKat, rodzaj: 'zbior' })} />
+        <Zrodla pozycje={z.zrodla.map((x, i) => <ZAdresami key={i} tekst={x} />)} />
+      </Tabela>
       <ZglosPoprawke adres={`/archiwum/zbiory/${z.id}`} tytul={z.nazwa} pytanie="Masz materiał, który pasuje do tego zbioru?" />
     </Strona>
   )

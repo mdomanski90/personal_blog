@@ -11,6 +11,8 @@ import { osobyPlanu } from '@/lib/plany/rodzina'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import { numerKat } from '@/lib/katalog/dane'
 import { LiniaNrKat } from '../../components/NrKat'
+import { CzescJakCytowac, Tabela } from '../../components/Karta'
+import { daneCytatu } from '@/lib/cytowanie'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +51,10 @@ export default async function PlanStrona({ params }: Parametry) {
                 Rysunek uproszczony na podstawie zdjęć lotniczych i oględzin w terenie. Groby osób zmarłych w ciągu ostatnich {ustawienia.progLat} lat – bez napisów i nazwisk
                 {poziom === 'bliscy' ? ' (jesteś zalogowany – widzisz je)' : <> (widoczne <Link href={`/zaloguj?wroc=${encodeURIComponent(`/plany/${plan.slug}`)}`}>dla bliskich</Link>)</>}.
             </p>
+            {/* uwaga 16.11: „jak cytować” na każdej karcie, także planu */}
+            <Tabela etykieta={`${plan.tytul} – jak cytować`}>
+                <CzescJakCytowac plik={plan.slug} dane={daneCytatu({ tytul: plan.tytul, sciezka: `/plany/${plan.slug}`, nrKat, rodzaj: 'plan' })} />
+            </Tabela>
         </Strona>
     )
 }

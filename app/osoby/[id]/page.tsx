@@ -17,7 +17,8 @@ import CopyLinkButton from '../../components/CopyLinkButton'
 import Zgloszenie from '../../components/Zgloszenie'
 import { Sekcja, Strona, Tresc, TytulStrony } from '../../components/Uklad'
 import { wystapieniaKarty } from '@/lib/plany/wystapienia'
-import { Czesc, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, WierszeWystapien, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, WierszeWystapien, idCzesci, spisCzesci } from '../../components/Karta'
+import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import Powiazania from '../../components/Powiazania'
@@ -134,7 +135,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
         o.przydomek && `${o.plec === 'K' ? 'zwana' : o.plec === 'M' ? 'zwany' : 'zwany(-a)'} „${o.przydomek}”`,
         o.inneNazwiska?.length && `${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}`,
     ].filter(Boolean).join(' · ')
-    const spis = spisCzesci([(bio?.tresc || bio?.lead) && 'biogram', 'życie', 'rodzina', html && 'drzewo', o.notatki && poziom !== 'publiczne' && 'notatki', materialyOsoby.length > 0 && 'materiały archiwalne', wierszeZrodel.length > 0 && 'źródła', siec.odnosniki.length > 0 && 'w archiwum i wpisach'])
+    const spis = spisCzesci([(bio?.tresc || bio?.lead) && 'biogram', 'życie', 'rodzina', html && 'drzewo', o.notatki && poziom !== 'publiczne' && 'notatki', materialyOsoby.length > 0 && 'materiały archiwalne', 'jak cytować', wierszeZrodel.length > 0 && 'źródła', siec.odnosniki.length > 0 && 'w archiwum i wpisach'])
     const prosbaOZdjecie = !o.portret && po1900
     const portret = o.portret ? (
         <figure className="osoba-portret">
@@ -261,6 +262,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                     </>
                 )}
 
+                <CzescJakCytowac plik={id} dane={daneCytatu({ tytul: lataZycia(o) ? `${tytul} (${lataZycia(o)})` : tytul, sciezka: `/osoby/${id}`, nrKat, rodzaj: 'osoba' })} />
                 {wierszeZrodel.length > 0 && (
                     <>
                         <Naglowek tytul="źródła">{odmiana(new Set(wierszeZrodel.flatMap((w) => w.z.map((x) => x.tytul))).size, ['źródło', 'źródła', 'źródeł'])}</Naglowek>
