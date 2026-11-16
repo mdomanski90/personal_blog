@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { dlaCzytelnika, grobOgraniczony, numeracja, popraw, rokZgonu, type Element, type Plan } from './model'
+import { dlaCzytelnika, grobOgraniczony, popraw, rokZgonu, type Element, type Plan } from './model'
+import { propozycja } from './numeracja'
 import { katalog, USTAWIENIA_DOMYSLNE } from './typy'
 import { odczytajSvg } from './svg'
 import { doSvg } from './svg-tekst'
@@ -36,13 +37,13 @@ test('elementy ukryte, typy ukryte i podkłady „tylko do edycji” nie trafiaj
     assert.equal(pub.podklady.length, 0)
 })
 
-test('numeracja: rzędy i miejsca wzdłuż kąta kwatery', () => {
+test('propozycja numeracji: rzędy i miejsca wzdłuż kąta kwatery (jak dawna numeracja liczona przy wyświetlaniu)', () => {
     const kw: Element = { id: 'kw', typ: 'kwatera', nazwa: 'A', kat: 0, g: { k: 'w', p: [[-50, -50], [200, -50], [200, 200], [-50, 200]] } }
     const plan = { elementy: [kw, grob('a', 0, 0), grob('b', 15, 0), grob('c', 0, 40)] }
-    const n = numeracja(plan, katalog())
-    assert.deepEqual(n.get('a'), { kwatera: 'A', rzad: 1, miejsce: 1 })
-    assert.deepEqual(n.get('b'), { kwatera: 'A', rzad: 1, miejsce: 2 })
-    assert.deepEqual(n.get('c'), { kwatera: 'A', rzad: 2, miejsce: 1 })
+    const n = propozycja(plan, katalog(), 'kw')
+    assert.deepEqual(n.get('a'), { kwatera: 'kw', rzad: '1', miejsce: '1' })
+    assert.deepEqual(n.get('b'), { kwatera: 'kw', rzad: '1', miejsce: '2' })
+    assert.deepEqual(n.get('c'), { kwatera: 'kw', rzad: '2', miejsce: '1' })
 })
 
 test('znak z pliku SVG: tylko proste kształty, bez skryptów', () => {

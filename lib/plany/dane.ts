@@ -9,6 +9,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { popraw, SLUG, type Plan } from './model'
+import { nowePowtorzenie } from './numeracja'
 import { USTAWIENIA_DOMYSLNE, type UstawieniaPlanow, type WlasnyTyp } from './typy'
 
 const KATALOG = () => path.resolve(process.cwd(), 'content', 'plany')
@@ -212,10 +213,13 @@ export function poKolei<T>(slug: string, f: () => Promise<T>): Promise<T> {
 }
 
 /** Zapis z edytora: wersja z przeglądarki musi zgadzać się z zapisaną, inaczej konflikt (409) z wersją z serwera. */
-export async function zapiszZWersja(d: Plan): Promise<{ konflikt: Plan } | { plan: Plan; przywrocone: string[] }> {
+export async function zapiszZWersja(d: Plan): Promise<{ konflikt: Plan } | { blad: string } | { plan: Plan; przywrocone: string[] }> {
     return poKolei(d.slug, async () => {
         const obecny = await wczytajPlan(d.slug)
         if (obecny && obecny.wersja !== d.wersja) return { konflikt: obecny }
+        // walidacja przy zapisie (zasada 2.6): zapis nie może dodać powtórzonego numeru grobu (etap 2)
+        const powt = nowePowtorzenie(obecny, popraw(d))
+        if (powt) return { blad: powt }
         const plan = await zapiszPlan(popraw({ ...d, wersja: (obecny?.wersja ?? 0) + 1 }))
         return { plan, przywrocone: await przywrocBrakujacePliki(plan) }
     })

@@ -11,6 +11,7 @@ import { drzewoHtml } from '@/lib/osoby/drzewo'
 import { adresAncestry, lataZycia, nazwaOsoby, OBRZADKI, RODZAJE_ZDARZEN, sortujZdarzenia, type Cytat, type Obrzadek, type Zdarzenie } from '@/lib/osoby/model'
 import { odmiana } from '@/lib/tekst'
 import { pochowkiOsoby } from '@/lib/plany/serwer'
+import { numerTekst } from '@/lib/plany/numeracja'
 import { logowanieWlaczone } from '@/lib/sesja'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Zgloszenie from '../../components/Zgloszenie'
@@ -202,7 +203,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                         <span className="ot-grob">
                             <span className="flex flex-col" style={{ gap: 4 }}>
                                 <Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`}>{g.tytul}</Link>
-                                <span className="ot-drobne">{g.numer ? `${g.numer.kwatera ? `kwatera ${g.numer.kwatera}, ` : ''}rząd ${g.numer.rzad}, miejsce ${g.numer.miejsce} · ` : ''}<Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`}>pokaż na planie →</Link></span>
+                                <span className="ot-drobne">{g.numer ? `${numerTekst(g.numer)} · ` : ''}<Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`}>pokaż na planie →</Link></span>
                             </span>
                             {g.zdjecie && (
                                 <Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`} title="zdjęcie grobu – pokaż na planie">

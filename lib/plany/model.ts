@@ -1,4 +1,5 @@
-// Model planu obiektu i czysta logika (bez plików): geometria, numeracja grobów, zasady widoczności.
+// Model planu obiektu i czysta logika (bez plików): geometria, zapisane numery grobów, zasady widoczności.
+// Nadawanie i sprawdzanie numerów: lib/plany/numeracja.ts.
 
 import type { Warstwa } from './typy'
 import { katalog, typGrobu, type TypElementu, type UstawieniaPlanow } from './typy'
@@ -63,6 +64,12 @@ export interface Element {
     ukryjNapis?: boolean
     /** kwatera: kąt rzędów (°) */
     kat?: number
+    /** kwatera: rzędy liczbami albo literami i róg, od którego biegnie numeracja (lib/plany/numeracja.ts) */
+    numeracjaKwatery?: { rzedy?: 'liczby' | 'litery'; poczatek?: 'lg' | 'pg' | 'ld' | 'pd' }
+    /** grób: zapisany numer (kwatera = stały id elementu kwatery); nadawany w edytorze, nie liczony przy wyświetlaniu */
+    oznaczenie?: Oznaczenie
+    /** wyliczone przy wydawaniu: numer z nazwą kwatery – ten sam dla każdego czytelnika */
+    numer?: Numer
     /** robocze (grób): etap opracowania – narysowany / opracowany / sprawdzony (lib/plany/statusy.ts) */
     etap?: Etap
     /** robocze (grób): weryfikacja źródeł – brak / częściowa / potwierdzona; opis w polu `zrodla` */
@@ -285,7 +292,10 @@ export function skalaZGeo(geo: PunktGeo[]): number | null {
 }
 
 // ---------- cmentarz: kwatery, rzędy, miejsca ----------
-export interface Numer { kwatera: string; rzad: number; miejsce: number }
+/** Zapisany numer grobu: kwatera (id elementu kwatery; brak – grób poza kwaterami), rząd (liczba albo litery), miejsce. */
+export interface Oznaczenie { kwatera?: string; rzad: string; miejsce: string }
+/** Numer do wyświetlenia: nazwa kwatery zamiast jej id. */
+export interface Numer { kwatera: string; rzad: string; miejsce: string }
 
 export function kwateraDla(x: number, y: number, kwatery: Element[]): Element | null {
     for (const k of kwatery) if (k.g.k === 'w' && wWielokacie(x, y, k.g.p)) return k
@@ -293,40 +303,38 @@ export function kwateraDla(x: number, y: number, kwatery: Element[]): Element | 
     return null
 }
 
-/** Numeracja grobów: kwatera (z położenia), rząd i miejsce wzdłuż kąta rzędów kwatery. */
-export function numeracja(plan: Pick<Plan, 'elementy'>, typy: Map<string, TypElementu>): Map<string, Numer> {
-    const kwatery = plan.elementy.filter((e) => e.typ === 'kwatera')
-    const wg = new Map<Element | null, { e: Element; x: number; y: number }[]>()
-    for (const e of plan.elementy) {
-        if (!typGrobu(typy.get(e.typ))) continue
-        const [x, y] = srodek(e.g), k = kwateraDla(x, y, kwatery)
-        if (!wg.has(k)) wg.set(k, [])
-        wg.get(k)!.push({ e, x, y })
-    }
+/**
+ * Numery grobów do wyświetlenia – z ZAPISANYCH oznaczeń (etap 2; dawniej liczone z położenia przy każdym renderze,
+ * po filtrze czytelnika – A2-01). Plan wydany czytelnikowi ma numery już rozwiązane w polu `numer`.
+ */
+export function numeryPlanu(plan: Pick<Plan, 'elementy'>): Map<string, Numer> {
+    const nazwy = new Map(plan.elementy.filter((e) => e.typ === 'kwatera').map((k) => [k.id, (k.nazwa ?? '').trim()]))
     const wyn = new Map<string, Numer>()
-    for (const [k, L] of wg) {
-        const a = rad(k?.kat ?? 0), ux = Math.cos(a), uy = Math.sin(a)
-        const dl = L.map((z) => (z.e.g.k === 'r' ? z.e.g.h : 20)).sort((p, q) => p - q)[L.length >> 1] ?? 20
-        const prog = dl * 0.75
-        const P = L.map((z) => ({ z, p: -z.x * uy + z.y * ux, w: z.x * ux + z.y * uy })).sort((p, q) => p.p - q.p)
-        const rz: { sr: number; L: typeof P }[] = []
-        for (const q of P) {
-            const r = rz[rz.length - 1]
-            if (r && Math.abs(q.p - r.sr) < prog) { r.L.push(q); r.sr = r.L.reduce((s, v) => s + v.p, 0) / r.L.length }
-            else rz.push({ sr: q.p, L: [q] })
-        }
-        rz.forEach((r, ri) => r.L.sort((p, q) => p.w - q.w).forEach((q, mi) => wyn.set(q.z.e.id, { kwatera: k?.nazwa ?? '', rzad: ri + 1, miejsce: mi + 1 })))
+    for (const e of plan.elementy) {
+        if (e.numer) wyn.set(e.id, e.numer)
+        else if (e.oznaczenie) wyn.set(e.id, { kwatera: e.oznaczenie.kwatera ? nazwy.get(e.oznaczenie.kwatera) ?? '' : '', rzad: e.oznaczenie.rzad, miejsce: e.oznaczenie.miejsce })
     }
     return wyn
 }
 
-/** Rok śmierci: z pola, inaczej najpóźniejszy rok z dat osób i z napisu. */
+/** Skąd wziął się rok śmierci przyjęty do zasady „zmarli niedawno” – pokazywane w edytorze (A2-09). */
+export type ZrodloRoku = 'pole' | 'osoby' | 'napis'
+
+/**
+ * Rok śmierci: z pola, inaczej najpóźniejszy rok z dat osób i z napisu. Reguła bez zmian (decyzja 16.11, A2-09):
+ * rok odnowienia z napisu może ukryć napis niepotrzebnie, ale nigdy go nie odsłoni – edytor pokazuje przyjęty rok
+ * i jego źródło, a pole „rok śmierci” pozwala go poprawić.
+ */
+export function rokZgonuZeZrodlem(e: Element): { rok: number; zrodlo: ZrodloRoku } | null {
+    if (e.rokZgonu) return { rok: e.rokZgonu, zrodlo: 'pole' }
+    let os: number | null = null, np: number | null = null
+    for (const o of e.osoby ?? []) { const m = (o.zm ?? '').match(/(1[6-9]|20)\d\d/); if (m) os = Math.max(os ?? 0, +m[0]) }
+    for (const m of `${e.napis ?? ''} ${e.opis ?? ''}`.matchAll(/(?<!\d)(1[6-9]\d\d|20\d\d)(?!\d)/g)) np = Math.max(np ?? 0, +m[1])
+    if (os === null && np === null) return null
+    return (np ?? 0) > (os ?? 0) ? { rok: np!, zrodlo: 'napis' } : { rok: os!, zrodlo: 'osoby' }
+}
 export function rokZgonu(e: Element): number | null {
-    if (e.rokZgonu) return e.rokZgonu
-    const lata: number[] = []
-    for (const o of e.osoby ?? []) { const m = (o.zm ?? '').match(/(1[6-9]|20)\d\d/); if (m) lata.push(+m[0]) }
-    for (const m of `${e.napis ?? ''} ${e.opis ?? ''}`.matchAll(/(?<!\d)(1[6-9]\d\d|20\d\d)(?!\d)/g)) lata.push(+m[1])
-    return lata.length ? Math.max(...lata) : null
+    return rokZgonuZeZrodlem(e)?.rok ?? null
 }
 
 /** Czy treść grobu ma być ukryta przed czytelnikiem bez logowania. */
@@ -350,14 +358,17 @@ export function widoczne(w: Widocznosc | undefined, poziom: Widocznosc): boolean
  */
 export function dlaCzytelnika(plan: Plan, poziom: Widocznosc, u: UstawieniaPlanow): Plan {
     const typy = katalog(u), ukryte = new Set(u.ukryteTypy ?? [])
+    // numery z PEŁNEGO planu (przed filtrem) – ten sam numer dla anonima i redaktora (A2-01, zasada 2.3)
+    const numery = numeryPlanu(plan)
     const elementy: Element[] = []
     for (const e of plan.elementy) {
         if (ukryte.has(e.typ) || !typy.has(e.typ) || !widoczne(e.widocznosc, poziom)) continue
         // statusy pracy i notatki są robocze; współrzędne GPS zdjęć – tylko dla zalogowanych (decyzja 16.11),
         // bo punkty geo planu też są przed czytelnikiem publicznym ukryte
-        const { weryfikacja: _w, notatka: _n, etap: _e, zrodlaStan: _z, polozenie: _p, ...czysty } = e
+        const { weryfikacja: _w, notatka: _n, etap: _e, zrodlaStan: _z, polozenie: _p, oznaczenie: _o, numer: _nr, ...bezNumeru } = e
+        const nr = numery.get(e.id), czysty: Element = nr ? { ...bezNumeru, numer: nr } : bezNumeru
         if (poziom === 'publiczne' && grobOgraniczony(e, typy.get(e.typ), u.progLat)) {
-            elementy.push({ id: e.id, typ: e.typ, g: e.g, stan: e.stan, ograniczony: true })
+            elementy.push({ id: e.id, typ: e.typ, g: e.g, stan: e.stan, ograniczony: true, ...(nr ? { numer: nr } : {}) })
         } else if (poziom === 'publiczne' && czysty.zdjecia?.length) {
             elementy.push({ ...czysty, zdjecia: czysty.zdjecia.map(({ lat: _la, lon: _lo, ...z }) => z) })
         } else elementy.push(czysty)
@@ -381,6 +392,16 @@ function przeniesNapisy(L: Element[]): Element[] {
     })
 }
 
+/** Zapisany numer w złym kształcie (ręczna edycja pliku) – usuwany; `numer` jest tylko wyliczany przy wydawaniu. */
+function poprawNumery(L: Element[]): Element[] {
+    return L.map((e) => {
+        const o = e.oznaczenie, zly = o !== undefined && !(o && typeof o.rzad === 'string' && typeof o.miejsce === 'string' && o.rzad.trim() && o.miejsce.trim() && (o.kwatera === undefined || typeof o.kwatera === 'string'))
+        if (!zly && e.numer === undefined) return e
+        const { oznaczenie, numer: _n, ...reszta } = e
+        return zly ? reszta : { ...reszta, oznaczenie }
+    })
+}
+
 /** Kontrola i naprawa wczytanego pliku (stare wersje, braki). */
 export function popraw(p: Partial<Plan> & { slug: string }): Plan {
     return {
@@ -397,7 +418,7 @@ export function popraw(p: Partial<Plan> & { slug: string }): Plan {
         geo: Array.isArray(p.geo) ? p.geo.filter((g) => [g.x, g.y, g.lat, g.lon].every((v) => typeof v === 'number')) : [],
         podklady: Array.isArray(p.podklady) ? p.podklady : [],
         warstwy: p.warstwy && typeof p.warstwy === 'object' ? p.warstwy : {},
-        elementy: Array.isArray(p.elementy) ? przeniesNapisy(p.elementy.filter((e) => e && typeof e.id === 'string' && e.g && typeof e.typ === 'string')) : [],
+        elementy: Array.isArray(p.elementy) ? poprawNumery(przeniesNapisy(p.elementy.filter((e) => e && typeof e.id === 'string' && e.g && typeof e.typ === 'string'))) : [],
         wersja: Number(p.wersja) || 1,
         zmieniono: p.zmieniono || new Date().toISOString(),
     }

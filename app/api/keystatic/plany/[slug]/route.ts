@@ -19,6 +19,7 @@ export async function PUT(req: Request, { params }: P) {
     // sprawdzenie wersji i zapis w kolejce planu – dwa jednoczesne zapisy z tą samą wersją: drugi dostaje 409
     const w = await zapiszZWersja({ ...popraw(d), wersja: d.wersja })
     if ('konflikt' in w) return Response.json({ blad: 'konflikt', plan: w.konflikt }, { status: 409 })
+    if ('blad' in w) return Response.json({ blad: w.blad }, { status: 422 })
     return Response.json({ wersja: w.plan.wersja, zmieniono: w.plan.zmieniono, przywrocone: w.przywrocone })
 }
 

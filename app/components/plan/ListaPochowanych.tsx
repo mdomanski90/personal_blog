@@ -4,11 +4,11 @@
 // zdjęcie, karta w drzewie, „na planie”. Groby objęte progiem lat albo z osobami żyjącymi nie mają tu nazwisk.
 
 import * as React from 'react'
-import { numeracja, type Element, type Plan } from '@/lib/plany/model'
+import { type Element, type Plan } from '@/lib/plany/model'
+import { numerKrotki, numeryPlanu } from '@/lib/plany/numeracja'
 import { katalog, typGrobu, type UstawieniaPlanow } from '@/lib/plany/typy'
 import type { OsobaNaPlanie } from '@/lib/plany/rodzina'
 import PoleSzukania from '../PoleSzukania'
-import { numerKrotki } from './PlanInteraktywny'
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
 const pole = 'border border-[var(--linia-podzialu)] bg-transparent text-current rounded-[7px]'
@@ -28,7 +28,7 @@ const rok = (s?: string) => { const m = (s ?? '').match(/(1[5-9]|20)\d\d/); retu
 
 export default function ListaPochowanych({ plan, ustawienia, osoby, naPlanie }: { plan: Plan; ustawienia: UstawieniaPlanow; osoby: Record<string, OsobaNaPlanie>; naPlanie: (id: string) => void }) {
     const typy = React.useMemo(() => katalog(ustawienia), [ustawienia])
-    const numery = React.useMemo(() => numeracja(plan, typy), [plan, typy])
+    const numery = React.useMemo(() => numeryPlanu(plan), [plan])
     const [q, ustawQ] = React.useState('')
     const [od, ustawOd] = React.useState('')
     const [doRoku, ustawDo] = React.useState('')

@@ -67,3 +67,17 @@ test('szkic awaryjny na serwerze: zapis, odczyt, usunięcie; zły identyfikator 
     await assert.rejects(zapiszSzkic('../x', plan()))
     assert.equal(await wczytajSzkic('../x'), null)
 })
+
+test('etap 2: zapis, który dodaje powtórzony numer grobu, jest odrzucony bez zmiany pliku', async () => {
+    const g = (id: string, miejsce: string) => ({ id, typ: 'grob', g: { k: 'r' as const, x: 0, y: 0, w: 10, h: 20, a: 0 }, oznaczenie: { rzad: '1', miejsce } })
+    const p = popraw({ slug: 'numery-test', wersja: 1, elementy: [g('a', '1'), g('b', '2')] } as Plan)
+    await zapiszPlan(p)
+    const zly = popraw({ ...p, elementy: [g('a', '1'), g('b', '1')] })
+    const w = await zapiszZWersja({ ...zly, wersja: 1 })
+    assert.ok('blad' in w && /powtórzony numer grobu/.test(w.blad))
+    const zapisany = await wczytajPlan('numery-test')
+    assert.equal(zapisany!.wersja, 1)
+    assert.equal(zapisany!.elementy[1].oznaczenie!.miejsce, '2')
+    const dobry = await zapiszZWersja({ ...p, tytul: 'inna zmiana', wersja: 1 })
+    assert.ok('plan' in dobry)
+})

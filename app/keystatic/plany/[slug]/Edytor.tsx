@@ -5,20 +5,22 @@
 
 import * as React from 'react'
 import {
-    afiniczna, dlugosc, geoNaPlan, jednostka, JEDNOSTKOWA, noweId, numeracja, pole, podobienstwo, punktyElementu, skalaZGeo, srodek, zastosuj,
+    afiniczna, dlugosc, geoNaPlan, jednostka, JEDNOSTKOWA, noweId, pole, podobienstwo, punktyElementu, rokZgonuZeZrodlem, skalaZGeo, srodek, zastosuj,
     type Element, type Geometria, type Macierz, type Osoba, type Pkt, type Plan, type Podklad, type Zdjecie,
 } from '@/lib/plany/model'
 import { GRUPY, katalog, typGrobu, WARSTWY, type TypElementu, type UstawieniaPlanow, type Warstwa } from '@/lib/plany/typy'
 import { katWMiejscu, kopia, obrocGeom, podgladDanych, propozycjaGrobu, przeniesDane, zamienDane, pozycjaStempla, przesun, przyciagnij, przyciagnijKat, rozlozRowno, rozmiarBokiem, rozmiarGrobu, wektor, wyrownajWLinie, type Przyciaganie, type WzorStempla } from '@/lib/plany/edycja'
 import { ETAPY, ETYKIETA_ETAPU, ETYKIETA_POLOZENIA, ETYKIETA_ZRODEL, etapElementu, polozenie, poZmianieDanych, STANY_ZRODEL, stanZrodel, type Etap, type Polozenie, type StanZrodel } from '@/lib/plany/statusy'
 import { odczytajExif } from '@/lib/plany/exif'
+import { kolejnoDoPracy, numerTekst, numeryPlanu, zastosujNumery, type Numer } from '@/lib/plany/numeracja'
+import { NumerGrobu, StanNumeracjiPlanu, TabelaRoznic, UstawieniaKwatery, type Roznice } from './Numeracja'
 import { RysunekPlanu, Wzory } from '@/app/components/plan/Rysunek'
 import { Probka, WzoryProbek } from '@/app/components/plan/Probka'
 
 type VB = [number, number, number, number]
 type Narzedzie = 'wybierz' | 'stempel' | 'punkt' | 'prostokat' | 'wielokat' | 'linia' | 'napis' | 'miarka' | 'skala' | 'geo' | 'dopasuj'
 type Zakladka = 'element' | 'plan' | 'podklady' | 'warstwy' | 'zdjecia'
-type Zapis = 'ok' | 'zmiany' | 'zapisuje' | 'blad' | 'konflikt'
+type Zapis = 'ok' | 'zmiany' | 'zapisuje' | 'blad' | 'odrzucony' | 'konflikt'
 
 const NARZEDZIA: { id: Narzedzie; nazwa: string; klawisz: string }[] = [
     { id: 'wybierz', nazwa: 'wybierz', klawisz: '1' },
@@ -115,7 +117,9 @@ export default function Edytor({ slug }: { slug: string }) {
     const typy = React.useMemo(() => katalog(ust), [ust])
     const ukryteTypy = React.useMemo(() => new Set(ust.ukryteTypy), [ust])
     const u = plan ? jednostka(plan) : 20
-    const numery = React.useMemo(() => (plan ? numeracja(plan, typy) : new Map()), [plan, typy])
+    // numery zapisane w grobach (etap 2) – nie liczone przy wyświetlaniu
+    const numery = React.useMemo(() => (plan ? numeryPlanu(plan) : new Map<string, Numer>()), [plan])
+    const [roznice, ustawRoznice] = React.useState<Roznice | null>(null)
     const pokaz = (t: string) => { ustawKomunikat(t); window.setTimeout(() => ustawKomunikat((k) => (k === t ? '' : k)), 6000) }
 
     // ---------- wczytanie ----------
@@ -211,6 +215,8 @@ export default function Edytor({ slug }: { slug: string }) {
             const r = await fetch(API(slug), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(doZapisu) }).catch(() => null)
             wTrakcie.current = false
             if (r?.status === 409) { brudny.current = true; zapiszKopie(); ustawZapis('konflikt'); return }
+            // 422: zapis dodałby powtórzony numer grobu – ponawianie nic nie da; szkic na serwerze, komunikat, czekamy na poprawkę
+            if (r?.status === 422) { brudny.current = true; zapiszKopie(); ustawZapis('odrzucony'); const j = await r.json().catch(() => null); pokaz(j?.blad ?? 'Zapis odrzucony.'); return }
             if (!r?.ok) { brudny.current = true; zapiszKopie(); ustawZapis('blad'); window.setTimeout(() => ustawPonownie((x) => x + 1), 4000); return }
             const j = await r.json()
             wersjaRef.current = j.wersja
@@ -313,10 +319,8 @@ export default function Edytor({ slug }: { slug: string }) {
     }
 
     // ---------- kolejne groby, filtry ----------
-    const grobyKolejno = React.useMemo(() => (plan ? plan.elementy.filter((e) => numery.has(e.id)).sort((a, b) => {
-        const p = numery.get(a.id)!, q = numery.get(b.id)!
-        return p.kwatera.localeCompare(q.kwatera, 'pl', { numeric: true }) || p.rzad - q.rzad || p.miejsce - q.miejsce
-    }) : []), [plan, numery])
+    // kolejność pracy: groby z numerem wg numeru, bez numeru – wg numeru proponowanego z położenia
+    const grobyKolejno = React.useMemo(() => (plan ? kolejnoDoPracy(plan, typy) : []), [plan, typy])
     const pokazElement = (e: Element) => {
         const [cx, cy] = srodek(e.g)
         ustawVb(([x, y, w, h]) => (cx > x + w * 0.15 && cx < x + w * 0.85 && cy > y + h * 0.15 && cy < y + h * 0.85 ? [x, y, w, h] : [cx - w / 2, cy - h / 2, w, h]))
@@ -331,6 +335,15 @@ export default function Edytor({ slug }: { slug: string }) {
         else if (d > 0) e = L.find((x) => grobyKolejno.indexOf(x) > pos) ?? L[0]
         else e = [...L].reverse().find((x) => grobyKolejno.indexOf(x) < pos) ?? L[L.length - 1]
         zaznacz([e.id]); pokazElement(e)
+    }
+    const pokazGrob = (id: string) => { const e = plan?.elementy.find((x) => x.id === id); if (e) { zaznacz([id]); pokazElement(e) } }
+    /** zatwierdzenie tabeli różnic numeracji – jedna zmiana planu, jeden krok cofania; numery to nie dane grobu (etap bez zmian) */
+    const zatwierdzNumery = () => {
+        if (!roznice?.zmiany.length) { ustawRoznice(null); return }
+        const zm = roznice.zmiany
+        zmien((p) => ({ ...p, elementy: zastosujNumery(p.elementy, zm) }))
+        ustawRoznice(null)
+        pokaz(`Zapisano ${zm.length} zmian numerów. Ctrl+Z cofa całą operację.`)
     }
     const ustawTryb = (t: Tryb) => {
         ustawTrybSurowo(t); try { localStorage.setItem('plan-tryb', t) } catch { /* nic */ }
@@ -847,7 +860,7 @@ export default function Edytor({ slug }: { slug: string }) {
             <header className={`ed-pasek${teren ? ' ed-pasek-teren' : ''} ed-tryb-${tryb}`}>
                 <a href="/keystatic/plany" className="ed-btn">← plany</a>
                 <b className="ed-tytul">{plan.tytul}</b>
-                <span className={`ed-zapis ed-zapis-${zapis}`}>{{ ok: 'zapisano', zmiany: 'zmiany…', zapisuje: 'zapisuję…', blad: 'błąd zapisu – ponawiam', konflikt: 'plan zmieniono w innym oknie – zmiany z tego okna nie są jeszcze zapisane' }[zapis]}</span>
+                <span className={`ed-zapis ed-zapis-${zapis}`}>{{ ok: 'zapisano', zmiany: 'zmiany…', zapisuje: 'zapisuję…', blad: 'błąd zapisu – ponawiam', odrzucony: 'zapis odrzucony – popraw powtórzony numer grobu', konflikt: 'plan zmieniono w innym oknie – zmiany z tego okna nie są jeszcze zapisane' }[zapis]}</span>
                 {kopiaPrz && <span className="ed-kopia">{kopiaPrz.zrodlo === 'serwer' ? 'Na serwerze jest szkic niezapisanej wersji planu' : 'W tej przeglądarce jest dawna kopia niezapisanej wersji planu'} z {new Date(kopiaPrz.czas).toLocaleString('pl-PL')}. <button className="ed-btn" onClick={przywrocKopie}>przywróć ją</button> <button className="ed-btn" onClick={() => { usunSzkic(); ustawKopiaPrz(null) }}>odrzuć</button></span>}
                 {zapis === 'konflikt' && <>
                     <button className="ed-btn" onClick={zachowajMoja} title="Zapisz plan z tego okna na serwerze (zastąpi wersję z innego okna)">zachowaj moją wersję</button>
@@ -953,7 +966,7 @@ export default function Edytor({ slug }: { slug: string }) {
                     })()}
                     {teren && (
                         <div className="ed-teren">
-                            <div className="ed-teren-info">{pozycja ? (jaNaPlanie ? `±${Math.round(pozycja.acc)} m` : 'położenie poza planem') : 'szukam położenia…'}{wzor && numery.get(wzor.id) ? ` · ${etykietaNumeru(numery.get(wzor.id))}` : wzor ? ' · zaznacz grób' : ' · dotknij grobu'}{wzor && (wzor.zdjecia?.length ? ` · ${wzor.zdjecia.length} zdj.` : ' · bez zdjęcia')}{wzor && pasujeDoFiltra(wzor, 'niesprawdzone') ? ' · niesprawdzony' : ''}</div>
+                            <div className="ed-teren-info">{pozycja ? (jaNaPlanie ? `±${Math.round(pozycja.acc)} m` : 'położenie poza planem') : 'szukam położenia…'}{wzor && numery.get(wzor.id) ? ` · ${numerTekst(numery.get(wzor.id))}` : wzor ? ' · zaznacz grób' : ' · dotknij grobu'}{wzor && (wzor.zdjecia?.length ? ` · ${wzor.zdjecia.length} zdj.` : ' · bez zdjęcia')}{wzor && pasujeDoFiltra(wzor, 'niesprawdzone') ? ' · niesprawdzony' : ''}</div>
                             <div className="ed-rzad">
                                 <button className="ed-btn" disabled={!jaNaPlanie} onClick={() => { if (jaNaPlanie) ustawVb(([, , w, h]) => [jaNaPlanie[0] - w / 2, jaNaPlanie[1] - h / 2, w, h]) }}>do mnie</button>
                                 <button className="ed-btn" disabled={!jaNaPlanie} onClick={najblizszyGrob}>najbliższy</button>
@@ -981,6 +994,7 @@ export default function Edytor({ slug }: { slug: string }) {
                     )}
                 </div>
                 <aside className="ed-panel">
+                    {roznice && <TabelaRoznic plan={plan} roznice={roznice} zatwierdz={zatwierdzNumery} anuluj={() => ustawRoznice(null)} pokaz={pokazGrob} />}
                     <div className="ed-zakl">
                         {(['element', 'plan', 'podklady', 'warstwy', 'zdjecia'] as Zakladka[]).map((z) => <button key={z} aria-pressed={zakl === z} onClick={() => ustawZakl(z)}>{{ element: 'element', plan: 'plan', podklady: 'podkłady', warstwy: 'warstwy', zdjecia: 'zdjęcia' }[z]}</button>)}
                     </div>
@@ -994,6 +1008,7 @@ export default function Edytor({ slug }: { slug: string }) {
                             <PanelElementu e={wzor} plan={plan} typy={typy} ukryteTypy={ukryteTypy} numer={numery.get(wzor.id)} skala={skala} fmt={fmt} slug={slug}
                                 zmiana={(zm) => zmienElementy(new Map([[wzor.id, zm]]))} usun={usunZaznaczone} duplikuj={duplikuj}
                                 tryb={tryb} nastepny={() => nastepnyDoZrobienia()} zatwierdz={() => { oznaczSprawdzony(wzor.id); nastepnyDoZrobienia(wzor.id) }}
+                                podglad={ustawRoznice} pokazGrob={pokazGrob}
                                 powielOtwarte={pw.otwarte} przelaczPowiel={() => ustawPw((s) => ({ ...s, otwarte: !s.otwarte }))}
                                 osobyDrzewa={osobyDrzewa} wczytajOsoby={wczytajOsoby}
                                 wgrajZdjecie={async (f) => { try { const w = await wyslijPlik(f, 'zdjecie'); zmienElementy(new Map([[wzor.id, { zdjecia: [...(wzor.zdjecia ?? []), { plik: w.plik }] }]])) } catch (e) { pokaz(e instanceof Error ? e.message : 'błąd') } }} />
@@ -1017,6 +1032,7 @@ export default function Edytor({ slug }: { slug: string }) {
                         </div>
                     )}
                     {zakl === 'plan' && <PanelPlanu plan={plan} listy={listy} skala={skala} rys={rys} narz={narz} ustawNarz={(n) => { ustawNarz(n); ustawRys([]) }} zmien={(zm) => zmien((p) => ({ ...p, ...zm }))} />}
+                    {zakl === 'plan' && <div className="ed-sekcja"><StanNumeracjiPlanu plan={plan} typy={typy} podglad={ustawRoznice} pokaz={pokazGrob} /></div>}
                     {zakl === 'podklady' && (
                         <PanelPodkladow plan={plan} slug={slug} ukryte={ukrytePodklady} przelacz={(id) => ustawUkrytePodklady((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })}
                             wgraj={wgrajPodklad} zmien={(id, zm) => zmien((p) => ({ ...p, podklady: p.podklady.map((x) => (x.id === id ? { ...x, ...zm } : x)) }))}
@@ -1063,7 +1079,7 @@ export default function Edytor({ slug }: { slug: string }) {
                                         <img src={z.url} alt="" />
                                         <div className="ed-zdj-o">
                                             <span className="ed-maly">{z.plik.name}{z.data ? ` · ${z.data.slice(0, 10)}` : ''}{z.lat === undefined ? ' · bez GPS' : ''}</span>
-                                            {pr ? <span>proponuję: {n ? `${n.kwatera ? `kw. ${n.kwatera}, ` : ''}rząd ${n.rzad}, miejsce ${n.miejsce}` : 'grób'} ({z.odl!.toFixed(1)} m)</span> : <span className="ed-maly">brak grobu w promieniu 3 m</span>}
+                                            {pr ? <span>proponuję: {n ? numerTekst(n) : 'grób'} ({z.odl!.toFixed(1)} m)</span> : <span className="ed-maly">brak grobu w promieniu 3 m</span>}
                                             <div className="ed-rzad">
                                                 {pr && <button className="ed-btn" onClick={() => przypnij(i, pr.id)}>przypnij</button>}
                                                 <button className="ed-btn" aria-pressed={przypinane === i} onClick={() => { ustawPrzypinane(i); ustawNarz('wybierz'); pokaz('Kliknij grób na planie, żeby przypiąć zdjęcie.') }}>wybierz inny</button>
@@ -1166,6 +1182,15 @@ function Nakladka({ plan, wzor, zaznaczone, r }: { plan: Plan; wzor: Element | n
     return null
 }
 
+/** A2-09: rok śmierci przyjęty do zasady „zmarli niedawno” i jego źródło – reguła bez zmian (decyzja 16.11). */
+function RokZgonu({ e }: { e: Element }) {
+    const r = rokZgonuZeZrodlem(e)
+    if (!r) return <span className="ed-maly">Brak roku śmierci – napis będzie publiczny, chyba że zaznaczysz niżej, że na nagrobku są osoby żyjące.</span>
+    if (r.zrodlo === 'pole') return <span className="ed-maly">Przyjęty rok śmierci: {r.rok} (wpisany).</span>
+    if (r.zrodlo === 'osoby') return <span className="ed-maly">Przyjęty rok śmierci: {r.rok} (z dat pochowanych).</span>
+    return <span className="ed-maly">Przyjęty rok śmierci: {r.rok} (z napisu) – jeśli to np. rok odnowienia nagrobka, wpisz właściwy rok śmierci.</span>
+}
+
 function Pole({ etykieta, children }: { etykieta: string; children: React.ReactNode }) {
     return <label className="ed-pole"><span>{etykieta}</span>{children}</label>
 }
@@ -1183,13 +1208,9 @@ function pasujeDoFiltra(e: Element, f: Filtr): boolean {
     if (f === 'niesprawdzone') return etapElementu(e) !== 'sprawdzony' || !!polozenie(e) || e.stan === 'do-sprawdzenia'
     return true
 }
-function etykietaNumeru(n?: { kwatera: string; rzad: number; miejsce: number }) {
-    return n ? `${n.kwatera ? `kw. ${n.kwatera}, ` : ''}rząd ${n.rzad}, miejsce ${n.miejsce}` : ''
-}
-
-function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmiana, usun, duplikuj, powielOtwarte, przelaczPowiel, wgrajZdjecie, osobyDrzewa, wczytajOsoby, tryb, nastepny, zatwierdz }: {
-    tryb: Tryb; nastepny: () => void; zatwierdz: () => void
-    e: Element; plan: Plan; typy: Map<string, TypElementu>; ukryteTypy: Set<string>; numer?: { kwatera: string; rzad: number; miejsce: number }; skala: number | null
+function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmiana, usun, duplikuj, powielOtwarte, przelaczPowiel, wgrajZdjecie, osobyDrzewa, wczytajOsoby, tryb, nastepny, zatwierdz, podglad, pokazGrob }: {
+    tryb: Tryb; nastepny: () => void; zatwierdz: () => void; podglad: (r: Roznice) => void; pokazGrob: (id: string) => void
+    e: Element; plan: Plan; typy: Map<string, TypElementu>; ukryteTypy: Set<string>; numer?: Numer; skala: number | null
     fmt: (j: number, r?: 'dl' | 'pole') => string; slug: string; zmiana: (zm: Partial<Element>) => void; usun: () => void; duplikuj: () => void
     powielOtwarte: boolean; przelaczPowiel: () => void; wgrajZdjecie: (f: File) => void
     osobyDrzewa: SkrotOsoby[] | null; wczytajOsoby: () => void
@@ -1218,7 +1239,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
     const rysuj = tryb === 'rysuj', dane = !rysuj || !t?.grob, etap = t?.grob ? etapElementu(e) : null
     return (
         <div className="ed-sekcja">
-            <div className="ed-gt">{numer ? `${numer.kwatera ? `kwatera ${numer.kwatera} · ` : ''}rząd ${numer.rzad} · miejsce ${numer.miejsce}` : t?.nazwa}{etap ? ` · ${ETYKIETA_ETAPU[etap]}` : ''}</div>
+            <div className="ed-gt">{numer ? numerTekst(numer) : t?.grob ? `${t.nazwa} bez numeru` : t?.nazwa}{etap ? ` · ${ETYKIETA_ETAPU[etap]}` : ''}</div>
             <div className="ed-rzad">
                 {rysuj && <button className="ed-btn" onClick={duplikuj} title="Ctrl+D">duplikuj</button>}
                 {rysuj && <button className="ed-btn" aria-pressed={powielOtwarte} onClick={przelaczPowiel}>powiel…</button>}
@@ -1259,7 +1280,9 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
             {g.k === 'l' && <span className="ed-maly">długość {fmt(dlugosc(g.p))}</span>}
             {(t?.rodzaj === 'linia') && <Pole etykieta="grubość (jednostki planu, puste = domyślna)"><input className="ed-in" type="number" step={0.5} value={e.szer ?? ''} onChange={(x) => zmiana({ szer: x.target.value ? Math.max(0.1, +x.target.value) : undefined })} /></Pole>}
             {t?.id === 'kwatera' && <Pole etykieta="kąt rzędów (°)"><input className="ed-in" type="number" step={0.5} value={e.kat ?? 0} onChange={(x) => zmiana({ kat: +x.target.value || 0 })} /></Pole>}
+            {t?.id === 'kwatera' && <UstawieniaKwatery e={e} plan={plan} typy={typy} zmiana={zmiana} podglad={podglad} />}
             </>)}
+            {t?.grob && <NumerGrobu e={e} plan={plan} typy={typy} zmiana={zmiana} pokaz={pokazGrob} />}
             {t?.grob ? (dane && (
                 <>
                     <Pole etykieta="napis z nagrobka – transkrypcja dosłowna (pisownia, język i wiersze jak na kamieniu)"><textarea className="ed-in ed-napis" rows={5} value={e.napis ?? ''} onChange={(x) => zmiana({ napis: x.target.value || undefined })} placeholder={'Ś. † P.\nJAN …\nŻYŁ LAT …'} /></Pole>
@@ -1308,6 +1331,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
                     <div className="ed-rzad">
                         <Pole etykieta="rok śmierci (ostatniej osoby)"><input className="ed-in" type="number" value={e.rokZgonu ?? ''} onChange={(x) => zmiana({ rokZgonu: x.target.value ? +x.target.value : undefined })} placeholder="z napisu" /></Pole>
                     </div>
+                    <RokZgonu e={e} />
                     <label className="ed-ch"><input type="checkbox" checked={!!e.ukryjNapis} onChange={(x) => zmiana({ ukryjNapis: x.target.checked || undefined })} /> na nagrobku są osoby żyjące – napis tylko dla bliskich</label>
                 </>
             )}
@@ -1341,12 +1365,12 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
 
 /** Przenieś / zamień dane dwóch zaznaczonych grobów: wybór operacji → podgląd skutku → zatwierdzenie (jeden krok cofania). */
 function DaneDwochGrobow({ a, b, numery, wykonaj }: {
-    a: Element; b: Element; numery: Map<string, { kwatera: string; rzad: number; miejsce: number }>
+    a: Element; b: Element; numery: Map<string, Numer>
     wykonaj: (f: (L: Element[]) => Element[] | { blad: string }, komunikat: string) => void
 }) {
     const [op, ustawOp] = React.useState<null | 'zamien' | 'ab' | 'ba'>(null)
     const pg = podgladDanych(a, b), odwr = podgladDanych(b, a)
-    const nA = etykietaNumeru(numery.get(a.id)) || 'grób 1', nB = etykietaNumeru(numery.get(b.id)) || 'grób 2'
+    const nA = numerTekst(numery.get(a.id)) || 'grób 1', nB = numerTekst(numery.get(b.id)) || 'grób 2'
     const ma = (strona: 'a' | 'b', p: (typeof pg.pola)[number]) => {
         if (op === 'zamien') return strona === 'a' ? p.b : p.a
         if (op === 'ab') return strona === 'a' ? false : p.a
@@ -1386,7 +1410,7 @@ function DaneDwochGrobow({ a, b, numery, wykonaj }: {
 }
 
 function PanelWielu({ zaznaczone, wzor, typy, duplikuj, usun, obroc, powielOtwarte, przelaczPowiel, zmienWszystkie, zastosuj, numery, wykonaj }: {
-    numery: Map<string, { kwatera: string; rzad: number; miejsce: number }>
+    numery: Map<string, Numer>
     wykonaj: (f: (L: Element[]) => Element[] | { blad: string }, komunikat: string) => void
     zaznaczone: Element[]; wzor: Element | null; typy: Map<string, TypElementu>; duplikuj: () => void; usun: () => void; obroc: (d: number) => void
     powielOtwarte: boolean; przelaczPowiel: () => void; zmienWszystkie: (f: (e: Element) => Partial<Element>) => void
@@ -1529,6 +1553,10 @@ textarea.ed-in{height:auto;padding:6px 8px;resize:vertical}
 .ed-sekcja{display:flex;flex-direction:column;gap:8px;padding:10px 12px}
 .ed-ramka-sek{border:1px solid #e7e2d8;border-radius:8px;margin:4px 12px}
 .ed-pole{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}.ed-pole>span{font-size:11px;color:var(--tekst-etykieta)}
+.ed-pole--szer{flex:2}
+.ed-roznice{margin:0;padding:0;list-style:none;max-height:260px;overflow:auto;display:flex;flex-direction:column}
+.ed-roznice li{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:4px 0;border-bottom:1px solid #e7e2d8}
+.dark .ed-roznice li{border-color:#3a3f48}
 .ed-rzad{display:flex;gap:6px;align-items:flex-end}
 .ed-wiersz{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .ed-maly{font-size:11.5px;color:var(--tekst-etykieta);line-height:1.45;background:none;border:0;padding:0;text-align:left;font-family:inherit;cursor:pointer}
@@ -1564,6 +1592,8 @@ p.ed-maly,span.ed-maly{cursor:default}
 .ed-dop-l{stroke:#db2777;stroke-width:1.5;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
 .ed-siatka{stroke:#a39d91;stroke-opacity:.35;stroke-width:1;vector-effect:non-scaling-stroke;fill:none}
 .ed-zapis{font-size:12px;color:#6b665c}.ed-ostatni{font-size:12px;color:#6b665c;white-space:nowrap;font-variant-numeric:tabular-nums}.ed-napis{font-family:var(--font-jetbrains),monospace;text-align:center;white-space:pre}.ed-uch-bok{cursor:ew-resize}.ed-duch-ok{stroke:#15803d!important;fill:rgba(21,128,61,.15)!important}.ed-filtr{fill:none;stroke:#ea580c;stroke-width:2.2;vector-effect:non-scaling-stroke}.ed-ja{fill:#4c3cc4;stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}.ed-ja-acc{fill:rgba(76,60,196,.12);stroke:rgba(76,60,196,.5);stroke-width:1;vector-effect:non-scaling-stroke}.ed-staty{position:absolute;left:10px;top:10px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:11.5px;background:rgba(255,255,255,.92);border:1px solid #d6d1c6;border-radius:8px;padding:3px 6px;max-width:calc(100% - 70px)}.dark .ed-staty{background:rgba(28,31,36,.92);border-color:#3a3f48}.ed-staty button{font:inherit;border:1px solid #d6d1c6;border-radius:6px;background:transparent;padding:1px 7px;cursor:pointer;color:inherit}.ed-staty button[aria-pressed=true]{background:#ea580c;border-color:#ea580c;color:#fff}.ed-staty button:disabled{opacity:.45;cursor:default}.ed-teren{position:absolute;left:8px;right:8px;bottom:8px;display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid #d6d1c6;border-radius:10px;padding:8px;box-shadow:0 2px 12px rgb(0 0 0/.15)}.dark .ed-teren{background:#1c1f24;border-color:#3a3f48}.ed-teren .ed-rzad{flex-wrap:wrap}.ed-teren-info{font-size:13px;font-weight:600}.ed-wyl{opacity:.45;pointer-events:none}.ed-glowna-teren .ed-pomoc,.ed-glowna-teren .ed-akcje{display:none}.ed-osoba{display:flex;flex-direction:column;gap:3px;position:relative}.ed-podp{display:flex;flex-direction:column;border:1px solid #d6d1c6;border-radius:7px;overflow:hidden;background:#fff}.dark .ed-podp{background:#1c1f24;border-color:#3a3f48}.ed-podp button{display:flex;justify-content:space-between;gap:8px;text-align:left;font:inherit;font-size:12.5px;padding:5px 8px;border:0;border-bottom:1px solid #eeeae2;background:transparent;color:inherit;cursor:pointer}.ed-podp button:hover{background:rgba(76,60,196,.08)}.ed-link{border:0;background:none;padding:0;font:inherit;color:#4c3cc4;cursor:pointer;text-decoration:underline}.dark .ed-link{color:#a597ff}.ed-kopia{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;background:#fef3c7;color:#78350f;padding:2px 8px;border-radius:7px}.ed-zapis-blad,.ed-zapis-konflikt{color:#b91c1c}.ed-zapis-ok{color:#15803d}
+.ed-zapis-odrzucony{color:#b91c1c}
+.dark .ed-zapis,.dark .ed-ostatni{color:#9ca3af}.dark .ed-zapis-ok{color:#4ade80}.dark .ed-zapis-konflikt,.dark .ed-zapis-odrzucony{color:#f87171}
 @media (max-width:900px){.ed-glowna{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto minmax(55vh,1fr) auto}.ed-paleta{border-right:0;border-bottom:1px solid #d6d1c6;max-height:30vh}.ed-panel{border-left:0;border-top:1px solid #d6d1c6;max-height:45vh}}
 .ed-pasek-teren .ed-nie-teren{display:none!important}.ed-pasek:not(.ed-tryb-rysuj) .ed-tylko-rysuj{display:none!important}@media (max-width:900px){.ed-glowna-teren{grid-template-rows:minmax(64vh,1fr) auto!important}.ed-glowna-teren .ed-panel{max-height:32vh}.ed-teren{left:4px;right:4px;bottom:4px;padding:6px;gap:4px}}@media (pointer:coarse){.ed-btn,.ed-seg button,.ed-zakl button,.ed-akcje button,.ed-in{height:36px}.ed-uch{stroke-width:3}}
 `

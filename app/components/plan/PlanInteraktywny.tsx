@@ -5,7 +5,8 @@
 // legenda z przełącznikami, eksport do PNG i druk (PDF), informacja albo prośba czytelnika.
 
 import * as React from 'react'
-import { doSzukania, numeracja, punktyElementu, srodek, jednostka, type Element, type Numer, type Plan } from '@/lib/plany/model'
+import { doSzukania, punktyElementu, srodek, jednostka, type Element, type Numer, type Plan } from '@/lib/plany/model'
+import { grobyKolejno, numerKrotki, numerTekst, numeryPlanu } from '@/lib/plany/numeracja'
 import { katalog, GRUPY, typGrobu, type TypElementu, type UstawieniaPlanow } from '@/lib/plany/typy'
 import type { OsobaNaPlanie, KrewnyNaPlanie } from '@/lib/plany/rodzina'
 import { kadr, Podzialka, RysunekPlanu, Wzory } from './Rysunek'
@@ -16,8 +17,6 @@ type VB = [number, number, number, number]
 
 const przycisk = 'border border-[var(--linia-podzialu)] bg-[var(--tlo-strony)] text-current'
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
-export const numerTekst = (n?: Numer) => (n ? `${n.kwatera ? `kwatera ${n.kwatera} · ` : ''}rząd ${n.rzad} · miejsce ${n.miejsce}` : '')
-export const numerKrotki = (n?: Numer) => (n ? `${n.kwatera ? n.kwatera + '/' : ''}${n.rzad}/${n.miejsce}` : '')
 
 export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokosc = 'min(74vh, 700px)', osoby = {}, pokazGrob }: {
     plan: Plan
@@ -44,14 +43,12 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
     const [foto, ustawFoto] = React.useState<number | null>(null)
     const svgRef = React.useRef<SVGSVGElement>(null)
     const ramkaRef = React.useRef<HTMLDivElement>(null)
-    const numery = React.useMemo(() => numeracja(plan, typy), [plan, typy])
+    // numery zapisane w planie i rozwiązane przy wydawaniu (dlaCzytelnika) – te same dla każdego czytelnika
+    const numery = React.useMemo(() => numeryPlanu(plan), [plan])
     const elementy = React.useMemo(() => new Map(plan.elementy.map((e) => [e.id, e])), [plan])
 
     // groby w kolejności kwatera → rząd → miejsce (poprzedni / następny)
-    const kolejno = React.useMemo(() => plan.elementy.filter((e) => numery.has(e.id)).sort((a, b) => {
-        const p = numery.get(a.id)!, q = numery.get(b.id)!
-        return p.kwatera.localeCompare(q.kwatera, 'pl', { numeric: true }) || p.rzad - q.rzad || p.miejsce - q.miejsce
-    }), [plan, numery])
+    const kolejno = React.useMemo(() => grobyKolejno(plan, numery), [plan, numery])
 
     // legenda: tylko typy użyte na planie, w kolejności katalogu
     const uzyte = React.useMemo(() => {
