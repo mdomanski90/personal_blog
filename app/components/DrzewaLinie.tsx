@@ -8,17 +8,22 @@
 // (button[data-drzewo-pelny="<id figury>"]).
 
 import * as React from 'react'
+import { przewinO, przywrocFokus } from '@/lib/ruch'
 
 const KROK = 3
 const SKALE = [0.6, 0.7, 0.8, 0.9, 1, 1.15, 1.3, 1.5, 1.75, 2]
 const KLUCZ_SKALI = 'drzewo-skala'
 
-function wysrodkuj(przew: HTMLElement) {
+/** Wyśrodkowanie na osobie. 5A (jak przewijanie, scena 10): po zmianie wielkości i doczytaniu pokoleń – płynnie
+ *  (przy ograniczeniu ruchu skok); przy wejściu na stronę, otwarciu i zamknięciu pełnego ekranu – od razu. */
+function wysrodkuj(przew: HTMLElement, plynnie = false) {
     const glowna = przew.querySelector('.dr-glowna')
     if (!glowna) return
     const a = glowna.getBoundingClientRect(), b = przew.getBoundingClientRect()
-    przew.scrollLeft += a.left + a.width / 2 - (b.left + b.width / 2)
-    przew.scrollTop += a.top + a.height / 2 - (b.top + b.height / 2)
+    const left = a.left + a.width / 2 - (b.left + b.width / 2), top = a.top + a.height / 2 - (b.top + b.height / 2)
+    if (plynnie) { przewinO(przew, { left, top }); return }
+    przew.scrollLeft += left
+    przew.scrollTop += top
 }
 
 function przycisk(tekst: string, opis?: string): HTMLButtonElement {
@@ -85,7 +90,7 @@ function przygotuj(fig: HTMLElement): () => void {
         mniej.disabled = s <= SKALE[0]
         wiecej.disabled = s >= SKALE[SKALE.length - 1]
         if (zapisz) { try { localStorage.setItem(KLUCZ_SKALI, String(s)) } catch { /* bez pamięci */ } }
-        if (fig.classList.contains('drzewo-pelne')) requestAnimationFrame(() => wysrodkuj(przew))
+        if (fig.classList.contains('drzewo-pelne')) requestAnimationFrame(() => wysrodkuj(przew, true))
     }
     const krokSkali = (d: number) => {
         const i = SKALE.findIndex((x) => x >= skala - 0.001)
@@ -95,14 +100,19 @@ function przygotuj(fig: HTMLElement): () => void {
     mniej.addEventListener('click', () => krokSkali(-1))
     wiecej.addEventListener('click', () => krokSkali(1))
 
+    // 5A (scena 4, zasada 5.3): pełny ekran wchodzi wygaszeniem (globals.css), po zamknięciu fokus wraca na przycisk,
+    // którym go otwarto (w nagłówku tabeli karty osoby albo w pasku nad drzewem)
+    let otwierajacy: HTMLElement | null = null
     const zamknij = () => {
+        if (!fig.classList.contains('drzewo-pelne')) return
         fig.classList.remove('drzewo-pelne')
         glowny.textContent = 'pełny ekran ⤢'
         document.body.style.overflow = ''
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
-        requestAnimationFrame(() => wysrodkuj(przew))
+        requestAnimationFrame(() => { wysrodkuj(przew); przywrocFokus(otwierajacy); otwierajacy = null })
     }
     const otworz = () => {
+        otwierajacy = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : zewn ?? glowny
         fig.classList.add('drzewo-pelne')
         glowny.textContent = 'zamknij ✕'
         document.body.style.overflow = 'hidden'
@@ -138,7 +148,7 @@ function przygotuj(fig: HTMLElement): () => void {
             const tekst = nowa.querySelector(':scope > .dr-tekst')
             if (tekst) fig.querySelector(':scope > .dr-tekst')?.replaceWith(tekst)
             for (const k of ['wstecz', 'naprzod', 'zakres', 'wiecejWstecz', 'wiecejNaprzod', 'rodzenstwo'] as const) fig.dataset[k] = nowa.dataset[k] ?? ''
-            requestAnimationFrame(() => wysrodkuj(przew))
+            requestAnimationFrame(() => wysrodkuj(przew, true))
             b.textContent = napis
         } catch {
             b.textContent = 'nie udało się – spróbuj jeszcze raz'

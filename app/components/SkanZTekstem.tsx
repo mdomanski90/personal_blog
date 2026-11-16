@@ -11,6 +11,7 @@ import type { ObjasnienieWidoku } from '@/lib/objasnienia-widok'
 import PrzegladarkaDokumentu, { obrazStrony, type StronaPodgladu } from './PrzegladarkaDokumentu'
 import type { DaneRekonstrukcji } from './plan/WarstwaRekonstrukcji'
 import { ListaObjasnien, TekstZrodla, type ObjasnienieNaStronie } from './ObjasnieniaSkanu'
+import { przewin, przewinDo } from '@/lib/ruch'
 
 type Zakladka = 'transkrypcja' | 'oryginał' | 'tłumaczenie' | 'objaśnienia'
 
@@ -55,7 +56,7 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
         const nr = strona + 1
         const wzor = new RegExp(`^\\s*\\[?\\s*(s|str|strona|k|karta)\\.?\\s*${nr}\\b`, 'i')
         const cel = [...el.querySelectorAll<HTMLElement>('p, h2, h3, h4, li')].find((x) => wzor.test(x.textContent ?? ''))
-        if (cel) el.scrollTo({ top: cel.offsetTop - 8, behavior: 'smooth' })
+        if (cel) przewin(el, { top: cel.offsetTop - 8 })
         else if (strona === 0) el.scrollTop = 0
     }, [strona, html])
 
@@ -69,7 +70,7 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
     }
     React.useEffect(() => {
         if (!aktywne) return
-        const t = window.setTimeout(() => tekst.current?.querySelector('.aktywna, [data-aktywne="1"]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60)
+        const t = window.setTimeout(() => { const x = tekst.current?.querySelector('.aktywna, [data-aktywne="1"]'); if (x) przewinDo(x, { block: 'nearest' }) }, 60)
         return () => window.clearTimeout(t)
     }, [aktywne, zakladka])
 

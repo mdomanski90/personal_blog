@@ -49,7 +49,7 @@ export function Notka({ o, aktywna, wskazana, onKlik, onNad, pelna, wezel, role 
                     {o.weryfikacja && (
                         <details className="dok-obj-weryfikacja">
                             <summary>weryfikacja w źródłach</summary>
-                            <div>{o.weryfikacja}</div>
+                            <div className="rozwin-tresc"><div>{o.weryfikacja}</div></div>
                         </details>
                     )}
                 </div>

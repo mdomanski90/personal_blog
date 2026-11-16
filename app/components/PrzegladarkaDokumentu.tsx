@@ -16,6 +16,7 @@ import WarstwaRekonstrukcji, { type DaneRekonstrukcji, type TrybWarstw } from '.
 import OpisElementu from './plan/OpisElementu'
 import { elementPod, naPlan } from '@/lib/plany/rekonstrukcja'
 import { katalog } from '@/lib/plany/typy'
+import { czasRuchu, useFokusPowrotu } from '@/lib/ruch'
 
 export interface StronaPodgladu { adres: string; podpis?: string }
 
@@ -77,6 +78,9 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const [pelny, ustawPelny] = React.useState(pelnyNaStart)
     const pelnyRef = React.useRef(pelny)
     pelnyRef.current = pelny
+    // 5A (scena 4): pełny ekran wchodzi wygaszeniem (globals.css .dok-pelny); po zamknięciu fokus wraca na przycisk,
+    // którym go otwarto, a po kliknięciu w skan – na „pełny ekran ⤢” (okno otwarte od razu – DokumentyWTresci)
+    useFokusPowrotu(pelny && !pelnyNaStart, { zapasowy: () => ramka.current?.querySelector<HTMLElement>('button[aria-label="pełny ekran"]') })
     const n = strony.length
     const [warstwy, ustawWarstwy] = React.useState<TrybWarstw>('skan')
     const [krycie, ustawKrycie] = React.useState(0.75)
@@ -120,7 +124,8 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
                 constrainDuringPan: true,
                 minZoomImageRatio: 0.6,
                 maxZoomPixelRatio: 3,
-                animationTime: 0.35,
+                // 5A (scena 7): wbudowane wygaszanie OpenSeadragon (bez odbicia) w czasie --ruch-wolny; 0 przy ograniczeniu ruchu
+                animationTime: czasRuchu('wolny') / 1000,
                 gestureSettingsMouse: { clickToZoom: false, dblClickToZoom: true, scrollToZoom: pelnyRef.current },
                 gestureSettingsTouch: { clickToZoom: false, dblClickToZoom: true, pinchToZoom: true },
             })

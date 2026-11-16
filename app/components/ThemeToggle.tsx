@@ -2,6 +2,8 @@
 import * as React from "react"
 import { Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
+import { flushSync } from "react-dom"
+import { zmienZWygaszeniem } from "@/lib/ruch"
 
 const FONT_SIZES = [14, 16, 18, 20, 22]
 const DEFAULT_SIZE = 18
@@ -55,7 +57,8 @@ export default function ThemeToggle() {
         <div className="k-grupa" role="group" aria-label="motyw i rozmiar pisma">
             <button
                 type="button"
-                onClick={() => setTheme(ciemny ? 'light' : 'dark')}
+                // 5A: motyw jednym wygaszeniem całej strony (jak przejście stron); bez ruchu – od razu
+                onClick={() => zmienZWygaszeniem(() => flushSync(() => setTheme(ciemny ? 'light' : 'dark')))}
                 aria-label={ciemny ? 'jasny motyw' : 'ciemny motyw'}
                 title={ciemny ? 'jasny motyw' : 'ciemny motyw'}
             >

@@ -7,9 +7,14 @@ import * as React from 'react'
 import { createPortal } from 'react-dom'
 import PrzegladarkaDokumentu, { type StronaPodgladu } from './PrzegladarkaDokumentu'
 import type { ObjasnienieWidoku } from '@/lib/objasnienia-widok'
+import { useFokusPowrotu } from '@/lib/ruch'
 
 export default function DokumentyWTresci() {
     const [otwarty, ustawOtwarty] = React.useState<{ tytul: string; strony: StronaPodgladu[]; objasnienia?: ObjasnienieWidoku[]; transkrypcja?: string } | null>(null)
+    // 5A (scena 4, zasada 5.3): po zamknięciu fokus wraca na „przeglądaj” / „powiększ skan” tej wstawki
+    // (kliknięcie w sam skan nie daje fokusu)
+    const wstawka = React.useRef<HTMLElement | null>(null)
+    useFokusPowrotu(!!otwarty, { zapasowy: () => wstawka.current?.querySelector<HTMLElement>('figcaption .dok-otworz') })
     React.useEffect(() => {
         const klik = (e: MouseEvent) => {
             const cel = e.target as HTMLElement | null
@@ -17,6 +22,7 @@ export default function DokumentyWTresci() {
             const fig = cel.closest<HTMLElement>('figure[data-dokument]')
             if (!fig) return
             e.preventDefault()
+            wstawka.current = fig
             try { ustawOtwarty(JSON.parse(fig.dataset.dokument ?? '')) } catch { /* uszkodzone dane – nic */ }
         }
         document.addEventListener('click', klik)

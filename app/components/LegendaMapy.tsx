@@ -16,6 +16,7 @@ export default function LegendaMapy({ rodzajeObiektow = [] }: { rodzajeObiektow?
     return (
         <details className="lowercase" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>
             <summary className="cursor-pointer text-[var(--tekst-opis)] w-fit">legenda</summary>
+            <div className="rozwin-tresc">
             <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(12rem, 1fr))', gap: '6px 16px', marginTop: 8 }}>
                 <Pozycja html={tarczaMiejsca('miasto', [], 'miasto', 24)}>miasto</Pozycja>
                 {KOLEJNOSC_WYZNAN.map((w) => (
@@ -29,6 +30,7 @@ export default function LegendaMapy({ rodzajeObiektow = [] }: { rodzajeObiektow?
                     <Pozycja key={r} html={tarczaObiektu(r, NAZWY_OBIEKTOW[r], 26)}>{NAZWY_OBIEKTOW[r]}</Pozycja>
                 ))}
                 {obecne.length > 0 && <Pozycja html={tarczaObiektu(obecne[0], 'nieistniejący', 26, false)}>obiekt nieistniejący</Pozycja>}
+            </div>
             </div>
         </details>
     )

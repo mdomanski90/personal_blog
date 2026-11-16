@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { przewin } from '@/lib/ruch'
 
 export default function ScrollToTop() {
     const [isVisible, setIsVisible] = useState(false)
@@ -25,10 +26,8 @@ export default function ScrollToTop() {
     }, [])
 
     const scrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        })
+        // 5A: płynnie, przy ograniczeniu ruchu – skok
+        przewin(window, { top: 0 })
     }
 
     // Dodaj to, żeby upewnić się, że nie ma problemów z hydracją (Next.js)
@@ -43,7 +42,7 @@ export default function ScrollToTop() {
             onClick={scrollToTop}
             variant="outline"
             size="icon"
-            className="fixed bottom-8 right-8 rounded-sm lowercase z-[100] shadow-lg"
+            className="przycisk-do-gory fixed bottom-8 right-8 rounded-sm lowercase z-[100] shadow-lg"
             style={{
                 width: '48px',
                 height: '48px',

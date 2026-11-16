@@ -14,6 +14,7 @@ import { ATRYBUCJA_GRANIC, LATA_GRANIC, LEGENDA_PANSTW, PUSTE, WARSTWY_OKRESU, c
 import type { PlanNaMapie } from '@/lib/plany/serwer'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu } from '@/lib/tarcze'
 import { ileObiektow, rozsun } from '@/lib/mapa-rozsuwanie'
+import { czasRuchu, krzywa } from '@/lib/ruch'
 
 export interface PunktMapy {
     id: string
@@ -159,6 +160,7 @@ export default function MapaMiejsc({
         } else if (!srodek && punkty.length > 1) {
             const b = new LngLatBounds()
             punkty.forEach((p) => b.extend([p.lng, p.lat]))
+            // pierwszy widok przy wejściu na stronę – od razu (5A: nic nie „wjeżdża” przy wejściu)
             m.fitBounds(b, { padding: 50, duration: 0 })
         }
 
@@ -271,7 +273,9 @@ export default function MapaMiejsc({
                     const b = new LngLatBounds()
                     const dodaj = (c: unknown): void => { if (Array.isArray(c) && typeof c[0] === 'number') b.extend(c as [number, number]); else if (Array.isArray(c)) c.forEach(dodaj) }
                     dodaj(f.geometry.coordinates)
-                    m.fitBounds(b, { padding: 30, duration: 0 })
+                    // 5A (scena 5): dopasowanie do granicy gminy po jej wczytaniu – płynnie (--ruch-wolny); MapLibre sam
+                    // zeruje czas przy ograniczeniu ruchu, czasRuchu() też
+                    m.fitBounds(b, { padding: 30, duration: czasRuchu('wolny'), easing: krzywa })
                 }).catch(() => {})
             }
             // plany (cmentarze, wsie) z punktami geo – obraz rysunku na mapie przy dużym przybliżeniu
@@ -457,7 +461,9 @@ export default function MapaMiejsc({
             const w = e.features?.[0]
             if (!w) return
             dymek.remove()
-            m.flyTo({ center: (w.geometry as GeoJSON.Point).coordinates as [number, number], zoom: Math.max(14, m.getZoom()), duration: 900 })
+            // 5A (scena 5): easeTo zamiast flyTo (bez łuku oddalenia), przybliżenie najwyżej o 1 poziom (do 14), --ruch-wolny
+            const z = m.getZoom()
+            m.easeTo({ center: (w.geometry as GeoJSON.Point).coordinates as [number, number], zoom: Math.max(z, Math.min(14, z + 1)), duration: czasRuchu('wolny'), easing: krzywa })
         })
         m.on('moveend', () => {
             if (!zapamietaj) return

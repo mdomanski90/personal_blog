@@ -143,6 +143,7 @@ export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyz
                                 <strong>{nazwa}</strong>
                                 <span className="text-[var(--tekst-opis)]" style={{ ...male, marginLeft: 12 }}>{liczbaKsieg(g.ksiegi.length)}</span>
                             </summary>
+                            <div className="rozwin-tresc">
                             <div className="flex flex-col" style={{ gap: 10, padding: '2px 0 18px 14px' }}>
                                 {g.nieprzypisane && <p className="text-[var(--tekst-opis)]" style={male}>Brak potwierdzonego powiązania w danych. Księgi pozostają dostępne w katalogu, zamiast znikać z wyników.</p>}
                                 {par && (
@@ -155,6 +156,7 @@ export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyz
                                 <PasekLat ksiegi={g.ksiegi} />
                                 <TabelaKsiag ksiegi={g.ksiegi} nazwyMiejsc={nazwyMiejsc} nazwyParafii={nazwyParafii} kotwiceKsieg={g.kotwice}
                                     kontekst={g.nieprzypisane ? undefined : widok === 'miejscowosci' ? { miejsce: g.id } : { instytucja: g.id }} />
+                            </div>
                             </div>
                         </details>
                     )

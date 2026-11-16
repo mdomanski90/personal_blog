@@ -51,6 +51,9 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* 5A: klasy Tailwinda transition-* (komponenty components/ui) z tokenów ruchu, nie 0,15 s */
+  --default-transition-duration: var(--ruch-szybki);
+  --default-transition-timing-function: var(--ruch-krzywa);
 }
 
 /* ============================================ */
@@ -136,6 +139,17 @@
   --odstep-sekcji: 24px;
   --kreska-tytulu: 3px;
 
+  /* 5A · system ruchu (UX-01, PD-18; makieta zaakceptowana 17.11): trzy czasy, jedna krzywa przejścia stron.
+     Czasy ruchu w CSS i JS wyłącznie z tych tokenów (JS: lib/ruch.ts) – pilnuje test lib/ruch.test.ts.
+     szybki – najechanie, kolory kontrolek, panel grobu, przygaszenie filtrów, menu i podpowiedzi, zmiany stanu w miejscu;
+     sredni – rozwijanie i zwijanie, lista po filtrach, „wszystkie działy”, losowa karta;
+     wolny – przejście stron i motyw, pełny ekran i okna ze zdjęciem, widok mapy, planu i skanu.
+     Ograniczenie ruchu w systemie (prefers-reduced-motion) – wszystkie 0 s (niżej). */
+  --ruch-szybki: 0.25s;
+  --ruch-sredni: 0.4s;
+  --ruch-wolny: 0.5s;
+  --ruch-krzywa: cubic-bezier(0.4, 0, 0.2, 1);
+
   /* JW-1 · płeć osób – pastylka osoby (osoba-link) i drzewo (.dr-K/.dr-M/.dr-U) z tych samych tokenów */
   --osoba-k-tlo: #fdf2f6; --osoba-k-ramka: #f3d3df;
   --osoba-m-tlo: #eff4fb; --osoba-m-ramka: #cfdcef;
@@ -153,6 +167,15 @@
   --tytul-druku: "";
   --adres-druku: "";
   --nr-kat-druku: "";
+}
+
+/* 5A · wersja bez ruchu: każda zmiana od razu, w tym samym miejscu i z tym samym fokusem */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ruch-szybki: 0s;
+    --ruch-sredni: 0s;
+    --ruch-wolny: 0s;
+  }
 }
 
 /* ============================================ */
@@ -254,8 +277,10 @@ body {
   background-color: transparent;
 }
 
-* {
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+/* 5A: kolory płynnie tylko na kontrolkach (odnośniki, przyciski, pola); zmiana motywu – jednym wygaszeniem
+   całej strony (ThemeToggle → lib/ruch.ts zmienZWygaszeniem), więc reszta elementów nie animuje się osobno */
+:where(a, button, summary, input, select, textarea) {
+  transition: color var(--ruch-szybki) var(--ruch-krzywa), background-color var(--ruch-szybki) var(--ruch-krzywa), border-color var(--ruch-szybki) var(--ruch-krzywa);
 }
 
 /* ============================================ */
@@ -339,75 +364,43 @@ body {
 }
 
 /* ============================================ */
-/* SHUFFLE.JS — ANIMACJE                        */
-/* ============================================ */
-.blog-post-item {
-  transition:
-          opacity 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
-          transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1),
-          margin 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-.shuffle-item--hidden {
-  opacity: 0;
-  pointer-events: none;
-  position: absolute;
-}
-
-.shuffle-item--visible {
-  opacity: 1;
-}
-
-#blog-grid {
-  transition: height 0.4s ease-out;
-  overflow: visible !important;
-}
-
-/* ============================================ */
-/* IMAGE ZOOM                                   */
-/* ============================================ */
-[data-rmiz-modal-overlay="visible"] {
-  background-color: rgba(0, 0, 0, 0.9) !important;
-}
-
-.dark [data-rmiz-modal-overlay="visible"] {
-  background-color: rgba(0, 0, 0, 0.95) !important;
-}
-
-/* ============================================ */
 /* VIEW TRANSITIONS                             */
 /* ============================================ */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 0.3s;
-  animation-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
+  animation-duration: var(--ruch-wolny);
+  animation-timing-function: var(--ruch-krzywa);
 }
 
 ::view-transition-old(root) {
-  animation-name: shuffle-fade-out;
+  animation-name: ruch-wygas;
 }
 
 ::view-transition-new(root) {
-  animation-name: shuffle-fade-in;
+  animation-name: ruch-pojaw;
 }
 
-@keyframes shuffle-fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+/* 5A: przejście stron i zmiana motywu bez wygaszenia przy ograniczeniu ruchu (tokeny mają wtedy 0 s;
+   reguła jawnie, jak na planszy Main) */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
-@keyframes shuffle-fade-in {
+/* 5A · wspólne wygaszenie: wejście (pojaw) i wyjście (wygas) – bez przesuwania; czas zawsze z tokenu w miejscu użycia */
+@keyframes ruch-pojaw {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-/* Przycisk kopiowania linku - ten sam styl co tagi */
-#blog-grid button {
-  font-family: inherit;
-  font-size: calc(16px * var(--font-scale, 1));
-  font-weight: 400;
-  text-transform: lowercase;
+@keyframes ruch-wygas {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
+
 
 /* ============================================ */
 /* PODSTAWY STRON (.odp) – listy, nagłówki i    */
@@ -543,10 +536,11 @@ body {
 .emblemat-rysuj .emblemat-rama {
   stroke-dasharray: 1 2;
   stroke-dashoffset: 1;
-  animation: emblemat-rysuj 1.3s cubic-bezier(.4, 0, .3, 1) forwards;
+  /* 5A: emblemat 1,25 s raz na wizytę – rama 0,95 s, treść od 0,85 s przez 0,4 s (wielokrotności --ruch-wolny) */
+  animation: emblemat-rysuj calc(var(--ruch-wolny) * 1.9) var(--ruch-krzywa) forwards;
 }
 @keyframes emblemat-rysuj { to { stroke-dashoffset: 0; } }
-.emblemat-rysuj .emblemat-tresc { opacity: 0; animation: emblemat-zanik 1s ease-in-out 1.2s forwards; }
+.emblemat-rysuj .emblemat-tresc { opacity: 0; animation: emblemat-zanik calc(var(--ruch-wolny) * 0.8) var(--ruch-krzywa) calc(var(--ruch-wolny) * 1.7) forwards; }
 @keyframes emblemat-zanik { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .emblemat-rysuj .emblemat-rama { animation: none; stroke-dashoffset: 0; }
@@ -642,7 +636,7 @@ body {
 .drzewo .dr-grupa { list-style: none; margin: 0; padding: 0; }
 .drzewo .dr-grupa > li { display: contents; }
 .drzewo .dr-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.drzewo .dr-karta { position: absolute; z-index: 1; width: 124px; height: 60px; box-sizing: border-box; padding: 0 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius:8px; text-decoration: none !important; color: inherit; line-height: 1.2; overflow: hidden; transition: transform .15s ease; }
+.drzewo .dr-karta { position: absolute; z-index: 1; width: 124px; height: 60px; box-sizing: border-box; padding: 0 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius:8px; text-decoration: none !important; color: inherit; line-height: 1.2; overflow: hidden; transition: transform var(--ruch-szybki) var(--ruch-krzywa); }
 .drzewo .dr-imie { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 /* pełna nazwa po najechaniu i przy przejściu klawiaturą: karta rośnie w dół, nad sąsiadami */
 .drzewo .dr-karta:is(:hover, :focus-visible) { height: auto; min-height: 60px; padding-top: 6px; padding-bottom: 6px; z-index: 6; overflow: visible; box-shadow: 0 2px 8px rgb(0 0 0 / .12); }
@@ -709,7 +703,7 @@ body {
 @media (max-width:760px){.info-z-mapa,.info-z-mapa-szeroka{grid-template-columns:minmax(0,1fr);grid-template-areas:"mapa" "info"}.info-z-mapa-rozszerz{display:none}}
 .galeria-siatka{display:grid;grid-template-columns:repeat(auto-fill,minmax(13rem,1fr));gap:14px}
 .galeria-miniatura{display:block;padding:0;border:0;background:none;cursor:zoom-in;border-radius:6px;overflow:hidden;aspect-ratio:4/3}
-.galeria-miniatura img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .2s}
+.galeria-miniatura img{display:block;width:100%;height:100%;object-fit:cover;transition:transform var(--ruch-szybki) var(--ruch-krzywa)}
 .galeria-miniatura:hover img{transform:scale(1.03)}
 .naglowek-rzeki{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px;line-height:1.2;color:#6b665c}
 .dark .naglowek-rzeki{color:#a8a296}
@@ -825,7 +819,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .ksiega-tomy { margin-top: 2px; }
 .ksiega-tomy > summary { cursor: pointer; width: fit-content; color: rgb(107 114 128); }
 .ksiega-tomy > summary:hover { color: inherit; }
-.ksiega-tomy > ul { margin: 6px 0 2px; padding-left: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17em), 1fr)); gap: 3px 1.5rem; }
+.ksiega-tomy > .rozwin-tresc > ul { margin: 6px 0 2px; padding-left: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17em), 1fr)); gap: 3px 1.5rem; }
 
 /* księgi: pasek zachowanych roczników – jedna siatka, wysokości w em (rosną razem z A+) */
 .pasek-lat { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 14px; row-gap: 0.35em; align-items: center; font-size: calc(13px * var(--font-scale, 1)); }
@@ -850,7 +844,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dok-pelny .dok-obszar>.dok-pole{height:100%}
 .dok-pole.nad-objasnieniem{cursor:pointer}
 .dok-obj-svg{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:2}
-.dok-obj-ramka{fill:rgba(76,60,196,.04);stroke:#4c3cc4;stroke-opacity:.5;stroke-width:1.25;transition:fill .12s}
+.dok-obj-ramka{fill:rgba(76,60,196,.04);stroke:#4c3cc4;stroke-opacity:.5;stroke-width:1.25;transition:fill var(--ruch-szybki) var(--ruch-krzywa)}
 .dok-obj-ramka.dok-obj-punkt{fill:var(--akcent-tlo);stroke-width:2;stroke-opacity:.9}
 .dok-obj-ramka.wskazana{stroke-opacity:.9;fill:rgba(76,60,196,.1)}
 .dok-obj-ramka.aktywna{stroke-opacity:1;stroke-width:2.2;fill:rgba(76,60,196,.1)}
@@ -861,7 +855,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dok-obj-znak.aktywna circle,.dok-obj-znak.wskazana circle{fill-opacity:1}
 .dok-obj-znak text{fill:#fff;font-size:11px;font-weight:700;text-anchor:middle;dominant-baseline:central;font-family:inherit}
 .dok-obj-kol{position:relative;min-width:0;z-index:3}
-.dok-obj-kol>.dok-obj-notka{position:absolute;left:0;right:0;top:0;transition:transform .15s ease-out,opacity .15s}
+.dok-obj-kol>.dok-obj-notka{position:absolute;left:0;right:0;top:0;transition:transform var(--ruch-szybki) var(--ruch-krzywa),opacity var(--ruch-szybki) var(--ruch-krzywa)}
 .dok-obj-lista-boczna{overflow-y:auto;padding-right:2px}
 .dok-obj-notka{background:#fdfcf9;border:1px solid var(--linia-podzialu);border-radius:8px;padding:6px 9px 7px;font-size:calc(13px * var(--font-scale,1));line-height:1.45;min-width:0}
 .dok-obj-notka.wskazana{border-color:#9fb3e8}
@@ -873,7 +867,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dok-obj-notka.aktywna .dok-obj-tekst,.dok-obj-notka.pelna .dok-obj-tekst{display:block;-webkit-line-clamp:unset;overflow:visible}
 .dok-obj-wiecej{display:flex;flex-direction:column;gap:3px;margin-top:6px;font-size:calc(12px * var(--font-scale,1));color:#6b665c}
 .dok-obj-weryfikacja>summary{cursor:pointer;width:fit-content}
-.dok-obj-weryfikacja>div{white-space:pre-wrap;margin-top:2px;color:#4f4a41}
+.dok-obj-weryfikacja>.rozwin-tresc>div{white-space:pre-wrap;margin-top:2px;color:#4f4a41}
 .dok-obj-notka .uzupelnienie,.dok-transkrypcja .uzupelnienie{color:#736d63}
 .dok-obj-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:8px;align-items:start}
 .dok-obj-lista-boczna .dok-obj-lista{grid-template-columns:minmax(0,1fr)}
@@ -893,7 +887,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dok-pelny .dok-obj-notka.aktywna,.dark .dok-obj-notka.aktywna{border-color:#419cff;box-shadow:0 0 0 1px #419cff inset}
 .dok-pelny .dok-obj-notka.wskazana,.dark .dok-obj-notka.wskazana{border-color:#5d78b8}
 .dok-pelny .dok-obj-glowka,.dok-pelny .dok-obj-wiecej,.dok-pelny .dok-transkrypcja-rodzaj,.dark .dok-obj-glowka,.dark .dok-obj-wiecej{color:#b8b2a6}
-.dok-pelny .dok-obj-weryfikacja>div,.dark .dok-obj-weryfikacja>div{color:#d6d1c6}
+.dok-pelny .dok-obj-weryfikacja>.rozwin-tresc>div,.dark .dok-obj-weryfikacja>.rozwin-tresc>div{color:#d6d1c6}
 .dok-pelny .dok-obj-notka .uzupelnienie,.dok-pelny .dok-transkrypcja .uzupelnienie,.dark .dok-obj-notka .uzupelnienie{color:#a8a296}
 .dok-pelny .dok-obj-notka a,.dark .dok-obj-notka a{color:#419cff}
 .dark .dok-transkrypcja{border-color:#3b3833}
@@ -1028,9 +1022,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .kl-kropka[aria-current=true] i{background:var(--link);border-color:var(--link)}
 .kl-pauza{border:1px solid var(--linia-podzialu);border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:12px;min-width:30px;height:24px;padding:0 7px;cursor:pointer}
 .kl-pauza:hover{background:var(--muted)}
-.kl-srodek{display:grid;grid-template-columns:calc(120px * var(--font-scale,1)) minmax(0,1fr);gap:14px;flex:1;min-height:0;animation:kl-pojaw .35s ease}
-@keyframes kl-pojaw{from{opacity:0}to{opacity:1}}
-@media (prefers-reduced-motion:reduce){.kl-srodek{animation:none}}
+.kl-srodek{display:grid;grid-template-columns:calc(120px * var(--font-scale,1)) minmax(0,1fr);gap:14px;flex:1;min-height:0;animation:ruch-pojaw var(--ruch-sredni) var(--ruch-krzywa)}
 .kl-mini{display:flex;align-items:center;justify-content:center;border:1px solid var(--linia-podzialu);border-radius:4px;background:var(--tlo-sekcji);overflow:hidden;height:100%;max-height:calc(184px * var(--font-scale,1))}
 .kl-mini img{width:100%;height:100%;object-fit:cover;display:block}
 .kl-mini svg{fill:none;stroke:#9a9488;stroke-width:1.6}
@@ -1206,7 +1198,8 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .k-filtry-lata{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .k-filtry-akcje{grid-column:1 / -1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
 .k-filtry-wyczysc{background:none;border:0;padding:0;font:inherit;font-size:calc(14px * var(--font-scale,1));color:var(--link);text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:calc(40px * var(--font-scale,1))}
-.k-filtry[aria-busy=true]+*{opacity:.6;transition:opacity .2s}
+/* 5A: w czasie liczenia filtrów wszystko pod nimi przygaszone (dawniej `.k-filtry[aria-busy]+*` – formularz jest ostatni w <details>, reguła nie trafiała w nic); nowa lista wchodzi wygaszeniem (FiltryKatalogu → lib/ruch.ts) */
+.k-filtry-ramka:has(.k-filtry[aria-busy=true])~*{opacity:.6;transition:opacity var(--ruch-szybki) var(--ruch-krzywa)}
 .k-wybor{position:relative}
 .k-wybor-ramka{position:relative;display:block}
 .k-wybor-wartosc{display:flex;min-height:calc(40px * var(--font-scale,1));align-items:center}
@@ -1333,7 +1326,7 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .odp .spis-dzialow a.sd-pusty{color:var(--tekst-etykieta)}
 .odp .spis-dzialow a.sd-pusty[aria-current=page]{color:var(--akcent-na-wypelnieniu)}
 .k-filtry-ramka{border-radius:var(--promien-duzy);background:var(--tlo-sekcji);margin:6px 0 4px}
-.k-filtry-ramka>.k-filtry{background:transparent;margin:0;padding-top:4px}
+.k-filtry-ramka>.rozwin-tresc>.k-filtry{background:transparent;margin:0;padding-top:4px}
 .k-filtry-naglowek{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px 10px 24px;cursor:pointer;list-style:none}
 .k-filtry-naglowek::-webkit-details-marker{display:none}
 .k-filtry-tytul{font-weight:700;color:var(--tekst)}
@@ -1898,3 +1891,33 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 }
 
 .tekst-opis{color:var(--tekst-opis);font-size:var(--rozmiar-maly)}
+
+/* ============================================ */
+/* 5A · SYSTEM RUCHU – miejsca (makieta 5A,     */
+/* plansza Main i katalog 11 scen). Czasy tylko */
+/* z tokenów --ruch-*; bez ruchu – tokeny 0 s.  */
+/* ============================================ */
+/* scena 2 · rozwijanie i zwijanie: ::details-content jako siatka 0fr→1fr (bez interpolate-size – działa też
+   w Firefox 143+ i Safari 18.4+; starsze przeglądarki – od razu). Treść każdego <details> w jednym opakowaniu
+   .rozwin-tresc (pilnuje test lib/ruch.test.ts). Opakowanie przycina treść w czasie rozwijania, a po nim przestaje
+   (listy pól wyboru w filtrach wystają poza ramkę) – przy zwijaniu przycina od razu. */
+.odp details::details-content{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows var(--ruch-sredni) var(--ruch-krzywa),opacity var(--ruch-sredni) var(--ruch-krzywa),content-visibility var(--ruch-sredni) allow-discrete}
+.odp details[open]::details-content{grid-template-rows:1fr;opacity:1}
+.odp details>.rozwin-tresc{min-height:0;overflow:clip;transition:overflow 0s allow-discrete}
+.odp details[open]>.rozwin-tresc{overflow:visible;transition-delay:var(--ruch-sredni)}
+/* scena 2 · „wszystkie działy” w zwiniętym spisie działów: odsłonięte pozycje wchodzą wygaszeniem */
+.spis-ramka.sd-pokaz .spis-dzialow li:not(:has(>a[aria-current])){animation:ruch-pojaw var(--ruch-sredni) var(--ruch-krzywa)}
+/* objaśnienie na marginesie skanu: dalsza część (powiązania, opracował, weryfikacja) wchodzi wygaszeniem */
+.dok-obj-wiecej{animation:ruch-pojaw var(--ruch-sredni) var(--ruch-krzywa)}
+/* scena 11 · rozwijane menu i podpowiedzi: wejście wygaszeniem, bez przesuwania; wyjście od razu */
+.menu-zakladki .menu-podlista,.menu-zakladki.menu-otwarte,.wysz-lista,.k-wybor-lista,.dok-menu,.mapa-panel-planu{animation:ruch-pojaw var(--ruch-szybki) var(--ruch-krzywa)}
+/* scena 6 · panel grobu (i grobów rodziny) wygaszeniem przy każdej zmianie grobu (Karta ma key = id grobu) */
+.plan-karta{animation:ruch-pojaw var(--ruch-szybki) var(--ruch-krzywa)}
+/* scena 4 · pełny ekran i okna na całą stronę: wejście wygaszeniem, wyjście od razu, fokus wraca (lib/ruch.ts) */
+.dok-pelny,.plan-galeria,.drzewo.drzewo-pelne{animation:ruch-pojaw var(--ruch-wolny) var(--ruch-krzywa)}
+/* powiększenie zdjęcia we wpisie (medium-zoom, ImageZoom.tsx): biblioteka kończy otwieranie i zamykanie na zdarzeniu
+   transitionend, którego przejście 0 s nie wysyła – przy ograniczeniu ruchu 1 ms zamiast 0 s */
+img.medium-zoom-image{transition:transform max(var(--ruch-wolny), 1ms) var(--ruch-krzywa)!important} /* ruch-wyjatek: medium-zoom czeka na transitionend */
+div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruch-krzywa)} /* ruch-wyjatek: medium-zoom czeka na transitionend */
+/* zmiany stanu w miejscu: przycisk „do góry” wchodzi wygaszeniem */
+.przycisk-do-gory{animation:ruch-pojaw var(--ruch-szybki) var(--ruch-krzywa)}

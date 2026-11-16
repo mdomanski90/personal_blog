@@ -5,12 +5,16 @@
 
 import * as React from 'react'
 import { pozycjaKadru } from '@/lib/kadr'
+import { useFokusPowrotu } from '@/lib/ruch'
 
 export interface Zdjecie { plik: string; podpis?: string; data?: string; autor?: string; prawa?: string; kadr?: string }
 const opisZrodla = (z: Zdjecie) => [z.data, z.autor && `fot. ${z.autor}`, z.prawa].filter(Boolean).join(' · ')
 
 export default function GaleriaZdjec({ zdjecia, tytul }: { zdjecia: Zdjecie[]; tytul: string }) {
     const [i, ustaw] = React.useState<number | null>(null)
+    // 5A (scena 4): okno wchodzi wygaszeniem (globals.css .plan-galeria), fokus na „zamknij”, po zamknięciu wraca na miniaturę
+    const zamknijRef = React.useRef<HTMLButtonElement>(null)
+    useFokusPowrotu(i !== null, { wejscie: () => zamknijRef.current })
     React.useEffect(() => {
         if (i === null) return
         const k = (e: KeyboardEvent) => {
@@ -44,7 +48,7 @@ export default function GaleriaZdjec({ zdjecia, tytul }: { zdjecia: Zdjecie[]; t
                         <span style={{ fontSize: 13 }}>{tytul}</span>
                         <span style={{ flex: 1 }} />
                         {zdjecia.length > 1 && <span style={{ fontSize: 12.5, color: '#a3a09a' }}>zdjęcie {i + 1} z {zdjecia.length}</span>}
-                        <button type="button" onClick={() => ustaw(null)} className="plan-galeria-btn">zamknij (Esc)</button>
+                        <button ref={zamknijRef} type="button" onClick={() => ustaw(null)} className="plan-galeria-btn">zamknij (Esc)</button>
                     </div>
                     <div className="plan-galeria-srodek" style={{ flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

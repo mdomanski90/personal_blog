@@ -115,6 +115,7 @@ function Tomy({ k }: { k: Ksiega }) {
     return (
         <details className="ksiega-tomy" style={male}>
             <summary>{ileTomow(k.jednostki.length)}: roczniki, sygnatury, skany</summary>
+            <div className="rozwin-tresc">
             <ul>
                 {k.jednostki.map((j, i) => (
                     <li key={i}>
@@ -128,6 +129,7 @@ function Tomy({ k }: { k: Ksiega }) {
                     </li>
                 ))}
             </ul>
+            </div>
         </details>
     )
 }

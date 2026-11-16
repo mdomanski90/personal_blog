@@ -53,6 +53,7 @@ export default function ListaOsob({ osoby, kregi, krag, poczatek, wstep }: { oso
                     // przy wyszukiwaniu wszystkie litery z wynikami otwarte; bez – pierwsza
                     <details key={`${litera}-${szuka ? 's' : 'n'}`} className="osoba-litera" open={szuka || i < ROZWINIETE_LITERY}>
                         <summary><b>{litera}</b> <span className="text-[var(--tekst-opis)]">· {odmiana(os.length, ['osoba', 'osoby', 'osób'])}</span></summary>
+                        <div className="rozwin-tresc">
                         <ul className="osoby-lista">
                             {os.map((o) => (
                                 <li key={o.id}>
@@ -62,6 +63,7 @@ export default function ListaOsob({ osoby, kregi, krag, poczatek, wstep }: { oso
                                 </li>
                             ))}
                         </ul>
+                        </div>
                     </details>
                 ))}
             </div>

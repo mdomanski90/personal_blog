@@ -3,11 +3,14 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import PoleWyboru, { type OpcjaWyboru } from './PoleWyboru'
+import { pojaw } from '@/lib/ruch'
 
 export type WartosciFiltrow = { q: string; rodzaj: string; miejsce: string; temat: string; obiekt: string; osoba: string; zbior: string; od: string; do: string; sort: string }
 const KLUCZE: (keyof WartosciFiltrow)[] = ['q', 'rodzaj', 'miejsce', 'temat', 'obiekt', 'osoba', 'zbior', 'od', 'do', 'sort']
 const PUSTE = Object.fromEntries(KLUCZE.map((k) => [k, ''])) as WartosciFiltrow
 const OPOZNIENIE = 450
+/** 5A: wynik filtrów pod ramką (siatka materiałów, lista pozycji, komunikat „nic nie pasuje”) – wchodzi wygaszeniem */
+const WYNIK = '.siatka-miniatur, .lista-pozycji, .k-kom'
 
 const rokPoprawny = (s: string) => s === '' || /^-?\d{1,4}$/.test(s)
 
@@ -59,6 +62,17 @@ export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'sz
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [adresSerwera])
 
+    // 5A (scena 3): po przeliczeniu filtrów nowa lista wchodzi wygaszeniem (--ruch-sredni), bez przesuwania pozycji;
+    // przy ograniczeniu ruchu – od razu
+    const ramka = React.useRef<HTMLDetailsElement>(null)
+    const czekal = React.useRef(false)
+    React.useEffect(() => {
+        if (czekal.current && !czeka) {
+            for (let el = ramka.current?.nextElementSibling; el; el = el.nextElementSibling) if (el.matches(WYNIK)) pojaw(el, 'sredni')
+        }
+        czekal.current = czeka
+    }, [czeka])
+
     const zastosuj = React.useCallback((nowe: WartosciFiltrow, zastap = false) => {
         const cel = adresDla(nowe)
         if (cel === ostatni.current) return
@@ -87,12 +101,13 @@ export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'sz
     const [otwarte, ustawOtwarte] = React.useState(aktywnych > 0)
 
     return (
-        <details className="k-filtry-ramka" open={otwarte} onToggle={(e) => ustawOtwarte((e.currentTarget as HTMLDetailsElement).open)}>
+        <details ref={ramka} className="k-filtry-ramka" open={otwarte} onToggle={(e) => ustawOtwarte((e.currentTarget as HTMLDetailsElement).open)}>
         <summary className="k-filtry-naglowek">
             <span className="k-filtry-tytul">{tytul}</span>
             {aktywnych > 0 && <span className="k-filtry-licznik">{aktywnych} {aktywnych === 1 ? 'filtr' : aktywnych < 5 ? 'filtry' : 'filtrów'}</span>}
             <span className="k-btn k-filtry-przelacz">{otwarte ? 'zwiń' : 'rozwiń'} <span aria-hidden="true">{otwarte ? '▴' : '▾'}</span></span>
         </summary>
+        <div className="rozwin-tresc">
         <form method="get" action={adresBazowy} className="k-filtry" aria-busy={czeka}
             onSubmit={(e) => { e.preventDefault(); if (zegar.current) clearTimeout(zegar.current); zastosuj({ ...w, q: w.q.trim() }) }}>
             <label className="k-etykieta k-filtry-szeroki">{etykietaFrazy}
@@ -121,6 +136,7 @@ export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'sz
                 {czeka && <span className="k-podpowiedz" role="status">wczytuję…</span>}
             </span>
         </form>
+        </div>
         </details>
     )
 }

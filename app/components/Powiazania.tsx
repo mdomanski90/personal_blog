@@ -49,10 +49,12 @@ export default function Powiazania({ dane }: { dane: DanePowiazan }) {
                     <summary className="cursor-pointer lowercase font-bold" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
                         wspomniane bez odnośnika ({dane.wzmianki.length})
                     </summary>
+                    <div className="rozwin-tresc flex flex-col">
                     <p className="text-[var(--tekst-etykieta)] lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))', margin: '6px 0 10px' }}>
                         teksty, w których pada ta nazwa albo jej forma, ale bez odnośnika [[…]] i bez powiązania w panelu.
                     </p>
                     <Lista zrodla={dane.wzmianki} wyroznienie="wzmianka" />
+                    </div>
                 </details>
             )}
         </>

@@ -13,6 +13,7 @@ import type { OsobaNaPlanie, KrewnyNaPlanie } from '@/lib/plany/rodzina'
 import { kadr, Podzialka, RysunekPlanu, Wzory } from './Rysunek'
 import { Probka, WzoryProbek } from './Probka'
 import PoleSzukania from '../PoleSzukania'
+import { animuj, useFokusPowrotu } from '@/lib/ruch'
 
 type VB = [number, number, number, number]
 
@@ -97,13 +98,27 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         const q = p.matrixTransform(m)
         return [q.x, q.y]
     }
-    const zoom = React.useCallback((f: number, cx?: number, cy?: number) => {
-        ustawVb(([x, y, w, h]) => {
+    // 5A (scena 6): przesunięcie widoku płynnie (--ruch-wolny, --ruch-krzywa) przy wyborze grobu i przyciskach +/−/⤢;
+    // kółko, palce i przeciąganie – bez animacji (przerywają trwającą); przy ograniczeniu ruchu – od razu
+    const vbRef = React.useRef(vb)
+    vbRef.current = vb
+    const przerwij = React.useRef<() => void>(() => {})
+    React.useEffect(() => () => przerwij.current(), [])
+    const plynnie = React.useCallback((cel: (v: VB) => VB) => {
+        przerwij.current()
+        const od = vbRef.current, doc = cel(od)
+        if (od.every((v, i) => v === doc[i])) return
+        przerwij.current = animuj('wolny', (p) => ustawVb(p >= 1 ? doc : od.map((v, i) => v + (doc[i] - v) * p) as VB))
+    }, [])
+    const zoom = React.useCallback((f: number, cx?: number, cy?: number, gladko = false) => {
+        const cel = ([x, y, w, h]: VB): VB => {
             const nw = Math.min(pelny[2] * 1.3, Math.max(u * 6, w * f)), k = nw / w
             const px = cx ?? x + w / 2, py = cy ?? y + h / 2
             return [px - (px - x) * k, py - (py - y) * k, nw, h * k]
-        })
-    }, [pelny, u])
+        }
+        if (gladko) plynnie(cel)
+        else { przerwij.current(); ustawVb(cel) }
+    }, [pelny, u, plynnie])
     const ruch = React.useRef<{ wsk: Map<number, [number, number]>; start?: { x: number; y: number; vb: VB }; pinch?: { d: number; vb: VB; c: [number, number] }; przesuniety: boolean }>({ wsk: new Map(), przesuniety: false })
 
     const opisElementu = (e: Element): string => {
@@ -115,6 +130,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         return e.nazwa || t?.nazwa || ''
     }
     const pointerDown = (e: React.PointerEvent) => {
+        przerwij.current()
         const r = ruch.current
         r.wsk.set(e.pointerId, [e.clientX, e.clientY])
         ;(e.currentTarget as globalThis.Element).setPointerCapture(e.pointerId)
@@ -181,30 +197,35 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         return () => s.removeEventListener('wheel', kolko)
     }, [zoom])
 
-    const pokazElement = React.useCallback((e: Element, zostawRodzine = false) => {
+    const pokazElement = React.useCallback((e: Element, zostawRodzine = false, gladko = true) => {
         ustawWybrany(e.id)
         if (!zostawRodzine) ustawRodzinaDla(null)
         if (plan.obrot) return
         const pts = punktyElementu(e.g), xs = pts.map((p) => p[0])
         const [cx, cy] = srodek(e.g)
-        ustawVb(([x0, y0, w0, h0]) => {
+        const cel = ([x0, y0, w0, h0]: VB): VB => {
             // przybliż, jeśli trzeba; nie oddalaj, gdy czytelnik już przybliżył
             const w = Math.min(w0, Math.max(u * 14, (Math.max(...xs) - Math.min(...xs)) * 4)), h = (w * h0) / w0
             const widac = cx > x0 + w0 * 0.1 && cx < x0 + w0 * 0.9 && cy > y0 + h0 * 0.1 && cy < y0 + h0 * 0.9
             return widac && w === w0 ? [x0, y0, w0, h0] : [cx - w / 2, cy - h / 2, w, h]
-        })
-    }, [plan.obrot, u])
+        }
+        if (gladko) plynnie(cel)
+        else { przerwij.current(); ustawVb(cel) }
+    }, [plan.obrot, u, plynnie])
 
     // link do grobu: ?grob=<id> – zaznacza grób i przybliża
     React.useEffect(() => {
         const id = new URLSearchParams(window.location.search).get('grob')
         const e = id ? elementy.get(id) : null
-        if (e) pokazElement(e)
+        // wejście na stronę z odnośnikiem do grobu – od razu (nic nie „wjeżdża” przy wejściu na stronę)
+        if (e) pokazElement(e, false, false)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+    const pierwszyPokaz = React.useRef(true)
     React.useEffect(() => {
         const e = pokazGrob ? elementy.get(pokazGrob.id) : null
-        if (e) pokazElement(e)
+        if (e) pokazElement(e, false, !pierwszyPokaz.current)
+        pierwszyPokaz.current = false
     }, [pokazGrob, elementy, pokazElement])
 
     // ---------- eksport ----------
@@ -246,6 +267,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
     }
     // JW-17: wydruk na wspólnym arkuszu druku (tytuł strony, stopka z numerami kartek); przed drukiem cały plan w kadrze
     const drukuj = () => {
+        przerwij.current()
         ustawVb(pelny)
         setTimeout(() => window.print(), 100)
     }
@@ -297,7 +319,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
                         <Podzialka plan={plan} kadr={pelny} />
                     </svg>
                     <div className="plan-bez-druku" style={{ position: 'absolute', right: 10, top: 10, display: 'flex', flexDirection: 'column' }}>
-                        {[['+', () => zoom(1 / 1.4), 'przybliż'], ['−', () => zoom(1.4), 'oddal'], ['⤢', () => ustawVb(pelny), 'cały plan']].map(([t, f, l], i) => (
+                        {[['+', () => zoom(1 / 1.4, undefined, undefined, true), 'przybliż'], ['−', () => zoom(1.4, undefined, undefined, true), 'oddal'], ['⤢', () => plynnie(() => pelny), 'cały plan']].map(([t, f, l], i) => (
                             <button key={i} type="button" aria-label={l as string} onClick={f as () => void} className={przycisk} style={{ width: 32, height: 32, fontSize: 16, marginTop: i ? -1 : 0, borderRadius: i === 0 ? '7px 7px 0 0' : i === 2 ? '0 0 7px 7px' : 0 }}>{t as string}</button>
                         ))}
                     </div>
@@ -328,6 +350,7 @@ function Legenda({ uzyte, prefix, wylaczone, przelacz, wszystkie, rodzina }: { u
                 <span className="plan-legenda-tytul">legenda</span>
                 {wylaczone.size > 0 && <button type="button" onClick={(e) => { e.preventDefault(); wszystkie() }} className="plan-bez-druku text-[#4c3cc4] dark:text-[#419cff]" style={{ fontSize: 12, background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>pokaż wszystko</button>}
             </summary>
+            <div className="rozwin-tresc flex flex-col gap-1.5">
             <span className="plan-bez-druku text-[var(--tekst-etykieta)]" style={{ fontSize: 11, marginTop: 6 }}>kliknij, żeby ukryć albo pokazać</span>
             <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(13rem, 1fr))', gap: '4px 16px', marginTop: 6 }}>
                 {uzyte.map(({ t, n }) => (
@@ -337,6 +360,7 @@ function Legenda({ uzyte, prefix, wylaczone, przelacz, wszystkie, rodzina }: { u
                     </button>
                 ))}
                 {rodzina && <span className="flex items-center" style={{ gap: 9, fontSize: 13 }}><span className="plan-rodzina-probka" aria-hidden="true" />grób rodziny</span>}
+            </div>
             </div>
         </details>
     )
@@ -521,6 +545,9 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
 /** Zdjęcie nagrobka w powiększeniu, obok napis do porównania. Esc zamyka, strzałki przewijają. */
 function Galeria({ plan, el, numer, i, ustaw }: { plan: Plan; el: Element; numer?: Numer; i: number; ustaw: (i: number | null) => void }) {
     const L = el.zdjecia ?? []
+    // 5A (scena 4): okno wchodzi wygaszeniem (globals.css), fokus na „zamknij”, po zamknięciu wraca na miniaturę
+    const zamknijRef = React.useRef<HTMLButtonElement>(null)
+    useFokusPowrotu(true, { wejscie: () => zamknijRef.current })
     React.useEffect(() => {
         const k = (e: KeyboardEvent) => {
             if (e.key === 'Escape') ustaw(null)
@@ -539,7 +566,7 @@ function Galeria({ plan, el, numer, i, ustaw }: { plan: Plan; el: Element; numer
                 <span style={{ fontSize: 13 }}>{plan.tytul}{numer ? ` · ${numerTekst(numer)}` : ''}</span>
                 <span style={{ flex: 1 }} />
                 {L.length > 1 && <span style={{ fontSize: 12.5, color: '#a3a09a' }}>zdjęcie {i + 1} z {L.length}</span>}
-                <button type="button" onClick={() => ustaw(null)} className="plan-galeria-btn">zamknij (Esc)</button>
+                <button ref={zamknijRef} type="button" onClick={() => ustaw(null)} className="plan-galeria-btn">zamknij (Esc)</button>
             </div>
             <div className="plan-galeria-srodek">
                 <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

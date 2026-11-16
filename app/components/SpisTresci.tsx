@@ -1,5 +1,6 @@
 'use client'
 import * as React from 'react'
+import { przewinDo } from '@/lib/ruch'
 
 export interface PozycjaSpisu { id: string; tekst: string }
 
@@ -40,8 +41,7 @@ export default function SpisTresci({ pozycje, tytul = 'na tej stronie' }: { pozy
         const cel = document.getElementById(id)
         if (!cel) return
         e.preventDefault()
-        const bezRuchu = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        cel.scrollIntoView({ behavior: bezRuchu ? 'auto' : 'smooth', block: 'start' })
+        przewinDo(cel, { block: 'start' })
         if (!cel.hasAttribute('tabindex')) cel.setAttribute('tabindex', '-1')
         cel.focus({ preventScroll: true })
         history.replaceState(null, '', `#${id}`)
@@ -52,6 +52,7 @@ export default function SpisTresci({ pozycje, tytul = 'na tej stronie' }: { pozy
         <nav className="spis-tresci" aria-label="spis treści">
             <details ref={details} open>
                 <summary className="spis-tresci-tytul">{tytul}</summary>
+                <div className="rozwin-tresc">
                 <ol>
                     {pozycje.map((p) => (
                         <li key={p.id}>
@@ -59,6 +60,7 @@ export default function SpisTresci({ pozycje, tytul = 'na tej stronie' }: { pozy
                         </li>
                     ))}
                 </ol>
+                </div>
             </details>
         </nav>
     )
