@@ -754,6 +754,7 @@ export async function objasnieniaDoWidoku(id: string, poziom: Widocznosc): Promi
         powiazania: o.powiazania.map((p) => rozwiaz(p)).filter((c): c is Cel => !!c).map((c) => ({ nazwa: c.nazwa, adres: c.adres })),
         opracowal: o.opracowal,
         ...(o.weryfikacja ? { weryfikacja: o.weryfikacja } : {}),
+        ...(o.ksztalt ? { ksztalt: o.ksztalt } : {}),
     }))
 }
 

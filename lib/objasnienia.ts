@@ -10,8 +10,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { ID_MATERIALU, NAZWA_STRONY } from './strony-materialow'
 
-import { JEZYKI, RODZAJE_OBJASNIEN, type RodzajObjasnienia, type WidocznoscObjasnienia } from './objasnienia-widok'
-export { JEZYKI, RODZAJE_OBJASNIEN, type RodzajObjasnienia, type WidocznoscObjasnienia }
+import { JEZYKI, RODZAJE_OBJASNIEN, obrysKsztaltu, poprawKsztalt, wKsztalcie, type Ksztalt, type RodzajObjasnienia, type WidocznoscObjasnienia } from './objasnienia-widok'
+export { JEZYKI, RODZAJE_OBJASNIEN, obrysKsztaltu, poprawKsztalt, wKsztalcie, type Ksztalt, type RodzajObjasnienia, type WidocznoscObjasnienia }
 
 const RODZAJ_Z_CELU = Object.fromEntries(Object.entries(RODZAJE_OBJASNIEN).map(([k, v]) => [v.cel, k])) as Record<string, RodzajObjasnienia>
 
@@ -37,12 +37,16 @@ export interface Objasnienie {
     widocznosc: WidocznoscObjasnienia
     utworzono?: string
     zmieniono?: string
+    /** PH-01: kształt na skanie w % strony – wielokąt albo punkt; brak = prostokąt x/y/w/h (x/y/w/h zawsze = obrys) */
+    ksztalt?: Ksztalt
 }
 
 export const ID_OBJASNIENIA = /^o-[a-z0-9]{4,24}$/
 const KONTEKST = 'http://www.w3.org/ns/anno.jsonld'
 const MEDIA = 'http://www.w3.org/TR/media-frags/'
 const WIDOCZNOSC = 'odniepamieci:widocznosc'
+/** kształt w % strony – tylko w pliku na serwerze (eksport: SvgSelector w pikselach) */
+const KSZTALT = 'odniepamieci:ksztalt'
 
 const liczba = (v: unknown, min = 0, max = 100) => {
     const n = Number(v)
@@ -55,8 +59,10 @@ export function poprawObjasnienie(o: Partial<Objasnienie> | null | undefined): O
     if (!o || typeof o !== 'object') return null
     if (typeof o.id !== 'string' || !ID_OBJASNIENIA.test(o.id)) return null
     if (typeof o.strona !== 'string' || !NAZWA_STRONY.test(o.strona)) return null
-    const x = liczba(o.x), y = liczba(o.y)
-    const w = liczba(o.w, 0, 100 - x), h = liczba(o.h, 0, 100 - y)
+    const ksztalt = poprawKsztalt(o.ksztalt)
+    const ob = ksztalt ? obrysKsztaltu(ksztalt) : null
+    const x = liczba(ob ? ob.x : o.x), y = liczba(ob ? ob.y : o.y)
+    const w = liczba(ob ? ob.w : o.w, 0, 100 - x), h = liczba(ob ? ob.h : o.h, 0, 100 - y)
     if (w <= 0 || h <= 0) return null
     const rodzaj = (o.rodzaj && o.rodzaj in RODZAJE_OBJASNIEN ? o.rodzaj : 'objasnienie') as RodzajObjasnienia
     const widocznosc: WidocznoscObjasnienia = o.widocznosc === 'bliscy' || o.widocznosc === 'ja' ? o.widocznosc : 'publiczne'
@@ -73,6 +79,7 @@ export function poprawObjasnienie(o: Partial<Objasnienie> | null | undefined): O
         widocznosc,
         ...(typeof o.utworzono === 'string' ? { utworzono: o.utworzono.slice(0, 40) } : {}),
         ...(typeof o.zmieniono === 'string' ? { zmieniono: o.zmieniono.slice(0, 40) } : {}),
+        ...(ksztalt ? { ksztalt } : {}),
     }
 }
 
@@ -89,12 +96,14 @@ export interface W3CAdnotacja {
     type: 'Annotation'
     motivation: string
     body: Record<string, unknown>[]
-    target: { source: string; selector: { type: 'FragmentSelector'; conformsTo: string; value: string } }
+    target: { source: string; selector: SelektorW3C | SelektorW3C[] }
     creator?: { type: 'Person'; name: string }
     created?: string
     modified?: string
     [WIDOCZNOSC]?: WidocznoscObjasnienia
+    [KSZTALT]?: Ksztalt
 }
+type SelektorW3C = { type: 'FragmentSelector'; conformsTo: string; value: string } | { type: 'SvgSelector'; value: string }
 
 export interface OpcjeW3C {
     /** adres pliku strony (domyślnie sama nazwa pliku) */
@@ -103,8 +112,18 @@ export interface OpcjeW3C {
     powiazanie?: (id: string) => string | null
     /** identyfikator adnotacji (domyślnie „#o-…”) */
     idAdnotacji?: (id: string) => string
-    /** zapis widoczności (tylko w pliku na serwerze, nie w eksporcie) */
+    /** zapis widoczności i kształtu w % (tylko w pliku na serwerze, nie w eksporcie) */
     zWidocznoscia?: boolean
+    /** eksport: wymiary oryginału strony w pikselach – wielokąt i punkt dostają SvgSelector (K9) */
+    wymiary?: (strona: string) => [number, number] | null
+}
+
+/** SvgSelector w pikselach oryginału (W3C): wielokąt albo mały okrąg dla punktu. */
+export function selektorSvg(k: Ksztalt, szer: number, wys: number): string {
+    const px = (x: number, y: number) => `${Math.round((x * szer) / 100)},${Math.round((y * wys) / 100)}`
+    return k.k === 'w'
+        ? `<svg xmlns="http://www.w3.org/2000/svg"><polygon points="${k.p.map(([x, y]) => px(x, y)).join(' ')}"/></svg>`
+        : `<svg xmlns="http://www.w3.org/2000/svg"><circle cx="${Math.round((k.x * szer) / 100)}" cy="${Math.round((k.y * wys) / 100)}" r="${Math.max(4, Math.round(Math.min(szer, wys) * 0.005))}"/></svg>`
 }
 
 export function naW3C(o: Objasnienie, op: OpcjeW3C = {}): W3CAdnotacja {
@@ -121,18 +140,26 @@ export function naW3C(o: Objasnienie, op: OpcjeW3C = {}): W3CAdnotacja {
         type: 'Annotation',
         motivation: r.cel,
         body,
-        target: { source: op.zrodlo ? op.zrodlo(o.strona) : o.strona, selector: { type: 'FragmentSelector', conformsTo: MEDIA, value: `xywh=percent:${f(o.x)},${f(o.y)},${f(o.w)},${f(o.h)}` } },
+        target: { source: op.zrodlo ? op.zrodlo(o.strona) : o.strona, selector: selektory(o, op, f) },
         ...(o.opracowal ? { creator: { type: 'Person' as const, name: o.opracowal } } : {}),
         ...(o.utworzono ? { created: o.utworzono } : {}),
         ...(o.zmieniono ? { modified: o.zmieniono } : {}),
         ...(op.zWidocznoscia ? { [WIDOCZNOSC]: o.widocznosc } : {}),
+        ...(op.zWidocznoscia && o.ksztalt ? { [KSZTALT]: o.ksztalt } : {}),
     }
+}
+
+function selektory(o: Objasnienie, op: OpcjeW3C, f: (n: number) => string): SelektorW3C | SelektorW3C[] {
+    const frag: SelektorW3C = { type: 'FragmentSelector', conformsTo: MEDIA, value: `xywh=percent:${f(o.x)},${f(o.y)},${f(o.w)},${f(o.h)}` }
+    const wym = o.ksztalt && op.wymiary ? op.wymiary(o.strona) : null
+    return o.ksztalt && wym ? [frag, { type: 'SvgSelector', value: selektorSvg(o.ksztalt, wym[0], wym[1]) }] : frag
 }
 
 export function zW3C(a: Partial<W3CAdnotacja> | null | undefined): Objasnienie | null {
     if (!a || typeof a !== 'object') return null
     const id = String(a.id ?? '').replace(/^.*#/, '')
-    const sel = a.target?.selector?.value ?? ''
+    const s0 = a.target?.selector
+    const sel = (Array.isArray(s0) ? s0.find((x) => x.type === 'FragmentSelector')?.value : s0?.value) ?? ''
     const m = /^xywh=percent:([\d.]+),([\d.]+),([\d.]+),([\d.]+)$/.exec(sel)
     if (!m) return null
     const ciala = Array.isArray(a.body) ? a.body : []
@@ -151,6 +178,7 @@ export function zW3C(a: Partial<W3CAdnotacja> | null | undefined): Objasnienie |
         widocznosc: a[WIDOCZNOSC],
         utworzono: a.created,
         zmieniono: a.modified,
+        ksztalt: a[KSZTALT],
     })
 }
 

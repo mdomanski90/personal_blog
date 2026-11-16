@@ -1,4 +1,5 @@
 'use client'
+import { obrysKsztaltu, poprawKsztalt, type Ksztalt } from '@/lib/objasnienia-widok'
 // Objaśnienia na skanach materiału: zaznaczanie fragmentu (Annotorious na OpenSeadragonie) i opis – odczyt, tłumaczenie,
 // objaśnienie, pieczęć; powiązania z osobami, miejscami, tematami; kto opracował, weryfikacja w źródłach, widoczność.
 // Zapis automatyczny (W3C Web Annotation w content/objasnienia/<id>.json).
@@ -14,6 +15,8 @@ type Strona = { plik: string; podpis?: string; podglad: string }
 type Obj = {
     id: string; strona: string; x: number; y: number; w: number; h: number; rodzaj: RodzajObjasnienia; tekst: string; jezyk?: string
     powiazania: string[]; opracowal: string; weryfikacja?: string; widocznosc: 'publiczne' | 'bliscy' | 'ja'; utworzono?: string; zmieniono?: string
+    /** PH-01: wielokąt albo punkt w % strony */
+    ksztalt?: Ksztalt
 }
 type Cel = { id: string; nazwa: string; rodzaj: string }
 type Dane = { id: string; nazwa: string; widocznosc: string; opracowal: string; strony: Strona[]; objasnienia: Obj[]; cele: Cel[] }
@@ -31,6 +34,12 @@ export default function ObjasnieniaMaterialu() {
     const [strona, ustawStrone] = React.useState(0)
     const [wybrane, ustawWybrane] = React.useState<string | null>(null)
     const [rysuje, ustawRysuje] = React.useState(false)
+    // PH-01: prostokąt i wielokąt – rdzeń Annotorious; punkt – własne kliknięcie (bez wtyczki, decyzja PH0 A1)
+    const [narzedzie, ustawNarzedzie] = React.useState<'prostokat' | 'wielokat' | 'punkt'>('prostokat')
+    const narzRef = React.useRef(narzedzie)
+    narzRef.current = narzedzie
+    const rysujeRef = React.useRef(rysuje)
+    rysujeRef.current = rysuje
     const [stanZapisu, ustawStanZapisu] = React.useState<'' | 'zapisuję…' | 'zapisano' | string>('')
     const [kom, ustawKom] = React.useState('')
     const pole = React.useRef<HTMLDivElement>(null)
@@ -79,11 +88,20 @@ export default function ObjasnieniaMaterialu() {
     const naAnno = React.useCallback((o: Obj): ImageAnnotation | null => {
         const s = rozmiar(); if (!s) return null
         const x = (o.x / 100) * s.x, y = (o.y / 100) * s.y, w = (o.w / 100) * s.x, h = (o.h / 100) * s.y
+        if (o.ksztalt?.k === 'w') {
+            const points = o.ksztalt.p.map(([px, py]) => [(px / 100) * s.x, (py / 100) * s.y])
+            return { id: o.id, bodies: [], target: { annotation: o.id, selector: { type: 'POLYGON', geometry: { points, bounds: { minX: x, minY: y, maxX: x + w, maxY: y + h } } } } } as unknown as ImageAnnotation
+        }
         return { id: o.id, bodies: [], target: { annotation: o.id, selector: { type: 'RECTANGLE', geometry: { x, y, w, h, bounds: { minX: x, minY: y, maxX: x + w, maxY: y + h } } } } } as unknown as ImageAnnotation
     }, [])
-    const zAnno = (a: ImageAnnotation) => {
+    const zAnno = (a: ImageAnnotation): { x: number; y: number; w: number; h: number; ksztalt?: Ksztalt } | null => {
         const s = rozmiar(); const b = a.target.selector.geometry.bounds
         if (!s) return null
+        const sel = a.target.selector as unknown as { type: string; geometry: { points?: [number, number][] } }
+        if (sel.type === 'POLYGON' && sel.geometry.points && sel.geometry.points.length >= 3) {
+            const k = poprawKsztalt({ k: 'w', p: sel.geometry.points.map(([px, py]) => [zaokr(Math.min(100, Math.max(0, (px / s.x) * 100))), zaokr(Math.min(100, Math.max(0, (py / s.y) * 100)))]) })
+            if (k) return { ...obrysKsztaltu(k), ksztalt: k }
+        }
         const x = Math.max(0, b.minX), y = Math.max(0, b.minY), x2 = Math.min(s.x, b.maxX), y2 = Math.min(s.y, b.maxY)
         return { x: zaokr((x / s.x) * 100), y: zaokr((y / s.y) * 100), w: zaokr(((x2 - x) / s.x) * 100), h: zaokr(((y2 - y) / s.y) * 100) }
     }
@@ -120,14 +138,42 @@ export default function ObjasnieniaMaterialu() {
                 style: { fill: '#4c3cc4', fillOpacity: 0.08, stroke: '#4c3cc4', strokeOpacity: 0.95, strokeWidth: 2 },
             })
             a.setDrawingTool('rectangle')
+            // punkt: krótkie kliknięcie na skanie przy włączonym narzędziu „punkt”
+            v.addHandler('canvas-click', (e) => {
+                const ev = e as unknown as { quick: boolean; position: { x: number; y: number }; preventDefaultAction: boolean }
+                if (!ev.quick || !rysujeRef.current || narzRef.current !== 'punkt') return
+                ev.preventDefaultAction = true
+                const ti = v.world.getItemAt(0), s = ti?.getContentSize()
+                if (!ti || !s) return
+                const ip = ti.viewportToImageCoordinates(v.viewport.pointFromPixel(new OSD.Point(ev.position.x, ev.position.y), true))
+                const k = poprawKsztalt({ k: 'p', x: zaokr((ip.x / s.x) * 100), y: zaokr((ip.y / s.y) * 100) })
+                if (k) dodajNowe({ ...obrysKsztaltu(k), ksztalt: k })
+            })
             a.on('createAnnotation', (x) => {
                 const g = zAnno(x)
+                a.removeAnnotation(x.id)
+                if (!g || g.w <= 0 || g.h <= 0) { a.setDrawingEnabled(false); ustawRysuje(false); return }
+                dodajNowe(g)
+            })
+            a.on('updateAnnotation', (x) => {
+                const g = zAnno(x); if (!g) return
+                // punkt pokazany jako mały prostokąt – po przesunięciu zostaje punktem (środek obrysu)
+                zmien((l) => l.map((o) => {
+                    if (o.id !== x.id) return o
+                    if (o.ksztalt?.k === 'p') { const k = poprawKsztalt({ k: 'p', x: zaokr(g.x + g.w / 2), y: zaokr(g.y + g.h / 2) }); return k ? { ...o, ...obrysKsztaltu(k), ksztalt: k } : o }
+                    const { ksztalt: _k, ...bez } = o
+                    return g.ksztalt ? { ...o, ...g } : { ...bez, ...g }
+                }))
+            })
+            a.on('deleteAnnotation', (x) => zmien((l) => l.filter((o) => o.id !== x.id)))
+            a.on('selectionChanged', (s) => { if (s[0]) ustawWybrane(s[0].id) })
+            // nowe objaśnienie z zaznaczenia (prostokąt, wielokąt) albo z kliknięcia (punkt)
+            function dodajNowe(g: { x: number; y: number; w: number; h: number; ksztalt?: Ksztalt }) {
+                if (!a || !dane) return
                 a.setDrawingEnabled(false); ustawRysuje(false)
                 const plik = dane.strony[stronaRef.current]?.plik
-                if (!g || !plik || g.w <= 0 || g.h <= 0) { a.removeAnnotation(x.id); return }
+                if (!plik) return
                 const nid = noweId()
-                // identyfikator w naszym formacie zamiast UUID Annotoriousa
-                a.removeAnnotation(x.id)
                 let autor = dane.opracowal
                 try { autor = localStorage.getItem(KLUCZ_AUTORA) || autor } catch { /* bez pamięci */ }
                 const poprzednie = listaRef.current.filter((o) => o.strona === plik).at(-1)
@@ -137,13 +183,7 @@ export default function ObjasnieniaMaterialu() {
                 if (na) { a.addAnnotation(na); a.setSelected(nid, true) }
                 ustawWybrane(nid)
                 window.setTimeout(() => document.getElementById('obj-tekst')?.focus(), 50)
-            })
-            a.on('updateAnnotation', (x) => {
-                const g = zAnno(x); if (!g) return
-                zmien((l) => l.map((o) => (o.id === x.id ? { ...o, ...g } : o)))
-            })
-            a.on('deleteAnnotation', (x) => zmien((l) => l.filter((o) => o.id !== x.id)))
-            a.on('selectionChanged', (s) => { if (s[0]) ustawWybrane(s[0].id) })
+            }
             v.addHandler('open', () => pokazStrone())
             v.addHandler('page', (e) => { ustawStrone((e as unknown as { page: number }).page); ustawWybrane(null) })
             widz.current = v
@@ -158,8 +198,14 @@ export default function ObjasnieniaMaterialu() {
     const zaznaczaj = () => {
         const a = anno.current; if (!a) return
         const nowy = !rysuje
-        a.setDrawingEnabled(nowy)
+        a.setDrawingEnabled(nowy && narzedzie !== 'punkt')
         ustawRysuje(nowy)
+    }
+    const wybierzNarzedzie = (n: 'prostokat' | 'wielokat' | 'punkt') => {
+        const a = anno.current
+        ustawNarzedzie(n)
+        if (n !== 'punkt') a?.setDrawingTool(n === 'wielokat' ? 'polygon' : 'rectangle')
+        a?.setDrawingEnabled(rysuje && n !== 'punkt')
     }
     const wybierz = (oid: string) => {
         ustawWybrane(oid)
@@ -208,7 +254,10 @@ export default function ObjasnieniaMaterialu() {
                                 <button className="pn-btn" onClick={() => widz.current?.goToPage(Math.min(dane.strony.length - 1, strona + 1))} disabled={strona >= dane.strony.length - 1} aria-label="następna strona">›</button>
                                 {dane.strony[strona]?.podpis && <span className="pn-maly">{dane.strony[strona].podpis}</span>}
                             </span>
-                            <button className={`pn-btn${rysuje ? ' pn-btn-gl' : ''}`} onClick={zaznaczaj}>{rysuje ? 'przeciągnij na skanie… (anuluj)' : '＋ zaznacz fragment'}</button>
+                            <span className="pn-rzad" role="group" aria-label="kształt zaznaczenia">
+                                {([['prostokat', 'prostokąt'], ['wielokat', 'wielokąt'], ['punkt', 'punkt']] as const).map(([n, t]) => <button key={n} className={`pn-btn${narzedzie === n ? ' pn-btn-gl' : ''}`} aria-pressed={narzedzie === n} onClick={() => wybierzNarzedzie(n)}>{t}</button>)}
+                            </span>
+                            <button className={`pn-btn${rysuje ? ' pn-btn-gl' : ''}`} onClick={zaznaczaj}>{rysuje ? `${narzedzie === 'prostokat' ? 'przeciągnij' : narzedzie === 'wielokat' ? 'klikaj wierzchołki, dwuklik kończy' : 'kliknij miejsce'} na skanie… (anuluj)` : '＋ zaznacz fragment'}</button>
                         </div>
                         <div ref={pole} style={{ height: '72vh', minHeight: 420, border: '1px solid var(--linia)', borderRadius: 8, background: 'var(--tlo2)', cursor: rysuje ? 'crosshair' : 'grab' }} />
                         <span className="pn-maly">Kółko – przybliżanie, przeciąganie – przesuwanie. „＋ zaznacz fragment”, potem przeciągnij prostokąt wokół wyrazu, linijki, pieczęci. Kliknięty prostokąt można przesunąć i zmienić jego rozmiar.</span>

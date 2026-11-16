@@ -851,6 +851,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dok-pole.nad-objasnieniem{cursor:pointer}
 .dok-obj-svg{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:2}
 .dok-obj-ramka{fill:rgba(76,60,196,.04);stroke:#4c3cc4;stroke-opacity:.5;stroke-width:1.25;transition:fill .12s}
+.dok-obj-ramka.dok-obj-punkt{fill:var(--akcent-tlo);stroke-width:2;stroke-opacity:.9}
 .dok-obj-ramka.wskazana{stroke-opacity:.9;fill:rgba(76,60,196,.1)}
 .dok-obj-ramka.aktywna{stroke-opacity:1;stroke-width:2.2;fill:rgba(76,60,196,.1)}
 .dok-obj-kreska{stroke:#4c3cc4;stroke-opacity:.4;stroke-width:1;fill:none}

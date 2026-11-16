@@ -10,7 +10,7 @@ const o: Objasnienie = {
 test('objaśnienie → W3C → objaśnienie', () => {
     const a = naW3C(o, { zWidocznoscia: true })
     assert.equal(a.motivation, 'transcribing')
-    assert.equal(a.target.selector.value, 'xywh=percent:10.5,20,30,5.25')
+    assert.equal((a.target.selector as { value: string }).value, 'xywh=percent:10.5,20,30,5.25')
     assert.deepEqual(a.body.filter((b) => b.purpose === 'linking').map((b) => b.source), ['olszanka', 'jan-testowy-1880'])
     assert.deepEqual(zW3C(JSON.parse(JSON.stringify(a))), o)
 })

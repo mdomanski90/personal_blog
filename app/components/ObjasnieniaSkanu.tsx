@@ -6,7 +6,7 @@
 
 import * as React from 'react'
 import type OpenSeadragon from 'openseadragon'
-import { RODZAJE_OBJASNIEN, type ObjasnienieWidoku } from '@/lib/objasnienia-widok'
+import { RODZAJE_OBJASNIEN, wKsztalcie, type ObjasnienieWidoku } from '@/lib/objasnienia-widok'
 
 export type TrybObjasnien = 'margines' | 'numery' | 'ukryj'
 export type ObjasnienieNaStronie = ObjasnienieWidoku & { nr: number }
@@ -102,7 +102,8 @@ export default function ObjasnieniaSkanu({ widz, osd, pole, obszar, lista, tryb,
             const p = v.viewport.pixelFromPoint(ti.imageToViewportCoordinates(new P((x / 100) * s.x, (y / 100) * s.y)), true)
             return { x: p.x + dx, y: p.y + dy }
         }
-        const pkt = [px(o.x, o.y), px(o.x + o.w, o.y), px(o.x + o.w, o.y + o.h), px(o.x, o.y + o.h)]
+        // PH-01: wielokąt – jego wierzchołki; punkt i prostokąt – narożniki obrysu
+        const pkt = o.ksztalt?.k === 'w' ? o.ksztalt.p.map(([x, y]) => px(x, y)) : [px(o.x, o.y), px(o.x + o.w, o.y), px(o.x + o.w, o.y + o.h), px(o.x, o.y + o.h)]
         const xs = pkt.map((p) => p.x), ys = pkt.map((p) => p.y)
         return { pkt, minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys), pole: { l: dx, t: dy, r: dx + pr.width, b: dy + pr.height } }
     }, [widz, osd, pole, obszar])
@@ -130,9 +131,11 @@ export default function ObjasnieniaSkanu({ widz, osd, pole, obszar, lista, tryb,
         el.appendChild(grupa)
         for (const o of l) {
             const g = geo.get(o.id); if (!g) continue
-            const p = document.createElementNS(NS, 'polygon')
-            p.setAttribute('points', g.pkt.map((q) => `${q.x},${q.y}`).join(' '))
-            p.setAttribute('class', `dok-obj-ramka dok-obj-${o.rodzaj}${o.id === a ? ' aktywna' : ''}${o.id === w ? ' wskazana' : ''}`)
+            const punkt = o.ksztalt?.k === 'p'
+            const p = document.createElementNS(NS, punkt ? 'circle' : 'polygon')
+            if (punkt) { p.setAttribute('cx', String((g.minX + g.maxX) / 2)); p.setAttribute('cy', String((g.minY + g.maxY) / 2)); p.setAttribute('r', '7') }
+            else p.setAttribute('points', g.pkt.map((q) => `${q.x},${q.y}`).join(' '))
+            p.setAttribute('class', `dok-obj-ramka dok-obj-${o.rodzaj}${punkt ? ' dok-obj-punkt' : ''}${o.id === a ? ' aktywna' : ''}${o.id === w ? ' wskazana' : ''}`)
             grupa.appendChild(p)
             if (t === 'numery' && widac(g)) {
                 const gr = document.createElementNS(NS, 'g')
@@ -202,7 +205,8 @@ export default function ObjasnieniaSkanu({ widz, osd, pole, obszar, lista, tryb,
                 const s = ti.getContentSize()
                 const ip = ti.viewportToImageCoordinates(v.viewport.pointFromPixel(new P(x, y), true))
                 const px = (ip.x / s.x) * 100, py = (ip.y / s.y) * 100
-                const pod = stan.current.lista.filter((o) => px >= o.x && px <= o.x + o.w && py >= o.y && py <= o.y + o.h).sort((a, b) => a.w * a.h - b.w * b.h)
+                // PH-01: trafienie w kształt (wielokąt, punkt w promieniu, prostokąt); najmniejszy pod kursorem
+                const pod = stan.current.lista.filter((o) => wKsztalcie(o, px, py, (12 / v.viewport.getContainerSize().x) * 100 / Math.max(v.viewport.getZoom(true) / v.viewport.getHomeZoom(), 0.1))).sort((a, b) => a.w * a.h - b.w * b.h)
                 return pod[0]?.id ?? null
             },
             pokaz: (id) => {
