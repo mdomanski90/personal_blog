@@ -232,19 +232,21 @@ function Dolina({ pts, szer, u }: { pts: Pkt[]; szer: number; u: number }) {
 
 // ---------- linie ----------
 interface Linia { d: string; szer: number; e: Element; rys: string; wl?: { kolor: string; kreski: string } }
-const DOMYSLNA_SZER: Record<string, number> = { droga: 0.9, polna: 0.45, sciezka: 0.09, alejka: 0.85, rzeka: 0.36, ogrodzenie: 0.05, granica: 0.045, dolina: 1.2, wlasny: 0.12 }
+const DOMYSLNA_SZER: Record<string, number> = { ulica: 1.5, kolej: 0.3, wal: 0.55, most: 0.9, droga: 0.9, polna: 0.45, sciezka: 0.09, alejka: 0.85, rzeka: 0.36, ogrodzenie: 0.05, granica: 0.045, dolina: 1.2, wlasny: 0.12 }
 export const szerLinii = (e: Element, rys: string, u: number) => e.szer ?? (DOMYSLNA_SZER[rys] ?? 0.1) * u
 
 function SiecDrog({ linie, u }: { linie: Linia[]; u: number }) {
     // kolejność: podkłady dróg polnych, ich kreskowanie, obwódki dróg i alejek, wypełnienia – bez konturów na skrzyżowaniach
-    const pol = linie.filter((l) => l.rys === 'polna'), bite = linie.filter((l) => l.rys === 'droga' || l.rys === 'alejka')
+    // ulica (PH-22) rysuje się razem z drogami – skrzyżowania ulic bez konturów; mocniejszy brzeg z tokenu --pl-ulica-obw
+    const pol = linie.filter((l) => l.rys === 'polna'), bite = linie.filter((l) => l.rys === 'droga' || l.rys === 'alejka' || l.rys === 'ulica')
+    const obw: Record<string, [string, number]> = { droga: ['droga-obw', 0.2], alejka: ['alejka-obw', 0.14], ulica: ['ulica-obw', 0.16] }
     const okr: React.CSSProperties = { fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
     return (
         <g>
             {pol.map((l) => <path key={'pt' + l.e.id} d={l.d} style={{ ...okr, stroke: v('polna-tlo'), strokeWidth: l.szer }} />)}
             {pol.map((l) => <path key={'pk' + l.e.id} d={l.d} style={{ ...okr, stroke: v('polna'), strokeWidth: Math.max(u * 0.08, l.szer * 0.26), strokeDasharray: `${u * 0.45} ${u * 0.25}` }} />)}
-            {bite.map((l) => <path key={'o' + l.e.id} d={l.d} style={{ ...okr, stroke: v(l.rys === 'droga' ? 'droga-obw' : 'alejka-obw'), strokeWidth: l.szer + u * (l.rys === 'droga' ? 0.2 : 0.14) }} />)}
-            {bite.map((l) => <path key={'w' + l.e.id} d={l.d} style={{ ...okr, stroke: v(l.rys === 'droga' ? 'droga' : 'alejka'), strokeWidth: l.szer }} />)}
+            {bite.map((l) => <path key={'o' + l.e.id} d={l.d} style={{ ...okr, stroke: v(obw[l.rys][0]), strokeWidth: l.szer + u * obw[l.rys][1] }} />)}
+            {bite.map((l) => <path key={'w' + l.e.id} d={l.d} style={{ ...okr, stroke: v(l.rys === 'alejka' ? 'alejka' : 'droga'), strokeWidth: l.szer }} />)}
         </g>
     )
 }
@@ -256,6 +258,12 @@ function LiniaInna({ l, u }: { l: Linia; u: number }) {
         case 'rzeka': return <path d={l.d} style={{ ...okr, stroke: v('rzeka'), strokeWidth: l.szer }} />
         case 'ogrodzenie': return <path d={l.d} style={{ ...okr, strokeLinecap: 'butt', stroke: v('plot'), strokeWidth: l.szer, strokeDasharray: `${u * 0.4} ${u * 0.2} ${u * 0.08} ${u * 0.2}` }} />
         case 'granica': return <path d={l.d} style={{ ...okr, stroke: v('szary'), strokeWidth: l.szer, strokeDasharray: `${u * 0.45} ${u * 0.25}` }} />
+        // PH-22: kolej – ciemna linia z jasnymi odcinkami w środku (klasyczny znak mapy)
+        case 'kolej': return <><path d={l.d} style={/* styl-dynamiczny: grubość i kreski z jednostki planu, kolor z tokenu --pl-* */ { ...okr, strokeLinecap: 'butt', stroke: v('tekst'), strokeWidth: l.szer }} /><path d={l.d} style={/* styl-dynamiczny: grubość i kreski z jednostki planu, kolor z tokenu --pl-* */ { ...okr, strokeLinecap: 'butt', stroke: v('papier'), strokeWidth: l.szer * 0.55, strokeDasharray: `${u * 0.7} ${u * 0.7}` }} /></>
+        // wał, grobla – oś i krótkie kreski poprzeczne (szeroka kreska z gęstym przerywaniem)
+        case 'wal': return <><path d={l.d} style={/* styl-dynamiczny: grubość i kreski z jednostki planu, kolor z tokenu --pl-* */ { ...okr, stroke: v('teren'), strokeWidth: u * 0.07 }} /><path d={l.d} style={/* styl-dynamiczny: grubość i kreski z jednostki planu, kolor z tokenu --pl-* */ { ...okr, strokeLinecap: 'butt', stroke: v('teren'), strokeWidth: l.szer, strokeDasharray: `${u * 0.06} ${u * 0.22}` }} /></>
+        // most – jezdnia z mocnymi brzegami, ucięte końce (kładzie się na rzece)
+        case 'most': return <><path d={l.d} style={/* styl-dynamiczny: grubość i kreski z jednostki planu, kolor z tokenu --pl-* */ { ...okr, strokeLinecap: 'butt', stroke: v('bud'), strokeWidth: l.szer + u * 0.22 }} /><path d={l.d} style={/* styl-dynamiczny: grubość i kreski z jednostki planu, kolor z tokenu --pl-* */ { ...okr, strokeLinecap: 'butt', stroke: v('droga'), strokeWidth: l.szer }} /></>
         case 'wlasny': {
             const w = l.wl
             const kreski = w?.kreski === 'przerywana' ? `${u * 0.45} ${u * 0.25}` : w?.kreski === 'kropkowana' ? `${u * 0.1} ${u * 0.2}` : undefined
@@ -343,9 +351,24 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
     ) : null
 
     const etykieta = (e: Element, t: TypElementu) => {
-        const pokaz = e.pokazNazwe ?? (t.id === 'kwatera' || t.rys === 'napis' || (t.rodzaj === 'obszar' && !t.grob && t.rys !== 'budynek' && t.rys !== 'gosp'))
+        const pokaz = e.pokazNazwe ?? (t.id === 'kwatera' || t.rys === 'napis' || t.rys === 'ulica' || (t.rodzaj === 'obszar' && !t.grob && t.rys !== 'budynek' && t.rys !== 'gosp'))
         const tekst = t.rys === 'napis' ? (e.nazwa || e.opis || '') : e.nazwa
         if (!pokaz || !tekst) return
+        if (t.rys === 'ulica' && e.g.k === 'l' && e.g.p.length > 1 && !e.etykieta) {
+            // PH-22: nazwa ulicy w środku jezdni, wzdłuż najdłuższego odcinka, zawsze do czytania (bez napisu do góry nogami)
+            const p = e.g.p
+            let i = 0
+            for (let j = 1; j < p.length - 1; j++) if (Math.hypot(p[j + 1][0] - p[j][0], p[j + 1][1] - p[j][1]) > Math.hypot(p[i + 1][0] - p[i][0], p[i + 1][1] - p[i][1])) i = j
+            let kat = (Math.atan2(p[i + 1][1] - p[i][1], p[i + 1][0] - p[i][0]) * 180) / Math.PI
+            const widziany = kat + obrot
+            if (Math.cos((widziany * Math.PI) / 180) < 0) kat += 180
+            napisy.push(
+                <g key={'n' + e.id} data-id={o.edycja ? e.id : undefined} data-czesc={o.edycja ? 'etykieta' : undefined}>
+                    <Napis x={(p[i][0] + p[i + 1][0]) / 2} y={(p[i][1] + p[i + 1][1]) / 2} tekst={tekst} u={u} rozmiar={e.rozmiar ?? 's'} styl={e.styl ?? 'zwykly'} kolor={e.kolor ?? 'tekst'} kat={kat + obrot} obrotPlanu={obrot} />
+                </g>,
+            )
+            return
+        }
         const [cx, cy] = e.g.k === 't' ? [e.g.x, e.g.y] : srodek(e.g)
         const dx = e.etykieta?.dx ?? 0, dy = e.etykieta?.dy ?? (t.rodzaj === 'punkt' ? u * 1.55 : 0)
         if (t.id === 'kwatera') {
@@ -430,6 +453,10 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                 case 'rzeka':
                 case 'ogrodzenie':
                 case 'granica':
+                case 'ulica':
+                case 'kolej':
+                case 'wal':
+                case 'most':
                     if (g.k === 'l') linie.push({ d: M(g.p), szer: szerLinii(e, t.rys, u), e, rys: t.rys })
                     else if (g.k === 'w') linie.push({ d: M(g.p) + 'Z', szer: szerLinii(e, t.rys, u), e, rys: t.rys })
                     break
@@ -442,7 +469,7 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
             <g key={w} data-warstwa={w}>
                 {inne}
                 {linie.length > 0 && <SiecDrog linie={linie} u={u} />}
-                {linie.filter((l) => !['droga', 'polna', 'alejka'].includes(l.rys)).map((l) => <g key={'l' + l.e.id}><LiniaInna l={l} u={u} /></g>)}
+                {linie.filter((l) => !['droga', 'polna', 'alejka', 'ulica'].includes(l.rys)).map((l) => <g key={'l' + l.e.id}><LiniaInna l={l} u={u} /></g>)}
                 {/* szersze, niewidoczne pasy do klikania w linie */}
                 {linie.map((l) => <path key={'k' + l.e.id} data-id={l.e.id} d={l.d} style={{ fill: 'none', stroke: 'transparent', strokeWidth: Math.max(l.szer, u * 0.6), strokeLinecap: 'round' }} />)}
                 {linie.map((l) => obrysWyr(l.e, l.e.g.k === 'l' || l.e.g.k === 'w' ? l.e.g.p : [], false))}

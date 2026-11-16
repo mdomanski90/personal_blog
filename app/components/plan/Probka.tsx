@@ -17,10 +17,10 @@ export function WzoryProbek({ prefix }: { prefix: string }) {
 
 export function Probka({ typ, prefix, w = 26, h = 18 }: { typ: TypElementu; prefix: string; w?: number; h?: number }) {
     const okr: React.CSSProperties = { fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
-    const lin = (stroke: string, sw: number, dash?: string, pod?: [string, number]) => (
+    const lin = (stroke: string, sw: number, dash?: string, pod?: [string, number], cap: 'round' | 'butt' = 'round') => (
         <>
-            {pod && <line x1="3" y1={h / 2} x2={w - 3} y2={h / 2} style={{ ...okr, stroke: pod[0], strokeWidth: pod[1] }} />}
-            <line x1="3" y1={h / 2} x2={w - 3} y2={h / 2} style={{ ...okr, stroke, strokeWidth: sw, strokeDasharray: dash }} />
+            {pod && <line x1="3" y1={h / 2} x2={w - 3} y2={h / 2} style={{ ...okr, strokeLinecap: cap, stroke: pod[0], strokeWidth: pod[1] }} />}
+            <line x1="3" y1={h / 2} x2={w - 3} y2={h / 2} style={{ ...okr, strokeLinecap: cap, stroke, strokeWidth: sw, strokeDasharray: dash }} />
         </>
     )
     let tresc: React.ReactNode
@@ -64,6 +64,10 @@ export function Probka({ typ, prefix, w = 26, h = 18 }: { typ: TypElementu; pref
         case 'rzeka': tresc = lin(v('rzeka'), 3); break
         case 'ogrodzenie': tresc = lin(v('plot'), 1.2, '4 2 1 2'); break
         case 'granica': tresc = lin(v('szary'), 1, '4.5 2.5'); break
+        case 'ulica': tresc = lin(v('droga'), 6, undefined, [v('ulica-obw'), 8]); break
+        case 'kolej': tresc = <>{lin(v('tekst'), 2.6, undefined, undefined, 'butt')}{lin(v('papier'), 1.3, '3 3', undefined, 'butt')}</>; break
+        case 'wal': tresc = <>{lin(v('teren'), 0.8)}{lin(v('teren'), 5, '0.8 2.2', undefined, 'butt')}</>; break
+        case 'most': tresc = lin(v('droga'), 4.6, undefined, [v('bud'), 7], 'butt'); break
         case 'napis': tresc = <text x={w / 2} y={h / 2 + 4} fontSize="11" textAnchor="middle" style={{ fill: v('tekst'), fontStyle: 'italic' }}>Aa</text>; break
     }
     return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" style={{ flexShrink: 0, overflow: 'visible' }}>{tresc}</svg>

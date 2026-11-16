@@ -114,6 +114,7 @@ export const GRUPY_OBIEKTOW: Record<string, string> = {
     kapliczki: 'kapliczki i krzyże',
     zabudowa: 'dwory i zabudowa',
     pamiec: 'pamięć',
+    przyroda: 'przyroda',
     inne: 'inne',
 }
 
@@ -121,6 +122,7 @@ const BRAZ = '#7a5a2a'
 const ZABUDOWA = '#6b4f2e'
 const GRAFIT = '#3d3a33'
 const ZIELEN = '#3f5a3a'
+const WODA = '#2f5f7a'
 
 // znak w środku tarczy: współrzędne jak tarcza (-16…16, -18…21), kolor k
 type Obiekt = { nazwa: string; grupa: string; kolor: string; znak: (k: string) => string }
@@ -199,6 +201,11 @@ export const OBIEKTY: Record<string, Obiekt> = {
     'miejsce-pamieci': {
         nazwa: 'miejsce wydarzenia / uroczysko', grupa: 'pamiec', kolor: GRAFIT,
         znak: (k) => g(`<circle r="6"/><circle r="1.8" fill="${k}" stroke="none"/>`, k),
+    },
+    // OBJ-05 (16.11): obiekt w terenie z grupy „przyroda” – woda; znak: dwie fale
+    woda: {
+        nazwa: 'jezioro / staw / rzeka', grupa: 'przyroda', kolor: WODA,
+        znak: (k) => g(`<path d="M-10-3Q-7.5-6-5-3T0-3T5-3T10-3"/><path d="M-10 4Q-7.5 1-5 4T0 4T5 4T10 4"/>`, k),
     },
     inne: {
         nazwa: 'inny obiekt', grupa: 'inne', kolor: KOLORY.nieopisane,
