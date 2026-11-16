@@ -90,8 +90,9 @@ export default async function StronaGlowna() {
 
             {/* P7E-1 (SG-02, SG-11, SG-15): zapowiedzi zamiast pełnych wpisów; JW-04: wszystkie równe (bez wyróżnionego najnowszego), miniatura 300 px */}
             {pokazane.map((w) => {
-                const tekst = w.zapowiedz || zajawka(w.tresc, DLUGOSC_ZAPOWIEDZI, kontekst.rozwiaz)
                 const obraz = w.miniatura ? miniatury.get(w.miniatura) : undefined
+                // decyzja 16.11: wpis bez miniatury – ta sama szerokość co z miniaturą, zapowiedź w dwóch kolumnach i dwa razy dłuższa
+                const tekst = w.zapowiedz || (obraz ? zajawka(w.tresc, DLUGOSC_ZAPOWIEDZI, kontekst.rozwiaz) : zajawka(w.tresc, DLUGOSC_ZAPOWIEDZI * 2, kontekst.rozwiaz, { akapity: true }))
                 return (
                     // id = identyfikator wpisu, więc stare odnośniki „/#identyfikator” nadal przewijają do wpisu
                     <article key={w.id} id={w.id} className={`zapowiedz scroll-mt-6${obraz ? ' z-obrazem' : ''}`}>

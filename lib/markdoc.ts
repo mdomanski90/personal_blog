@@ -321,10 +321,14 @@ export function naTekst(node: Node | null | undefined): string {
     return czesci.join('').replace(/[ \t]+/g, ' ').replace(/\n\s*/g, '\n').trim()
 }
 
-/** Pierwszy akapit skrócony do ok. `dlugosc` znaków. */
-export function zajawka(node: Node | null | undefined, dlugosc = 220, rozwiaz?: Rozwiaz): string {
+/** Pierwszy akapit skrócony do ok. `dlugosc` znaków; z `akapity` – kolejne akapity od pierwszego dłuższego, aż do długości. */
+export function zajawka(node: Node | null | undefined, dlugosc = 220, rozwiaz?: Rozwiaz, op: { akapity?: boolean } = {}): string {
     const caly = bezNawiasow(naTekst(node), rozwiaz)
-    const tekst = caly.split('\n').find((l) => l.trim().length > 40) ?? caly
+    const linie = caly.split('\n'), start = linie.findIndex((l) => l.trim().length > 40)
+    let tekst = start < 0 ? caly : linie[start]
+    if (op.akapity && start >= 0) {
+        for (let i = start + 1; i < linie.length && tekst.length < dlugosc; i++) if (linie[i].trim()) tekst += '\n' + linie[i].trim()
+    }
     if (tekst.length <= dlugosc) return tekst
     return tekst.slice(0, dlugosc).replace(/\s+\S*$/, '') + '…'
 }

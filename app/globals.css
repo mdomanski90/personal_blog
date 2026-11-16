@@ -1760,7 +1760,10 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 .karta-losowa,.dark .karta-losowa{height:calc(320px * var(--font-scale,1))}
 .glowna-naglowek-wpisow{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}
 .zapowiedz.z-obrazem .zapowiedz-uklad{grid-template-columns:calc(300px * var(--font-scale,1)) minmax(0,var(--szer-tekstu));justify-content:start}
-.zapowiedz:not(.z-obrazem) .zapowiedz-uklad{grid-template-columns:minmax(0,var(--szer-tekstu))}
+.zapowiedz:not(.z-obrazem) .zapowiedz-uklad{grid-template-columns:minmax(0,calc(300px * var(--font-scale,1) + 20px + var(--szer-tekstu)))}
+/* decyzja 16.11: wpis bez miniatury na szerokość wpisu z miniaturą, zapowiedź w dwóch kolumnach (jak w gazecie); na wąskim ekranie jedna */
+.zapowiedz:not(.z-obrazem) .zapowiedz-tekst{column-count:2;column-gap:40px;column-rule:1px solid var(--linia-podzialu)}
+@media (max-width:760px){.zapowiedz:not(.z-obrazem) .zapowiedz-tekst{column-count:1}}
 .zapowiedz-tytul{font-size:var(--rozmiar-tytul)}
 .zapowiedz-tekst{font-size:var(--rozmiar-tresc)}
 .glowna-pomoz h2.tytul-sekcji{margin:0}
