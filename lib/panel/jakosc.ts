@@ -84,13 +84,13 @@ export const POWIAZANIA: Record<string, [string, string][]> = {
     posts: [['spatial[]', 'miejsca'], ['subject[]', 'tematy'], ['cover', 'materialy']],
     miejsca: [['isPartOf', 'miejsca'], ['parishes[].parish', 'parafie']],
     tematy: [['spatial[]', 'miejsca']],
-    obiekty: [['spatial', 'miejsca'], ['institutions[].parish', 'parafie']],
+    obiekty: [['spatial', 'miejsca'], ['spatialAlso[]', 'miejsca'], ['institutions[].parish', 'parafie']],
     materialy: [['spatial[]', 'miejsca'], ['subject[]', 'tematy'], ['relation[]', 'obiekty'], ['collections[]', 'zbiory'], ['institutions[]', 'parafie']],
     publikacje: [['spatial[]', 'miejsca'], ['subject[]', 'tematy']],
     parafie: [['seat', 'miejsca']],
     ksiegi: [['fonds', 'zespoly'], ['parish', 'parafie'], ['relatedParishes[]', 'parafie'], ['spatial[]', 'miejsca']],
 }
-const NAZWY_POL: Record<string, string> = { spatial: 'miejsca', subject: 'tematy', cover: 'miniatura', isPartOf: 'należy do', parishes: 'parafie', institutions: 'instytucje', relation: 'przedstawia obiekty', collections: 'zbiory', seat: 'siedziba', fonds: 'zespół', parish: 'instytucja główna', relatedParishes: 'pozostałe instytucje' }
+const NAZWY_POL: Record<string, string> = { spatial: 'miejsca', spatialAlso: 'także w miejscowościach', subject: 'tematy', cover: 'miniatura', isPartOf: 'należy do', parishes: 'parafie', institutions: 'instytucje', relation: 'przedstawia obiekty', collections: 'zbiory', seat: 'siedziba', fonds: 'zespół', parish: 'instytucja główna', relatedParishes: 'pozostałe instytucje' }
 const KOLEKCJA_RODZAJU: Record<string, string> = { miejsca: 'miejsca', parafie: 'parafie', obiekty: 'obiekty', tematy: 'tematy', wpisy: 'posts', archiwum: 'materialy' }
 const RODZAJ_KOLEKCJI: Record<string, string> = Object.fromEntries(Object.entries(KOLEKCJA_RODZAJU).map(([r, k]) => [k, r]))
 

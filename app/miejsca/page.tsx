@@ -23,7 +23,7 @@ export default async function Miejsca() {
     const l = await licznikiMiejsc(poziom)
     const liczniki = new Map<string, { wpisy?: number; obiekty?: number; materialy?: number }>()
     for (const [id, x] of l) liczniki.set(id, { wpisy: x.opowiesci })
-    for (const o of ob) if (o.miejsce) liczniki.set(o.miejsce, { ...liczniki.get(o.miejsce), obiekty: (liczniki.get(o.miejsce)?.obiekty ?? 0) + 1 })
+    for (const o of ob) for (const id of o.miejsca) liczniki.set(id, { ...liczniki.get(id), obiekty: (liczniki.get(id)?.obiekty ?? 0) + 1 })
     for (const m of await materialy(poziom)) for (const id of m.miejsca) liczniki.set(id, { ...liczniki.get(id), materialy: (liczniki.get(id)?.materialy ?? 0) + 1 })
 
     return (

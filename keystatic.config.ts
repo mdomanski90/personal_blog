@@ -325,7 +325,9 @@ export default config({
           options: Object.entries(NAZWY_OBIEKTOW).map(([value, label]) => ({ label, value })),
           defaultValue: 'cerkiew-unicka',
         }),
-        spatial: fields.relationship({ label: 'Miejscowość', collection: 'miejsca' }),
+        spatial: fields.relationship({ label: 'Miejscowość', description: 'Główna miejscowość (okruszki, kolejność).', collection: 'miejsca' }),
+        // OBJ-06: obiekt w kilku miejscowościach (np. jezioro na granicy) – pokazany równorzędnie na kartach wszystkich
+        spatialAlso: fields.multiRelationship({ label: 'Także w miejscowościach', description: 'Gdy obiekt leży w kilku miejscowościach (np. jezioro, droga, las). Główna – pole wyżej.', collection: 'miejsca' }),
         coordinates: fields.text({
           label: 'Współrzędne',
           description: 'Miejsce budynku – np. 52.2116, 22.7185. Bez współrzędnych obiekt nie pojawi się na mapie.',

@@ -80,7 +80,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const liczniki = m.rodzaj === 'gmina' ? await licznikiMiejsc(poziom) : new Map()
     const wszystkieObiekty = m.rodzaj === 'gmina' ? await obiekty(poziom) : []
     const idsGminy = new Set([m.id, ...potomkowie.map((x) => x.id)])
-    const obiektyGminy = wszystkieObiekty.filter((o) => o.miejsce && idsGminy.has(o.miejsce))
+    const obiektyGminy = wszystkieObiekty.filter((o) => o.miejsca.some((id) => idsGminy.has(id)))
     const materialyGminy = m.rodzaj === 'gmina' ? (await materialy(poziom)).filter((x) => x.miejsca.some((id) => idsGminy.has(id))) : []
     const tematyGminy = m.rodzaj === 'gmina' ? [...new Map((await Promise.all([...idsGminy].map((id) => tematyDlaMiejsca(id, poziom)))).flat().map((t) => [t.id, t])).values()] : []
 
@@ -145,7 +145,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                     <>
                         <Czesc tytul="wsie gminy">{`obiekty w terenie: ${obiektyGminy.length} · materiały: ${materialyGminy.length}`}</Czesc>
                         <WCaly>
-                            <SpisDzialow dzialy={pozycjeMiejsc(potomkowie, new Map(potomkowie.map((w) => [w.id, { wpisy: liczniki.get(w.id)?.opowiesci, obiekty: wszystkieObiekty.filter((o) => o.miejsce === w.id).length }])))} wybrany="" numeracja={false} etykieta="wsie gminy" />
+                            <SpisDzialow dzialy={pozycjeMiejsc(potomkowie, new Map(potomkowie.map((w) => [w.id, { wpisy: liczniki.get(w.id)?.opowiesci, obiekty: wszystkieObiekty.filter((o) => o.miejsca.includes(w.id)).length }])))} wybrany="" numeracja={false} etykieta="wsie gminy" />
                         </WCaly>
                         <W e="tematy w gminie">{tematyGminy.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyGminy.map((t) => ({ tekst: t.nazwa, href: `/tematy/${t.id}` }))]} />}</W>
                     </>

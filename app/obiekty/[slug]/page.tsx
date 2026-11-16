@@ -11,7 +11,7 @@ import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import { tarczaObiektu } from '@/lib/tarcze'
 import { PelnaSzerokosc, Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
-import { Czesc, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, KrotkieMaterialy, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import MapaKarty from '../../components/MapaKarty'
@@ -46,6 +46,8 @@ export default async function ObiektStrona({ params }: Parametry) {
     const wszystkie = await miejsca(poziom)
     const listaParafii = await parafie()
     const wies = o.miejsce ? wszystkie.find((m) => m.id === o.miejsce) : undefined
+    // OBJ-06: pozostałe miejscowości obiektu (widoczne dla czytelnika), w kolejności z panelu
+    const takzeW = o.miejsca.slice(1).map((id) => wszystkie.find((m) => m.id === id)).filter((m): m is NonNullable<typeof m> => !!m)
     const punkty = o.wspolrzedne ? await dolaczPlany(punktyMapy(wszystkie, await obiekty(poziom))) : []
     const planyGeo = await planyNaMape()
     const rodzaj = RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj
@@ -72,7 +74,7 @@ export default async function ObiektStrona({ params }: Parametry) {
         <Tabela etykieta={`${o.nazwa} – dane`}>
             <Czesc tytul="podstawowe" />
             <WierszNrKat nr={nrKat} />
-            <W e="miejscowość">{wies && <Link href={`/miejsca/${wies.id}`} className="odn">{wies.nazwa}</Link>}</W>
+            <W e={takzeW.length ? 'miejscowości' : 'miejscowość'}>{wies && <LiniaKarty className="karta-linia-w" elementy={[[wies, ...takzeW].map((m) => ({ tekst: m.nazwa, href: `/miejsca/${m.id}` }))]} />}</W>
             <W e="parafia / urząd">{(o.instytucje?.length ?? 0) > 0 && (
                 <span className="flex flex-col gap-1">
                     {(o.instytucje ?? []).map((rel, i) => {

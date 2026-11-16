@@ -8,10 +8,13 @@ export function punktyMapy(miejsca: Miejsce[], obiekty: Obiekt[]): PunktMapy[] {
     // obiekty przypisane do wsi – plakietka z liczbą przy oddalonej mapie (tylko publiczne)
     const wWsi = new Map<string, { nazwa: string; href: string }[]>()
     for (const o of obiekty) {
-        if (!o.miejsce || o.widocznosc !== 'publiczne') continue
-        const l = wWsi.get(o.miejsce) ?? []
-        l.push({ nazwa: o.nazwa, href: `/obiekty/${o.id}` })
-        wWsi.set(o.miejsce, l)
+        if (o.widocznosc !== 'publiczne') continue
+        // OBJ-06: obiekt w kilku miejscowościach – w plakietce każdej z nich
+        for (const id of o.miejsca) {
+            const l = wWsi.get(id) ?? []
+            l.push({ nazwa: o.nazwa, href: `/obiekty/${o.id}` })
+            wWsi.set(id, l)
+        }
     }
     return [
         ...miejsca

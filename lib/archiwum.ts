@@ -1,6 +1,7 @@
 // Jedyny punkt odczytu danych archiwum. Strony korzystają tylko z tych funkcji, nigdy z Keystatic wprost –
 // przy ewentualnym przejściu na Omeka S zmienia się wnętrze tego pliku, a strony zostają bez zmian.
 
+import { miejscaObiektu } from './obiekty-miejsca'
 import * as React from 'react'
 import { createReader } from '@keystatic/core/reader'
 import type { Node } from '@markdoc/markdoc'
@@ -177,7 +178,10 @@ export interface Obiekt {
     nazwa: string
     inneNazwy: string[]
     rodzaj: string
+    /** miejscowość główna (okruszki, kolejność) */
     miejsce: string | null
+    /** OBJ-06: wszystkie miejscowości obiektu – główna pierwsza (lib/obiekty-miejsca.ts) */
+    miejsca: string[]
     wspolrzedne: [number, number] | null
     przyblizone: boolean
     czas: string
@@ -406,7 +410,8 @@ const wszystkieObiektySurowe = cache(async (): Promise<Obiekt[]> => {
             nazwa: entry.title,
             inneNazwy: [...entry.alternative].filter(Boolean),
             rodzaj: entry.type,
-            miejsce: entry.spatial,
+            miejsce: miejscaObiektu(entry.spatial, entry.spatialAlso)[0] ?? null,
+            miejsca: miejscaObiektu(entry.spatial, entry.spatialAlso),
             wspolrzedne: parsujWspolrzedne(entry.coordinates),
             przyblizone: entry.approximate,
             czas: entry.temporal,
@@ -522,7 +527,7 @@ export async function obiekt(id: string, poziom: Widocznosc): Promise<Obiekt | n
 }
 
 export async function obiektyDlaMiejsca(id: string, poziom: Widocznosc): Promise<Obiekt[]> {
-    return (await obiekty(poziom)).filter((o) => o.miejsce === id)
+    return (await obiekty(poziom)).filter((o) => o.miejsca.includes(id))
 }
 
 export async function materialy(poziom: Widocznosc): Promise<Material[]> {
@@ -787,7 +792,7 @@ export async function daneSieci(poziom: Widocznosc): Promise<{ pozycje: PozycjaS
     }
     for (const m of await miejsca(poziom)) dodaj('miejsce', m.id, 'miejsca', m.opis, m.nalezyDo ? [`miejsce:${m.nalezyDo}`] : [])
     for (const t of await tematy(poziom)) dodaj('temat', t.id, 'tematy', t.opis, t.miejsca.map((id) => `miejsce:${id}`))
-    for (const o of await obiekty(poziom)) dodaj('obiekt', o.id, 'obiekty', o.opis, o.miejsce ? [`miejsce:${o.miejsce}`] : [])
+    for (const o of await obiekty(poziom)) dodaj('obiekt', o.id, 'obiekty', o.opis, o.miejsca.map((id) => `miejsce:${id}`))
     for (const o of await opowiesci(poziom)) dodaj('wpis', o.id, 'posts', o.tresc, [...o.miejsca.map((id) => `miejsce:${id}`), ...o.tematy.map((id) => `temat:${id}`)])
     for (const m of await materialy(poziom)) dodaj('material', m.id, 'materialy', m.opis, [...m.miejsca.map((id) => `miejsce:${id}`), ...m.tematy.map((id) => `temat:${id}`), ...m.obiekty.map((id) => `obiekt:${id}`)])
     for (const b of await biogramy(poziom)) dodaj('osoba', b.id, 'biogramy', b.tresc, [])
@@ -979,7 +984,7 @@ export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wyn
         const dodaj = (w: Wynik) => { const k = `${w.rodzaj}:${w.id}`; if (!znalezione.has(k)) { znalezione.add(k); wyniki.push({ ...w, przez: m.nazwa, waga: 0.5 }) } }
         for (const o of wp) if (o.miejsca.includes(m.id)) dodaj({ rodzaj: 'wpis', etykieta: 'wpis', id: o.id, tytul: o.tytul, adres: `/wpisy/${o.id}`, fragment: o.zajawka })
         for (const x of mat) if (x.miejsca.includes(m.id)) dodaj({ rodzaj: 'materiał', etykieta: RODZAJE_MATERIALOW[x.rodzaj] ?? 'materiał', id: x.id, tytul: x.nazwa, adres: `/archiwum/${x.id}`, fragment: [x.czas && formatujEdtf(x.czas), x.pochodzenie].filter(Boolean).join(' · ') })
-        for (const o of obj) if (o.miejsce === m.id) dodaj({ rodzaj: 'obiekt', etykieta: NAZWY_OBIEKTOW[o.rodzaj] ?? 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: '' })
+        for (const o of obj) if (o.miejsca.includes(m.id)) dodaj({ rodzaj: 'obiekt', etykieta: NAZWY_OBIEKTOW[o.rodzaj] ?? 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: '' })
         for (const t of tem) if (t.miejsca.includes(m.id)) dodaj({ rodzaj: 'temat', etykieta: 'temat', id: t.id, tytul: t.nazwa, adres: `/tematy/${t.id}`, fragment: '' })
         for (const k of wszystkieKs) if (ksiegaDotyczyMiejsca(k, m)) dodaj({ rodzaj: 'księga', etykieta: 'księga metrykalna', id: k.id, tytul: k.nazwa, adres: `/biblioteka/ksiegi#ksiega-${k.id}`, fragment: [k.lata, k.sygnatura].filter(Boolean).join(' · ') })
     }
