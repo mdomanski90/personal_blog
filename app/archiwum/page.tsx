@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
-import { TytulDzialu, WstepDzialu, WstepTekst } from '@/app/components/WstepDzialu'
+import { TytulDzialu, WstepTekst } from '@/app/components/WstepDzialu'
 import { Link } from 'next-view-transitions'
 import { miejsca, obiekty, tematy, poziomCzytelnika, RODZAJE_OBIEKTOW, type Widocznosc } from '@/lib/archiwum'
-import FiltryArchiwum from './FiltryArchiwum'
+import FiltryKatalogu from '../components/FiltryKatalogu'
+import { NawigacjaStron, WybraneFiltry } from '../components/Wzorce'
+import { adresFiltrow, wartosc } from '@/lib/adres-filtrow'
+import { odmiana } from '@/lib/tekst'
 import SpisDzialow, { type Dzial } from './SpisDzialow'
 import { zbiory, katalogP5, type FiltrP5 } from '@/lib/paczka5'
 import { Strona, TytulStrony } from '../components/Uklad'
@@ -12,7 +15,7 @@ import Komunikat from '../components/Komunikat'
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'archiwum · odniepamieci.pl' }
 type Params = Record<string, string | string[] | undefined>
-const val = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v ?? '').slice(0, 120)
+const val = wartosc
 const rok = (s: string) => /^-?\d{1,4}$/.test(s) ? Number(s) : undefined
 
 export default async function Archiwum({ searchParams }: { searchParams: Promise<Params> }) {
@@ -39,20 +42,9 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
   const nazwyMsc = new Map(msc.map((m) => [m.id, m.nazwa]))
   // P7A-4: działy z liczbami (te same liczby co wyniki katalogu przy samym dziale); widoczne wszystkie, także puste (decyzja właściciela 15.11)
   const DZIALY: [string, string][] = [['dokument', 'dokumenty'], ['akt', 'akty metrykalne'], ['wspomnienie', 'wspomnienia i relacje'], ['zdjecie', 'fotografie'], ['nagranie', 'nagrania'], ['mapa', 'mapy']]
-  const hrefDzialu = (rodzaj: string) => {
-    const p = new URLSearchParams()
-    for (const [k, v] of Object.entries(sp)) if (k !== 'strona' && k !== 'rodzaj') { const s = val(v); if (s) p.set(k, s) }
-    if (rodzaj) p.set('rodzaj', rodzaj)
-    const s = p.toString()
-    return s ? `/archiwum?${s}` : '/archiwum'
-  }
+  const hrefDzialu = (rodzaj: string) => adresFiltrow('/archiwum', sp, { ustaw: { rodzaj } })
   // P7B: rząd „wybrane” – każdy aktywny filtr z ✕ (zwykły odnośnik bez tego parametru)
-  const bez = (klucze: string[]) => {
-    const p = new URLSearchParams()
-    for (const [k, v] of Object.entries(sp)) if (k !== 'strona' && !klucze.includes(k)) { const s = val(v); if (s) p.set(k, s) }
-    const s = p.toString()
-    return s ? `/archiwum?${s}` : '/archiwum'
-  }
+  const bez = (klucze: string[]) => adresFiltrow('/archiwum', sp, { pomin: klucze })
   const nazwa = (lista: { id: string; nazwa: string }[], id?: string) => (id ? lista.find((x) => x.id === id)?.nazwa ?? id : '')
   const wybrane = [
     f.q && { klucz: 'q', etykieta: `„${f.q}”`, usun: ['q'] },
@@ -63,6 +55,7 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
     f.zbior && { klucz: 'zbior', etykieta: `zbiór: ${nazwa(kol, f.zbior)}`, usun: ['zbior'] },
     (f.od !== undefined || f.do !== undefined) && { klucz: 'lata', etykieta: `${f.od ?? '…'}–${f.do ?? '…'}`, usun: ['od', 'do'] },
   ].filter(Boolean) as { klucz: string; etykieta: string; usun: string[] }[]
+  const WSZYSTKIE_FILTRY = ['q', 'miejsce', 'temat', 'obiekt', 'osoba', 'zbior', 'od', 'do']
   const liczby = await Promise.all(DZIALY.map(([k]) => katalogP5(poziom, { rodzaj: k })))
   const wszystkich = (await katalogP5(poziom, {})).razem
   const dzialy: Dzial[] = [
@@ -70,16 +63,11 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
     ...DZIALY.map(([k, nazwa], i) => ({ klucz: k, nazwa, href: hrefDzialu(k), liczba: liczby[i].razem })),
     { klucz: 'zbiory', nazwa: 'zbiory i kolekcje', href: '/archiwum/zbiory', liczba: kol.length },
   ]
-  const qs = (n: number) => {
-    const p = new URLSearchParams()
-    for (const [k, v] of Object.entries(sp)) if (k !== 'strona') { const s = val(v); if (s) p.set(k, s) }
-    p.set('strona', String(n))
-    return `/archiwum?${p.toString()}`
-  }
+  const qs = (n: number) => adresFiltrow('/archiwum', sp, { ustaw: { strona: String(n) } })
   // JW-2 (decyzja 16.11): panel „szukaj i filtruj” bezpośrednio pod tytułem, potem wstęp i spis działów, licznik nad listą
   return <Strona uklad="pelna">
     <TytulStrony><TytulDzialu dzial="archiwum" domyslny="archiwum" /></TytulStrony>
-    <FiltryArchiwum
+    <FiltryKatalogu adresBazowy="/archiwum" tytul="szukaj i filtruj w archiwum"
       poczatkowe={{ q: f.q ?? '', rodzaj: f.rodzaj ?? '', miejsce: f.miejsce ?? '', temat: f.temat ?? '', obiekt: f.obiekt ?? '', osoba: f.osoba ?? '', zbior: f.zbior ?? '', od: val(sp.od), do: val(sp.do), sort: f.sort ?? '' }}
       miejscowosci={msc.map((m) => ({ id: m.id, nazwa: m.nazwa }))}
       tematy={tem.map((x) => ({ id: x.id, nazwa: x.nazwa }))}
@@ -87,30 +75,22 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
       osoby={osoby}
       zbiory={kol.map((z) => ({ id: z.id, nazwa: z.nazwa }))}
     />
-    {wybrane.length > 0 && <div className="k-wybrane" aria-label="wybrane filtry">
-      <span className="k-wybrane-etykieta">wybrane:</span>
-      {wybrane.map((x) => <Link key={x.klucz} href={bez(x.usun)} className="k-wybrany" aria-label={`usuń filtr: ${x.etykieta}`}>{x.etykieta} <span aria-hidden="true">✕</span></Link>)}
-      {wybrane.length > 1 && <Link href={bez(['q', 'miejsce', 'temat', 'obiekt', 'osoba', 'zbior', 'od', 'do'])} className="odn k-wybrane-wyczysc">wyczyść wszystko</Link>}
-    </div>}
+    <WybraneFiltry wybrane={wybrane.map((x) => ({ klucz: x.klucz, etykieta: x.etykieta, href: bez(x.usun) }))} wyczysc={bez(WSZYSTKIE_FILTRY)} />
     <p className="tekst-opis wstep-dzialu-tekst">
       <WstepTekst dzial="archiwum" domyslny={"Dokumenty, fotografie, wspomnienia, nagrania i mapy z opisem, pochodzeniem oraz powiązaniami."} />
     </p>
     <SpisDzialow dzialy={dzialy} wybrany={f.rodzaj || 'wszystkie'} />
-    <p className="ot-drobne" aria-live="polite">{wyn.razem} materiałów · strona {wyn.strona} z {wyn.stron}</p>
+    <p className="ot-drobne" aria-live="polite">{odmiana(wyn.razem, ['materiał', 'materiały', 'materiałów'])} · strona {wyn.strona} z {wyn.stron}</p>
     {wyn.razem === 0
       ? <Komunikat rodzaj="pusto" tytul="nic nie pasuje do wybranych filtrów.">
           <p>Brak wyniku nie oznacza, że materiał nie istnieje – archiwum jest w opracowaniu.</p>
           <p className="k-kom-akcje">
-            {wybrane.length > 0 && <Link href={bez(['q', 'miejsce', 'temat', 'obiekt', 'osoba', 'zbior', 'od', 'do'])}>wyczyść filtry</Link>}
+            {wybrane.length > 0 && <Link href={bez(WSZYSTKIE_FILTRY)}>wyczyść filtry</Link>}
             {f.rodzaj && <Link href={bez(['rodzaj'])}>wszystkie działy</Link>}
             <Link href="/szukaj">szukaj w całym serwisie</Link>
           </p>
         </Komunikat>
       : <ListaMaterialow materialy={wyn.wyniki} />}
-    {wyn.stron > 1 && <nav aria-label="strony katalogu archiwum" className="flex flex-wrap items-center gap-3">
-      {wyn.strona > 1 && <Link href={qs(wyn.strona - 1)} className="odn">← poprzednia</Link>}
-      <span className="ot-drobne">{wyn.strona} / {wyn.stron}</span>
-      {wyn.strona < wyn.stron && <Link href={qs(wyn.strona + 1)} className="odn">następna →</Link>}
-    </nav>}
+    <NawigacjaStron strona={wyn.strona} stron={wyn.stron} adres={qs} etykieta="strony katalogu archiwum" />
   </Strona>
 }

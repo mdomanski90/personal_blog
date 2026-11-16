@@ -35,7 +35,7 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
         }
     }
     return (
-        <Strona>
+        <Strona uklad="pelna">
             <TytulStrony><TytulDzialu dzial="tematy" domyslny="tematy" /></TytulStrony>
             <WstepDzialu dzial="tematy" className="ot-drobne" />
             {/* P7D-3 (AUD-03): przełącznik widoku jak w katalogu ksiąg (k-seg) */}

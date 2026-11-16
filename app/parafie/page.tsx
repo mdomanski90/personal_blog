@@ -15,7 +15,7 @@ export default async function ParafieStrona() {
     const [instytucje, listaMiejsc] = await Promise.all([parafie(), miejsca(await poziomCzytelnika())])
     const nazwyMiejsc = new Map(listaMiejsc.map((m) => [m.id, m.nazwa]))
     return (
-        <Strona>
+        <Strona uklad="pelna">
             <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }]}><TytulDzialu dzial="instytucje" domyslny="parafie i urzędy" /></TytulStrony>
             <p className="leading-relaxed" style={{ fontSize: 'calc(16px * var(--font-scale, 1))' }}>
                 <WstepTekst dzial="instytucje" domyslny={"Instytucje prowadzące księgi metrykalne i akta stanu cywilnego. Ich okres działania jest czymś innym niż okres przynależności konkretnej miejscowości czy zachowane roczniki akt."} />

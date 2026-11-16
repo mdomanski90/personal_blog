@@ -21,7 +21,7 @@ export default async function KsiegiMetrykalne({ searchParams }: Parametry) {
     ))
     const wyszukiwanie = typeof p.q === 'string' ? p.q.slice(0, 120) : undefined
     return (
-        <Strona>
+        <Strona uklad="pelna">
             <TytulStrony sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }]}>księgi metrykalne</TytulStrony>
             <SpisBiblioteki wybrany="ksiegi" />
             <p className="leading-relaxed" style={{ fontSize: 'calc(16px * var(--font-scale, 1))' }}>

@@ -12,7 +12,7 @@ export default async function Opowiesci() {
     const lista = await opowiesci(poziom)
     const { miejsca } = await nazwy(poziom)
     return (
-        <Strona>
+        <Strona uklad="pelna">
             <TytulStrony><TytulDzialu dzial="wpisy" domyslny="wpisy" /></TytulStrony>
             <WstepDzialu dzial="wpisy" className="ot-drobne" />
             <ListaOpowiesci opowiesci={lista} nazwyMiejsc={miejsca} />

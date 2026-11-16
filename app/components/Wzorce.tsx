@@ -61,3 +61,30 @@ export function RzadFiltrow({ podpis, etykieta, children }: { podpis?: string; e
         </div>
     )
 }
+
+/**
+ * Rząd „wybrane:” nad listą katalogu – każdy aktywny filtr z ✕ (zwykły odnośnik bez tego filtra),
+ * przy dwóch i więcej – „wyczyść wszystko”. Wspólny dla archiwum i biblioteki.
+ */
+export function WybraneFiltry({ wybrane, wyczysc }: { wybrane: { klucz: string; etykieta: string; href: string }[]; wyczysc: string }) {
+    if (!wybrane.length) return null
+    return (
+        <div className="k-wybrane" aria-label="wybrane filtry">
+            <span className="k-wybrane-etykieta">wybrane:</span>
+            {wybrane.map((x) => <Link key={x.klucz} href={x.href} className="k-wybrany" aria-label={`usuń filtr: ${x.etykieta}`}>{x.etykieta} <span aria-hidden="true">✕</span></Link>)}
+            {wybrane.length > 1 && <Link href={wyczysc} className="odn k-wybrane-wyczysc">wyczyść wszystko</Link>}
+        </div>
+    )
+}
+
+/** „← poprzednia · 2 / 5 · następna →” pod listą katalogu; przy jednej stronie nic. Wspólne dla archiwum i biblioteki. */
+export function NawigacjaStron({ strona, stron, adres, etykieta }: { strona: number; stron: number; adres: (n: number) => string; etykieta: string }) {
+    if (stron <= 1) return null
+    return (
+        <nav aria-label={etykieta} className="flex flex-wrap items-center gap-3">
+            {strona > 1 && <Link href={adres(strona - 1)} className="odn">← poprzednia</Link>}
+            <span className="ot-drobne">{strona} / {stron}</span>
+            {strona < stron && <Link href={adres(strona + 1)} className="odn">następna →</Link>}
+        </nav>
+    )
+}

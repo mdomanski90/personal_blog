@@ -8,8 +8,8 @@ import { Strona, TytulStrony } from '../../components/Uklad'
 import PoleSzukania from '../../components/PoleSzukania'
 import Komunikat from '../../components/Komunikat'
 const RODZAJE: [string, string][] = [['', 'wszystkie'], ['ksiazka', 'książki'], ['artykul', 'artykuły'], ['prasa', 'prasa'], ['opracowanie', 'opracowania'], ['baza', 'bazy i serwisy']]
-const RODZAJE_NAZWY: Record<string, string> = { ksiazka: 'książka', artykul: 'artykuł', prasa: 'prasa', opracowanie: 'opracowanie', baza: 'baza / serwis' }
 import SpisBiblioteki from '../SpisBiblioteki'
+import { RODZAJE_PUBLIKACJI } from '@/lib/biblioteka'
 import { KartaPozycji, OdnosnikZewn, Wiersz } from '../../components/KartaPozycji'
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'publikacje · biblioteka · odniepamieci.pl' }
@@ -20,7 +20,7 @@ export default async function Publikacje({ searchParams }: { searchParams: Promi
   const lista = (await publikacje(await poziomCzytelnika())).filter(p =>
     (!sp.typ || p.rodzaj === sp.typ) && (!z || pasuje(z, [p.nazwa, p.autor, p.rok, p.wydawca, p.opis].join(' '))))
   const href = (t: string) => `/biblioteka/publikacje${t || q ? '?' : ''}${[t && `typ=${t}`, q && `q=${encodeURIComponent(q)}`].filter(Boolean).join('&')}`
-  return <Strona><TytulStrony sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }]}><TytulDzialu dzial="publikacje" domyslny="publikacje i opracowania" /></TytulStrony>
+  return <Strona uklad="pelna"><TytulStrony sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }]}><TytulDzialu dzial="publikacje" domyslny="publikacje i opracowania" /></TytulStrony>
             <SpisBiblioteki wybrany="publikacje" />
             <WstepDzialu dzial="publikacje" className="ot-drobne" />
     {/* P7D-3 (AUD-03, AUD-04): to samo pole szukania i pastylki co w słowniku; lista jak lista materiałów; puste – Komunikat */}
@@ -35,7 +35,7 @@ export default async function Publikacje({ searchParams }: { searchParams: Promi
     {lista.length ? <div className="karty-ksiag">
       {lista.map(p => <KartaPozycji key={p.id} etykieta={p.nazwa}
         tytul={<Link href={`/biblioteka/publikacje/${p.id}`} className="kp-tytul">{p.nazwa}</Link>}
-        prawa={[RODZAJE_NAZWY[p.rodzaj], p.rok].filter(Boolean).join(' · ')}>
+        prawa={[RODZAJE_PUBLIKACJI[p.rodzaj], p.rok].filter(Boolean).join(' · ')}>
         <Wiersz e="autor">{p.autor}</Wiersz>
         <Wiersz e="wydawca / czasopismo">{p.wydawca}</Wiersz>
         <Wiersz e="dostęp">{p.url && <OdnosnikZewn href={p.url}>{p.rodzaj === 'baza' ? 'otwórz serwis' : 'wersja cyfrowa'}</OdnosnikZewn>}</Wiersz>

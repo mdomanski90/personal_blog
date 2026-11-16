@@ -1265,6 +1265,7 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .spis-dzialow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;margin:0;padding:0;list-style:none}
 .spis-dzialow li{border-bottom:1px solid var(--linia-podzialu)}
 .odp .spis-dzialow a{display:grid;grid-template-columns:2.4em minmax(0,auto) 1fr auto;align-items:baseline;gap:6px;min-height:calc(40px * var(--font-scale,1));padding:9px 8px;margin:0 -8px;box-sizing:border-box;border-radius:6px;color:var(--tekst);text-decoration:none;font-size:calc(16px * var(--font-scale,1))}
+.odp .spis-dzialow.sd-bez-numerow a{grid-template-columns:minmax(0,auto) 1fr auto}
 .spis-dzialow a i{font-style:normal;font-size:calc(13px * var(--font-scale,1));color:var(--tekst-etykieta)}
 .spis-dzialow .sd-kropki{border-bottom:1px dotted #9a9488;transform:translateY(-4px);min-width:16px}
 .spis-dzialow .sd-liczba{color:var(--tekst-etykieta);font-size:calc(14px * var(--font-scale,1))}
@@ -1479,10 +1480,6 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .spis-ramka.sd-zwiniety.sd-pokaz{flex-direction:column;align-items:stretch}
 .spis-ramka.sd-zwiniety.sd-pokaz .sd-wiecej{align-self:flex-end}
 /* opisy działów pod spisem biblioteki */
-.bib-opisy{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 40px;margin:0;font-size:calc(14px * var(--font-scale,1))}
-.bib-opisy dt{font-weight:700;color:var(--tekst)}
-.bib-opisy dd{margin:2px 0 0;color:var(--tekst-opis);line-height:1.5}
-@media (max-width:640px){.bib-opisy{grid-template-columns:1fr}}
 
 /* ============================================ */
 /* P7D-3 · LISTY I FILTRY DZIAŁÓW (AUD-03, 04)   */
@@ -1623,6 +1620,8 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .odp{max-width:var(--szer-ukladu);margin:0 auto;padding:2rem var(--margines-ukladu) 5rem;box-sizing:border-box;min-height:100vh}
 .strona-tresc.uklad-kolumna{max-width:var(--szer-tekstu)}
 .strona-tresc.uklad-pelna{max-width:none}
+/* strony działów na pełnej szerokości: wstęp i pojedyncze akapity zostają w kolumnie tekstu (66 znaków) */
+.strona-tresc.uklad-pelna>p,.strona-tresc.uklad-pelna>.wstep-dzialu-tekst{max-width:var(--szer-tekstu)}
 .tresc-czytana{font-size:var(--rozmiar-tresc)}
 
 /* Strona uklad="karta": kolumna tekstu + pasek boczny (obraz nagłówka, spis treści); pasek zaczyna się przy nagłówku karty.
@@ -1698,15 +1697,10 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .tytul-z-tarcza{display:inline-flex;align-items:center;gap:10px}
 .tytul-tarcza{display:inline-flex;flex:none}
 
-/* spis miejscowości (wsie gminy, katalog miejsc): nazwa-odnośnik, liczniki po prawej, linia podziału, kolumny */
-.spis-miejsc{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(22rem * var(--font-scale,1))),1fr));gap:0 40px}
-.spis-miejsc-wiersz{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 0;border-bottom:1px solid var(--linia-podzialu);font-size:var(--rozmiar-maly)}
 .tekst-opis-maly{font-size:var(--rozmiar-opis)}
 .tekst-etykieta-maly{font-size:var(--rozmiar-etykieta)}
-.spis-miejsc{list-style:none;margin:0;padding:0}
 .spis-miejsc-grupy{display:flex;flex-direction:column;gap:calc(1.25rem * var(--font-scale,1))}
-.spis-miejsc-podgrupa{display:flex;flex-direction:column;gap:6px;padding-left:calc(1rem * var(--font-scale,1))}
-.spis-miejsc-podtytul{margin:0;font-size:var(--rozmiar-opis);font-weight:700;color:var(--tekst-opis)}
+.spis-miejsc-podgrupa{display:flex;flex-direction:column;gap:8px}
 .odp .tytul-sekcji-odn{color:inherit;text-decoration:none}
 .odp .tytul-sekcji-odn:hover{text-decoration:underline}
 

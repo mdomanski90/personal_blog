@@ -29,6 +29,18 @@ export function wczytajRejestr(): Rejestr | null {
     return r
 }
 
+/**
+ * Rejestr zapisują dwa konta: usługa strony (nadanie po zapisie w panelu, umask 0077) i konto wdrożenia (skrypt
+ * kat:nadaj, krok --auto przy budowie). Plik dostaje grupę katalogu i prawa rw dla grupy – jak pliki ksiąg
+ * (lib/panel/zapis-importu.ts); bez tego jedno konto nie odczyta pliku drugiego (lekcja 16.11: EACCES na VPS).
+ */
+function dostepDlaGrupy(plik: string) {
+    const kat = fs.statSync(path.dirname(plik))
+    const st = fs.statSync(plik)
+    if (st.gid !== kat.gid) { try { fs.chownSync(plik, st.uid, kat.gid) } catch { /* brak prawa do grupy – zostaje grupa konta */ } }
+    fs.chmodSync(plik, 0o664)
+}
+
 /** Zapis z kontrolą wersji: `oczekiwana` – wersja pliku w chwili odczytu (null = pliku nie było). */
 export function zapiszRejestr(r: Rejestr, oczekiwana: number | null): Rejestr {
     const b = bledyRejestru(r)
@@ -38,6 +50,7 @@ export function zapiszRejestr(r: Rejestr, oczekiwana: number | null): Rejestr {
     const nowy: Rejestr = { ...r, wersja: (oczekiwana ?? 0) + 1 }
     const tmp = `${plik}.${randomBytes(4).toString('hex')}.tmp`
     fs.writeFileSync(tmp, JSON.stringify(nowy, null, 1) + '\n')
+    dostepDlaGrupy(tmp)
     const obecna = (() => { try { return (JSON.parse(fs.readFileSync(plik, 'utf8')) as Rejestr).wersja } catch { return null } })()
     if (obecna !== oczekiwana) { fs.rmSync(tmp, { force: true }); throw new KonfliktRejestru() }
     fs.renameSync(tmp, plik)

@@ -5,7 +5,7 @@
  * Przełączniki wariantów – osobny etap (decyzja właściciela 15.11.2026: najpierw mapa).
  */
 
-export type IdWzorca = 'karta' | 'karta-lista' | 'pozycja' | 'pozycja-w-karcie' | 'lista-dzialu' | 'lista-obiektow' | 'linia' | 'siatka' | 'spis' | 'spis-miejsc' | 'pastylki-osob' | 'zapowiedz' | 'wlasny'
+export type IdWzorca = 'karta' | 'karta-lista' | 'pozycja' | 'pozycja-w-karcie' | 'lista-dzialu' | 'lista-obiektow' | 'linia' | 'siatka' | 'spis' | 'pastylki-osob' | 'zapowiedz' | 'wlasny'
 export type Status = 'zgodne' | 'do-ujednolicenia' | 'swiadomie-inne'
 
 export interface Wzorzec { id: IdWzorca; nazwa: string; opis: string; komponent: string; /** ciąg, który musi wystąpić w pliku używającym wzorca */ znacznik: string[] }
@@ -19,8 +19,7 @@ export const WZORCE: Wzorzec[] = [
     { id: 'lista-obiektow', nazwa: 'lista obiektów', opis: 'Tarcza rodzaju + nazwa; rodzaj nie powtarzany tekstem.', komponent: 'ListaObiektow', znacznik: ['ListaObiektow'] },
     { id: 'linia', nazwa: 'linia karty', opis: 'Powiązania w jednym wierszu tabeli karty, rozdzielone kropką.', komponent: 'LiniaKarty', znacznik: ['LiniaKarty'] },
     { id: 'siatka', nazwa: 'siatka miniatur', opis: 'Materiały z obrazem: miniatura, tytuł, rodzaj, data.', komponent: 'ListaMaterialow', znacznik: ['ListaMaterialow'] },
-    { id: 'spis', nazwa: 'spis działów', opis: 'Katalog kartkowy: numer, nazwa, kropki, liczba.', komponent: 'SpisDzialow', znacznik: ['SpisDzialow', 'SpisBiblioteki'] },
-    { id: 'spis-miejsc', nazwa: 'spis miejscowości', opis: 'JW-12: nazwa-odnośnik, liczniki po prawej (puste pominięte), linia podziału, kolumny min. 22rem – wsie gminy i katalog miejsc.', komponent: 'SpisMiejscowosci', znacznik: ['SpisMiejscowosci'] },
+    { id: 'spis', nazwa: 'spis działów', opis: 'Katalog kartkowy: numer, nazwa, kropki, liczba. Także spis miejscowości i krain (bez numeracji, decyzja 16.11).', komponent: 'SpisDzialow', znacznik: ['SpisDzialow', 'SpisBiblioteki'] },
     { id: 'pastylki-osob', nazwa: 'pastylki osób', opis: 'JW-10: osoby jako pastylki w kolorach płci (tokeny wspólne z drzewem); lata, miejscowość, biogram obok zwykłym tekstem.', komponent: 'PastylkaOsoby', znacznik: ['PastylkaOsoby'] },
     { id: 'zapowiedz', nazwa: 'zapowiedź wpisu', opis: 'Metryczka, miniatura po lewej, tytuł, zapowiedź, „czytaj dalej”.', komponent: 'article.zapowiedz / ListaOpowiesci', znacznik: ['zapowiedz', 'ListaOpowiesci'] },
     { id: 'wlasny', nazwa: 'własny układ', opis: 'Znaczniki napisane w miejscu, bez wspólnego komponentu – wymaga uzasadnienia albo ujednolicenia.', komponent: '—', znacznik: [] },
@@ -52,8 +51,8 @@ export const MIEJSCA: Miejsce[] = [
     { byt: 'obiekt', gdzie: 'karta instytucji – powiązane obiekty', plik: 'app/parafie/[slug]/page.tsx', wzorzec: 'lista-obiektow', status: 'zgodne', adres: '/parafie/…' },
     // miejscowości
     { byt: 'miejscowość', gdzie: 'karta miejscowości', plik: 'app/miejsca/[slug]/page.tsx', wzorzec: 'karta', status: 'zgodne', adres: '/miejsca/…' },
-    { byt: 'miejscowość', gdzie: 'spis pod mapą', plik: 'app/components/SpisMiejsc.tsx', wzorzec: 'spis-miejsc', status: 'zgodne', adres: '/miejsca' },
-    { byt: 'miejscowość', gdzie: 'karta gminy – wsie gminy', plik: 'app/miejsca/[slug]/page.tsx', wzorzec: 'spis-miejsc', status: 'zgodne', adres: '/miejsca/gmina-…' },
+    { byt: 'miejscowość', gdzie: 'spis pod mapą', plik: 'app/components/SpisMiejsc.tsx', wzorzec: 'spis', status: 'zgodne', adres: '/miejsca' },
+    { byt: 'miejscowość', gdzie: 'karta gminy – wsie gminy', plik: 'app/miejsca/[slug]/page.tsx', wzorzec: 'spis', status: 'zgodne', adres: '/miejsca/gmina-…' },
     { byt: 'miejscowość', gdzie: 'karta instytucji – miejscowości', plik: 'app/parafie/[slug]/page.tsx', wzorzec: 'karta-lista', status: 'zgodne', adres: '/parafie/…' },
     { byt: 'miejscowość', gdzie: 'mapa – lista pod mapą i dymki', plik: 'app/components/MapaMiejsc.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'Elementy mapy (dymki, spis widoczny na mapie) – układ mapowy, nie lista działu.', adres: '/miejsca' },
     { byt: 'miejscowość', gdzie: 'stopka – spis miejscowości', plik: 'app/components/Footer.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'Nawigacja w stopce.', adres: 'każda strona' },
@@ -66,6 +65,7 @@ export const MIEJSCA: Miejsce[] = [
     { byt: 'księga metrykalna', gdzie: 'karta miejscowości', plik: 'app/miejsca/[slug]/page.tsx', wzorzec: 'pozycja-w-karcie', status: 'zgodne', adres: '/miejsca/…' },
     { byt: 'księga metrykalna', gdzie: 'karta instytucji', plik: 'app/parafie/[slug]/page.tsx', wzorzec: 'pozycja-w-karcie', status: 'zgodne', adres: '/parafie/…' },
     // publikacje
+    { byt: 'pozycja biblioteki', gdzie: 'katalog biblioteki (publikacje, księgi, parafie, hasła)', plik: 'app/biblioteka/page.tsx', wzorzec: 'lista-dzialu', status: 'zgodne', uwaga: 'Odbiór 16.11: jak archiwum – FiltryKatalogu, spis działów filtrujący listę, WybraneFiltry, NawigacjaStron.', adres: '/biblioteka' },
     { byt: 'publikacja', gdzie: 'spis publikacji', plik: 'app/biblioteka/publikacje/page.tsx', wzorzec: 'pozycja', status: 'zgodne', adres: '/biblioteka/publikacje' },
     { byt: 'publikacja', gdzie: 'karta publikacji', plik: 'app/biblioteka/publikacje/[slug]/page.tsx', wzorzec: 'karta', status: 'zgodne', adres: '/biblioteka/publikacje/…' },
     // materiały
@@ -116,7 +116,6 @@ export const POZA_MAPA: { plik: string; dlaczego: string }[] = [
     { plik: 'app/components/Karta.tsx', dlaczego: 'definicje wzorca karty (odnośniki w komponentach wzorca)' },
     { plik: 'app/components/ListaObiektow.tsx', dlaczego: 'komponent wzorca' },
     { plik: 'app/components/ListaMaterialow.tsx', dlaczego: 'komponent wzorca' },
-    { plik: 'app/components/SpisMiejscowosci.tsx', dlaczego: 'komponent wzorca (spis miejscowości)' },
     { plik: 'app/obiekty/[slug]/page.tsx', dlaczego: 'pojedyncze odnośniki w wierszach karty' },
     { plik: 'app/archiwum/[slug]/page.tsx', dlaczego: 'pojedyncze odnośniki w wierszach karty' },
     { plik: 'app/components/Wzorce.tsx', dlaczego: 'komponenty bazowe (JW-1): okruszki, pastylki – definicje wzorców' },

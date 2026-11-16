@@ -7,6 +7,7 @@ import { materialy, lataMaterialu, widoczne, type Widocznosc, type Material } fr
 import { naTekst } from './markdoc'
 import { normalizuj, porownajPl } from './tekst'
 import { pasuje, przygotujZapytanie } from './szukanie'
+import { stronicuj } from './stronicowanie'
 
 const reader = createReader(process.cwd(), keystaticConfig)
 const cache: <T extends (...a: never[]) => unknown>(fn: T) => T =
@@ -68,7 +69,6 @@ export interface FiltrP5 {
   obiekt?: string; zbior?: string; od?: number; do?: number;
   sort?: 'data_rosnaco' | 'data_malejaco' | 'tytul' | 'dodano'; strona?: number
 }
-export const NA_STRONE = 18
 export interface WynikiP5 { wyniki: Material[]; razem: number; stron: number; strona: number }
 export async function katalogP5(poziom: Widocznosc, f: FiltrP5): Promise<WynikiP5> {
   const z = przygotujZapytanie((f.q ?? '').slice(0, 100))
@@ -93,10 +93,7 @@ export async function katalogP5(poziom: Widocznosc, f: FiltrP5): Promise<WynikiP
   else if (f.sort === 'dodano') lista = lista.sort((a, b) => (b.dodano ?? '').localeCompare(a.dodano ?? ''))
   else if (f.sort === 'data_malejaco') lista = lista.sort((a, b) => (data(b) ?? -999999) - (data(a) ?? -999999) || porownajPl(a.nazwa, b.nazwa))
   else lista = lista.sort((a, b) => (data(a) ?? 999999) - (data(b) ?? 999999) || porownajPl(a.nazwa, b.nazwa))
-  const razem = lista.length
-  const stron = Math.max(1, Math.ceil(razem / NA_STRONE))
-  const strona = Math.max(1, Math.min(stron, Math.trunc(f.strona || 1)))
-  return { wyniki: lista.slice((strona - 1) * NA_STRONE, strona * NA_STRONE), razem, stron, strona }
+  return stronicuj(lista, f.strona)
 }
 
 /** Rozszerzenie indeksu globalnego, bez osobnego algorytmu wyszukiwania. */

@@ -20,7 +20,7 @@ export default async function Slownik({ searchParams }: { searchParams: Promise<
     for (const h of lista) { const l = h.haslo.slice(0, 1).toLocaleUpperCase('pl'); if (!litery.has(l)) litery.set(l, []); litery.get(l)!.push(h) }
     const href = (r: string) => `/biblioteka/slownik${r || q ? '?' : ''}${[r && `rodzaj=${r}`, q && `q=${encodeURIComponent(q)}`].filter(Boolean).join('&')}`
     return (
-        <Strona>
+        <Strona uklad="pelna">
             <TytulStrony sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }]}>słownik</TytulStrony>
             <SpisBiblioteki wybrany="slownik" />
             <p className="leading-relaxed text-[var(--tekst-opis)]" style={{ fontSize: 'calc(16px * var(--font-scale, 1))', margin: 0 }}>

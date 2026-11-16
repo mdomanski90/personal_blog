@@ -43,6 +43,10 @@ test('kolejne nadanie po dodaniu pozycji publicznej; jednoczesne wywołania nie 
     assert.equal(numerKat('material', 'akt-2'), 'MA-0002')
 })
 
+test('rejestr czytelny i zapisywalny dla grupy katalogu (dwa konta: usługa i wdrożenie)', () => {
+    assert.equal(fs.statSync(PLIK_REJESTRU()).mode & 0o777, 0o664)
+})
+
 test('kontrola wersji: zapis ze starą wersją odrzucony (konflikt), plik bez zmian', () => {
     const r = wczytajRejestr()!
     assert.throws(() => zapiszRejestr(r, r.wersja - 1), KonfliktRejestru)

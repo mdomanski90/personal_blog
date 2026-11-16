@@ -1,13 +1,25 @@
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
 import type { GrupaMiejsc } from '@/lib/archiwum'
-import SpisMiejscowosci, { type PozycjaSpisuMiejsc } from './SpisMiejscowosci'
+import SpisDzialow, { type Dzial } from '../archiwum/SpisDzialow'
 import { TytulSekcji } from './Wzorce'
 
-/** Spis miejscowości podzielony na krainy i gminy (pod mapą na stronie „miejsca”) – wiersze z licznikami (JW-12), tytuły grup jako tytuły sekcji. */
-export default function SpisMiejsc({ grupy, liczniki }: { grupy: GrupaMiejsc[]; liczniki: Map<string, { wpisy?: number; obiekty?: number; materialy?: number }> }) {
+export type LicznikiMiejsc = Map<string, { wpisy?: number; obiekty?: number; materialy?: number }>
+
+/** Pozycje spisu działów dla miejscowości: liczba = wpisy + obiekty w terenie + materiały (tylko widoczne dla czytelnika). */
+export function pozycjeMiejsc(m: { id: string; nazwa: string }[], liczniki: LicznikiMiejsc): Dzial[] {
+    return m.map((x) => {
+        const l = liczniki.get(x.id) ?? {}
+        return { klucz: x.id, nazwa: x.nazwa, href: `/miejsca/${x.id}`, liczba: (l.wpisy ?? 0) + (l.obiekty ?? 0) + (l.materialy ?? 0) }
+    })
+}
+
+/**
+ * Spis miejscowości podzielony na krainy i gminy (pod mapą na stronie „miejsca”) – ten sam wzorzec co spis działów
+ * archiwum (SpisDzialow, bez numeracji – decyzja 16.11); tytuły grup jako tytuły sekcji.
+ */
+export default function SpisMiejsc({ grupy, liczniki }: { grupy: GrupaMiejsc[]; liczniki: LicznikiMiejsc }) {
     const tylkoInne = grupy.length === 1 && !grupy[0].obszar
-    const pozycje = (m: { id: string; nazwa: string }[]): PozycjaSpisuMiejsc[] => m.map((x) => ({ id: x.id, nazwa: x.nazwa, ...(liczniki.get(x.id) ?? {}) }))
     return (
         <div className="spis-miejsc-grupy">
             {grupy.map((g) => (
@@ -15,11 +27,11 @@ export default function SpisMiejsc({ grupy, liczniki }: { grupy: GrupaMiejsc[]; 
                     {!tylkoInne && (
                         <TytulSekcji>{g.obszar ? <Link href={`/miejsca/${g.obszar.id}`} className="tytul-sekcji-odn">{g.obszar.nazwa}</Link> : 'inne'}</TytulSekcji>
                     )}
-                    <SpisMiejscowosci pozycje={pozycje(g.miejsca)} />
+                    {g.miejsca.length > 0 && <SpisDzialow dzialy={pozycjeMiejsc(g.miejsca, liczniki)} wybrany="" numeracja={false} etykieta={`miejscowości: ${g.obszar?.nazwa ?? 'inne'}`} />}
                     {g.podgrupy.map((pg) => (
                         <div key={pg.obszar.id} className="spis-miejsc-podgrupa">
-                            <h3 className="spis-miejsc-podtytul"><Link href={`/miejsca/${pg.obszar.id}`} className="tytul-sekcji-odn">{pg.obszar.nazwa}</Link></h3>
-                            <SpisMiejscowosci pozycje={pozycje(pg.miejsca)} />
+                            <TytulSekcji poziom={3}><Link href={`/miejsca/${pg.obszar.id}`} className="tytul-sekcji-odn">{pg.obszar.nazwa}</Link></TytulSekcji>
+                            <SpisDzialow dzialy={pozycjeMiejsc(pg.miejsca, liczniki)} wybrany="" numeracja={false} etykieta={`miejscowości: ${pg.obszar.nazwa}`} />
                         </div>
                     ))}
                 </section>

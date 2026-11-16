@@ -11,6 +11,9 @@ import { normalizuj, odmiana, porownajPl } from '@/lib/tekst'
 import { Strona, TytulStrony } from '../components/Uklad'
 
 export const dynamic = 'force-dynamic'
+
+// nazwiska nieczytelne / nieznane („?”, „.”, „…”) – grupy za ostatnią literą alfabetu (uwaga właściciela 16.11)
+const zaLiterami = (nazwisko: string) => (/^\p{L}/u.test(nazwisko.trim()) ? 0 : 1)
 export const metadata: Metadata = { title: 'osoby · odniepamieci.pl' }
 
 export default async function Osoby({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -34,7 +37,7 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
     // cała lista kręgu idzie do przeglądarki – wyszukiwanie zawęża ją na żywo (ListaOsob)
     const lista: OsobaNaLiscie[] = wszystkie
         .filter((o) => krag === 'wszystkie' || wKregu(o, kregi.find((k) => k.id === krag)!))
-        .sort((a, b) => porownajPl(a.nazwisko, b.nazwisko) || porownajPl(a.imiona, b.imiona))
+        .sort((a, b) => zaLiterami(a.nazwisko) - zaLiterami(b.nazwisko) || porownajPl(a.nazwisko, b.nazwisko) || porownajPl(a.imiona, b.imiona))
         .map((o) => {
             const miejsce = zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce?.split(',')[0] ?? ''
             const b = bio.get(o.id)

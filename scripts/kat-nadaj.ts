@@ -42,4 +42,11 @@ async function main() {
     console.log(zapisz ? (w.zapisano ? `ZAPISANO: ${PLIK_REJESTRU()} (wersja ${w.rejestr!.wersja})` : 'Nic do zapisania.') : '\nTo był podgląd – nic nie zapisano. Zapis: npm run kat:nadaj -- --zapisz')
 }
 
-main().catch((e) => { console.error(e instanceof Error ? e.message : e); process.exit(1) })
+main().catch((e) => {
+    const tekst = e instanceof Error ? e.message : String(e)
+    // przy budowie (--auto) błąd numeracji nie zatrzymuje wdrożenia – ostrzeżenie w wyniku, numery nada kolejny zapis
+    if (arg('--auto')) { console.warn(`kat: UWAGA – nadawanie pominięte: ${tekst}`); return }
+    console.error(tekst)
+    if ((e as NodeJS.ErrnoException)?.code === 'EACCES') console.error('Brak prawa zapisu do content/_panel – uruchom jako użytkownik usługi strony (zob. claude/odniepamieci-start-jw.md).')
+    process.exit(1)
+})

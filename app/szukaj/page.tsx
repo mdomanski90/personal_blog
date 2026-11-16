@@ -42,7 +42,7 @@ export default async function Szukaj({ searchParams }: { searchParams: Promise<{
     const krotsze = q && !wszystkie.length ? krotszeZapytanie(q) : null
 
     return (
-        <Strona>
+        <Strona uklad="pelna">
             <TytulStrony>szukaj</TytulStrony>
             <PoleSzukania action="/szukaj" defaultValue={q} placeholder="nazwa wsi, nazwisko, temat…" style={{ maxWidth: 560 }} />
             {!q && <p className="text-[var(--tekst-opis)]">Wpisz nazwę miejscowości, nazwisko albo temat. Polskie znaki nie są potrzebne, a słowo może być w dowolnej formie – „w Olszance”, „bieżeństwa”.</p>}

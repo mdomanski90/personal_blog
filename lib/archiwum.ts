@@ -1019,7 +1019,7 @@ export async function tenDzien(poziom: Widocznosc, miesiac: number, dzien: numbe
 }
 
 // ---------- słownik ----------
-export const RODZAJE_HASEL: Record<string, string> = { pojecie: 'pojęcie historyczne', gwara: 'gwara, słowo miejscowe', urzad: 'urząd, urzędnik', miara: 'miara, waluta', wyznanie: 'wyznanie, obrzęd' }
+export { RODZAJE_HASEL } from './biblioteka'
 export interface Haslo { id: string; haslo: string; rodzaj: string; znaczenie: string; przyklad: string; zrodlo: string; formy: string[]; widocznosc: Widocznosc }
 
 const wszystkieHasla = cache(async (): Promise<Haslo[]> => {

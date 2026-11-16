@@ -12,7 +12,8 @@ import { naHtml, zajawka } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
 import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import SpisTresci from '../../components/SpisTresci'
-import SpisMiejscowosci from '../../components/SpisMiejscowosci'
+import SpisDzialow from '../../archiwum/SpisDzialow'
+import { pozycjeMiejsc } from '../../components/SpisMiejsc'
 import { PrzyciskDrukuj, PrzyciskDrukujCalosc } from '../../components/Druk'
 import MapaKarty from '../../components/MapaKarty'
 import Zgloszenie from '../../components/Zgloszenie'
@@ -143,7 +144,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                     <>
                         <Czesc tytul="wsie gminy">{`obiekty w terenie: ${obiektyGminy.length} · materiały: ${materialyGminy.length}`}</Czesc>
                         <WCaly>
-                            <SpisMiejscowosci pozycje={potomkowie.map((w) => ({ id: w.id, nazwa: w.nazwa, wpisy: liczniki.get(w.id)?.opowiesci, obiekty: wszystkieObiekty.filter((o) => o.miejsce === w.id).length }))} />
+                            <SpisDzialow dzialy={pozycjeMiejsc(potomkowie, new Map(potomkowie.map((w) => [w.id, { wpisy: liczniki.get(w.id)?.opowiesci, obiekty: wszystkieObiekty.filter((o) => o.miejsce === w.id).length }])))} wybrany="" numeracja={false} etykieta="wsie gminy" />
                         </WCaly>
                         <W e="tematy w gminie">{tematyGminy.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyGminy.map((t) => ({ tekst: t.nazwa, href: `/tematy/${t.id}` }))]} />}</W>
                     </>
