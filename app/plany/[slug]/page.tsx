@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { Link } from 'next-view-transitions'
-import { miejsce, obiekt, poziomCzytelnika } from '@/lib/archiwum'
+import { material, miejsce, obiekt, poziomCzytelnika } from '@/lib/archiwum'
 import { wczytajUstawienia } from '@/lib/plany/dane'
 import { planDlaCzytelnika } from '@/lib/plany/serwer'
 import { Strona, TytulStrony } from '../../components/Uklad'
@@ -26,6 +26,8 @@ export default async function PlanStrona({ params }: Parametry) {
     const { slug } = await params
     const w = await planDlaCzytelnika(slug)
     if (!w) notFound()
+    // PH1 · jeden widok dokumentu: plan zrekonstruowany ze skanu ma jedną stronę – materiał w archiwum (gdy czytelnik go widzi)
+    if (w.plan.zrodlo?.material && (await material(w.plan.zrodlo.material, await poziomCzytelnika()))) redirect(`/archiwum/${w.plan.zrodlo.material}#rekonstrukcja`)
     const { plan, poziom } = w
     const poz = await poziomCzytelnika()
     const wies = plan.miejsce ? await miejsce(plan.miejsce, poz) : null

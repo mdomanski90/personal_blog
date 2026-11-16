@@ -1596,6 +1596,12 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .tylko-ciemny{display:none!important}
 .dark .tylko-ciemny{display:block!important}
 .dark .tylko-jasny{display:none!important}
+/* PH1: warstwa rekonstrukcji nad skanem (przeglądarka dokumentu) */
+.rek-warstwa{pointer-events:none}
+.rek-warstwa.rek-ukryta{display:none}
+.rek-svg{display:block;width:100%;height:100%;overflow:visible}
+.rek-tlo{fill:var(--pl-papier)}
+.dok-suwak{width:96px;accent-color:var(--akcent)}
 /* rysunek planu w miniaturze: cały plan, bez kadrowania */
 img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 /* siatka miniatur (wzorzec „siatka”): materiały archiwum i plany */

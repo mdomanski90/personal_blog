@@ -12,6 +12,7 @@ import type OpenSeadragon from 'openseadragon'
 import type { ObjasnienieWidoku } from '@/lib/objasnienia-widok'
 import ObjasnieniaSkanu, { ListaObjasnien, TekstZrodla, type ApiWarstwy, type ObjasnienieNaStronie, type TrybObjasnien } from './ObjasnieniaSkanu'
 import { obrazStrony } from '@/lib/pliki'
+import WarstwaRekonstrukcji, { type DaneRekonstrukcji, type TrybWarstw } from './plan/WarstwaRekonstrukcji'
 
 export interface StronaPodgladu { adres: string; podpis?: string }
 
@@ -27,7 +28,7 @@ export function ileStron(n: number): string {
 const KLUCZ_TRYBU = 'dok-objasnienia'
 const MAKS_NA_MARGINESIE = 8
 
-export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul, wysokosc = 'min(75vh, 720px)', pelnyNaStart = false, onZamknij, startStrona = 0, wariant = 'zwykly', naZmianeStrony, aktywneZ, naAktywne, panelTekstu }: {
+export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul, wysokosc = 'min(75vh, 720px)', pelnyNaStart = false, onZamknij, startStrona = 0, wariant = 'zwykly', naZmianeStrony, aktywneZ, naAktywne, panelTekstu, rekonstrukcja }: {
     strony: StronaPodgladu[]
     objasnienia?: ObjasnienieWidoku[]
     tytul: string
@@ -43,6 +44,8 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     naAktywne?: (id: string | null) => void
     /** P7E-2: panel tekstu (np. zakładki transkrypcji z karty materiału) – na pełnym ekranie z boku skanu */
     panelTekstu?: React.ReactNode
+    /** PH1: plan zrekonstruowany z tego materiału – warstwa nad skanem (skan / skan + rekonstrukcja / rekonstrukcja) */
+    rekonstrukcja?: DaneRekonstrukcji
 }) {
     const ramka = React.useRef<HTMLDivElement>(null)
     const pole = React.useRef<HTMLDivElement>(null)
@@ -72,6 +75,17 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const pelnyRef = React.useRef(pelny)
     pelnyRef.current = pelny
     const n = strony.length
+    const [warstwy, ustawWarstwy] = React.useState<TrybWarstw>('skan')
+    const [krycie, ustawKrycie] = React.useState(0.75)
+    // wejście z listy planów (#rekonstrukcja): od razu skan z rekonstrukcją, na stronie podkładu
+    React.useEffect(() => { if (rekonstrukcja && window.location.hash === '#rekonstrukcja') ustawWarstwy('oba') }, [rekonstrukcja])
+    React.useEffect(() => {
+        if (!rekonstrukcja || warstwy === 'skan' || wersja === 0) return
+        const v = widz.current
+        if (v && v.currentPage() !== rekonstrukcja.podklad.strona && window.location.hash === '#rekonstrukcja') v.goToPage(rekonstrukcja.podklad.strona)
+        // tylko po pierwszym otwarciu skanu
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [wersja === 0])
 
     const otworz = React.useCallback(() => {
         ustawPelny(true)
@@ -220,6 +234,20 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
                     </span>
                 </span>
                 <span className="dok-pasek-prawa">
+                    {rekonstrukcja && (
+                        <span className="dok-grupa" role="group" aria-label="warstwy: skan i rekonstrukcja planu">
+                            {([['skan', 'skan'], ['oba', 'skan + plan'], ['rekonstrukcja', 'plan']] as const).map(([t, nazwa]) => (
+                                <button key={t} type="button" aria-pressed={warstwy === t} disabled={strona !== rekonstrukcja.podklad.strona && t !== 'skan'}
+                                    title={strona !== rekonstrukcja.podklad.strona ? `rekonstrukcja jest na stronie ${rekonstrukcja.podklad.strona + 1}` : undefined}
+                                    onClick={() => ustawWarstwy(t)}>{nazwa}</button>
+                            ))}
+                            {warstwy === 'oba' && strona === rekonstrukcja.podklad.strona && (
+                                <label className="dok-stan"><span className="sr-only">krycie rekonstrukcji</span>
+                                    <input type="range" className="dok-suwak" min={0.1} max={1} step={0.05} value={krycie} onChange={(e) => ustawKrycie(+e.target.value)} aria-label="przenikanie: skan – rekonstrukcja" />
+                                </label>
+                            )}
+                        </span>
+                    )}
                     {sa && (
                         <span className="dok-grupa dok-grupa-menu" role="group" aria-label="objaśnienia na skanie">
                             <button type="button" aria-pressed={objWlaczone} disabled={!naStronie.length} title={naStronie.length ? (objWlaczone ? 'ukryj objaśnienia na skanie' : 'pokaż objaśnienia na skanie') : 'na tej stronie nie ma objaśnień'}
@@ -258,6 +286,7 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
             <div className={`dok-srodek${bok ? ' z-bokiem' : ''}`}>
             <div ref={obszar} className={`dok-obszar dok-uklad-${uklad}`}>
                 <div ref={pole} className="dok-pole" style={{ gridArea: 'pole', ...(pelny ? {} : { height: wysokosc }) }} aria-label={`skan: ${tytul}${n > 1 ? `, strona ${strona + 1} z ${n}` : ''}`} role="img" />
+                {rekonstrukcja && <WarstwaRekonstrukcji widz={widz} osd={osd} wersja={wersja} strona={strona} dane={rekonstrukcja} tryb={warstwy} krycie={krycie} />}
                 {sa && (
                     <ObjasnieniaSkanu widz={widz} osd={osd} pole={pole} obszar={obszar} lista={naStronie} tryb={bok && efTryb === 'margines' ? 'numery' : efTryb} pelny={pelny && !bok} aktywne={aktywne} wskazane={wskazane}
                         ustawAktywne={ustawAktywne} ustawWskazane={ustawWskazane} api={warstwa} wersja={wersja} />

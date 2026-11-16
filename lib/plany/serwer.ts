@@ -94,3 +94,12 @@ export async function planyNaMape(): Promise<PlanNaMapie[]> {
     }
     return wyn
 }
+
+/** PH1: warstwa rekonstrukcji na stronie materiału (plan w wersji dla czytelnika + geometria podkładu z pliku planu). */
+export async function rekonstrukcjaMaterialu(materialId: string) {
+    const { wybierzRekonstrukcje } = await import('./rekonstrukcja')
+    const pelne = (await listaPlanow()).filter((p) => p.zrodlo?.material === materialId)
+    if (!pelne.length) return null
+    const w = wybierzRekonstrukcje(materialId, pelne, await wszystkiePlanyDlaCzytelnika())
+    return w ? { ...w, ustawienia: await wczytajUstawienia() } : null
+}

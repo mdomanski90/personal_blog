@@ -9,11 +9,12 @@
 import * as React from 'react'
 import type { ObjasnienieWidoku } from '@/lib/objasnienia-widok'
 import PrzegladarkaDokumentu, { obrazStrony, type StronaPodgladu } from './PrzegladarkaDokumentu'
+import type { DaneRekonstrukcji } from './plan/WarstwaRekonstrukcji'
 import { ListaObjasnien, TekstZrodla, type ObjasnienieNaStronie } from './ObjasnieniaSkanu'
 
 type Zakladka = 'transkrypcja' | 'oryginał' | 'tłumaczenie' | 'objaśnienia'
 
-export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja, oryginal, tlumaczenie, opracowal }: {
+export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja, oryginal, tlumaczenie, opracowal, rekonstrukcja }: {
     strony: StronaPodgladu[]
     objasnienia: ObjasnienieWidoku[]
     tytul: string
@@ -21,6 +22,8 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
     oryginal: string
     tlumaczenie: string
     opracowal?: string
+    /** PH1: warstwa rekonstrukcji planu nad skanem */
+    rekonstrukcja?: DaneRekonstrukcji
 }) {
     const [strona, ustawStrone] = React.useState(0)
     const [aktywne, ustawAktywne] = React.useState<string | null>(null)
@@ -113,7 +116,7 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
             <div className="szt-skan">
                 {/* P7E-2: na pełnym ekranie ten sam panel tekstu (transkrypcja / oryginał / tłumaczenie / objaśnienia) z boku skanu */}
                 <PrzegladarkaDokumentu strony={strony} objasnienia={objasnienia} tytul={tytul} wariant="karta" wysokosc="calc(560px * var(--font-scale, 1))"
-                    naZmianeStrony={ustawStrone} aktywneZ={aktywne} naAktywne={zSkanu}
+                    naZmianeStrony={ustawStrone} aktywneZ={aktywne} naAktywne={zSkanu} rekonstrukcja={rekonstrukcja}
                     panelTekstu={<div className="szt-tekst szt-tekst-pelny">{pasek}<div className="szt-tresc" tabIndex={0} role="tabpanel" aria-label={opis}>{tresc}</div></div>} />
             </div>
             <div className="szt-tekst">

@@ -18,6 +18,9 @@ import { PrzyciskDrukuj } from '../../components/Druk'
 import { odnosnikiInstytucji, odnosnikiOsob } from '@/lib/powiazania-karty'
 import { parafie } from '@/lib/archiwum'
 import SkanZTekstem from '../../components/SkanZTekstem'
+import { rekonstrukcjaMaterialu } from '@/lib/plany/serwer'
+import { opisPlanu } from '@/lib/plany/katalog'
+import { katalog } from '@/lib/plany/typy'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania from '../../components/Powiazania'
 import { zbiory } from '@/lib/paczka5'
@@ -66,6 +69,9 @@ export default async function MaterialStrona({ params }: Parametry) {
     const skan = m.strony.length > 0
     const obj = skan ? await objasnieniaDoWidoku(m.id, poziom) : []
     const obok = skan && maTeksty
+    // PH1 · jeden widok dokumentu: plan zrekonstruowany z tego materiału jako warstwa skanu i część karty „rekonstrukcja”
+    const rek = skan ? await rekonstrukcjaMaterialu(m.id) : null
+    const opisRek = rek ? opisPlanu(rek.plan, katalog(rek.ustawienia)) : null
     const oryginal = [m.pochodzenie, m.sygnatura].filter(Boolean).join(', ')
     const podpisZrodla = m.podpisZrodla || [m.miejscePrzechowywania, m.sygnatura, m.prawa].filter(Boolean).join(' · ')
 
@@ -77,7 +83,7 @@ export default async function MaterialStrona({ params }: Parametry) {
     const nrKat = numerKat('material', m.id)
     const jestOpis = !!nrKat || !!(m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal || m.miejscePrzechowywania || m.transkrypcja || m.zbiory.length || osobyM.length || instytucjeM.length)
     const jestDotyczy = miejscaM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0
-    const spis = spisCzesci([jestOpis && 'opis archiwalny', jestDotyczy && 'dotyczy', 'jak cytować', (oryginal || m.zrodla.length > 0) && 'źródła'])
+    const spis = spisCzesci([jestOpis && 'opis archiwalny', jestDotyczy && 'dotyczy', rek && 'rekonstrukcja', 'jak cytować', (oryginal || m.zrodla.length > 0) && 'źródła'])
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
@@ -92,12 +98,12 @@ export default async function MaterialStrona({ params }: Parametry) {
             {/* JW-2: skan z tekstem na pełnej szerokości (skan = kolumna tekstu, tekst od linii paska bocznego); spis treści wraca po nim */}
             {obok ? (
                 <PelnaSzerokosc>
-                    <SkanZTekstem strony={m.strony} objasnienia={obj} tytul={m.nazwa} {...teksty} opracowal={m.opracowal || undefined} />
+                    <SkanZTekstem strony={m.strony} objasnienia={obj} tytul={m.nazwa} {...teksty} opracowal={m.opracowal || undefined} rekonstrukcja={rek ?? undefined} />
                     {podpisZrodla && <p className="podpis-zrodla"><span>źródło:</span> {podpisZrodla}</p>}
                 </PelnaSzerokosc>
             ) : skan ? (
                 <PelnaSzerokosc>
-                    <PrzegladarkaDokumentu strony={m.strony} objasnienia={obj} tytul={m.nazwa} />
+                    <PrzegladarkaDokumentu strony={m.strony} objasnienia={obj} tytul={m.nazwa} rekonstrukcja={rek ?? undefined} />
                     {podpisZrodla && <p className="podpis-zrodla"><span>źródło:</span> {podpisZrodla}</p>}
                 </PelnaSzerokosc>
             ) : m.plik && (
@@ -133,6 +139,17 @@ export default async function MaterialStrona({ params }: Parametry) {
                 <W e={tematyM.length > 1 ? 'tematy' : 'temat'}>{tematyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyM.map((id) => ({ tekst: n.tematy.get(id), href: `/tematy/${id}` }))]} />}</W>
                 <W e="przedstawia">{obiektyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[obiektyM.map((id) => ({ tekst: nazwyObiektow.get(id), href: `/obiekty/${id}` }))]} />}</W>
                 <W e="we wpisach">{wpisyZMat.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[wpisyZMat.map((z) => ({ tekst: z.zrodlo.nazwa, href: z.zrodlo.adres }))]} />}</W>
+
+                {rek && opisRek && (
+                    <>
+                        <Czesc tytul="rekonstrukcja" id="rekonstrukcja">{opisRek.prawa}</Czesc>
+                        <W e="plan">{rek.plan.tytul}</W>
+                        {opisRek.pola.map(([e, v]) => <W key={e} e={e}>{v}</W>)}
+                        <W e="opis">{rek.plan.opis}</W>
+                        <W e="prawa do rekonstrukcji">{rek.plan.prawa}</W>
+                        <WCaly><span className="ot-drobne">Rekonstrukcję widać na skanie: przełącznik „skan / skan + plan / plan” nad obrazem{rek.podklad.strona > 0 ? ` (strona ${rek.podklad.strona + 1})` : ''}.</span></WCaly>
+                    </>
+                )}
 
                 <Czesc tytul="jak cytować" />
                 <WCaly>
