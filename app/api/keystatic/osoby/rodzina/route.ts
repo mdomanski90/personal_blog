@@ -2,9 +2,13 @@ import { brakDostepu } from '@/lib/plany/dane'
 import { stanOsob, zapiszRodzine } from '@/lib/osoby/dane'
 import { polacz, rozlacz } from '@/lib/osoby/relacje'
 import { poprawRodzine, type Rodzina } from '@/lib/osoby/model'
+import { zNadaniemNumerow } from '@/lib/katalog/dane'
 
 // Relacje w panelu: połącz istniejące osoby, wypisz z rodziny, zapisz ślub/rozwód i kolejność dzieci.
-export async function POST(req: Request) {
+// KAT-01: po udanym zapisie – numery katalogowe dla nowych pozycji publicznych
+export const POST = zNadaniemNumerow(zapiszPOST)
+
+async function zapiszPOST(req: Request) {
     const b = brakDostepu(req); if (b) return b
     const d = await req.json().catch(() => null)
     const s = await stanOsob()

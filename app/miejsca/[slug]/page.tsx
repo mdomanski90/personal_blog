@@ -13,7 +13,7 @@ import { Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
 import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import SpisTresci from '../../components/SpisTresci'
 import SpisMiejscowosci from '../../components/SpisMiejscowosci'
-import { PrzyciskDrukuj } from '../../components/Druk'
+import { PrzyciskDrukuj, PrzyciskDrukujCalosc } from '../../components/Druk'
 import MapaKarty from '../../components/MapaKarty'
 import Zgloszenie from '../../components/Zgloszenie'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
@@ -22,6 +22,8 @@ import Powiazania from '../../components/Powiazania'
 import { TabelaKsiag } from '../../components/Ksiegi'
 import ListaPlanow from '../../components/plan/ListaPlanow'
 import { planyDlaCzytelnika } from '@/lib/plany/serwer'
+import { numerKat } from '@/lib/katalog/dane'
+import { WierszNrKat } from '../../components/NrKat'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,6 +91,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const ksiegiSa = ksiegiWsi.some((p) => p.ksiegi.length > 0)
     const odnosnikiWTekstach = siec.odnosniki.filter((z) => !(z.zrodlo.rodzaj === 'wpis' && opow.some((o) => o.id === z.zrodlo.id)))
 
+    const nrKat = numerKat('miejsce', m.id)
     const jestTeren = swiatynie.length > 0 || !obszar
     const jestKsiegi = ksiegiSa || m.parafie.length > 0
     const tytulHistorii = obszar ? 'opis' : 'historia'
@@ -107,10 +110,11 @@ export default async function MiejsceStrona({ params }: Parametry) {
     )
     // JW-2 (makiety v2): lead → podstawowe → pełna historia → w terenie, księgi → powiązane, źródła; mapa i spis treści w pasku bocznym
     return (
-        <Strona uklad="karta" sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...przodkowie.map((p) => ({ tekst: p.nazwa, href: `/miejsca/${p.id}` }))]} akcje={<><CopyLinkButton sciezka={`/miejsca/${m.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek}
+        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...przodkowie.map((p) => ({ tekst: p.nazwa, href: `/miejsca/${p.id}` }))]} akcje={<><CopyLinkButton sciezka={`/miejsca/${m.id}`} /><PrzyciskDrukuj /><PrzyciskDrukujCalosc rodzaj="miejsce" id={m.id} /></>} naglowek={naglowek}
             bok={mapa ? <MapaKarty mapa={mapa} wysokosc={300} podpis="mapa okolicy" /> : undefined} spis={<SpisTresci pozycje={spis} />}>
             <Tabela etykieta={`${m.nazwa} – dane`}>
                 <Czesc tytul="podstawowe" />
+                <WierszNrKat nr={nrKat} />
                 {!obszar && <W e="gmina">{zGminy ? <Link href={`/miejsca/${zGminy.id}`} className="odn">{zGminy.nazwa.replace(/^gmina /i, '')}</Link> : <span className="text-[var(--tekst-opis)]">w opracowaniu</span>}</W>}
                 {nadrzedne && (!gmina || nadrzedne.id !== gmina.id) && obszar && <W e="należy do"><Link href={`/miejsca/${nadrzedne.id}`} className="odn">{nadrzedne.nazwa}</Link></W>}
                 {!obszar && m.parafie.length > 0 && (

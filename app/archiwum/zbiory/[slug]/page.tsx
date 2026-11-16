@@ -6,10 +6,12 @@ import { naHtml } from '@/lib/markdoc'
 import { PelnaSzerokosc, Sekcja, Strona, Tresc, maTekst } from '../../../components/Uklad'
 import { Czesc, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../../components/Karta'
 import SpisTresci from '../../../components/SpisTresci'
-import { PrzyciskDrukuj } from '../../../components/Druk'
+import { PrzyciskDrukuj, PrzyciskDrukujCalosc } from '../../../components/Druk'
 import ListaMaterialow from '../../../components/ListaMaterialow'
 import CopyLinkButton from '../../../components/CopyLinkButton'
 import Komunikat from '../../../components/Komunikat'
+import { numerKat } from '@/lib/katalog/dane'
+import { WierszNrKat } from '../../../components/NrKat'
 export const dynamic = 'force-dynamic'
 type P = { params: Promise<{ slug: string }> }
 export async function generateMetadata({ params }: P): Promise<Metadata> {
@@ -23,13 +25,15 @@ export default async function Zbior({ params }: P) {
   if (!z) notFound()
   const tekst = naHtml(z.opis)
   const mats = await materialyZbioru(z.id, poziom)
+  const nrKat = numerKat('zbior', z.id)
   return (
-    <Strona uklad="karta" sciezka={[{ tekst: 'archiwum', href: '/archiwum' }, { tekst: 'zbiory', href: '/archiwum/zbiory' }]} akcje={<><CopyLinkButton sciezka={`/archiwum/zbiory/${z.id}`} /><PrzyciskDrukuj /></>}
+    <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'archiwum', href: '/archiwum' }, { tekst: 'zbiory', href: '/archiwum/zbiory' }]} akcje={<><CopyLinkButton sciezka={`/archiwum/zbiory/${z.id}`} /><PrzyciskDrukuj /><PrzyciskDrukujCalosc rodzaj="zbior" id={z.id} /></>}
       naglowek={<NaglowekKarty sciezka={[]} tytul={z.nazwa} linia={['zbiór', `${mats.length} ${mats.length === 1 ? 'materiał' : 'materiałów'}`]} />}
-      spis={<SpisTresci pozycje={spisCzesci([(z.pochodzenie || z.prawa) && 'podstawowe', 'materiały w zbiorze', z.zrodla.length > 0 && 'źródła'])} />}>
-      {(z.pochodzenie || z.prawa) && (
+      spis={<SpisTresci pozycje={spisCzesci([(!!nrKat || z.pochodzenie || z.prawa) && 'podstawowe', 'materiały w zbiorze', z.zrodla.length > 0 && 'źródła'])} />}>
+      {(!!nrKat || z.pochodzenie || z.prawa) && (
         <Tabela etykieta={`${z.nazwa} – podstawowe`}>
           <Czesc tytul="podstawowe" />
+          <WierszNrKat nr={nrKat} />
           <W e="pochodzenie">{z.pochodzenie}</W>
           <W e="prawa">{z.prawa}</W>
         </Tabela>

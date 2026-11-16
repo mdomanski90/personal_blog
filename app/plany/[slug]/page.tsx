@@ -9,6 +9,8 @@ import CopyLinkButton from '../../components/CopyLinkButton'
 import WidokObiektu from '../../components/plan/WidokObiektu'
 import { osobyPlanu } from '@/lib/plany/rodzina'
 import { PrzyciskDrukuj } from '../../components/Druk'
+import { numerKat } from '@/lib/katalog/dane'
+import { LiniaNrKat } from '../../components/NrKat'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,13 +32,15 @@ export default async function PlanStrona({ params }: Parametry) {
     const ob = plan.obiekt ? await obiekt(plan.obiekt, poz) : null
     const ustawienia = await wczytajUstawienia()
     const osoby = await osobyPlanu(plan, poz)
+    const nrKat = numerKat('plan', plan.slug)
     return (
-        <Strona szeroka akcje={<><CopyLinkButton sciezka={`/plany/${plan.slug}`} /><PrzyciskDrukuj /></>}>
+        <Strona szeroka nrKat={nrKat} akcje={<><CopyLinkButton sciezka={`/plany/${plan.slug}`} /><PrzyciskDrukuj /></>}>
             <TytulStrony
                 sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : []), ...(ob ? [{ tekst: ob.nazwa, href: `/obiekty/${ob.id}` }] : [])]}
             >
                 {plan.tytul}
             </TytulStrony>
+            <LiniaNrKat nr={nrKat} />
             {plan.opis && <p className="leading-relaxed" style={{ margin: 0 }}>{plan.opis}</p>}
             <WidokObiektu plan={plan} ustawienia={ustawienia} zalogowany={poziom === 'bliscy'} osoby={osoby} />
             <p className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12, margin: 0 }}>

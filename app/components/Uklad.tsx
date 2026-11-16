@@ -64,7 +64,7 @@ function UkladKarty({ children, naglowek, bok, spis, sciezka }: { children: Reac
 }
 
 /** Strona z nagłówkiem, stopką i powiększaniem obrazków. Jedna szerokość układu (1200 px) – nagłówek, treść i stopka mają tę samą krawędź. */
-export function Strona({ children, szeroka = false, uklad, akcje, naglowek, bok, spis, sciezka }: {
+export function Strona({ children, szeroka = false, uklad, akcje, naglowek, bok, spis, sciezka, nrKat }: {
     children: React.ReactNode
     /** dawny przełącznik „szeroka” = uklad="pelna" */
     szeroka?: boolean
@@ -78,6 +78,8 @@ export function Strona({ children, szeroka = false, uklad, akcje, naglowek, bok,
     spis?: React.ReactNode
     /** uklad="karta": okruszki nad siatką (wtedy NaglowekKarty / TytulStrony dostają pustą ścieżkę) */
     sciezka?: Sciezka
+    /** KAT-03: nr kat. pozycji – do stopki wydruku (UstawieniaDruku czyta data-nr-kat) */
+    nrKat?: string | null
 }) {
     const u: UkladStrony = uklad ?? (szeroka ? 'pelna' : 'kolumna')
     return (
@@ -90,6 +92,7 @@ export function Strona({ children, szeroka = false, uklad, akcje, naglowek, bok,
                     </main>
                     {/* JW-17: koniec treści w druku – pełny adres i data wydruku (każda przeglądarka; wartości z UstawieniaDruku) */}
                     <p className="druk-koniec" aria-hidden="true" />
+                    {nrKat && <span hidden data-nr-kat={nrKat} />}
                     <ImageZoom />
                     <DokumentyWTresci />
                     <DrzewaLinie />

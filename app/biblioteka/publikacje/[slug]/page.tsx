@@ -7,6 +7,8 @@ import { Czesc, LiniaKarty, NaglowekKarty, Tabela, W, ZAdresami, ZglosPoprawke, 
 import SpisTresci from '../../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../../components/Druk'
 import CopyLinkButton from '../../../components/CopyLinkButton'
+import { numerKat } from '@/lib/katalog/dane'
+import { WierszNrKat } from '../../../components/NrKat'
 export const dynamic = 'force-dynamic'
 type P = { params: Promise<{ slug: string }> }
 const RODZAJE: Record<string, string> = { ksiazka: 'książka', artykul: 'artykuł', prasa: 'prasa', opracowanie: 'opracowanie', baza: 'baza / serwis' }
@@ -22,14 +24,16 @@ export default async function Publikacja({ params }: P) {
   const n = await nazwy(poziom)
   const miejscaP = p.miejsca.filter((id) => n.miejsca.has(id))
   const tematyP = p.tematy.filter((id) => n.tematy.has(id))
+  const nrKat = numerKat('publikacja', p.id)
   return (
-    <Strona uklad="karta" sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }, { tekst: 'publikacje', href: '/biblioteka/publikacje' }]} akcje={<><CopyLinkButton sciezka={`/biblioteka/publikacje/${p.id}`} /><PrzyciskDrukuj /></>}
+    <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }, { tekst: 'publikacje', href: '/biblioteka/publikacje' }]} akcje={<><CopyLinkButton sciezka={`/biblioteka/publikacje/${p.id}`} /><PrzyciskDrukuj /></>}
       naglowek={<NaglowekKarty sciezka={[]}
         tytul={p.nazwa} linia={[RODZAJE[p.rodzaj] ?? p.rodzaj, p.autor || null, p.rok || null]}
         lead={p.opis ? <p className="m-0 whitespace-pre-wrap">{p.opis}</p> : undefined} />}
       spis={<SpisTresci pozycje={spisCzesci(['podstawowe', (miejscaP.length > 0 || tematyP.length > 0) && 'powiązane'])} />}>
       <Tabela etykieta={`${p.nazwa} – opis bibliograficzny`}>
         <Czesc tytul="podstawowe" />
+        <WierszNrKat nr={nrKat} />
         <W e="autor">{p.autor}</W>
         <W e="rok">{p.rok}</W>
         <W e="wydawca / czasopismo">{p.wydawca}</W>

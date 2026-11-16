@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
 import { Link } from 'next-view-transitions'
+import { redirect } from 'next/navigation'
+import { parsujNr } from '@/lib/katalog/model'
+import { adresNumeru } from '@/lib/katalog/widocznosc'
 import { poziomCzytelnika, szukaj, type RodzajWyniku } from '@/lib/archiwum'
 import { krotszeZapytanie } from '@/lib/szukanie'
 import PoleSzukania from '../components/PoleSzukania'
@@ -27,6 +30,10 @@ const male = { fontSize: 'calc(13px * var(--font-scale, 1))' }
 export default async function Szukaj({ searchParams }: { searchParams: Promise<{ q?: string | string[]; rodzaj?: string }> }) {
     const sp = await searchParams
     const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q ?? '').slice(0, 100).trim()
+    // KAT-04: numer katalogowy (MA-0042, ma-42) – od razu strona pozycji, gdy czytelnik ją widzi; inaczej zwykłe wyszukiwanie
+    const nrKat = parsujNr(q)
+    const adresKat = nrKat ? await adresNumeru(nrKat, await poziomCzytelnika()) : null
+    if (adresKat) redirect(adresKat)
     const wszystkie = q ? await szukaj(q, await poziomCzytelnika()) : []
     const rodzaj = GRUPY.find((g) => g.r === sp.rodzaj)?.r
     const wyniki = rodzaj ? wszystkie.filter((w) => w.rodzaj === rodzaj) : wszystkie

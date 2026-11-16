@@ -1,6 +1,7 @@
 import { miejsca, obiekty } from '@/lib/archiwum'
 import { brakDostepu, listaPlanow, listaZgloszen, wczytajPlan, wczytajUstawienia, zapiszObraz, zapiszPlan } from '@/lib/plany/dane'
 import { nowyPlan, popraw, SLUG, type Plan } from '@/lib/plany/model'
+import { zNadaniemNumerow } from '@/lib/katalog/dane'
 
 // Lista planów (z miejscami i obiektami do wyboru), nowy plan, import pliku planu (z osadzonym podkładem).
 export const dynamic = 'force-dynamic'
@@ -17,7 +18,10 @@ export async function GET(req: Request) {
     })
 }
 
-export async function POST(req: Request) {
+// KAT-01: po udanym zapisie – numery katalogowe dla nowych pozycji publicznych
+export const POST = zNadaniemNumerow(zapiszPOST)
+
+async function zapiszPOST(req: Request) {
     const b = brakDostepu(req); if (b) return b
     const d = await req.json().catch(() => null)
     if (d?.akcja === 'nowy') {

@@ -23,6 +23,8 @@ import Powiazania from '../../components/Powiazania'
 import { zbiory } from '@/lib/paczka5'
 import { Link } from 'next-view-transitions'
 import { widoczne } from '@/lib/archiwum'
+import { numerKat } from '@/lib/katalog/dane'
+import { WierszNrKat } from '../../components/NrKat'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,7 +74,8 @@ export default async function MaterialStrona({ params }: Parametry) {
     const reszta = naHtml(cz.reszta, ktx)
     const wpisyZMat = siec.odnosniki.filter((z) => z.zrodlo.rodzaj === 'wpis')
     const inneOdnosniki = siec.odnosniki.filter((z) => z.zrodlo.rodzaj !== 'wpis')
-    const jestOpis = !!(m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal || m.miejscePrzechowywania || m.transkrypcja || m.zbiory.length || osobyM.length || instytucjeM.length)
+    const nrKat = numerKat('material', m.id)
+    const jestOpis = !!nrKat || !!(m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal || m.miejscePrzechowywania || m.transkrypcja || m.zbiory.length || osobyM.length || instytucjeM.length)
     const jestDotyczy = miejscaM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0
     const spis = spisCzesci([jestOpis && 'opis archiwalny', jestDotyczy && 'dotyczy', 'jak cytować', (oryginal || m.zrodla.length > 0) && 'źródła'])
     const naglowek = (
@@ -85,7 +88,7 @@ export default async function MaterialStrona({ params }: Parametry) {
     )
 
     return (
-        <Strona uklad="karta" sciezka={[{ tekst: 'archiwum', href: '/archiwum' }]} akcje={<><CopyLinkButton sciezka={`/archiwum/${m.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} spis={<SpisTresci pozycje={spis} />}>
+        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'archiwum', href: '/archiwum' }]} akcje={<><CopyLinkButton sciezka={`/archiwum/${m.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} spis={<SpisTresci pozycje={spis} />}>
             {/* JW-2: skan z tekstem na pełnej szerokości (skan = kolumna tekstu, tekst od linii paska bocznego); spis treści wraca po nim */}
             {obok ? (
                 <PelnaSzerokosc>
@@ -111,6 +114,7 @@ export default async function MaterialStrona({ params }: Parametry) {
 
             <Tabela etykieta={`${m.nazwa} – opis`}>
                 {jestOpis && <Czesc tytul="opis archiwalny" />}
+                <WierszNrKat nr={nrKat} />
                 <W e="sygnatura">{m.sygnatura}</W>
                 <W e="miejsce przechowywania">{m.miejscePrzechowywania}</W>
                 <W e="transkrypcja">{m.transkrypcja && <span className="whitespace-pre-wrap">{m.transkrypcja}</span>}</W>
@@ -132,7 +136,7 @@ export default async function MaterialStrona({ params }: Parametry) {
 
                 <Czesc tytul="jak cytować" />
                 <WCaly>
-                    <JakCytowac wTabeli plik={m.id} dane={{ tytul: m.czas && !m.nazwa.includes(formatujEdtf(m.czas)) ? `${m.nazwa}, ${formatujEdtf(m.czas)}` : m.nazwa, adres: `${ADRES_STRONY}/archiwum/${m.id}`, opracowal: m.opracowal || AUTOR_STRONY, autor: m.tworca || undefined, rok: m.czas?.slice(0, 4), oryginal: oryginal || undefined, rodzaj: 'material' }} />
+                    <JakCytowac wTabeli plik={m.id} dane={{ tytul: m.czas && !m.nazwa.includes(formatujEdtf(m.czas)) ? `${m.nazwa}, ${formatujEdtf(m.czas)}` : m.nazwa, adres: `${ADRES_STRONY}/archiwum/${m.id}`, opracowal: m.opracowal || AUTOR_STRONY, autor: m.tworca || undefined, rok: m.czas?.slice(0, 4), oryginal: oryginal || undefined, rodzaj: 'material', nrKat, ...(nrKat ? { adres: `${ADRES_STRONY}/k/${nrKat}` } : {}) }} />
                 </WCaly>
                 <Zrodla pozycje={[
                     oryginal && <>oryginał: {oryginal}</>,

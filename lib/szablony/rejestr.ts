@@ -87,6 +87,7 @@ export const MIEJSCA: Miejsce[] = [
     // przekrojowe
     { byt: 'plan cmentarza', gdzie: 'karta miejscowości / obiektu – plany', plik: 'app/components/plan/ListaPlanow.tsx', wzorzec: 'wlasny', status: 'do-ujednolicenia', uwaga: 'Własna lista; do ustalenia przy rozdzieleniu karty cmentarza i przeglądarki planu (CEM-01).', adres: '/obiekty/… (cmentarz)' },
     { byt: 'różne', gdzie: 'sieć powiązań na dole kart', plik: 'app/components/Powiazania.tsx', wzorzec: 'wlasny', status: 'do-ujednolicenia', uwaga: 'Na 6 rodzajach kart; własna lista z fragmentami tekstu – sprawdzić względem listy w karcie.', adres: 'karty' },
+    { byt: 'różne', gdzie: 'drukuj całość – spis pozycji z nr kat.', plik: 'app/druk/[rodzaj]/[id]/page.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'KAT-05: wydruk – strona tytułowa, spis z numerami katalogowymi, każda pozycja od nowej kartki.', adres: '/druk/miejsce/…' },
     { byt: 'różne', gdzie: 'wyniki wyszukiwania', plik: 'app/szukaj/page.tsx', wzorzec: 'wlasny', status: 'do-ujednolicenia', uwaga: 'Własna lista z etykietą rodzaju – powinna być listą pozycji działu z etykietą.', adres: '/szukaj?q=…' },
 ]
 

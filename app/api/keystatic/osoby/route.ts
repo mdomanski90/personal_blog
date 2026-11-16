@@ -6,6 +6,7 @@ import { idZNazwy, noweIdZdarzenia, poprawOsobe, ID_OSOBY, type Zdarzenie } from
 import { czyPoprawnaEdtf, rokPoczatku } from '@/lib/edtf'
 import { doSprawdzeniaZycia, miejscaDoDopasowania, ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
 import { porownajPl } from '@/lib/tekst'
+import { zNadaniemNumerow } from '@/lib/katalog/dane'
 
 // Panel osób: lista, import z GEDCOM (podgląd i zapis, jednorazowy), nowa osoba.
 export const dynamic = 'force-dynamic'
@@ -27,7 +28,10 @@ export async function GET(req: Request) {
 
 const MAKS = 60 * 1024 * 1024
 
-export async function POST(req: Request) {
+// KAT-01: po udanym zapisie – numery katalogowe dla nowych pozycji publicznych
+export const POST = zNadaniemNumerow(zapiszPOST)
+
+async function zapiszPOST(req: Request) {
     const b = brakDostepu(req); if (b) return b
     const d = await req.json().catch(() => null)
     try {

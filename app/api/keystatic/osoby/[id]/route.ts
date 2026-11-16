@@ -4,6 +4,7 @@ import { ID_OSOBY, poprawOsobe, widocznoscOsoby, type Osoba } from '@/lib/osoby/
 import { ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
 import { parafie } from '@/lib/archiwum'
 import { maBiogram } from '@/lib/osoby/biogramy'
+import { zNadaniemNumerow } from '@/lib/katalog/dane'
 
 // Jedna osoba w panelu: dane, rodzina, ostrzeżenia; zapis z kontrolą wersji; usunięcie do kosza.
 export const dynamic = 'force-dynamic'
@@ -35,7 +36,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     })
 }
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+// KAT-01: po udanym zapisie – numery katalogowe dla nowych pozycji publicznych
+export const PUT = zNadaniemNumerow(zapiszPUT)
+
+async function zapiszPUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const b = brakDostepu(req); if (b) return b
     const { id } = await params
     if (!ID_OSOBY.test(id)) return Response.json({ blad: 'zły identyfikator' }, { status: 400 })

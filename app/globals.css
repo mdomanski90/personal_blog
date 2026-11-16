@@ -1734,6 +1734,19 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .osoby-lista{gap:6px}
 .osoby-lista li{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 
+/* KAT-03: numer katalogowy */
+.nr-kat{font-weight:700;letter-spacing:.02em;white-space:nowrap}
+
+/* KAT-05: drukuj całość – strona tytułowa ze spisem, pozycje od nowej kartki */
+.druk-calosc-tytulowa{display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
+.druk-calosc-uwaga{margin:0}
+.druk-calosc-spis ol{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column}
+.druk-calosc-spis li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:6px 0;border-bottom:1px solid var(--linia-podzialu);font-size:var(--rozmiar-maly)}
+.druk-calosc-spis .nr-kat{min-width:7.5em}
+.druk-calosc-pozycja{display:flex;flex-direction:column;gap:12px;padding-top:var(--odstep-sekcji);border-top:1px solid var(--linia-podzialu)}
+.odp .druk-calosc-tytul{margin:0;font-size:var(--rozmiar-tytul);font-weight:700;line-height:1.3}
+.druk-calosc-skan{display:block;max-width:100%;height:auto;border:1px solid var(--linia-podzialu);border-radius:var(--promien-maly)}
+
 /* elementy tylko do druku – na ekranie ukryte */
 .druk-naglowek,.druk-koniec,.druk-tylko{display:none}
 
@@ -1791,6 +1804,12 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
   .druk-koniec{display:block!important;margin:8mm 0 0;padding-top:3mm;border-top:.5pt solid var(--druk-linia);font-size:8.5pt;color:var(--druk-szary)}
   .druk-koniec::before{content:var(--nr-kat-druku) "adres strony: " var(--adres-druku) " · wydrukowano " var(--data-wydruku)}
   .druk-tylko{display:block!important}
+  /* KAT-05 */
+  .druk-calosc-uwaga{display:none}
+  .druk-calosc-tytulowa{break-after:page}
+  .druk-calosc-pozycja{break-before:page;border-top:0;padding-top:0}
+  .druk-calosc-skan{border:0;border-radius:0;max-height:190mm;margin:0 auto}
+  .druk-calosc-spis li{border-bottom:.5pt solid var(--druk-linia);font-size:9.5pt}
 }
 
 .tekst-opis{color:var(--tekst-opis);font-size:var(--rozmiar-maly)}

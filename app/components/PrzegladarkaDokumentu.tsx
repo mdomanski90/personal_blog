@@ -11,12 +11,12 @@ import * as React from 'react'
 import type OpenSeadragon from 'openseadragon'
 import type { ObjasnienieWidoku } from '@/lib/objasnienia-widok'
 import ObjasnieniaSkanu, { ListaObjasnien, TekstZrodla, type ApiWarstwy, type ObjasnienieNaStronie, type TrybObjasnien } from './ObjasnieniaSkanu'
+import { obrazStrony } from '@/lib/pliki'
 
 export interface StronaPodgladu { adres: string; podpis?: string }
 
-// strony z panelu mają pomniejszone kopie (?w=…), stary pojedynczy plik – tylko oryginał
-const zKopiami = (a: string) => a.startsWith('/pliki/strony/')
-export const obrazStrony = (a: string, w: 160 | 480 | 1200 | 2400) => (zKopiami(a) ? `${a}?w=${w}` : a)
+// strony z panelu mają pomniejszone kopie (?w=…) – wspólna funkcja w lib/pliki.ts (także dla stron serwerowych)
+export { obrazStrony }
 
 export function ileStron(n: number): string {
     if (n === 1) return '1 strona'

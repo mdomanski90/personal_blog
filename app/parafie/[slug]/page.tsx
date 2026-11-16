@@ -13,6 +13,8 @@ import { PrzyciskDrukuj } from '../../components/Druk'
 import { PasekLat, TabelaKsiag } from '../../components/Ksiegi'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import ListaObiektow from '../../components/ListaObiektow'
+import { numerKat } from '@/lib/katalog/dane'
+import { WierszNrKat } from '../../components/NrKat'
 
 export const dynamic = 'force-dynamic'
 type Parametry = { params: Promise<{ slug: string }> }
@@ -40,6 +42,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
     const wyznanie = WYZNANIA_PARAFII[p.wyznanie] ?? p.wyznanie
     const osobyInstytucji = p.osoby ?? []
     const zrodlaInstytucji = p.zrodla ?? []
+    const nrKat = numerKat('instytucja', p.id)
     const spis = spisCzesci(['podstawowe', miejscowosci.length > 0 && 'miejscowości', budynki.length > 0 && 'powiązane obiekty', osobyInstytucji.length > 0 && 'osoby związane z instytucją', matInstytucji.length > 0 && 'materiały archiwalne', spisKsieg.length > 0 && 'księgi metrykalne', 'historia', zrodlaInstytucji.length > 0 && 'źródła'])
     const naglowek = (
         <NaglowekKarty
@@ -50,10 +53,11 @@ export default async function ParafiaStrona({ params }: Parametry) {
         />
     )
     return (
-        <Strona uklad="karta" sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, { tekst: 'instytucje', href: '/parafie' }]} akcje={<><CopyLinkButton sciezka={`/parafie/${p.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} spis={<SpisTresci pozycje={spis} />}>
+        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, { tekst: 'instytucje', href: '/parafie' }]} akcje={<><CopyLinkButton sciezka={`/parafie/${p.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} spis={<SpisTresci pozycje={spis} />}>
 
             <Tabela etykieta={`${p.nazwa} – dane instytucji`}>
                 <Czesc tytul="podstawowe" />
+                <WierszNrKat nr={nrKat} />
                 <W e="wyznanie / rodzaj">{wyznanie}</W>
                 <W e="okres działania">{p.czas ? formatujEdtf(p.czas) : <span className="ot-drobne">nieustalony</span>}</W>
                 <W e="siedziba">{siedziba ? <Link href={`/miejsca/${siedziba.id}`} className="odn">{siedziba.nazwa}</Link> : null}</W>

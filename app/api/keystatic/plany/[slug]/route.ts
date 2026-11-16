@@ -1,5 +1,6 @@
 import { brakDostepu, usunPlan, wczytajPlan, zapiszZWersja } from '@/lib/plany/dane'
 import { popraw, type Plan } from '@/lib/plany/model'
+import { zNadaniemNumerow } from '@/lib/katalog/dane'
 
 // Jeden plan: odczyt pełny (z polami roboczymi), zapis z kontrolą wersji (autozapis edytora), usunięcie do kosza.
 export const dynamic = 'force-dynamic'
@@ -11,7 +12,10 @@ export async function GET(req: Request, { params }: P) {
     return plan ? Response.json(plan) : Response.json({ blad: 'nie ma takiego planu' }, { status: 404 })
 }
 
-export async function PUT(req: Request, { params }: P) {
+// KAT-01: po udanym zapisie – numery katalogowe dla nowych pozycji publicznych
+export const PUT = zNadaniemNumerow(zapiszPUT)
+
+async function zapiszPUT(req: Request, { params }: P) {
     const b = brakDostepu(req); if (b) return b
     const slug = (await params).slug
     const d = (await req.json().catch(() => null)) as Plan | null

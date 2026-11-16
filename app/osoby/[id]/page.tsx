@@ -21,6 +21,8 @@ import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import Powiazania from '../../components/Powiazania'
 import { PastylkaOsoby } from '@/app/components/Wzorce'
+import { numerKat } from '@/lib/katalog/dane'
+import { WierszNrKat } from '../../components/NrKat'
 
 export const dynamic = 'force-dynamic'
 
@@ -121,6 +123,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
         ileDzieci ? odmiana(ileDzieci, ['dziecko', 'dzieci', 'dzieci']) : '',
     ].filter(Boolean).join(' · ')
     const podpisPortretu = o.portret && [o.portret.podpis, o.portret.zrodlo && `źródło: ${o.portret.zrodlo}`].filter(Boolean).join(' · ')
+    const nrKat = numerKat('osoba', id)
     const materialyOsoby = (await materialy(poziom)).filter((m) => m.osobyIds.includes(id))
     // prośba o zdjęcie tylko dla osób żyjących po 1900 r. (decyzja 16.11): ur. albo zm. po 1900 albo bez dat
     const po1900 = (rokZgonu(o) ?? rokUrodzenia(o) ?? 1901) > 1900
@@ -157,7 +160,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
 
     // JW-2 (makiety v2): podstawowe → biogram → życie, rodzina → drzewo w tabeli → materiały archiwalne → źródła; okruszki wspólne
     return (
-        <Strona uklad="karta" sciezka={[{ tekst: 'osoby', href: '/osoby' }]} akcje={<><CopyLinkButton sciezka={`/osoby/${id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={portret} spis={<SpisTresci pozycje={spis} />}>
+        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'osoby', href: '/osoby' }]} akcje={<><CopyLinkButton sciezka={`/osoby/${id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={portret} spis={<SpisTresci pozycje={spis} />}>
             {bio?.tresc && (
                 <Sekcja tytul="biogram" id={idCzesci('biogram')}>
                     <Tresc html={naHtml(bio.tresc, kontekst)} pusta={null} />
@@ -168,6 +171,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                 <Naglowek tytul="życie">
                     {przebieg.length > 1 && <>obrządek {przebieg.map((p, i) => <span key={i}>{i > 0 && ' → '}<Obrz o={p.o} wywnioskowany={p.w} /></span>)}</>}
                 </Naglowek>
+                <WierszNrKat nr={nrKat} />
                 {wszystkie.map((z) => {
                     const ob = obrzadki.get(z.id)
                     return (

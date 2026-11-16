@@ -7,9 +7,11 @@ import { naHtml, zajawka } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc } from '../../components/Uklad'
 import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import SpisTresci from '../../components/SpisTresci'
-import { PrzyciskDrukuj } from '../../components/Druk'
+import { PrzyciskDrukuj, PrzyciskDrukujCalosc } from '../../components/Druk'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania from '../../components/Powiazania'
+import { numerKat } from '@/lib/katalog/dane'
+import { WierszNrKat } from '../../components/NrKat'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,7 +48,8 @@ export default async function TematStrona({ params }: Parametry) {
     const lead = zajawka(t.opis, 240, ktx.rozwiaz)
     const wpisyWTekstach = siec.odnosniki.filter((z) => z.zrodlo.rodzaj !== 'wpis' || !opow.some((o) => o.id === z.zrodlo.id))
 
-    const spis = spisCzesci([(t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && 'w skrócie', 'opis', 'powiązane', t.zrodla.length > 0 && 'źródła'])
+    const nrKat = numerKat('temat', t.id)
+    const spis = spisCzesci([(!!nrKat || t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && 'w skrócie', 'opis', 'powiązane', t.zrodla.length > 0 && 'źródła'])
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
@@ -56,10 +59,11 @@ export default async function TematStrona({ params }: Parametry) {
         />
     )
     return (
-        <Strona uklad="karta" sciezka={[{ tekst: 'tematy', href: '/tematy' }]} akcje={<><CopyLinkButton sciezka={`/tematy/${t.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} spis={<SpisTresci pozycje={spis} />}>
-            {(t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && (
+        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'tematy', href: '/tematy' }]} akcje={<><CopyLinkButton sciezka={`/tematy/${t.id}`} /><PrzyciskDrukuj /><PrzyciskDrukujCalosc rodzaj="temat" id={t.id} /></>} naglowek={naglowek} spis={<SpisTresci pozycje={spis} />}>
+            {(!!nrKat || t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && (
                 <Tabela etykieta={`${t.nazwa} – w skrócie`}>
                     <Czesc tytul="w skrócie" />
+                    <WierszNrKat nr={nrKat} />
                     <W e="okres">{t.czas ? formatujEdtf(t.czas) : null}</W>
                     <W e={miejscaTematu.length > 1 ? 'miejsca' : 'miejsce'}>{miejscaTematu.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaTematu.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
                     <W e="powiązane tematy">{wspolne.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[wspolne.map((x) => ({ tekst: x.nazwa, href: `/tematy/${x.id}` }))]} />}</W>

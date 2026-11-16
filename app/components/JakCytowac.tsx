@@ -2,13 +2,13 @@
 // „Jak cytować”: gotowy opis do skopiowania i pliki BibTeX / RIS (np. do Zotero).
 import * as React from 'react'
 
-export interface DaneCytatu { tytul: string; adres: string; opracowal: string; autor?: string; rok?: string; oryginal?: string; rodzaj?: string }
+export interface DaneCytatu { tytul: string; adres: string; opracowal: string; autor?: string; rok?: string; oryginal?: string; rodzaj?: string; /** KAT-03: nr kat.; adres wtedy = stały adres /k/NR */ nrKat?: string | null }
 
 const dzis = () => new Date().toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })
 const SERWIS = 'odniepamieci.pl – społeczne archiwum pamięci lokalnej'
 
 export function opisCytatu(d: DaneCytatu): string {
-    return `„${d.tytul}”, w: ${SERWIS}, oprac. ${d.opracowal}, ${d.adres} (dostęp: ${dzis()}).${d.oryginal ? ` Oryginał: ${d.oryginal}.` : ''}`
+    return `„${d.tytul}”${d.nrKat ? `, nr kat. ${d.nrKat}` : ''}, w: ${SERWIS}, oprac. ${d.opracowal}, ${d.adres} (dostęp: ${dzis()}).${d.oryginal ? ` Oryginał: ${d.oryginal}.` : ''}`
 }
 
 function pobierz(nazwa: string, tresc: string, typ: string) {
@@ -24,8 +24,8 @@ export default function JakCytowac({ dane, plik, wTabeli = false }: { dane: Dane
     const [skopiowano, ustaw] = React.useState(false)
     const tekst = opisCytatu(dane)
     const iso = new Date().toISOString().slice(0, 10)
-    const bib = `@misc{${plik},\n  title = {${dane.tytul}},\n  howpublished = {${SERWIS}},\n  note = {oprac. ${dane.opracowal}${dane.oryginal ? `; oryginał: ${dane.oryginal}` : ''}},\n  ${dane.rok ? `year = {${dane.rok}},\n  ` : ''}url = {${dane.adres}},\n  urldate = {${iso}}\n}\n`
-    const ris = [`TY  - ${dane.rodzaj === 'wpis' ? 'BLOG' : 'GEN'}`, `TI  - ${dane.tytul}`, ...(dane.autor ? [`AU  - ${dane.autor}`] : []), `A2  - ${dane.opracowal}`, ...(dane.rok ? [`PY  - ${dane.rok}`] : []), `T2  - ${SERWIS}`, `UR  - ${dane.adres}`, `Y2  - ${iso}`, ...(dane.oryginal ? [`N1  - Oryginał: ${dane.oryginal}`] : []), 'ER  - ', ''].join('\r\n')
+    const bib = `@misc{${plik},\n  title = {${dane.tytul}},\n  howpublished = {${SERWIS}},\n  note = {oprac. ${dane.opracowal}${dane.oryginal ? `; oryginał: ${dane.oryginal}` : ''}},\n  ${dane.nrKat ? `number = {${dane.nrKat}},\n  ` : ''}${dane.rok ? `year = {${dane.rok}},\n  ` : ''}url = {${dane.adres}},\n  urldate = {${iso}}\n}\n`
+    const ris = [`TY  - ${dane.rodzaj === 'wpis' ? 'BLOG' : 'GEN'}`, `TI  - ${dane.tytul}`, ...(dane.autor ? [`AU  - ${dane.autor}`] : []), `A2  - ${dane.opracowal}`, ...(dane.rok ? [`PY  - ${dane.rok}`] : []), `T2  - ${SERWIS}`, ...(dane.nrKat ? [`CN  - ${dane.nrKat}`] : []), `UR  - ${dane.adres}`, `Y2  - ${iso}`, ...(dane.oryginal ? [`N1  - Oryginał: ${dane.oryginal}`] : []), 'ER  - ', ''].join('\r\n')
     return (
         <div className={`jak-cytowac${wTabeli ? ' jak-cytowac--w-tabeli' : ''}`}>
             {!wTabeli && <h2 className="tytul-sekcji">jak cytować</h2>}

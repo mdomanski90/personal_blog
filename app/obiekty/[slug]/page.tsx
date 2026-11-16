@@ -24,6 +24,8 @@ import WidokObiektu from '../../components/plan/WidokObiektu'
 import { osobyPlanu } from '@/lib/plany/rodzina'
 import OtworzWMapach from '../../components/OtworzWMapach'
 import GaleriaZdjec from '../../components/GaleriaZdjec'
+import { numerKat } from '@/lib/katalog/dane'
+import { WierszNrKat } from '../../components/NrKat'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,6 +62,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     const foto = o.zdjecia[0]
     const podpisFoto = foto ? [foto.podpis, foto.data, foto.autor && `fot. ${foto.autor}`].filter(Boolean).join(' · ') : ''
     const mapa = o.wspolrzedne ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={glowny ? 16 : 14} wysokosc="100%" /> : undefined
+    const nrKat = numerKat('obiekt', o.id)
     const jestPowiazane = mat.length > 0 || planyObiektu.length > 1
     const jestZrodla = o.zrodla.length > 0 || o.zdjecia.some((z) => z.autor || z.prawa)
     // JW-2: spis treści z części; drugiej mapy w wierszu „położenie” nie ma (JW-15) – mapa jest w pasku bocznym, gdy nie ma zdjęcia
@@ -67,6 +70,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     const tabelaPodstawowa = (
         <Tabela etykieta={`${o.nazwa} – dane`}>
             <Czesc tytul="podstawowe" />
+            <WierszNrKat nr={nrKat} />
             <W e="miejscowość">{wies && <Link href={`/miejsca/${wies.id}`} className="odn">{wies.nazwa}</Link>}</W>
             <W e="parafia / urząd">{(o.instytucje?.length ?? 0) > 0 && (
                 <span className="flex flex-col gap-1">
@@ -112,7 +116,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     ) : mapa && !glowny ? <MapaKarty mapa={mapa} wysokosc={300} podpis="położenie" /> : undefined
 
     return (
-        <Strona uklad="karta" sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]} akcje={<><CopyLinkButton sciezka={`/obiekty/${o.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={bok} spis={<SpisTresci pozycje={spis} />}>
+        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]} akcje={<><CopyLinkButton sciezka={`/obiekty/${o.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={bok} spis={<SpisTresci pozycje={spis} />}>
             {/* z planem (np. cmentarz): plan na całą szerokość z zakładkami, dane obok; bez planu – tabela w kolumnie */}
             {glowny ? <PelnaSzerokosc><WidokObiektu plan={glowny.plan} ustawienia={ustawienia} zalogowany={glowny.poziom === 'bliscy'} osoby={osobyGlownego} mapa={mapa} info={tabelaPodstawowa} /></PelnaSzerokosc> : tabelaPodstawowa}
 
