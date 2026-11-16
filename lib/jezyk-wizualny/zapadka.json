@@ -1,0 +1,191 @@
+{
+  "opis": "JW-1: dozwolona liczba naruszeń języka wizualnego per plik (styl = style inline z rozmiarem/wymiarem/kolorem/odstępem/ramką, hex = kolory poza tokenami). Może tylko maleć – npm run jw:zapadka.",
+  "pliki": {
+    "app/archiwum/[slug]/page.tsx": {
+      "styl": 7
+    },
+    "app/archiwum/page.tsx": {
+      "styl": 2
+    },
+    "app/biblioteka/ksiegi/page.tsx": {
+      "styl": 1
+    },
+    "app/biblioteka/page.tsx": {
+      "styl": 2
+    },
+    "app/biblioteka/publikacje/[slug]/page.tsx": {
+      "styl": 1
+    },
+    "app/biblioteka/publikacje/page.tsx": {
+      "styl": 3
+    },
+    "app/biblioteka/slownik/page.tsx": {
+      "styl": 18
+    },
+    "app/components/DokumentyWTresci.tsx": {
+      "styl": 1
+    },
+    "app/components/GaleriaZdjec.tsx": {
+      "styl": 24,
+      "hex": 4
+    },
+    "app/components/InfoZMapa.tsx": {
+      "styl": 8
+    },
+    "app/components/JakCytowac.tsx": {
+      "styl": 22
+    },
+    "app/components/Karta.tsx": {
+      "styl": 2
+    },
+    "app/components/KatalogKsiegiNaZywo.tsx": {
+      "styl": 23
+    },
+    "app/components/Ksiegi.tsx": {
+      "styl": 2
+    },
+    "app/components/LegendaMapy.tsx": {
+      "styl": 6
+    },
+    "app/components/ListaMaterialow.tsx": {
+      "styl": 10
+    },
+    "app/components/ListaOpowiesci.tsx": {
+      "styl": 5
+    },
+    "app/components/Logowanie.tsx": {
+      "styl": 2
+    },
+    "app/components/MapaKarty.tsx": {
+      "styl": 5
+    },
+    "app/components/MapaMiejsc.tsx": {
+      "styl": 58,
+      "hex": 21
+    },
+    "app/components/MapaMiejscLeniwa.tsx": {
+      "styl": 3
+    },
+    "app/components/OsCzasu.tsx": {
+      "styl": 35,
+      "hex": 7
+    },
+    "app/components/PoleSzukania.tsx": {
+      "styl": 1
+    },
+    "app/components/Powiazania.tsx": {
+      "styl": 14
+    },
+    "app/components/PrzegladarkaDokumentu.tsx": {
+      "styl": 1
+    },
+    "app/components/ScrollToTop.tsx": {
+      "styl": 5
+    },
+    "app/components/SiatkaMiejsc.tsx": {
+      "styl": 4
+    },
+    "app/components/SiteHeader.tsx": {
+      "styl": 12
+    },
+    "app/components/SkanZTekstem.tsx": {
+      "styl": 1
+    },
+    "app/components/SpisMiejsc.tsx": {
+      "styl": 6
+    },
+    "app/components/TekstyZrodla.tsx": {
+      "styl": 12
+    },
+    "app/components/ThemeToggle.tsx": {
+      "styl": 2
+    },
+    "app/components/Uklad.tsx": {
+      "styl": 19
+    },
+    "app/components/Wroc.tsx": {
+      "styl": 2
+    },
+    "app/components/WstepDzialu.tsx": {
+      "styl": 1
+    },
+    "app/components/Zgloszenie.tsx": {
+      "styl": 4
+    },
+    "app/components/plan/ListaPlanow.tsx": {
+      "styl": 4
+    },
+    "app/components/plan/ListaPochowanych.tsx": {
+      "styl": 34
+    },
+    "app/components/plan/PlanInteraktywny.tsx": {
+      "styl": 138,
+      "hex": 8
+    },
+    "app/components/plan/Probka.tsx": {
+      "styl": 26
+    },
+    "app/components/plan/Rysunek.tsx": {
+      "styl": 79
+    },
+    "app/components/plan/WidokObiektu.tsx": {
+      "styl": 13,
+      "hex": 2
+    },
+    "app/globals.css": {
+      "hex": 323
+    },
+    "app/miejsca/[slug]/page.tsx": {
+      "styl": 11
+    },
+    "app/miejsca/page.tsx": {
+      "styl": 2
+    },
+    "app/o-projekcie/page.tsx": {
+      "styl": 1
+    },
+    "app/obiekty/[slug]/page.tsx": {
+      "styl": 5
+    },
+    "app/osoby/ListaOsob.tsx": {
+      "styl": 4
+    },
+    "app/osoby/[id]/page.tsx": {
+      "styl": 11
+    },
+    "app/osoby/page.tsx": {
+      "styl": 3
+    },
+    "app/page.tsx": {
+      "styl": 8
+    },
+    "app/parafie/[slug]/page.tsx": {
+      "styl": 6
+    },
+    "app/parafie/page.tsx": {
+      "styl": 1
+    },
+    "app/plany/[slug]/mapa.png/route.ts": {
+      "hex": 1
+    },
+    "app/plany/[slug]/page.tsx": {
+      "styl": 3
+    },
+    "app/szukaj/page.tsx": {
+      "styl": 15
+    },
+    "app/tematy/[slug]/page.tsx": {
+      "styl": 5
+    },
+    "app/tematy/page.tsx": {
+      "styl": 2
+    },
+    "app/wpisy/[slug]/page.tsx": {
+      "styl": 1
+    },
+    "app/zaloguj/page.tsx": {
+      "styl": 8,
+      "hex": 1
+    }
+  }
+}
