@@ -8,6 +8,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
+import { bladMetadanych } from './metadane'
 import { popraw, SLUG, type Plan } from './model'
 import { nowePowtorzenie } from './numeracja'
 import { USTAWIENIA_DOMYSLNE, type UstawieniaPlanow, type WlasnyTyp } from './typy'
@@ -218,7 +219,7 @@ export async function zapiszZWersja(d: Plan): Promise<{ konflikt: Plan } | { bla
         const obecny = await wczytajPlan(d.slug)
         if (obecny && obecny.wersja !== d.wersja) return { konflikt: obecny }
         // walidacja przy zapisie (zasada 2.6): zapis nie może dodać powtórzonego numeru grobu (etap 2)
-        const powt = nowePowtorzenie(obecny, popraw(d))
+        const powt = nowePowtorzenie(obecny, popraw(d)) ?? bladMetadanych(d)
         if (powt) return { blad: powt }
         const plan = await zapiszPlan(popraw({ ...d, wersja: (obecny?.wersja ?? 0) + 1 }))
         return { plan, przywrocone: await przywrocBrakujacePliki(plan) }

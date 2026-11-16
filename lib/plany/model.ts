@@ -4,6 +4,7 @@
 import type { Warstwa } from './typy'
 import { katalog, typGrobu, type TypElementu, type UstawieniaPlanow } from './typy'
 import type { Etap, Polozenie, StanZrodel } from './statusy'
+import { dobryStopien, poprawMetadane, poprawPodklad, type MetadanePlanu, type PodkladZMaterialu, type Stopien } from './metadane'
 
 export type Widocznosc = 'publiczne' | 'bliscy' | 'ja'
 export type Pkt = [number, number]
@@ -38,7 +39,9 @@ export interface Element {
     nazwa?: string
     /** czy pokazywać napis na planie (domyślnie: tak dla napisów, kwater i świątyń) */
     pokazNazwe?: boolean
-    /** wielkość i styl napisu */
+    /** wielkość napisu w 6 stopniach (PH1); dawne `rozmiar` s/m/l czytane jako 2/3/5 (lib/plany/metadane.ts) */
+    stopien?: Stopien
+    /** @deprecated dawna wielkość napisu – zostaje w starych plikach, zastępuje ją `stopien` przy następnej zmianie w edytorze */
     rozmiar?: 's' | 'm' | 'l'
     styl?: 'zwykly' | 'kursywa' | 'rozstrzelony'
     /** kolor napisu: tekst | szary | woda | las | teren | pamiec */
@@ -94,6 +97,8 @@ export interface Podklad {
     krycie: number
     /** kto może zobaczyć podkład na stronie */
     widocznosc: 'edycja' | 'bliscy' | 'publiczne'
+    /** PH1: podkład = strona materiału archiwum (obraz i prawa z materiału; `plik` pusty) */
+    material?: PodkladZMaterialu
 }
 
 export interface PunktGeo {
@@ -103,7 +108,7 @@ export interface PunktGeo {
     lon: number
 }
 
-export interface Plan {
+export interface Plan extends MetadanePlanu {
     slug: string
     tytul: string
     miejsce?: string
@@ -416,10 +421,20 @@ export function popraw(p: Partial<Plan> & { slug: string }): Plan {
         skala: typeof p.skala === 'number' && p.skala > 0 ? p.skala : null,
         obrot: Number(p.obrot) || 0,
         geo: Array.isArray(p.geo) ? p.geo.filter((g) => [g.x, g.y, g.lat, g.lon].every((v) => typeof v === 'number')) : [],
-        podklady: Array.isArray(p.podklady) ? p.podklady : [],
+        podklady: Array.isArray(p.podklady) ? p.podklady.map(poprawPodklad) : [],
         warstwy: p.warstwy && typeof p.warstwy === 'object' ? p.warstwy : {},
-        elementy: Array.isArray(p.elementy) ? poprawNumery(przeniesNapisy(p.elementy.filter((e) => e && typeof e.id === 'string' && e.g && typeof e.typ === 'string'))) : [],
+        elementy: Array.isArray(p.elementy) ? poprawStopnie(poprawNumery(przeniesNapisy(p.elementy.filter((e) => e && typeof e.id === 'string' && e.g && typeof e.typ === 'string')))) : [],
         wersja: Number(p.wersja) || 1,
         zmieniono: p.zmieniono || new Date().toISOString(),
+        ...poprawMetadane(p as Record<string, unknown>),
     }
+}
+
+/** Stopień napisu spoza 1–6 (ręczna edycja pliku) – usuwany; napis wraca do wielkości domyślnej albo dawnego `rozmiar`. */
+function poprawStopnie(L: Element[]): Element[] {
+    return L.map((e) => {
+        if (e.stopien === undefined || dobryStopien(e.stopien)) return e
+        const { stopien: _s, ...reszta } = e
+        return reszta
+    })
 }

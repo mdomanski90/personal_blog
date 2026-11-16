@@ -5,6 +5,7 @@
 import * as React from 'react'
 import { jednostka, losowe, pole, punktyElementu, rad, srodek, wWielokacie, type Element, type Numer, type Pkt, type Plan, type Podklad } from '@/lib/plany/model'
 import { KOLEJNOSC_WARSTW, KOLORY, WZORY, type TypElementu } from '@/lib/plany/typy'
+import { ROZMIAR_STOPNIA, stopienNapisu, type Stopien } from '@/lib/plany/metadane'
 
 const F = { fontFamily: 'var(--font-jetbrains), JetBrains Mono, ui-monospace, monospace' }
 const v = (nazwa: string) => `var(--pl-${nazwa})`
@@ -274,13 +275,12 @@ function LiniaInna({ l, u }: { l: Linia; u: number }) {
 }
 
 // ---------- napisy ----------
-const ROZMIAR = { s: 0.8, m: 1.05, l: 1.5 }
 const KOLOR_NAPISU: Record<string, string> = { tekst: v('tekst'), szary: v('szary'), woda: v('woda-txt'), las: v('las-txt'), teren: v('teren-txt'), pamiec: v('pamiec') }
 
-export function Napis({ x, y, tekst, u, rozmiar = 'm', styl = 'zwykly', kolor = 'tekst', kat = 0, obrotPlanu = 0, kotwica = 'middle', waga }: {
-    x: number; y: number; tekst: string; u: number; rozmiar?: 's' | 'm' | 'l'; styl?: string; kolor?: string; kat?: number; obrotPlanu?: number; kotwica?: 'start' | 'middle' | 'end'; waga?: number
+export function Napis({ x, y, tekst, u, stopien = 3, styl = 'zwykly', kolor = 'tekst', kat = 0, obrotPlanu = 0, kotwica = 'middle', waga }: {
+    x: number; y: number; tekst: string; u: number; stopien?: Stopien; styl?: string; kolor?: string; kat?: number; obrotPlanu?: number; kotwica?: 'start' | 'middle' | 'end'; waga?: number
 }) {
-    const fs = u * ROZMIAR[rozmiar]
+    const fs = u * ROZMIAR_STOPNIA[stopien]
     const roz = styl === 'rozstrzelony'
     return (
         <text
@@ -364,7 +364,7 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
             if (Math.cos((widziany * Math.PI) / 180) < 0) kat += 180
             napisy.push(
                 <g key={'n' + e.id} data-id={o.edycja ? e.id : undefined} data-czesc={o.edycja ? 'etykieta' : undefined}>
-                    <Napis x={(p[i][0] + p[i + 1][0]) / 2} y={(p[i][1] + p[i + 1][1]) / 2} tekst={tekst} u={u} rozmiar={e.rozmiar ?? 's'} styl={e.styl ?? 'zwykly'} kolor={e.kolor ?? 'tekst'} kat={kat + obrot} obrotPlanu={obrot} />
+                    <Napis x={(p[i][0] + p[i + 1][0]) / 2} y={(p[i][1] + p[i + 1][1]) / 2} tekst={tekst} u={u} stopien={stopienNapisu(e, 2)} styl={e.styl ?? 'zwykly'} kolor={e.kolor ?? 'tekst'} kat={kat + obrot} obrotPlanu={obrot} />
                 </g>,
             )
             return
@@ -379,7 +379,7 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
         const domStyl = domKolor === 'tekst' ? 'zwykly' : 'kursywa'
         napisy.push(
             <g key={'n' + e.id} data-id={o.edycja ? e.id : undefined} data-czesc={o.edycja ? 'etykieta' : undefined}>
-                <Napis x={cx + dx} y={cy + dy} tekst={tekst} u={u} rozmiar={e.rozmiar ?? (t.rys === 'napis' ? 'm' : 's')} styl={e.styl ?? domStyl} kolor={e.kolor ?? domKolor} kat={e.g.k === 't' ? e.g.a : 0} obrotPlanu={obrot} />
+                <Napis x={cx + dx} y={cy + dy} tekst={tekst} u={u} stopien={stopienNapisu(e, t.rys === 'napis' ? 3 : 2)} styl={e.styl ?? domStyl} kolor={e.kolor ?? domKolor} kat={e.g.k === 't' ? e.g.a : 0} obrotPlanu={obrot} />
             </g>,
         )
     }
@@ -492,7 +492,8 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
 /** Podziałka i strzałka północy (w układzie viewBox, poza obrotem). */
 export function Podzialka({ plan, kadr: [x, y, w, h] }: { plan: Plan; kadr: [number, number, number, number] }) {
     const u = jednostka(plan)
-    if (!plan.skala) return null
+    // PH-11: szkic schematyczny nie udaje pomiaru – bez paska skali, nawet gdy ustawiono miarkę
+    if (!plan.skala || plan.dokladnosc === 'schematyczny') return null
     const cel = (w * 0.18) * plan.skala
     const kroki = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000]
     const m = kroki.reduce((b, k) => (k <= cel ? k : b), kroki[0])
