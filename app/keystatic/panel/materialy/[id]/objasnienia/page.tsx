@@ -259,7 +259,7 @@ export default function ObjasnieniaMaterialu() {
                             <button className={`pn-btn${rysuje ? ' pn-btn-gl' : ''}`} onClick={zaznaczaj}>{rysuje ? `${narzedzie === 'prostokat' ? 'przeciągnij' : narzedzie === 'wielokat' ? 'klikaj wierzchołki, dwuklik kończy' : 'kliknij miejsce'} na skanie… (anuluj)` : '＋ zaznacz fragment'}</button>
                         </div>
                         <div ref={pole} style={{ height: '72vh', minHeight: 420, border: '1px solid var(--linia)', borderRadius: 8, background: 'var(--tlo2)', cursor: rysuje ? 'crosshair' : 'grab' }} />
-                        <span className="pn-maly">Kółko – przybliżanie, przeciąganie – przesuwanie. „＋ zaznacz fragment”, potem przeciągnij prostokąt wokół wyrazu, linijki, pieczęci. Kliknięty prostokąt można przesunąć i zmienić jego rozmiar.</span>
+                        <span className="pn-maly">Kółko – przybliżanie, przeciąganie – przesuwanie. Wybierz kształt i „＋ zaznacz fragment”: prostokąt – przeciągnij wokół wyrazu, linijki, pieczęci; wielokąt – klikaj wierzchołki (np. wzdłuż rzeki), dwuklik kończy; punkt – kliknij miejsce (np. studnia). Kliknięty kształt można przesunąć i zmienić; punkt pokazuje się jako mały kwadrat.</span>
                         {dane.strony.length > 1 && (
                             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: 2 }}>
                                 {dane.strony.map((s, i) => (
