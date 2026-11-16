@@ -5,7 +5,8 @@ import { nazwy, opowiesciDlaTematu, materialyDla, powiazania, poziomCzytelnika, 
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml, zajawka } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc } from '../../components/Uklad'
-import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { wystapieniaKarty } from '@/lib/plany/wystapienia'
+import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj, PrzyciskDrukujCalosc } from '../../components/Druk'
 import CopyLinkButton from '../../components/CopyLinkButton'
@@ -30,6 +31,7 @@ export default async function TematStrona({ params }: Parametry) {
     const poziom = await poziomCzytelnika()
     const t = await temat(slug, poziom)
     if (!t) return brakLubPrzekierowanie('tematy', slug)
+    const wyst = await wystapieniaKarty('temat', t.id)
     const n = await nazwy(poziom)
     const ktx = await kontekstTresci(poziom)
     const opow = await opowiesciDlaTematu(t.id, poziom)
@@ -76,9 +78,10 @@ export default async function TematStrona({ params }: Parametry) {
 
             {(opow.length > 0 || mat.length > 0 || t.zrodla.length > 0) && (
                 <Tabela etykieta={`${t.nazwa} – powiązane i źródła`}>
-                    {(opow.length > 0 || mat.length > 0) && <Czesc tytul="powiązane">{[opow.length && 'wpisy', mat.length && 'materiały'].filter(Boolean).join(' · ')}</Czesc>}
+                    {(opow.length > 0 || mat.length > 0 || wyst.plany.length > 0 || wyst.skany.length > 0) && <Czesc tytul="powiązane">{[opow.length && 'wpisy', mat.length && 'materiały'].filter(Boolean).join(' · ')}</Czesc>}
                     <W e="wpisy">{opow.length > 0 && <KrotkieWpisy wpisy={opow} />}</W>
                     <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
+                    <WierszeWystapien w={wyst} />
                     <Zrodla pozycje={t.zrodla.map((z, i) => <ZAdresami key={i} tekst={z} />)} />
                 </Tabela>
             )}

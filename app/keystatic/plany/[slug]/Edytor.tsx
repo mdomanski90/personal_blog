@@ -11,6 +11,8 @@ import {
 import { GRUPY, katalog, typGrobu, WARSTWY, type TypElementu, type UstawieniaPlanow, type Warstwa } from '@/lib/plany/typy'
 import { DOKLADNOSCI, RODZAJE_PLANU, RODZAJE_ZRODLA, ROZMIAR_STOPNIA, planGrobowy, rodzajPlanu, stopienNapisu, type RodzajPlanu, type Stopien } from '@/lib/plany/metadane'
 import { Uchwyt, useSzerokosc } from './Uchwyt'
+import PolePowiazan, { CSS_POLA_POWIAZAN, type CelPowiazania } from '../../wspolne/PolePowiazan'
+import { IDENTYFIKACJE, type Identyfikacja } from '@/lib/plany/podstawa'
 import { katWMiejscu, kopia, obrocGeom, podgladDanych, propozycjaGrobu, przeniesDane, zamienDane, pozycjaStempla, przesun, przyciagnij, przyciagnijKat, rozlozRowno, rozmiarBokiem, rozmiarGrobu, wektor, wyrownajWLinie, type Przyciaganie, type WzorStempla } from '@/lib/plany/edycja'
 import { ETAPY, ETYKIETA_ETAPU, ETYKIETA_POLOZENIA, ETYKIETA_ZRODEL, etapElementu, polozenie, poZmianieDanych, STANY_ZRODEL, stanZrodel, type Etap, type Polozenie, type StanZrodel } from '@/lib/plany/statusy'
 import { odczytajExif } from '@/lib/plany/exif'
@@ -47,6 +49,8 @@ interface Listy {
     obiekty: { id: string; nazwa: string; miejsce: string | null }[]
     /** PH1: materiały ze stronami skanu – źródło planu i podkład ze strony materiału */
     materialy: { id: string; nazwa: string; strony: string[] }[]
+    /** PH-09: karty do powiązania elementów (jak w panelu objaśnień) */
+    cele: CelPowiazania[]
 }
 /** Podkład ze strony materiału: obraz z panelu materiałów (bez kopii pliku w planie). */
 const adresPodkladu = (slug: string, p: Podklad, materialy: Listy['materialy']) => {
@@ -88,7 +92,7 @@ const KLUCZ_KOPII = (slug: string) => `plan-niezapisany:${slug}`
 export default function Edytor({ slug }: { slug: string }) {
     const [plan, ustawPlanSurowo] = React.useState<Plan | null>(null)
     const [ust, ustawUst] = React.useState<UstawieniaPlanow>({ progLat: 30, ukryteTypy: [], wlasneTypy: [] })
-    const [listy, ustawListy] = React.useState<Listy>({ miejsca: [], obiekty: [], materialy: [] })
+    const [listy, ustawListy] = React.useState<Listy>({ miejsca: [], obiekty: [], materialy: [], cele: [] })
     // PH-21: szerokości paleta / panel – uchwyty, zapamiętane w przeglądarce
     const [szerPalety, ustawSzerPalety] = useSzerokosc('plan-szer-paleta', 230, 170, 420)
     const [szerPanelu, ustawSzerPanelu] = useSzerokosc('plan-szer-panel', 320, 260, 560)
@@ -169,7 +173,7 @@ export default function Edytor({ slug }: { slug: string }) {
                     else if (sz) fetch(`${API(slug)}/szkic`, { method: 'DELETE' }).catch(() => {})
                 })
                 ustawUst(l.ustawienia)
-                ustawListy({ miejsca: l.miejsca, obiekty: l.obiekty, materialy: l.materialy ?? [] })
+                ustawListy({ miejsca: l.miejsca, obiekty: l.obiekty, materialy: l.materialy ?? [], cele: l.cele ?? [] })
                 // ?el=<id> (z panelu zgłoszeń): zaznacz element i pokaż go
                 const elId = new URLSearchParams(window.location.search).get('el')
                 const e = elId ? (p as Plan).elementy.find((x) => x.id === elId) : null
@@ -1051,7 +1055,7 @@ export default function Edytor({ slug }: { slug: string }) {
                                 tryb={tryb} nastepny={() => nastepnyDoZrobienia()} zatwierdz={() => { oznaczSprawdzony(wzor.id); nastepnyDoZrobienia(wzor.id) }}
                                 podglad={ustawRoznice} pokazGrob={pokazGrob}
                                 powielOtwarte={pw.otwarte} przelaczPowiel={() => ustawPw((s) => ({ ...s, otwarte: !s.otwarte }))}
-                                osobyDrzewa={osobyDrzewa} wczytajOsoby={wczytajOsoby}
+                                osobyDrzewa={osobyDrzewa} wczytajOsoby={wczytajOsoby} listy={listy}
                                 wgrajZdjecie={async (f) => { try { const w = await wyslijPlik(f, 'zdjecie'); zmienElementy(new Map([[wzor.id, { zdjecia: [...(wzor.zdjecia ?? []), { plik: w.plik }] }]])) } catch (e) { pokaz(e instanceof Error ? e.message : 'błąd') } }} />
                         ) : (
                             <PanelWielu zaznaczone={zaznaczone} wzor={wzor} typy={typy} duplikuj={duplikuj} usun={usunZaznaczone} obroc={obrocZaznaczone}
@@ -1233,6 +1237,41 @@ function RokZgonu({ e }: { e: Element }) {
     return <span className="ed-maly">Przyjęty rok śmierci: {r.rok} (z napisu) – jeśli to np. rok odnowienia nagrobka, wpisz właściwy rok śmierci.</span>
 }
 
+/** PH2 (PH-02, 09, 19): na czym oparto element, jak nazywa się w źródle, jak pewna jest identyfikacja, z jakimi kartami jest powiązany. */
+function ZrodloElementu({ e, plan, zmiana, listy }: { e: Element; plan: Plan; zmiana: (zm: Partial<Element>) => void; listy: Listy }) {
+    const [mat, ustawMat] = React.useState(plan.zrodlo?.material ?? '')
+    const [obj, ustawObj] = React.useState('')
+    const [objasnienia, ustawObjasnienia] = React.useState<{ id: string; tekst: string; rodzaj: string }[]>([])
+    React.useEffect(() => {
+        ustawObjasnienia([]); ustawObj('')
+        if (!mat) return
+        let zywy = true
+        fetch(`/api/keystatic/materialy/${mat}/objasnienia`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (zywy && d?.objasnienia) ustawObjasnienia(d.objasnienia) }).catch(() => {})
+        return () => { zywy = false }
+    }, [mat])
+    const podstawa = e.podstawa ?? []
+    const nazwaMat = (id: string) => listy.materialy.find((m) => m.id === id)?.nazwa ?? id
+    return (
+        <div className="ed-sekcja ed-ramka-sek">
+            <style>{CSS_POLA_POWIAZAN}</style>
+            <div className="ed-gt">źródło i powiązania</div>
+            <Pole etykieta="nazwa w źródle (np. napis na szkicu)"><input className="ed-in" value={e.nazwaZrodlowa ?? ''} onChange={(x) => zmiana({ nazwaZrodlowa: x.target.value || undefined })} /></Pole>
+            <Pole etykieta="identyfikacja (widać na stronie)"><select className="ed-in" value={e.identyfikacja ?? 'pewna'} onChange={(x) => zmiana({ identyfikacja: x.target.value === 'pewna' ? undefined : (x.target.value as Identyfikacja) })}>{(Object.keys(IDENTYFIKACJE) as Identyfikacja[]).map((k) => <option key={k} value={k}>{IDENTYFIKACJE[k]}</option>)}</select></Pole>
+            <PolePowiazan wartosc={e.powiazania ?? []} cele={listy.cele} zmien={(v) => zmiana({ powiazania: v.length ? v : undefined })} idListy={`cele-${e.id}`} etykieta="karty – obiekt, miejsce, osoba, temat" klasaPola="ed-in" klasaZnacznika="ed-btn" klasaOpisu="ed-maly" />
+            <span className="ed-maly">podstawa – na czym oparto element</span>
+            {podstawa.map((p, i) => (
+                <div key={`${p.material}-${p.objasnienie ?? i}`} className="ed-wiersz">
+                    <span>{nazwaMat(p.material)}{p.objasnienie ? ` · ${objasnienia.find((o) => o.id === p.objasnienie)?.tekst.slice(0, 40) || p.objasnienie}` : ''}</span>
+                    <button className="ed-maly" onClick={() => { const n = podstawa.filter((_, j) => j !== i); zmiana({ podstawa: n.length ? n : undefined }) }} aria-label="usuń podstawę">✕</button>
+                </div>
+            ))}
+            <select className="ed-in" value={mat} onChange={(x) => ustawMat(x.target.value)} aria-label="materiał"><option value="">— materiał —</option>{listy.materialy.map((m) => <option key={m.id} value={m.id}>{m.nazwa}</option>)}</select>
+            {mat && <select className="ed-in" value={obj} onChange={(x) => ustawObj(x.target.value)} aria-label="objaśnienie na skanie"><option value="">cały materiał (bez objaśnienia)</option>{objasnienia.map((o, i) => <option key={o.id} value={o.id}>{i + 1}. {o.tekst.slice(0, 60) || o.rodzaj}</option>)}</select>}
+            <button className="ed-btn" disabled={!mat || podstawa.some((p) => p.material === mat && (p.objasnienie ?? '') === obj)} onClick={() => zmiana({ podstawa: [...podstawa, obj ? { material: mat, objasnienie: obj } : { material: mat }] })}>+ dodaj podstawę</button>
+        </div>
+    )
+}
+
 /** PH1 (PH-03, 11): rodzaj planu, dwie daty, źródło, dokładność, kolejność na liście planów miejscowości. */
 function MetadanePlanu({ plan, listy, zmien }: { plan: Plan; listy: Listy; zmien: (zm: Partial<Plan>) => void }) {
     const opc = (v: string) => v || undefined
@@ -1305,7 +1344,8 @@ function pasujeDoFiltra(e: Element, f: Filtr): boolean {
     if (f === 'niesprawdzone') return etapElementu(e) !== 'sprawdzony' || !!polozenie(e) || e.stan === 'do-sprawdzenia'
     return true
 }
-function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmiana, usun, duplikuj, powielOtwarte, przelaczPowiel, wgrajZdjecie, osobyDrzewa, wczytajOsoby, tryb, nastepny, zatwierdz, podglad, pokazGrob }: {
+function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmiana, usun, duplikuj, powielOtwarte, przelaczPowiel, wgrajZdjecie, osobyDrzewa, wczytajOsoby, tryb, nastepny, zatwierdz, podglad, pokazGrob, listy }: {
+    listy: Listy
     tryb: Tryb; nastepny: () => void; zatwierdz: () => void; podglad: (r: Roznice) => void; pokazGrob: (id: string) => void
     e: Element; plan: Plan; typy: Map<string, TypElementu>; ukryteTypy: Set<string>; numer?: Numer; skala: number | null
     fmt: (j: number, r?: 'dl' | 'pole') => string; slug: string; zmiana: (zm: Partial<Element>) => void; usun: () => void; duplikuj: () => void
@@ -1363,6 +1403,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
                     <select className="ed-in" value={e.kolor ?? ''} onChange={(x) => zmiana({ kolor: (x.target.value || undefined) as Element['kolor'] })}><option value="">kolor domyślny</option><option value="tekst">czarny</option><option value="szary">szary</option><option value="woda">woda</option><option value="las">roślinność</option><option value="teren">teren</option><option value="pamiec">pamięć</option></select>
                 </div>
             )}
+            {!t?.grob && <ZrodloElementu e={e} plan={plan} zmiana={zmiana} listy={listy} />}
             {rysuj && (<>
             {(e.etykieta) && <button className="ed-maly" onClick={() => zmiana({ etykieta: undefined })}>przywróć położenie napisu</button>}
             {g.k === 't' && <Pole etykieta="obrót napisu (°)"><input className="ed-in" type="number" value={g.a} onChange={(x) => zmiana({ g: { ...g, a: +x.target.value || 0 } })} /></Pole>}

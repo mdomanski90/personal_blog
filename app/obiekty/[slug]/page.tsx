@@ -11,7 +11,8 @@ import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import { tarczaObiektu } from '@/lib/tarcze'
 import { PelnaSzerokosc, Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
-import { Czesc, KrotkieMaterialy, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { wystapieniaKarty } from '@/lib/plany/wystapienia'
+import { Czesc, KrotkieMaterialy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import MapaKarty from '../../components/MapaKarty'
@@ -66,7 +67,8 @@ export default async function ObiektStrona({ params }: Parametry) {
     const podpisFoto = foto ? [foto.podpis, foto.data, foto.autor && `fot. ${foto.autor}`].filter(Boolean).join(' · ') : ''
     const mapa = o.wspolrzedne ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={glowny ? 16 : 14} wysokosc="100%" /> : undefined
     const nrKat = numerKat('obiekt', o.id)
-    const jestPowiazane = mat.length > 0 || planyObiektu.length > 1
+    const wyst = await wystapieniaKarty('obiekt', o.id)
+    const jestPowiazane = mat.length > 0 || planyObiektu.length > 1 || wyst.plany.length > 0 || wyst.skany.length > 0
     const jestZrodla = o.zrodla.length > 0 || o.zdjecia.some((z) => z.autor || z.prawa)
     // JW-2: spis treści z części; drugiej mapy w wierszu „położenie” nie ma (JW-15) – mapa jest w pasku bocznym, gdy nie ma zdjęcia
     const spis = spisCzesci(['podstawowe', o.zdjecia.length > 1 && 'fotografie', maTekst(opisHtml) && 'opis', jestPowiazane && 'powiązane', jestZrodla && 'źródła'])
@@ -133,6 +135,7 @@ export default async function ObiektStrona({ params }: Parametry) {
                 <Tabela etykieta={`${o.nazwa} – powiązane i źródła`}>
                     {jestPowiazane && <Czesc tytul="powiązane" />}
                     <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
+                    <WierszeWystapien w={wyst} />
                     {planyObiektu.length > 1 && <><Czesc tytul="plany">{odmiana(planyObiektu.length, ['plan', 'plany', 'planów'])}</Czesc><WCaly><ListaPlanow plany={planyObiektu} /></WCaly></>}
                     <Zrodla pozycje={[
                         ...o.zrodla.map((z, i) => <ZAdresami key={`z${i}`} tekst={z} />),

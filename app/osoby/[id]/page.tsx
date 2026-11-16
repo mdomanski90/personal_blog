@@ -16,7 +16,8 @@ import { logowanieWlaczone } from '@/lib/sesja'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Zgloszenie from '../../components/Zgloszenie'
 import { Sekcja, Strona, Tresc, TytulStrony } from '../../components/Uklad'
-import { Czesc, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, idCzesci, spisCzesci } from '../../components/Karta'
+import { wystapieniaKarty } from '@/lib/plany/wystapienia'
+import { Czesc, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, WierszeWystapien, idCzesci, spisCzesci } from '../../components/Karta'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import Powiazania from '../../components/Powiazania'
@@ -125,6 +126,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
     const podpisPortretu = o.portret && [o.portret.podpis, o.portret.zrodlo && `źródło: ${o.portret.zrodlo}`].filter(Boolean).join(' · ')
     const nrKat = numerKat('osoba', id)
     const materialyOsoby = (await materialy(poziom)).filter((m) => m.osobyIds.includes(id))
+    const wyst = await wystapieniaKarty('osoba', id)
     // prośba o zdjęcie tylko dla osób żyjących po 1900 r. (decyzja 16.11): ur. albo zm. po 1900 albo bez dat
     const po1900 = (rokZgonu(o) ?? rokUrodzenia(o) ?? 1901) > 1900
     const podstawowe = [
@@ -249,6 +251,13 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                     <>
                         <Naglowek tytul="materiały archiwalne">{materialyOsoby.length}</Naglowek>
                         <WCaly><KrotkieMaterialy materialy={materialyOsoby} /></WCaly>
+                    </>
+                )}
+                {/* PH2: na planach i skanach (powiązania elementów i objaśnień) */}
+                {(wyst.plany.length > 0 || wyst.skany.length > 0) && (
+                    <>
+                        <Naglowek tytul="na planach i skanach">{wyst.plany.length + wyst.skany.length}</Naglowek>
+                        <WierszeWystapien w={wyst} />
                     </>
                 )}
 

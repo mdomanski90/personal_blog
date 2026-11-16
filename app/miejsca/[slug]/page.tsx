@@ -11,7 +11,8 @@ import ListaObiektow from '../../components/ListaObiektow'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml, zajawka } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
-import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { wystapieniaKarty } from '@/lib/plany/wystapienia'
+import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import SpisTresci from '../../components/SpisTresci'
 import SpisDzialow from '../../archiwum/SpisDzialow'
 import { pozycjeMiejsc } from '../../components/SpisMiejsc'
@@ -204,6 +205,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                 <Czesc tytul="powiązane">{[opow.length && 'wpisy', mat.length && 'materiały', tematy.length && 'tematy'].filter(Boolean).join(' · ')}</Czesc>
                 <W e="wpisy">{opow.length > 0 && <KrotkieWpisy wpisy={opow} />}</W>
                 <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
+                <WierszeWystapien w={await wystapieniaKarty('miejsce', m.id)} />
                 <W e="tematy">{bezDaty.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[bezDaty.map((t) => ({ tekst: t.nazwa, href: `/tematy/${t.id}` }))]} />}</W>
                 <W e="oś czasu">{zData.length > 0 && (
                     <ol className="karta-os">

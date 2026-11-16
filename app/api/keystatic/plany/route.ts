@@ -1,4 +1,4 @@
-import { materialy, miejsca, obiekty } from '@/lib/archiwum'
+import { celeSieci, materialy, miejsca, obiekty } from '@/lib/archiwum'
 import { stronyMaterialu } from '@/lib/strony-materialow'
 import { brakDostepu, listaPlanow, listaZgloszen, wczytajPlan, wczytajUstawienia, zapiszObraz, zapiszPlan } from '@/lib/plany/dane'
 import { nowyPlan, popraw, SLUG, type Plan } from '@/lib/plany/model'
@@ -16,6 +16,8 @@ export async function GET(req: Request) {
         obiekty: (await obiekty('ja')).map((o) => ({ id: o.id, nazwa: o.nazwa, miejsce: o.miejsce })),
         // PH1: materiały ze stronami skanu – źródło planu i podkład ze strony materiału (panel za hasłem: wszystkie poziomy)
         materialy: (await materialy('ja')).map((m) => ({ id: m.id, nazwa: m.nazwa, strony: stronyMaterialu(m.id).map((x) => x.plik) })).filter((m) => m.strony.length),
+        // PH-09: karty do powiązań elementów (jak w panelu objaśnień)
+        cele: (await celeSieci('ja')).map((c) => ({ id: c.id, nazwa: c.nazwa, rodzaj: c.rodzaj })),
         zgloszenia: (await listaZgloszen()).length,
         ustawienia: await wczytajUstawienia(),
     })

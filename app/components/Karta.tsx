@@ -18,6 +18,16 @@ type Element = React.ReactNode | { tekst: React.ReactNode; href: string } | { te
 const jestOdnosnik = (e: unknown): e is { tekst: React.ReactNode; href: string } => !!e && typeof e === 'object' && 'href' in (e as object)
 
 /** Spokojna linia: elementy rozdzielone „ · ”, odnośniki w kolorze atramentu, lista odnośników po przecinku. */
+/** PH2: wiersze „na planach” i „na skanach” w części tabeli karty (odwrotne odnośniki – lib/plany/wystapienia.ts). */
+export function WierszeWystapien({ w }: { w: { plany: { nazwa: string; adres: string }[]; skany: { nazwa: string; adres: string }[] } }) {
+    return (
+        <>
+            <W e="na planach">{w.plany.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[w.plany.map((x) => ({ tekst: x.nazwa, href: x.adres }))]} />}</W>
+            <W e="na skanach">{w.skany.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[w.skany.map((x) => ({ tekst: x.nazwa, href: x.adres }))]} />}</W>
+        </>
+    )
+}
+
 export function LiniaKarty({ elementy, className = 'karta-linia' }: { elementy: Element[]; className?: string }) {
     const widoczne = elementy.filter((e) => e !== null && e !== undefined && e !== false && e !== '' && !(Array.isArray(e) && !e.length))
     if (!widoczne.length) return null

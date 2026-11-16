@@ -1,5 +1,6 @@
 'use client'
 import { obrysKsztaltu, poprawKsztalt, type Ksztalt } from '@/lib/objasnienia-widok'
+import PolePowiazan, { CSS_POLA_POWIAZAN, type CelPowiazania } from '../../../../wspolne/PolePowiazan'
 // Objaśnienia na skanach materiału: zaznaczanie fragmentu (Annotorious na OpenSeadragonie) i opis – odczyt, tłumaczenie,
 // objaśnienie, pieczęć; powiązania z osobami, miejscami, tematami; kto opracował, weryfikacja w źródłach, widoczność.
 // Zapis automatyczny (W3C Web Annotation w content/objasnienia/<id>.json).
@@ -18,11 +19,10 @@ type Obj = {
     /** PH-01: wielokąt albo punkt w % strony */
     ksztalt?: Ksztalt
 }
-type Cel = { id: string; nazwa: string; rodzaj: string }
+type Cel = CelPowiazania
 type Dane = { id: string; nazwa: string; widocznosc: string; opracowal: string; strony: Strona[]; objasnienia: Obj[]; cele: Cel[] }
 
 const KLUCZ_AUTORA = 'pn-objasnienia-opracowal'
-const RODZAJE_CELU: Record<string, string> = { miejsce: 'miejsce', temat: 'temat', obiekt: 'obiekt', wpis: 'wpis', material: 'materiał', osoba: 'osoba' }
 const noweId = () => `o-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 const zaokr = (n: number) => Math.round(n * 1000) / 1000
 
@@ -225,7 +225,6 @@ export default function ObjasnieniaMaterialu() {
     const naStronie = lista.filter((o) => o.strona === plik).sort((a, b) => (Math.abs(a.y - b.y) < Math.min(a.h, b.h) / 2 ? a.x - b.x : a.y - b.y))
     const w = lista.find((o) => o.id === wybrane) ?? null
     const ileNa = (p: string) => lista.filter((o) => o.strona === p).length
-    const nazwaCelu = new Map(dane.cele.map((c) => [c.id, c]))
 
     return (
         <>
@@ -309,26 +308,8 @@ export default function ObjasnieniaMaterialu() {
                                         {Object.entries(JEZYKI).map(([k, n]) => <option key={k} value={k}>{n}</option>)}
                                     </select>
                                 </label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                    <span className="pn-maly">powiązania – osoby, miejsca, tematy, obiekty</span>
-                                    {w.powiazania.length > 0 && (
-                                        <span className="pn-rzad" style={{ gap: 4 }}>
-                                            {w.powiazania.map((p) => (
-                                                <span key={p} className="pn-tag" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
-                                                    {nazwaCelu.get(p)?.nazwa ?? <s title="nie ma takiego identyfikatora">{p}</s>}
-                                                    <button onClick={() => ustaw(w.id, { powiazania: w.powiazania.filter((x) => x !== p) })} aria-label={`usuń ${p}`} style={{ border: 0, background: 'none', cursor: 'pointer', padding: 0, color: 'inherit' }}>✕</button>
-                                                </span>
-                                            ))}
-                                        </span>
-                                    )}
-                                    <input className="pn-in" list="obj-cele" placeholder="zacznij pisać nazwę…" onChange={(e) => {
-                                        const v = e.target.value
-                                        if (nazwaCelu.has(v) && !w.powiazania.includes(v)) { ustaw(w.id, { powiazania: [...w.powiazania, v] }); e.target.value = '' }
-                                    }} />
-                                    <datalist id="obj-cele">
-                                        {dane.cele.map((c) => <option key={`${c.rodzaj}:${c.id}`} value={c.id}>{`${c.nazwa} · ${RODZAJE_CELU[c.rodzaj] ?? c.rodzaj}`}</option>)}
-                                    </datalist>
-                                </div>
+                                <style>{CSS_POLA_POWIAZAN}</style>
+                                <PolePowiazan wartosc={w.powiazania} cele={dane.cele} zmien={(v) => ustaw(w.id, { powiazania: v })} idListy="obj-cele" />
                                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     <span className="pn-maly">opracował(a)</span>
                                     <input className="pn-in" value={w.opracowal} onChange={(e) => { ustaw(w.id, { opracowal: e.target.value }); try { localStorage.setItem(KLUCZ_AUTORA, e.target.value) } catch { /* bez pamięci */ } }} />
