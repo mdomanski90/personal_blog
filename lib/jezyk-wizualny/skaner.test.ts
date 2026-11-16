@@ -6,8 +6,8 @@ import { skanujTsx, skanujCss } from './skaner'
 const rodzaje = (n: { rodzaj: string; co: string }[]) => n.map((x) => `${x.rodzaj}:${x.co}`)
 
 test('styl inline z rozmiarem, szerokością, kolorem, odstępem i ramką – każda właściwość osobno', () => {
-    const kod = `export const A = () => <div style={{ fontSize: 13, maxWidth: '52rem', color: 'red', padding: 4, border: '1px solid', display: 'flex' }} />`
-    assert.deepEqual(rodzaje(skanujTsx(kod)), ['styl:fontSize', 'styl:maxWidth', 'styl:color', 'styl:padding', 'styl:border'])
+    const kod = `export const A = () => <div style={{ fontSize: 13, maxWidth: '52rem', color: 'red', padding: 4, border: '1px solid', display: 'flex', font: 'inherit' }} />`
+    assert.deepEqual(rodzaje(skanujTsx(kod)), ['styl:fontSize', 'styl:maxWidth', 'styl:color', 'styl:padding', 'styl:border', 'styl:font'])
 })
 
 test('właściwości poza zakazanymi grupami (położenie, wyświetlanie) nie są naruszeniem', () => {

@@ -33,7 +33,7 @@
       "styl": 8
     },
     "app/components/JakCytowac.tsx": {
-      "styl": 22
+      "styl": 25
     },
     "app/components/Karta.tsx": {
       "styl": 2
@@ -57,7 +57,7 @@
       "styl": 2
     },
     "app/components/MapaKarty.tsx": {
-      "styl": 5
+      "styl": 6
     },
     "app/components/MapaMiejsc.tsx": {
       "styl": 58,
@@ -67,7 +67,7 @@
       "styl": 3
     },
     "app/components/OsCzasu.tsx": {
-      "styl": 35,
+      "styl": 36,
       "hex": 7
     },
     "app/components/PoleSzukania.tsx": {
@@ -95,7 +95,7 @@
       "styl": 6
     },
     "app/components/TekstyZrodla.tsx": {
-      "styl": 12
+      "styl": 13
     },
     "app/components/ThemeToggle.tsx": {
       "styl": 2
@@ -110,7 +110,7 @@
       "styl": 1
     },
     "app/components/Zgloszenie.tsx": {
-      "styl": 4
+      "styl": 5
     },
     "app/components/plan/ListaPlanow.tsx": {
       "styl": 4
@@ -119,7 +119,7 @@
       "styl": 34
     },
     "app/components/plan/PlanInteraktywny.tsx": {
-      "styl": 138,
+      "styl": 139,
       "hex": 8
     },
     "app/components/plan/Probka.tsx": {

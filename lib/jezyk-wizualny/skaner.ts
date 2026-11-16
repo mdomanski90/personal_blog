@@ -15,7 +15,7 @@ export interface Naruszenie { rodzaj: Rodzaj; co: string; linia: number }
 export const ZNACZNIK_WYJATKU = /styl-dynamiczny:\s*[^\s*]/
 
 const ZAKAZANE: RegExp[] = [
-    /^(fontSize|lineHeight|fontWeight|letterSpacing)$/, // rozmiar i typografia
+    /^(font|fontSize|lineHeight|fontWeight|letterSpacing)$/, // rozmiar i typografia
     /^(width|minWidth|maxWidth|height|minHeight|maxHeight|flexBasis|inlineSize|blockSize|minInlineSize|maxInlineSize|gridTemplateColumns|gridTemplateRows|gridAutoColumns|gridAutoRows)$/, // wymiary
     /^(color|background|backgroundColor|fill|stroke|outlineColor|boxShadow|textDecorationColor|accentColor|caretColor)$/, // kolory
     /^(margin|padding)(Top|Right|Bottom|Left|Inline|Block|InlineStart|InlineEnd|BlockStart|BlockEnd)?$/, // odstępy
