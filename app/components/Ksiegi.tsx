@@ -2,7 +2,7 @@
 // rodzaju ksiąg) i tabela z miejscem przechowania, sygnaturą i odnośnikami.
 import * as React from 'react'
 import type { Ksiega } from '@/lib/archiwum'
-import { KartaPozycji, OdnosnikZewn as Odnosnik, Wiersz } from './KartaPozycji'
+import { KartaPozycji, OdnosnikZewn as Odnosnik, PozycjaWKarcie, Wiersz } from './KartaPozycji'
 import { RODZAJE_KSIAG, DOSTEP_KSIAG, KOLEJNOSC_KSIAG } from '@/lib/ksiegi'
 
 const male = { fontSize: 'calc(13px * var(--font-scale, 1))' }
@@ -97,15 +97,7 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg, k
                 ]
                 const tomy = k.jednostki.length > 0 && <Tomy k={k} />
                 if (wariant === 'wiersze') return (
-                    <section key={k.id} id={id} className="ksiega-blok scroll-mt-6" aria-label={`${rodzaje}, ${k.lata}`}>
-                        <div className="kb-nagl"><h3>{rodzaje || 'księga'}</h3><span className="kb-lata">{k.lata}</span></div>
-                        <dl className="kb-pola">
-                            {pola.filter(([, v]) => v !== null && v !== undefined && v !== false && v !== '').map(([e, v]) => (
-                                <div key={e} className="kb-w"><dt>{e}</dt><dd>{v}</dd></div>
-                            ))}
-                        </dl>
-                        {tomy}
-                    </section>
+                    <PozycjaWKarcie key={k.id} id={id} etykieta={`${rodzaje}, ${k.lata}`} tytul={rodzaje || 'księga'} prawa={k.lata} pola={pola}>{tomy}</PozycjaWKarcie>
                 )
                 return (
                     <KartaPozycji key={k.id} id={id} etykieta={`${rodzaje}, ${k.lata}`} tytul={rodzaje || 'księga'} prawa={k.lata}>

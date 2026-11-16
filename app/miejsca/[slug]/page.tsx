@@ -1,3 +1,4 @@
+import { odmiana } from '@/lib/tekst'
 import type { Metadata } from 'next'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import OtworzWMapach from '../../components/OtworzWMapach'
@@ -96,7 +97,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const jestTeren = swiatynie.length > 0 || !obszar
     const jestKsiegi = ksiegiSa || m.parafie.length > 0
     const tytulHistorii = obszar ? 'opis' : 'historia'
-    const spis = spisCzesci(['podstawowe', m.rodzaj === 'gmina' && potomkowie.length > 0 && 'wsie gminy', tytulHistorii, jestTeren && 'w terenie', jestKsiegi && 'księgi metrykalne', 'powiązane', (m.zrodla.length > 0 || !!zrodlo) && 'źródła'])
+    const spis = spisCzesci(['podstawowe', m.rodzaj === 'gmina' && potomkowie.length > 0 && 'wsie gminy', tytulHistorii, jestTeren && 'w terenie', jestKsiegi && 'księgi metrykalne', planyWsi.length > 0 && 'plany i schematy', 'powiązane', (m.zrodla.length > 0 || !!zrodlo) && 'źródła'])
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
@@ -193,6 +194,13 @@ export default async function MiejsceStrona({ params }: Parametry) {
             </Tabela>}
 
             <Tabela etykieta={`${m.nazwa} – powiązane i źródła`}>
+                {planyWsi.length > 0 && (
+                    // PH-23: plany jako „pozycja w karcie” z miniaturą przy prawej krawędzi – jak księgi metrykalne
+                    <>
+                        <Czesc tytul="plany i schematy">{odmiana(planyWsi.length, ['plan', 'plany', 'planów'])}</Czesc>
+                        <WCaly><ListaPlanow plany={planyWsi} wszystkie={`/plany?miejsce=${m.id}`} /></WCaly>
+                    </>
+                )}
                 <Czesc tytul="powiązane">{[opow.length && 'wpisy', mat.length && 'materiały', tematy.length && 'tematy'].filter(Boolean).join(' · ')}</Czesc>
                 <W e="wpisy">{opow.length > 0 && <KrotkieWpisy wpisy={opow} />}</W>
                 <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
@@ -202,7 +210,6 @@ export default async function MiejsceStrona({ params }: Parametry) {
                         {zData.map((t) => <li key={t.id}><b>{formatujEdtf(t.czas)}</b> <Link href={`/tematy/${t.id}`} className="odn">{t.nazwa}</Link></li>)}
                     </ol>
                 )}</W>
-                <W e="plany i schematy">{planyWsi.length > 0 && <ListaPlanow plany={planyWsi} />}</W>
                 <WCaly>
                     <span className="ot-drobne">{opow.length === 0 && mat.length === 0 ? `Nie ma jeszcze wpisów ani materiałów o ${obszar ? 'tym obszarze' : 'tej miejscowości'}. ` : ''}Masz zdjęcie, dokument albo wspomnienie? <Zgloszenie rodzaj="material" adres={`/miejsca/${m.id}`} tytul={m.nazwa} wariant="link" etykieta="przyślij materiał" /></span>
                 </WCaly>

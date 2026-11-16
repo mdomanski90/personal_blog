@@ -1,3 +1,4 @@
+import { odmiana } from '@/lib/tekst'
 import { parafie } from '@/lib/archiwum'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import { zapiszOkres } from '@/lib/parafie-powiazania'
@@ -130,7 +131,7 @@ export default async function ObiektStrona({ params }: Parametry) {
                 <Tabela etykieta={`${o.nazwa} – powiązane i źródła`}>
                     {jestPowiazane && <Czesc tytul="powiązane" />}
                     <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
-                    <W e="plany">{planyObiektu.length > 1 && <ListaPlanow plany={planyObiektu} />}</W>
+                    {planyObiektu.length > 1 && <><Czesc tytul="plany">{odmiana(planyObiektu.length, ['plan', 'plany', 'planów'])}</Czesc><WCaly><ListaPlanow plany={planyObiektu} /></WCaly></>}
                     <Zrodla pozycje={[
                         ...o.zrodla.map((z, i) => <ZAdresami key={`z${i}`} tekst={z} />),
                         ...o.zdjecia.filter((z) => z.autor || z.prawa).map((z, i) => <span key={`f${i}`}>fotografia{z.podpis ? ` „${z.podpis}”` : ''}{z.data ? `, ${z.data}` : ''}: {[z.autor, z.prawa].filter(Boolean).join(', ')}</span>),

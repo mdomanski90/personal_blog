@@ -4,6 +4,8 @@ import { KOMPONENTY_BAZOWE } from '@/lib/szablony/rejestr'
 import { Okruszki, PastylkaFiltra, PastylkaOsoby, RzadFiltrow, TytulSekcji } from '@/app/components/Wzorce'
 import SpisTresci from '@/app/components/SpisTresci'
 import { PrzyciskDrukuj } from '@/app/components/Druk'
+import { PozycjaWKarcie } from '@/app/components/KartaPozycji'
+import SiatkaMiniatur from '@/app/components/SiatkaMiniatur'
 
 /**
  * JW-1: podgląd wzorców języka wizualnego – komponenty bazowe na żywo, w obu motywach, z klas i tokenów app/globals.css.
@@ -46,6 +48,16 @@ function Probka({ motyw }: { motyw: string }) {
                     {spis.map((p) => <span key={p.id} id={p.id} className="wz-blok">{p.tekst} – kolumna tekstu (66 znaków)</span>)}
                 </div>
             </div>
+            <div className="osoba-tabela karta-tabela">
+                <div className="ksiegi-w-karcie">
+                    <PozycjaWKarcie tytul="Plan przykładowy (pozycja w karcie z miniaturą)" prawa="1939" pola={[['rodzaj', 'plan historyczny'], ['sporządzono', '1985'], ['źródło', 'szkic z pamięci · Autor X']]} miniatura={<span className="wz-blok">miniatura 160×120</span>} />
+                    <PozycjaWKarcie tytul="urodzenia, małżeństwa (pozycja w karcie)" prawa="1850–1860" pola={[['przechowuje', 'archiwum przykładowe']]} />
+                </div>
+            </div>
+            <SiatkaMiniatur pozycje={[
+                { klucz: 'a', href: '#', tytul: 'Materiał przykładowy', linia: 'dokument · 1917', znak: '▣' },
+                { klucz: 'b', href: '#', tytul: 'Plan przykładowy', linia: 'plan historyczny · 1939', znak: '▤' },
+            ]} />
             <div className="wz-rozmiary">
                 {ROZMIARY.map(([t, opis]) => <p key={t} className={`wz-r-${t.slice(10)}`}>{t} · {opis} · zażółć gęślą jaźń</p>)}
             </div>

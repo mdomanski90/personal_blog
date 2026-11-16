@@ -232,6 +232,8 @@ export interface UstawieniaPlanow {
     progLat: number
     ukryteTypy: string[]
     wlasneTypy: WlasnyTyp[]
+    /** PH1: filtry spisu „wszystkie plany” pokazują się od tylu planów (brak = 7, decyzja 16.11) */
+    progFiltrow?: number
 }
 
 export const USTAWIENIA_DOMYSLNE: UstawieniaPlanow = { progLat: 30, ukryteTypy: [], wlasneTypy: [] }

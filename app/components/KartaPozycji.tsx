@@ -17,6 +17,32 @@ export function KartaPozycji({ tytul, prawa, id, etykieta, children }: { tytul: 
     )
 }
 
+/**
+ * Pozycja w karcie (wzorzec „pozycja w karcie”, rejestr szablonów): nagłówek (tytuł + informacja po prawej) i wiersze
+ * etykieta–wartość jako blok w części tabeli karty, bez własnej ramki – karty nie zagnieżdżamy w karcie (zasada 5.2a).
+ * Wariant z miniaturą (PH-23): obraz 160×120 przy prawej krawędzi tabeli. Puste wiersze się nie pokazują.
+ */
+export function PozycjaWKarcie({ tytul, prawa, pola, miniatura, id, etykieta, children }: {
+    tytul: React.ReactNode; prawa?: React.ReactNode; pola: [string, React.ReactNode][]; miniatura?: React.ReactNode; id?: string; etykieta?: string; children?: React.ReactNode
+}) {
+    const tresc = (
+        <>
+            <div className="kb-nagl"><h3>{tytul}</h3>{prawa && <span className="kb-lata">{prawa}</span>}</div>
+            <dl className="kb-pola">
+                {pola.filter(([, v]) => v !== null && v !== undefined && v !== false && v !== '').map(([e, v]) => (
+                    <div key={e} className="kb-w"><dt>{e}</dt><dd>{v}</dd></div>
+                ))}
+            </dl>
+            {children}
+        </>
+    )
+    return (
+        <section id={id} className={`pozycja-w-karcie scroll-mt-6${miniatura ? ' kb-z-miniatura' : ''}`} aria-label={etykieta}>
+            {miniatura ? <><div className="kb-tresc">{tresc}</div><div className="kb-miniatura">{miniatura}</div></> : tresc}
+        </section>
+    )
+}
+
 /** Wiersz karty; pusty – pomijany. */
 export function Wiersz({ e, children }: { e: string; children: React.ReactNode }) {
     if (children === null || children === undefined || children === false || children === '') return null

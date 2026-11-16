@@ -14,10 +14,19 @@ export async function planDlaCzytelnika(slug: string): Promise<{ plan: Plan; poz
     return { plan: dlaCzytelnika(surowy, poziom, await wczytajUstawienia()), poziom }
 }
 
-/** Plany widoczne dla czytelnika, przypisane do miejsca albo obiektu. */
+/**
+ * Plany widoczne dla czytelnika, przypisane do miejsca albo obiektu – w wersji dla czytelnika (dlaCzytelnika),
+ * żeby liczby i miniatury nie zdradzały elementów ukrytych (zasada 1.6; PH1: wcześniej lista liczyła elementy z pełnego planu).
+ */
 export async function planyDlaCzytelnika(rodzaj: 'miejsce' | 'obiekt', id: string): Promise<Plan[]> {
+    return (await wszystkiePlanyDlaCzytelnika()).filter((p) => (rodzaj === 'miejsce' ? p.miejsce === id : p.obiekt === id))
+}
+
+/** Wszystkie plany widoczne dla czytelnika (spis „wszystkie plany”), w wersji dla czytelnika. */
+export async function wszystkiePlanyDlaCzytelnika(): Promise<Plan[]> {
     const poziom = (await poziomCzytelnika()) === 'bliscy' ? 'bliscy' : 'publiczne'
-    return (await listaPlanow()).filter((p) => (rodzaj === 'miejsce' ? p.miejsce === id : p.obiekt === id) && widoczne(p.widocznosc, poziom))
+    const u = await wczytajUstawienia()
+    return (await listaPlanow()).filter((p) => widoczne(p.widocznosc, poziom)).map((p) => dlaCzytelnika(p, poziom, u))
 }
 
 export const nieMa = () => new Response('Nie znaleziono', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })

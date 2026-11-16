@@ -1589,9 +1589,32 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .karty-ksiag{display:flex;flex-direction:column;gap:12px}
 /* v1.85: księgi wewnątrz tabeli karty (karta miejscowości, instytucji) – bez własnej ramki; kolumna etykiet jak w karcie */
 .ksiegi-w-karcie{display:flex;flex-direction:column}
-.ksiega-blok{display:flex;flex-direction:column;gap:4px;padding:10px 0}
-.ksiega-blok+.ksiega-blok{border-top:1px solid var(--linia-podzialu)}
-.ksiega-blok:first-child{padding-top:2px}
+.pozycja-w-karcie{display:flex;flex-direction:column;gap:4px;padding:10px 0}
+.pozycja-w-karcie+.pozycja-w-karcie{border-top:1px solid var(--linia-podzialu)}
+.pozycja-w-karcie:first-child{padding-top:2px}
+/* obraz w dwóch motywach (np. miniatura planu): widoczny tylko ten z bieżącego motywu */
+.tylko-ciemny{display:none!important}
+.dark .tylko-ciemny{display:block!important}
+.dark .tylko-jasny{display:none!important}
+/* rysunek planu w miniaturze: cały plan, bez kadrowania */
+img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
+/* siatka miniatur (wzorzec „siatka”): materiały archiwum i plany */
+.siatka-miniatur{display:grid;grid-template-columns:repeat(auto-fill,minmax(12rem,1fr));gap:12px;list-style:none;margin:0;padding:0}
+.sm-pozycja{border:1px solid var(--linia-podzialu);border-radius:var(--promien);overflow:hidden;display:flex;flex-direction:column}
+.sm-odnosnik{display:flex;flex-direction:column;height:100%;color:inherit;text-decoration:none!important}
+.sm-odnosnik:hover{opacity:.9}
+.sm-obraz{aspect-ratio:4/3;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--muted)}
+.sm-obraz img{width:100%;height:100%;object-fit:cover;object-position:var(--kadr,50% 50%);display:block}
+.sm-znak{color:var(--tekst-etykieta);font-size:var(--rozmiar-tytul-sekcji)}
+.sm-opis{display:flex;flex-direction:column;gap:2px;padding:8px 10px}
+.sm-tytul{font-weight:700;line-height:1.25;font-size:var(--rozmiar-opis)}
+.sm-linia{color:var(--tekst-etykieta);text-transform:lowercase;font-size:var(--rozmiar-drobny)}
+/* PH-23: wariant z miniaturą 160×120 przy prawej krawędzi tabeli */
+.pozycja-w-karcie.kb-z-miniatura{display:grid;grid-template-columns:minmax(0,1fr) 160px;column-gap:16px;align-items:start}
+.kb-tresc{display:flex;flex-direction:column;gap:4px;min-width:0}
+.kb-miniatura{width:160px;aspect-ratio:4/3;border:1px solid var(--linia-podzialu);border-radius:var(--promien-maly);overflow:hidden;background:var(--pl-papier);display:flex;align-items:center;justify-content:center}
+.kb-miniatura img{width:100%;height:100%;object-fit:cover;display:block}
+.kb-miniatura a{display:block;width:100%;height:100%}
 .kb-nagl{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 .kb-nagl h3{margin:0;font-size:calc(15px * var(--font-scale,1));font-weight:700;color:var(--tekst)}
 .kb-lata{font-weight:700;color:var(--tekst);font-size:calc(14px * var(--font-scale,1))}
@@ -1599,8 +1622,8 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .kb-w{display:grid;grid-template-columns:150px minmax(0,1fr);column-gap:16px;line-height:1.5}
 .kb-w dt{margin:0;color:var(--tekst-etykieta);font-size:calc(13px * var(--font-scale,1));padding-top:2px}
 .kb-w dd{margin:0;min-width:0;overflow-wrap:anywhere;font-size:calc(14px * var(--font-scale,1))}
-.ksiega-blok .ksiega-tomy ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
-@media (max-width:640px){.kb-w{grid-template-columns:1fr;row-gap:0}}
+.pozycja-w-karcie .ksiega-tomy ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+@media (max-width:640px){.kb-w{grid-template-columns:1fr;row-gap:0}.pozycja-w-karcie.kb-z-miniatura{grid-template-columns:minmax(0,1fr) 112px;column-gap:12px}.kb-miniatura{width:112px}}
 .karta-pozycji .ot-nagl h3{margin:0;font-size:calc(15px * var(--font-scale,1));font-weight:700;color:var(--tekst)}
 .karta-pozycji .ks-lata{font-weight:700;color:var(--tekst);font-size:calc(14px * var(--font-scale,1))}
 .ks-serwis{color:var(--tekst-etykieta);font-weight:400}

@@ -29,9 +29,6 @@
     "app/components/LegendaMapy.tsx": {
       "styl": 6
     },
-    "app/components/ListaMaterialow.tsx": {
-      "styl": 10
-    },
     "app/components/ListaOpowiesci.tsx": {
       "styl": 5
     },
@@ -81,9 +78,6 @@
     },
     "app/components/Zgloszenie.tsx": {
       "styl": 5
-    },
-    "app/components/plan/ListaPlanow.tsx": {
-      "styl": 4
     },
     "app/components/plan/ListaPochowanych.tsx": {
       "styl": 34
