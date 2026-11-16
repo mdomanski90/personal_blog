@@ -31,7 +31,6 @@ export default function SpisMiejsc({ grupy, liczniki }: { grupy: GrupaMiejsc[]; 
                         {!tylkoInne && (
                             <TytulSekcji>{g.obszar ? <Link href={`/miejsca/${g.obszar.id}`} className="tytul-sekcji-odn">{nazwa}</Link> : nazwa}</TytulSekcji>
                         )}
-                        {!g.obszar && !tylkoInne && <p className="tekst-opis-maly">spoza krain opisanych wyżej</p>}
                         <SpisDzialow dzialy={pozycjeMiejsc(g.miejsca, liczniki)} wybrany="" numeracja={false} etykieta={`miejscowości: ${nazwa}`}
                             podgrupy={g.podgrupy.map((pg) => ({ klucz: pg.obszar.id, nazwa: pg.obszar.nazwa, href: `/miejsca/${pg.obszar.id}`, dzialy: pozycjeMiejsc(pg.miejsca, liczniki) }))} />
                     </section>
