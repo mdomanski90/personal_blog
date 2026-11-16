@@ -108,9 +108,10 @@ export default async function StronaGlowna() {
                             <div className="zapowiedz-tresc">
                                 <h3 className="zapowiedz-tytul"><Link href={`/wpisy/${w.id}`}>{w.tytul}</Link></h3>
                                 {tekst && <p className="zapowiedz-tekst">{tekst}</p>}
-                                <Link href={`/wpisy/${w.id}`} className="zapowiedz-dalej">czytaj dalej <span aria-hidden="true">→</span><span className="sr-only">: {w.tytul}</span></Link>
                             </div>
                         </div>
+                        {/* „czytaj dalej” pod całym wpisem, przy prawej krawędzi kontenera (uwaga właściciela 16.11) */}
+                        <Link href={`/wpisy/${w.id}`} className="zapowiedz-dalej">czytaj dalej <span aria-hidden="true">→</span><span className="sr-only">: {w.tytul}</span></Link>
                     </article>
                 )
             })}

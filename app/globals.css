@@ -1546,10 +1546,12 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .odp .zapowiedz-tytul a{color:var(--tekst);text-decoration:none}
 .odp .zapowiedz-tytul a:hover{color:var(--akcent);text-decoration:underline}
 .zapowiedz-tekst{margin:0;font-size:var(--blog-font-size,18px);line-height:1.6;color:var(--tekst-opis);white-space:pre-line}
-.odp a.zapowiedz-dalej{align-self:flex-end;font-weight:700;font-size:calc(15px * var(--font-scale,1));color:var(--akcent);text-decoration:none}
+.odp a.zapowiedz-dalej{align-self:flex-end;/* prawa krawędź całego wpisu (jak „kopiuj link”), poza kolumną tekstu */font-weight:700;font-size:calc(15px * var(--font-scale,1));color:var(--akcent);text-decoration:none}
 .odp a.zapowiedz-dalej:hover{text-decoration:underline}
+/* telefon (uwaga właściciela 16.11): miniatura pod metryczką na całą szerokość treści (marginesy strony), tekst pod nią */
 @media (max-width:640px){
-  .zapowiedz.z-obrazem .zapowiedz-uklad{grid-template-columns:calc(96px * var(--font-scale,1)) minmax(0,1fr);gap:14px}
+  .zapowiedz.z-obrazem .zapowiedz-uklad{grid-template-columns:minmax(0,1fr);gap:14px}
+  .zapowiedz-obraz{min-height:0;aspect-ratio:3 / 2}
 }
 
 /* ============================================ */
@@ -1776,7 +1778,7 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 .karta-losowa .kl-srodek{grid-template-columns:minmax(0,1fr) calc(200px * var(--font-scale,1))}
 .karta-losowa,.dark .karta-losowa{height:calc(320px * var(--font-scale,1))}
 .glowna-naglowek-wpisow{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}
-/* miniatura 300 px dopiero od 641 px – na telefonie zostaje 96 px (reguła wyżej, max-width:640px); łatka 16.11 */
+/* miniatura 300 px obok tekstu dopiero od 641 px – na telefonie miniatura nad tekstem (reguła wyżej, max-width:640px) */
 @media (min-width:641px){.zapowiedz.z-obrazem .zapowiedz-uklad{grid-template-columns:calc(300px * var(--font-scale,1)) minmax(0,var(--szer-tekstu));justify-content:start}}
 .zapowiedz:not(.z-obrazem) .zapowiedz-uklad{grid-template-columns:minmax(0,calc(300px * var(--font-scale,1) + 20px + var(--szer-tekstu)))}
 /* decyzja 16.11: wpis bez miniatury na szerokość wpisu z miniaturą, zapowiedź w dwóch kolumnach (jak w gazecie); na wąskim ekranie jedna */
