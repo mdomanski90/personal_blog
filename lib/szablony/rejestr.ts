@@ -86,6 +86,7 @@ export const MIEJSCA: Miejsce[] = [
     { byt: 'hasło słownika', gdzie: 'słownik', plik: 'app/biblioteka/slownik/page.tsx', wzorzec: 'lista-dzialu', status: 'zgodne', adres: '/biblioteka/slownik' },
     // przekrojowe
     { byt: 'plan', gdzie: 'karta miejscowości / obiektu – plany (z miniaturą)', plik: 'app/components/plan/ListaPlanow.tsx', wzorzec: 'pozycja-w-karcie', status: 'zgodne', adres: '/miejsca/… · /obiekty/…' },
+    { byt: 'różne', gdzie: 'opis elementu planu – karty i podstawa (PH2)', plik: 'app/components/plan/OpisElementu.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'Panel karty elementu na planie i na skanie z rekonstrukcją (jak karta grobu w PlanInteraktywny): wiersze etykieta–wartość w panelu mapy; ujednolicenie z przeglądarką planu w PH4.', adres: '/plany/… · /archiwum/…' },
     { byt: 'plan', gdzie: 'wszystkie plany', plik: 'app/plany/page.tsx', wzorzec: 'siatka', status: 'zgodne', adres: '/plany' },
     { byt: 'różne', gdzie: 'sieć powiązań na dole kart', plik: 'app/components/Powiazania.tsx', wzorzec: 'wlasny', status: 'do-ujednolicenia', uwaga: 'Na 6 rodzajach kart; własna lista z fragmentami tekstu – sprawdzić względem listy w karcie.', adres: 'karty' },
     { byt: 'różne', gdzie: 'drukuj całość – spis pozycji z nr kat.', plik: 'app/druk/[rodzaj]/[id]/page.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'KAT-05: wydruk – strona tytułowa, spis z numerami katalogowymi, każda pozycja od nowej kartki.', adres: '/druk/miejsce/…' },

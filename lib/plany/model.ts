@@ -4,6 +4,7 @@
 import type { Warstwa } from './typy'
 import { katalog, typGrobu, type TypElementu, type UstawieniaPlanow } from './typy'
 import type { Etap, Polozenie, StanZrodel } from './statusy'
+import { poprawPolaPH2, type Identyfikacja, type Odnosnik, type Podstawa } from './podstawa'
 import { dobryStopien, poprawMetadane, poprawPodklad, type MetadanePlanu, type PodkladZMaterialu, type Stopien } from './metadane'
 
 export type Widocznosc = 'publiczne' | 'bliscy' | 'ja'
@@ -84,6 +85,16 @@ export interface Element {
     notatka?: string
     /** wyliczone przy wydawaniu: napis i osoby ukryte przed czytelnikiem */
     ograniczony?: boolean
+    /** PH-09: powiązania z kartami (identyfikatory jak w [[…]]) – czytelnik dostaje je rozwiązane w `odnosniki` */
+    powiazania?: string[]
+    /** PH-02: na czym oparto element – materiał archiwum i (opcjonalnie) objaśnienie na skanie */
+    podstawa?: Podstawa[]
+    /** PH-19: nazwa / napis w źródle (np. „Magistrat” na szkicu) – publiczne */
+    nazwaZrodlowa?: string
+    /** PH-19: pewność identyfikacji – publiczne; brak = pewna */
+    identyfikacja?: Identyfikacja
+    /** wyliczone przy wydawaniu (strona planu): powiązania widoczne dla czytelnika */
+    odnosniki?: Odnosnik[]
 }
 
 export interface Podklad {
@@ -370,7 +381,8 @@ export function dlaCzytelnika(plan: Plan, poziom: Widocznosc, u: UstawieniaPlano
         if (ukryte.has(e.typ) || !typy.has(e.typ) || !widoczne(e.widocznosc, poziom)) continue
         // statusy pracy i notatki są robocze; współrzędne GPS zdjęć – tylko dla zalogowanych (decyzja 16.11),
         // bo punkty geo planu też są przed czytelnikiem publicznym ukryte
-        const { weryfikacja: _w, notatka: _n, etap: _e, zrodlaStan: _z, polozenie: _p, oznaczenie: _o, numer: _nr, ...bezNumeru } = e
+        // PH2: surowe powiązania i podstawa mogą wskazywać pozycje ukryte – czytelnik dostaje je rozwiązane (lib/plany/serwer.ts)
+        const { weryfikacja: _w, notatka: _n, etap: _e, zrodlaStan: _z, polozenie: _p, oznaczenie: _o, numer: _nr, powiazania: _pw, podstawa: _ps, odnosniki: _od, ...bezNumeru } = e
         const nr = numery.get(e.id), czysty: Element = nr ? { ...bezNumeru, numer: nr } : bezNumeru
         if (poziom === 'publiczne' && grobOgraniczony(e, typy.get(e.typ), u.progLat)) {
             elementy.push({ id: e.id, typ: e.typ, g: e.g, stan: e.stan, ograniczony: true, ...(nr ? { numer: nr } : {}) })
@@ -430,9 +442,16 @@ export function popraw(p: Partial<Plan> & { slug: string }): Plan {
     }
 }
 
+/** PH2: powiązania, podstawa, nazwa ze źródła, identyfikacja – tylko w dobrym kształcie; `odnosniki` nigdy z pliku. */
+function poprawPH2(e: Element): Element {
+    const { powiazania: _a, podstawa: _b, nazwaZrodlowa: _c, identyfikacja: _d, odnosniki: _f, ...reszta } = e
+    return { ...reszta, ...poprawPolaPH2(e as unknown as Record<string, unknown>) }
+}
+
 /** Stopień napisu spoza 1–6 (ręczna edycja pliku) – usuwany; napis wraca do wielkości domyślnej albo dawnego `rozmiar`. */
 function poprawStopnie(L: Element[]): Element[] {
     return L.map((e) => {
+        e = poprawPH2(e)
         if (e.stopien === undefined || dobryStopien(e.stopien)) return e
         const { stopien: _s, ...reszta } = e
         return reszta

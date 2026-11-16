@@ -1606,6 +1606,16 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .dark .tylko-ciemny{display:block!important}
 .dark .tylko-jasny{display:none!important}
 #warstwa-rekonstrukcji{scroll-margin-top:16px}
+/* PH2: opis elementu planu dla czytelnika (nazwa w źródle, identyfikacja, karty, podstawa) */
+.pl-el{margin:0;display:flex;flex-direction:column;gap:4px;font-size:var(--rozmiar-opis)}
+.pl-el-w{display:grid;grid-template-columns:96px minmax(0,1fr);column-gap:10px;line-height:1.45}
+.pl-el-w dt{color:var(--tekst-etykieta);font-size:var(--rozmiar-etykieta)}
+.pl-el-w dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.pl-el-niepewna{font-style:italic}
+.pl-el-przycisk{font:inherit;color:var(--link);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}
+/* PH-19: element o niepewnej identyfikacji – przerywany obrys na planie */
+.pl-niepewny{fill:none;stroke:var(--pl-szary);stroke-linecap:round}
+.pl-niepewny-nieustalona{stroke-opacity:.6}
 /* PH1: warstwa rekonstrukcji nad skanem (przeglądarka dokumentu); na skanie zawsze jasne kolory planu */
 .dark .rek-na-skanie{--pl-papier:var(--plj-papier); --pl-laka:var(--plj-laka); --pl-pole:var(--plj-pole); --pl-las:var(--plj-las); --pl-korona1:var(--plj-korona1); --pl-korona2:var(--plj-korona2); --pl-korona3:var(--plj-korona3); --pl-las-brzeg:var(--plj-las-brzeg); --pl-woda:var(--plj-woda); --pl-woda-brzeg:var(--plj-woda-brzeg); --pl-woda-wz:var(--plj-woda-wz); --pl-rzeka:var(--plj-rzeka); --pl-droga:var(--plj-droga); --pl-droga-obw:var(--plj-droga-obw); --pl-alejka:var(--plj-alejka); --pl-alejka-obw:var(--plj-alejka-obw); --pl-polna:var(--plj-polna); --pl-polna-tlo:var(--plj-polna-tlo); --pl-bud:var(--plj-bud); --pl-gosp:var(--plj-gosp); --pl-kw:var(--plj-kw); --pl-kw-txt:var(--plj-kw-txt); --pl-plac:var(--plj-plac); --pl-grob:var(--plj-grob); --pl-grob-obw:var(--plj-grob-obw); --pl-plot:var(--plj-plot); --pl-tekst:var(--plj-tekst); --pl-szary:var(--plj-szary); --pl-akcent:var(--plj-akcent); --pl-akcent-tlo:var(--plj-akcent-tlo); --pl-pamiec:var(--plj-pamiec); --pl-woda-txt:var(--plj-woda-txt); --pl-las-txt:var(--plj-las-txt); --pl-teren:var(--plj-teren); --pl-teren-txt:var(--plj-teren-txt); --pl-teren-cien:var(--plj-teren-cien); --pl-teren-jasny:var(--plj-teren-jasny); --pl-teren-wzn:var(--plj-teren-wzn); --pl-teren-wzn-tlo:var(--plj-teren-wzn-tlo); --pl-teren-wzn-jasny:var(--plj-teren-wzn-jasny); --pl-kat:var(--plj-kat); --pl-uni:var(--plj-uni); --pl-pra:var(--plj-pra); --pl-zyd:var(--plj-zyd); --pl-ewa:var(--plj-ewa); --pl-kat-tlo:var(--plj-kat-tlo); --pl-kat-wz:var(--plj-kat-wz); --pl-uni-tlo:var(--plj-uni-tlo); --pl-uni-wz:var(--plj-uni-wz); --pl-pra-tlo:var(--plj-pra-tlo); --pl-pra-wz:var(--plj-pra-wz); --pl-zyd-tlo:var(--plj-zyd-tlo); --pl-zyd-wz:var(--plj-zyd-wz); --pl-ewa-tlo:var(--plj-ewa-tlo); --pl-ewa-wz:var(--plj-ewa-wz); --pl-woj-tlo:var(--plj-woj-tlo); --pl-woj-wz:var(--plj-woj-wz); --pl-epi-tlo:var(--plj-epi-tlo); --pl-bagno-tlo:var(--plj-bagno-tlo); --pl-bagno-wz:var(--plj-bagno-wz); --pl-ulica-obw:var(--plj-ulica-obw); --pl-kwartal:var(--plj-kwartal); --pl-kwartal-wz:var(--plj-kwartal-wz);}
 .rek-warstwa{pointer-events:none}

@@ -5,6 +5,7 @@
 // legenda z przełącznikami, eksport do PNG i druk (PDF), informacja albo prośba czytelnika.
 
 import * as React from 'react'
+import OpisElementu from './OpisElementu'
 import { doSzukania, punktyElementu, srodek, jednostka, type Element, type Numer, type Plan } from '@/lib/plany/model'
 import { grobyKolejno, numerKrotki, numerTekst, numeryPlanu } from '@/lib/plany/numeracja'
 import { katalog, GRUPY, typGrobu, type TypElementu, type UstawieniaPlanow } from '@/lib/plany/typy'
@@ -474,6 +475,7 @@ function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowa
                             </section>
                         )}
                         {el.opis && <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{el.opis}</p>}
+                        <OpisElementu e={el} />
                         {grob && !el.osoby?.length && !el.nazwa && !el.napis && <p className="text-[var(--tekst-etykieta)]" style={{ margin: 0 }}>Napis nie został jeszcze odczytany.</p>}
                         {el.zdjecia && el.zdjecia.length > 0 && (
                             <section className="flex flex-col" style={{ gap: 6 }}>

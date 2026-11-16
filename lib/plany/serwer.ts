@@ -11,7 +11,35 @@ export async function planDlaCzytelnika(slug: string): Promise<{ plan: Plan; poz
     if (!surowy) return null
     const poziom = (await poziomCzytelnika()) === 'bliscy' ? 'bliscy' : 'publiczne'
     if (!widoczne(surowy.widocznosc, poziom)) return null
-    return { plan: dlaCzytelnika(surowy, poziom, await wczytajUstawienia()), poziom }
+    return { plan: await uzupelnijDlaCzytelnika(surowy, dlaCzytelnika(surowy, poziom, await wczytajUstawienia()), poziom), poziom }
+}
+
+/**
+ * PH2: do planu w wersji dla czytelnika dokłada rozwiązane powiązania elementów (`odnosniki`) i podstawę – tylko pozycje,
+ * które czytelnik widzi (karty, materiały, objaśnienia). `pelny` – plan z pliku (źródło surowych identyfikatorów).
+ */
+export async function uzupelnijDlaCzytelnika(pelny: Plan, wydany: Plan, poziom: 'publiczne' | 'bliscy'): Promise<Plan> {
+    const zrodlo = new Map(pelny.elementy.map((e) => [e.id, e]))
+    const potrzebne = wydany.elementy.some((e) => zrodlo.get(e.id)?.powiazania?.length || zrodlo.get(e.id)?.podstawa?.length)
+    if (!potrzebne) return wydany
+    const { rozwiazOdnosniki, materialy } = await import('@/lib/archiwum')
+    const { objasnieniaMaterialu } = await import('@/lib/objasnienia')
+    const { odnosnikiElementu, podstawaDlaCzytelnika } = await import('./podstawa')
+    const rozwiaz = await rozwiazOdnosniki(poziom)
+    const mat = new Set((await materialy(poziom)).map((m) => m.id))
+    const obj = new Set<string>()
+    for (const id of new Set(pelny.elementy.flatMap((e) => (e.podstawa ?? []).map((p) => p.material)).filter((m) => mat.has(m))))
+        for (const o of objasnieniaMaterialu(id)) if (widoczne(o.widocznosc, poziom)) obj.add(o.id)
+    return {
+        ...wydany,
+        elementy: wydany.elementy.map((e) => {
+            if (e.ograniczony) return e
+            const z = zrodlo.get(e.id)
+            const odnosniki = odnosnikiElementu(z?.powiazania, (id) => rozwiaz(id))
+            const podstawa = podstawaDlaCzytelnika(z?.podstawa, mat, obj)
+            return { ...e, ...(odnosniki.length ? { odnosniki } : {}), ...(podstawa.length ? { podstawa } : {}) }
+        }),
+    }
 }
 
 /**
@@ -101,5 +129,8 @@ export async function rekonstrukcjaMaterialu(materialId: string) {
     const pelne = (await listaPlanow()).filter((p) => p.zrodlo?.material === materialId)
     if (!pelne.length) return null
     const w = wybierzRekonstrukcje(materialId, pelne, await wszystkiePlanyDlaCzytelnika())
-    return w ? { ...w, ustawienia: await wczytajUstawienia() } : null
+    if (!w) return null
+    const poziom = (await poziomCzytelnika()) === 'bliscy' ? 'bliscy' : 'publiczne'
+    const plan = await uzupelnijDlaCzytelnika(pelne.find((p) => p.slug === w.plan.slug)!, w.plan, poziom)
+    return { ...w, plan, ustawienia: await wczytajUstawienia() }
 }

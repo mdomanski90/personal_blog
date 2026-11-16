@@ -274,6 +274,26 @@ function LiniaInna({ l, u }: { l: Linia; u: number }) {
     }
 }
 
+// ---------- PH-19: niepewna identyfikacja – przerywany obrys (tylko elementy z ustawionym polem) ----------
+function Niepewnosc({ elementy, u }: { elementy: Element[]; u: number }) {
+    const L = elementy.filter((e) => e.identyfikacja === 'przypuszczalna' || e.identyfikacja === 'nieustalona')
+    if (!L.length) return null
+    return (
+        <g data-warstwa="niepewnosc" pointerEvents="none">
+            {L.map((e) => {
+                const klasa = `pl-niepewny pl-niepewny-${e.identyfikacja}`
+                const kreska = /* styl-dynamiczny: grubość i kreski z jednostki planu */ { strokeWidth: u * 0.08, strokeDasharray: `${u * 0.3} ${u * 0.2}` }
+                const g = e.g
+                if (g.k === 'p' || g.k === 't') return <circle key={e.id} cx={g.x} cy={g.y} r={u * 1.1} className={klasa} style={/* styl-dynamiczny: grubość i kreski z jednostki planu */ kreska} />
+                const pts = punktyElementu(g)
+                return g.k === 'l'
+                    ? <polyline key={e.id} points={P(pts)} className={klasa} style={/* styl-dynamiczny: grubość i kreski z jednostki planu */ kreska} />
+                    : <polygon key={e.id} points={P(pts)} className={klasa} style={/* styl-dynamiczny: grubość i kreski z jednostki planu */ kreska} />
+            })}
+        </g>
+    )
+}
+
 // ---------- napisy ----------
 const KOLOR_NAPISU: Record<string, string> = { tekst: v('tekst'), szary: v('szary'), woda: v('woda-txt'), las: v('las-txt'), teren: v('teren-txt'), pamiec: v('pamiec') }
 
@@ -484,6 +504,7 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                 <image key={p.id} href={adres} width={p.szer} height={p.wys} transform={`matrix(${p.macierz.join(' ')})`} opacity={krycie ?? p.krycie} preserveAspectRatio="none" pointerEvents="none" />
             ))}
             {KOLEJNOSC_WARSTW.map(warstwa)}
+            <Niepewnosc elementy={el} u={u} />
             <g data-warstwa="etykiety" pointerEvents={o.edycja ? undefined : 'none'}>{napisy}</g>
         </g>
     )
