@@ -105,8 +105,8 @@
   --akcent: var(--link);
   --akcent-tlo: #ebe8f8;
   --akcent-na-tle: #3a2d9e;
-  /* pasek pełnego ekranu dokumentu – wariant B „grafit” (decyzja właściciela 16.11) */
-  --pasek-pelny-tlo: #3a3631; --pasek-pelny-grupa: #4a4640; --pasek-pelny-krawedz: #6b655b; --pasek-pelny-tekst: #f2efe8; --pasek-pelny-opis: #d6d1c6; --pasek-pelny-hover: #5a554d;
+  /* pasek pełnego ekranu dokumentu – wariant B „grafit”, ten sam w obu motywach, aktywny przycisk w pełnym niebieskim akcencie (decyzje 16.11) */
+  --pasek-pelny-tlo: #3a3631; --pasek-pelny-grupa: #4a4640; --pasek-pelny-krawedz: #6b655b; --pasek-pelny-tekst: #f2efe8; --pasek-pelny-opis: #d6d1c6; --pasek-pelny-hover: #5a554d; --pasek-pelny-aktywny: #0a6fd6; --pasek-pelny-na-aktywnym: #ffffff;
   --akcent-wypelnienie: var(--link);
   --akcent-na-wypelnieniu: #ffffff;
   --fokus: var(--link);
@@ -203,7 +203,6 @@
   --linia-podzialu: #3b3833;
   --akcent-tlo: rgba(65, 156, 255, .18);
   --akcent-na-tle: #cfe4ff;
-  --pasek-pelny-tlo: var(--tlo-strony); --pasek-pelny-grupa: var(--tlo-kontrolki); --pasek-pelny-krawedz: var(--krawedz-kontrolki); --pasek-pelny-tekst: var(--tekst); --pasek-pelny-opis: var(--tekst-opis); --pasek-pelny-hover: var(--akcent-tlo);
   --akcent-wypelnienie: #0a6fd6;
   --akcent-na-wypelnieniu: #ffffff;
   --blad: #ef8f7e; --blad-tlo: #3a2420;
@@ -1438,14 +1437,14 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .dok-pasek-lewa{display:flex;align-items:center;gap:10px;min-width:0}
 .dok-pasek-prawa{flex-wrap:wrap;justify-content:flex-end}
 .dok-pelny .dok-pasek.dok-pasek-karta{min-height:calc(46px * var(--font-scale,1));padding:6px 10px;border:1px solid #4a4640;border-radius:var(--promien);background:#1f1d1a}
-/* PH-24: pasek pełnego ekranu – tokeny --pasek-pelny-* (jasny motyw: grafit, wariant B, aktywny przycisk w pełnym akcencie –
-   decyzja 16.11 po „za jasnym” pasku; ciemny motyw: kolory strony); obszar skanu zostaje ciemny */
+/* PH-24: pasek pełnego ekranu – tokeny --pasek-pelny-* (grafit, wariant B, ten sam w obu motywach, aktywny przycisk w pełnym
+   niebieskim akcencie – decyzje 16.11 po „za jasnym” pasku); obszar skanu zostaje ciemny */
 .dok-pelny .dok-pasek.dok-pasek-karta{background:var(--pasek-pelny-tlo);border-color:var(--pasek-pelny-krawedz);color:var(--pasek-pelny-tekst)}
 .dok-pelny .dok-pasek .dok-grupa{background:var(--pasek-pelny-grupa);border-color:var(--pasek-pelny-krawedz)}
 .dok-pelny .dok-pasek .dok-grupa>button,.dok-pelny .dok-pasek .dok-grupa>.dok-stan{color:var(--pasek-pelny-tekst);border-left-color:var(--pasek-pelny-krawedz)}
 .dok-pelny .dok-pasek .dok-grupa>:first-child{border-left:0}
 .dok-pelny .dok-pasek .dok-grupa>button:hover:not(:disabled){background:var(--pasek-pelny-hover)}
-.dok-pelny .dok-pasek .dok-grupa>button[aria-pressed=true]{background:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu);font-weight:700}
+.dok-pelny .dok-pasek .dok-grupa>button[aria-pressed=true]{background:var(--pasek-pelny-aktywny);color:var(--pasek-pelny-na-aktywnym);font-weight:700}
 .dok-pelny .dok-pasek .dok-stan,.dok-pelny .dok-pasek .dok-stan-tekst{color:var(--pasek-pelny-opis)}
 .dok-pelny .dok-pasek .dok-tytul{color:var(--pasek-pelny-tekst)}
 .dok-pelny .dok-pasek .dok-menu{background:var(--pasek-pelny-grupa);border-color:var(--pasek-pelny-krawedz);color:var(--pasek-pelny-tekst)}
@@ -1613,6 +1612,7 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .rek-svg{display:block;width:100%;height:100%;overflow:visible}
 .rek-tlo{fill:var(--pl-papier)}
 .dok-suwak{width:96px;accent-color:var(--akcent)}
+.dok-pelny .dok-suwak{accent-color:var(--pasek-pelny-aktywny)}
 /* rysunek planu w miniaturze: cały plan, bez kadrowania */
 img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 /* siatka miniatur (wzorzec „siatka”): materiały archiwum i plany */
