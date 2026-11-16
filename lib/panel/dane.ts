@@ -170,7 +170,7 @@ export async function commit(): Promise<string | null> {
         const head = (await fs.promises.readFile(path.join(git, 'HEAD'), 'utf8')).trim()
         if (!head.startsWith('ref: ')) return head.slice(0, 7)
         const ref = head.slice(5)
-        try { return (await fs.promises.readFile(path.join(git, ref), 'utf8')).trim().slice(0, 7) } catch { /* spakowane */ }
+        try { return (await fs.promises.readFile(path.join(/*turbopackIgnore: true*/ git, ref), 'utf8')).trim().slice(0, 7) } catch { /* spakowane */ }
         const packed = await fs.promises.readFile(path.join(git, 'packed-refs'), 'utf8')
         const l = packed.split('\n').find((x) => x.endsWith(` ${ref}`))
         return l ? l.slice(0, 7) : null

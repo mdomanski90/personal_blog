@@ -3,7 +3,8 @@ import { Link } from 'next-view-transitions'
 import { TytulDzialu, WstepTekst } from '@/app/components/WstepDzialu'
 import { poziomCzytelnika, ksiegi, parafie, hasla, miejsca } from '@/lib/archiwum'
 import { publikacje } from '@/lib/paczka5'
-import { pozycjeBiblioteki, filtrujBiblioteke, dzialBiblioteki, DZIALY_BIBLIOTEKI } from '@/lib/biblioteka'
+import { redirect } from 'next/navigation'
+import { pozycjeBiblioteki, filtrujBiblioteke, dzialBiblioteki, DZIALY_BIBLIOTEKI, PRZENIESIONE_DZIALY } from '@/lib/biblioteka'
 import { odmiana } from '@/lib/tekst'
 import { adresFiltrow, wartosc, type Parametry } from '@/lib/adres-filtrow'
 import { Strona, TytulStrony } from '../components/Uklad'
@@ -22,6 +23,7 @@ export const metadata: Metadata = { title: 'biblioteka · odniepamieci.pl' }
  */
 export default async function Biblioteka({ searchParams }: { searchParams: Promise<Parametry> }) {
     const sp = await searchParams
+    if (Object.hasOwn(PRZENIESIONE_DZIALY, wartosc(sp.dzial))) redirect(PRZENIESIONE_DZIALY[wartosc(sp.dzial)])
     const poziom = await poziomCzytelnika()
     const [pub, ks, par, has, msc] = await Promise.all([publikacje(poziom), ksiegi(poziom), parafie(), hasla(poziom), miejsca(poziom)])
     const dzial = dzialBiblioteki(wartosc(sp.dzial))

@@ -61,7 +61,7 @@ async function rekordy(kolekcja: typeof KOLEKCJE[number]): Promise<{ slug: strin
         if (!/\.(mdoc|yaml|yml|json)$/.test(file)) continue
         const slug = file.replace(/\.(mdoc|yaml|yml|json)$/, '')
         if (!prawidloweId(slug)) continue
-        const f = path.join(folder, file)
+        const f = path.join(/*turbopackIgnore: true*/ folder, file)
         const st = await fs.stat(f)
         if (!st.isFile() || st.size > 2_000_000) continue
         const content = await fs.readFile(f, 'utf8')

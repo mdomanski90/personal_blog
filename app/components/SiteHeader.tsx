@@ -29,10 +29,10 @@ const PODMENU: Record<string, { href: string; tekst: string }[]> = {
         { href: '/archiwum/zbiory', tekst: 'zbiory i kolekcje' },
     ],
     // P7D-1 (AUD-01): biblioteka z podmenu jak archiwum – te same działy co w spisie biblioteki
+    // (16.11: parafie i urzędy tylko w „miejsca → instytucje”)
     '/biblioteka': [
         { href: '/biblioteka/publikacje', tekst: 'publikacje i opracowania' },
         { href: '/biblioteka/ksiegi', tekst: 'księgi metrykalne' },
-        { href: '/parafie', tekst: 'parafie i urzędy' },
         { href: '/biblioteka/slownik', tekst: 'słownik' },
     ],
 }

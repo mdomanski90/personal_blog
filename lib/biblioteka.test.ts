@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { pozycjeBiblioteki, filtrujBiblioteke } from './biblioteka'
+import { pozycjeBiblioteki, filtrujBiblioteke, DZIALY_BIBLIOTEKI, PRZENIESIONE_DZIALY } from './biblioteka'
 import { NA_STRONE } from './stronicowanie'
 
 // dane wyłącznie syntetyczne
@@ -21,23 +21,31 @@ const dane = {
 
 test('jedna lista w kolejności działów, z odnośnikami do podstron', () => {
     const p = pozycjeBiblioteki(dane)
-    assert.deepEqual(p.map((x) => x.dzial), ['publikacje', 'ksiegi', 'ksiegi', 'parafie', 'slownik'])
+    assert.deepEqual(p.map((x) => x.dzial), ['publikacje', 'ksiegi', 'ksiegi', 'slownik'])
     assert.equal(p[0].href, '/biblioteka/publikacje/pub-1')
     assert.equal(p[0].linia, 'książka · Autor X · 1999')
-    assert.equal(p[4].href, '/biblioteka/slownik#h-1')
+    assert.equal(p[3].href, '/biblioteka/slownik#h-1')
+    // nazwa instytucji nadal opisuje księgę
+    assert.match(p[1].linia, /Parafia Testowa/)
 })
 
-test('miejscowość: księga tylko w okresie przynależności, parafia przez przynależność, słownik bez miejsc', () => {
+test('parafie i urzędy są instytucjami w dziale „miejsca”, nie działem biblioteki; stary adres działu prowadzi do spisu instytucji', () => {
+    assert.ok(!DZIALY_BIBLIOTEKI.some((d) => (d.klucz as string) === 'parafie'))
+    assert.ok(!pozycjeBiblioteki(dane).some((x) => x.href.startsWith('/parafie')))
+    assert.equal(PRZENIESIONE_DZIALY.parafie, '/parafie')
+})
+
+test('miejscowość: księga tylko w okresie przynależności, słownik bez miejsc', () => {
     const p = pozycjeBiblioteki(dane)
     const ids = filtrujBiblioteke(p, { miejsce: 'wies-a' }).wyniki.map((x) => x.id)
-    assert.deepEqual(ids, ['ks-1', 'par-1'])
+    assert.deepEqual(ids, ['ks-1'])
     assert.deepEqual(filtrujBiblioteke(p, { miejsce: 'wies-b' }).wyniki.map((x) => x.id), ['pub-1'])
 })
 
 test('dział i fraza (z odmianą, bez polskich znaków); nieznany dział = wszystkie', () => {
     const p = pozycjeBiblioteki(dane)
     assert.equal(filtrujBiblioteke(p, { dzial: 'ksiegi' }).razem, 2)
-    assert.equal(filtrujBiblioteke(p, { dzial: 'nieznany' }).razem, 5)
+    assert.equal(filtrujBiblioteke(p, { dzial: 'nieznany' }).razem, 4)
     assert.deepEqual(filtrujBiblioteke(p, { q: 'unitow' }).wyniki.map((x) => x.id), ['pub-1'])
     assert.deepEqual(filtrujBiblioteke(p, { q: 'wloka' }).wyniki.map((x) => x.id), ['h-1'])
 })
