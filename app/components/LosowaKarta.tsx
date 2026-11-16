@@ -46,7 +46,7 @@ export default function LosowaKarta({ pozycje }: { pozycje: PozycjaLosowa[] }) {
 
     return (
         <aside className="karta-losowa" aria-label="z archiwum">
-            <h2 className="kl-naglowek">z archiwum</h2>
+            <h2 className="tytul-sekcji">z archiwum</h2>
             {/* po przejściu strzałką czytnik ekranu odczytuje nową pozycję */}
             <div key={p.klucz} className="kl-srodek" aria-live={recznie ? 'polite' : 'off'} aria-atomic="true">
                 <div className="kl-tekst">
@@ -57,7 +57,7 @@ export default function LosowaKarta({ pozycje }: { pozycje: PozycjaLosowa[] }) {
                 <Link href={p.href} className="kl-mini" tabIndex={-1} aria-hidden="true">
                     {p.zdjecie
                         // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={`${p.zdjecie}?w=320`} alt="" loading="lazy" style={{ objectPosition: pozycjaKadru(p.kadr) }} />
+                        ? <img src={`${p.zdjecie}?w=320`} alt="" loading="lazy" style={/* styl-dynamiczny: kadr miniatury z danych materiału */ { objectPosition: pozycjaKadru(p.kadr) }} />
                         : <Ikonka rodzaj={rodzaj} />}
                 </Link>
             </div>

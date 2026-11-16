@@ -3,8 +3,10 @@ import { notFound } from 'next/navigation'
 import { poziomCzytelnika } from '@/lib/archiwum'
 import { zbior, materialyZbioru } from '@/lib/paczka5'
 import { naHtml } from '@/lib/markdoc'
-import { Strona, Tresc, maTekst } from '../../../components/Uklad'
-import { Czesc, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke } from '../../../components/Karta'
+import { PelnaSzerokosc, Sekcja, Strona, Tresc, maTekst } from '../../../components/Uklad'
+import { Czesc, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../../components/Karta'
+import SpisTresci from '../../../components/SpisTresci'
+import { PrzyciskDrukuj } from '../../../components/Druk'
 import ListaMaterialow from '../../../components/ListaMaterialow'
 import CopyLinkButton from '../../../components/CopyLinkButton'
 import Komunikat from '../../../components/Komunikat'
@@ -22,9 +24,9 @@ export default async function Zbior({ params }: P) {
   const tekst = naHtml(z.opis)
   const mats = await materialyZbioru(z.id, poziom)
   return (
-    <Strona akcje={<CopyLinkButton sciezka={`/archiwum/zbiory/${z.id}`} />}>
-      <NaglowekKarty sciezka={[{ tekst: 'archiwum', href: '/archiwum' }, { tekst: 'zbiory', href: '/archiwum/zbiory' }]}
-        tytul={z.nazwa} linia={['zbiór', `${mats.length} ${mats.length === 1 ? 'materiał' : 'materiałów'}`]} />
+    <Strona uklad="karta" sciezka={[{ tekst: 'archiwum', href: '/archiwum' }, { tekst: 'zbiory', href: '/archiwum/zbiory' }]} akcje={<><CopyLinkButton sciezka={`/archiwum/zbiory/${z.id}`} /><PrzyciskDrukuj /></>}
+      naglowek={<NaglowekKarty sciezka={[]} tytul={z.nazwa} linia={['zbiór', `${mats.length} ${mats.length === 1 ? 'materiał' : 'materiałów'}`]} />}
+      spis={<SpisTresci pozycje={spisCzesci([(z.pochodzenie || z.prawa) && 'podstawowe', 'materiały w zbiorze', z.zrodla.length > 0 && 'źródła'])} />}>
       {(z.pochodzenie || z.prawa) && (
         <Tabela etykieta={`${z.nazwa} – podstawowe`}>
           <Czesc tytul="podstawowe" />
@@ -33,8 +35,12 @@ export default async function Zbior({ params }: P) {
         </Tabela>
       )}
       {maTekst(tekst) && <Tresc html={tekst} />}
-      <h2 className="karta-sekcja-tytul">materiały w zbiorze</h2>
-      {mats.length ? <ListaMaterialow materialy={mats} /> : <Komunikat rodzaj="pusto">W tym zbiorze nie ma jeszcze opublikowanych materiałów.</Komunikat>}
+      {/* siatka miniatur na pełną szerokość (rzecz przestrzenna), spis wraca po niej */}
+      <PelnaSzerokosc>
+        <Sekcja tytul="materiały w zbiorze" id={idCzesci('materiały w zbiorze')}>
+          {mats.length ? <ListaMaterialow materialy={mats} /> : <Komunikat rodzaj="pusto">W tym zbiorze nie ma jeszcze opublikowanych materiałów.</Komunikat>}
+        </Sekcja>
+      </PelnaSzerokosc>
       {z.zrodla.length > 0 && <Tabela etykieta="źródła"><Zrodla pozycje={z.zrodla.map((x, i) => <ZAdresami key={i} tekst={x} />)} /></Tabela>}
       <ZglosPoprawke adres={`/archiwum/zbiory/${z.id}`} tytul={z.nazwa} pytanie="Masz materiał, który pasuje do tego zbioru?" />
     </Strona>

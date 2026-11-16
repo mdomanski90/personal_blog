@@ -9,8 +9,11 @@ import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import ListaObiektow from '../../components/ListaObiektow'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml, zajawka } from '@/lib/markdoc'
-import { Strona, Tresc, maTekst } from '../../components/Uklad'
-import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke } from '../../components/Karta'
+import { Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
+import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import SpisTresci from '../../components/SpisTresci'
+import SpisMiejscowosci from '../../components/SpisMiejscowosci'
+import { PrzyciskDrukuj } from '../../components/Druk'
 import MapaKarty from '../../components/MapaKarty'
 import Zgloszenie from '../../components/Zgloszenie'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
@@ -86,23 +89,26 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const ksiegiSa = ksiegiWsi.some((p) => p.ksiegi.length > 0)
     const odnosnikiWTekstach = siec.odnosniki.filter((z) => !(z.zrodlo.rodzaj === 'wpis' && opow.some((o) => o.id === z.zrodlo.id)))
 
+    const jestTeren = swiatynie.length > 0 || !obszar
+    const jestKsiegi = ksiegiSa || m.parafie.length > 0
+    const tytulHistorii = obszar ? 'opis' : 'historia'
+    const spis = spisCzesci(['podstawowe', m.rodzaj === 'gmina' && potomkowie.length > 0 && 'wsie gminy', tytulHistorii, jestTeren && 'w terenie', jestKsiegi && 'księgi metrykalne', 'powiązane', (m.zrodla.length > 0 || !!zrodlo) && 'źródła'])
+    const naglowek = (
+        <NaglowekKarty
+            sciezka={[]}
+            tytul={m.nazwa}
+            linia={[
+                RODZAJE_MIEJSC[m.rodzaj] ?? m.rodzaj,
+                zGminy ? { tekst: zGminy.nazwa, href: `/miejsca/${zGminy.id}` } : null,
+                obszar && nadrzedne && (!gmina || nadrzedne.id !== gmina.id) ? { tekst: nadrzedne.nazwa, href: `/miejsca/${nadrzedne.id}` } : null,
+            ]}
+            lead={lead || undefined}
+        />
+    )
+    // JW-2 (makiety v2): lead → podstawowe → pełna historia → w terenie, księgi → powiązane, źródła; mapa i spis treści w pasku bocznym
     return (
-        <Strona akcje={<><CopyLinkButton sciezka={`/miejsca/${m.id}`} /></>}>
-            <NaglowekKarty
-                sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...przodkowie.map((p) => ({ tekst: p.nazwa, href: `/miejsca/${p.id}` }))]}
-                tytul={m.nazwa}
-                obraz={mapa ? <MapaKarty mapa={mapa} wysokosc={m.rodzaj === 'gmina' ? 260 : 200} podpis="mapa okolicy" /> : undefined}
-                szerokiObraz={m.rodzaj === 'gmina'}
-                linia={[
-                    RODZAJE_MIEJSC[m.rodzaj] ?? m.rodzaj,
-                    zGminy ? { tekst: zGminy.nazwa, href: `/miejsca/${zGminy.id}` } : null,
-                    obszar && nadrzedne && (!gmina || nadrzedne.id !== gmina.id) ? { tekst: nadrzedne.nazwa, href: `/miejsca/${nadrzedne.id}` } : null,
-                ]}
-                lead={lead ? <p style={{ margin: 0 }}>{lead}</p> : undefined}
-            >
-                {maTekst(opisHtml) && <a href="#historia" className="odn w-fit" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>{obszar ? 'cały opis' : 'historia'} ↓</a>}
-            </NaglowekKarty>
-
+        <Strona uklad="karta" sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...przodkowie.map((p) => ({ tekst: p.nazwa, href: `/miejsca/${p.id}` }))]} akcje={<><CopyLinkButton sciezka={`/miejsca/${m.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek}
+            bok={mapa ? <MapaKarty mapa={mapa} wysokosc={300} podpis="mapa okolicy" /> : undefined} spis={<SpisTresci pozycje={spis} />}>
             <Tabela etykieta={`${m.nazwa} – dane`}>
                 <Czesc tytul="podstawowe" />
                 {!obszar && <W e="gmina">{zGminy ? <Link href={`/miejsca/${zGminy.id}`} className="odn">{zGminy.nazwa.replace(/^gmina /i, '')}</Link> : <span className="text-[var(--tekst-opis)]">w opracowaniu</span>}</W>}
@@ -133,23 +139,21 @@ export default async function MiejsceStrona({ params }: Parametry) {
                     <>
                         <Czesc tytul="wsie gminy">{`obiekty w terenie: ${obiektyGminy.length} · materiały: ${materialyGminy.length}`}</Czesc>
                         <WCaly>
-                            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(13rem, 1fr))', gap: '0 1.5rem' }}>
-                                {potomkowie.map((w) => {
-                                    const l = liczniki.get(w.id), ob = wszystkieObiekty.filter((o) => o.miejsce === w.id).length
-                                    const meta = [l?.opowiesci ? `${l.opowiesci} ${l.opowiesci === 1 ? 'wpis' : l.opowiesci < 5 ? 'wpisy' : 'wpisów'}` : '', ob ? `${ob} ${ob === 1 ? 'obiekt' : ob < 5 ? 'obiekty' : 'obiektów'}` : ''].filter(Boolean).join(' · ')
-                                    return (
-                                        <div key={w.id} className="flex justify-between border-b border-[var(--linia-podzialu)] py-2" style={{ gap: 8 }}>
-                                            <Link href={`/miejsca/${w.id}`} className="odn">{w.nazwa}</Link>
-                                            <span className="ot-drobne">{meta || 'jeszcze bez wpisów'}</span>
-                                        </div>
-                                    )
-                                })}
-                            </div>
+                            <SpisMiejscowosci pozycje={potomkowie.map((w) => ({ id: w.id, nazwa: w.nazwa, wpisy: liczniki.get(w.id)?.opowiesci, obiekty: wszystkieObiekty.filter((o) => o.miejsce === w.id).length }))} />
                         </WCaly>
                         <W e="tematy w gminie">{tematyGminy.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyGminy.map((t) => ({ tekst: t.nazwa, href: `/tematy/${t.id}` }))]} />}</W>
                     </>
                 )}
 
+            </Tabela>
+
+            <Sekcja tytul={tytulHistorii} id={idCzesci(tytulHistorii)}>
+                {maTekst(opisHtml) ? <Tresc html={opisHtml} /> : (
+                    <p className="tekst-opis">Opis historii {obszar ? 'tego obszaru' : 'tej miejscowości'} jest w przygotowaniu.</p>
+                )}
+            </Sekcja>
+
+            {(jestTeren || jestKsiegi) && <Tabela etykieta={`${m.nazwa} – w terenie i księgi`}>
                 {(swiatynie.length > 0 || !obszar) && (
                     <>
                         <Czesc tytul="w terenie">{swiatynie.length ? `${swiatynie.length} ${swiatynie.length === 1 ? 'obiekt' : swiatynie.length < 5 ? 'obiekty' : 'obiektów'}` : 'kapliczki, krzyże, cmentarze, szkoły, młyny…'}</Czesc>
@@ -166,31 +170,22 @@ export default async function MiejsceStrona({ params }: Parametry) {
                     <>
                         <Czesc tytul="księgi metrykalne">zachowane roczniki</Czesc>
                         <WCaly>
-                            <div className="flex flex-col" style={{ gap: 12 }}>
+                            <div className="flex flex-col gap-3">
                                 {!ksiegiSa && <span className="ot-drobne">Spis ksiąg parafii tej wsi jest w przygotowaniu.</span>}
                                 {ksiegiWsi.filter((p) => p.ksiegi.length > 0).map((p) => (
-                                    <div key={p.parafia.id} className="flex flex-col" style={{ gap: 6 }}>
+                                    <div key={p.parafia.id} className="flex flex-col gap-1.5">
                                         <span>{p.parafia.id === 'nieustalona-instytucja'
                                             ? <span>{p.parafia.nazwa}</span>
                                             : <Link href={`/parafie/${p.parafia.id}`} className="odn">{p.parafia.nazwa}</Link>}<span className="ot-drobne"> · {WYZNANIA_PARAFII[p.parafia.wyznanie] ?? p.parafia.wyznanie}</span></span>
                                         <TabelaKsiag ksiegi={p.ksiegi} nazwyMiejsc={Object.fromEntries(wszystkie.map((x) => [x.id, x.nazwa]))} kontekst={{ miejsce: m.id }} wariant="wiersze" />
                                     </div>
                                 ))}
-                                <Link href={`/biblioteka/ksiegi?miejsce=${m.id}`} className="odn w-fit" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>pełny spis z paskiem lat →</Link>
+                                <Link href={`/biblioteka/ksiegi?miejsce=${m.id}`} className="odn w-fit tekst-opis-maly">pełny spis z paskiem lat →</Link>
                             </div>
                         </WCaly>
                     </>
                 )}
-            </Tabela>
-
-            <section id="historia" className="flex flex-col scroll-mt-6" style={{ gap: 10 }}>
-                <h2 className="font-bold lowercase" style={{ fontSize: 'calc(20px * var(--font-scale, 1))' }}>{obszar ? 'opis' : 'historia'}</h2>
-                {maTekst(opisHtml) ? <Tresc html={opisHtml} /> : (
-                    <p className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
-                        Opis historii {obszar ? 'tego obszaru' : 'tej miejscowości'} jest w przygotowaniu.
-                    </p>
-                )}
-            </section>
+            </Tabela>}
 
             <Tabela etykieta={`${m.nazwa} – powiązane i źródła`}>
                 <Czesc tytul="powiązane">{[opow.length && 'wpisy', mat.length && 'materiały', tematy.length && 'tematy'].filter(Boolean).join(' · ')}</Czesc>

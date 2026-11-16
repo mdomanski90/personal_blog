@@ -45,22 +45,25 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
                 szukaj: normalizuj(`${o.imiona} ${o.nazwisko} ${(o.inneNazwiska ?? []).join(' ')} ${(o.inneZapisy ?? []).join(' ')} ${o.przydomek ?? ''} ${lataZycia(o)} ${miejsce} ${b?.lead ?? ''}`),
             }
         })
-    const kregiListy: KragNaLiscie[] = [...kregi.map((k) => ({ id: k.id, nazwa: k.nazwa, opis: k.opis, ile: ileWKregu[k.id] })), { id: 'wszystkie', nazwa: 'wszyscy', opis: 'całe drzewo', ile: wszystkie.length }]
+    // „wszyscy” jako pierwszy filtr (decyzja 16.11)
+    const kregiListy: KragNaLiscie[] = [{ id: 'wszystkie', nazwa: 'wszyscy', opis: 'całe drzewo', ile: wszystkie.length }, ...kregi.map((k) => ({ id: k.id, nazwa: k.nazwa, opis: k.opis, ile: ileWKregu[k.id] }))]
+    const wstep = (
+        <div className="wstep-dzialu-tekst">
+            <p><WstepTekst dzial="osoby" domyslny={"Ludzie z tych wsi: przodkowie, sąsiedzi, księża, wójtowie – każdy ze swoją stroną, drzewem przodków i potomków oraz dokumentami, które potwierdzają daty i więzi."} /></p>
+            {s.drzewo.osoby.size === 0 ? (
+                <p className="text-[var(--tekst-opis)]">Ten dział jest w przygotowaniu – osoby pojawią się po wczytaniu drzewa genealogicznego. Dane osób urodzonych w ostatnich 100 latach (i zmarłych w ostatnich 25) będą widoczne tylko dla zalogowanych bliskich.</p>
+            ) : (
+                <p className="tekst-opis-maly text-[var(--tekst-opis)]">
+                    {odmiana(wszystkie.length, ['osoba', 'osoby', 'osób'])}
+                    {ukryte > 0 && poziom === 'publiczne' && <> · dane {odmiana(ukryte, ['osoby', 'osób', 'osób'])} widzą tylko <Link href="/zaloguj?wroc=/osoby">zalogowani bliscy</Link></>}
+                </p>
+            )}
+        </div>
+    )
     return (
-        <Strona>
+        <Strona uklad="pelna">
             <TytulStrony><TytulDzialu dzial="osoby" domyslny="osoby" /></TytulStrony>
-            <div className="flex flex-col leading-relaxed" style={{ gap: '0.8rem', fontSize: 'calc(16px * var(--font-scale, 1))' }}>
-                <p><WstepTekst dzial="osoby" domyslny={"Ludzie z tych wsi: przodkowie, sąsiedzi, księża, wójtowie – każdy ze swoją stroną, drzewem przodków i potomków oraz dokumentami, które potwierdzają daty i więzi."} /></p>
-                {s.drzewo.osoby.size === 0 ? (
-                    <p className="text-[var(--tekst-opis)]">Ten dział jest w przygotowaniu – osoby pojawią się po wczytaniu drzewa genealogicznego. Dane osób urodzonych w ostatnich 100 latach (i zmarłych w ostatnich 25) będą widoczne tylko dla zalogowanych bliskich.</p>
-                ) : (
-                    <p className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>
-                        {odmiana(wszystkie.length, ['osoba', 'osoby', 'osób'])}
-                        {ukryte > 0 && poziom === 'publiczne' && <> · dane {odmiana(ukryte, ['osoby', 'osób', 'osób'])} widzą tylko <Link href="/zaloguj?wroc=/osoby">zalogowani bliscy</Link></>}
-                    </p>
-                )}
-            </div>
-            {wszystkie.length > 0 && <ListaOsob key={krag} osoby={lista} kregi={kregiListy} krag={krag} poczatek={sp.q ?? ''} />}
+            {wszystkie.length > 0 ? <ListaOsob key={krag} osoby={lista} kregi={kregiListy} krag={krag} poczatek={sp.q ?? ''} wstep={wstep} /> : wstep}
         </Strona>
     )
 }

@@ -243,10 +243,10 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
             setTimeout(() => URL.revokeObjectURL(a.href), 5000)
         }, 'image/png')
     }
+    // JW-17: wydruk na wspólnym arkuszu druku (tytuł strony, stopka z numerami kartek); przed drukiem cały plan w kadrze
     const drukuj = () => {
         ustawVb(pelny)
-        document.body.classList.add('drukuj-plan')
-        setTimeout(() => { window.print(); document.body.classList.remove('drukuj-plan') }, 100)
+        setTimeout(() => window.print(), 100)
     }
 
     const pokaz = (e: Element) => !wylaczone.has(e.typ)

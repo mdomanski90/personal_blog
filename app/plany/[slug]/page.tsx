@@ -8,6 +8,7 @@ import { Strona, TytulStrony } from '../../components/Uklad'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import WidokObiektu from '../../components/plan/WidokObiektu'
 import { osobyPlanu } from '@/lib/plany/rodzina'
+import { PrzyciskDrukuj } from '../../components/Druk'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +31,7 @@ export default async function PlanStrona({ params }: Parametry) {
     const ustawienia = await wczytajUstawienia()
     const osoby = await osobyPlanu(plan, poz)
     return (
-        <Strona szeroka akcje={<CopyLinkButton sciezka={`/plany/${plan.slug}`} />}>
+        <Strona szeroka akcje={<><CopyLinkButton sciezka={`/plany/${plan.slug}`} /><PrzyciskDrukuj /></>}>
             <TytulStrony
                 sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : []), ...(ob ? [{ tekst: ob.nazwa, href: `/obiekty/${ob.id}` }] : [])]}
             >

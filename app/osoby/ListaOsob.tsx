@@ -7,15 +7,13 @@ import * as React from 'react'
 import { Link } from 'next-view-transitions'
 import PoleSzukania from '../components/PoleSzukania'
 import { normalizuj, odmiana } from '@/lib/tekst'
-import { PastylkaOsoby } from '@/app/components/Wzorce'
-
-// (jak RAMKA w Uklad.tsx – tamten plik ciągnie komponenty serwerowe)
-const RAMKA = 'border border-[var(--linia-podzialu)]'
+import { PastylkaFiltra, PastylkaOsoby, RzadFiltrow } from '@/app/components/Wzorce'
 
 export interface OsobaNaLiscie { id: string; nazwa: string; plec: string; opis: string; biogram?: string; litera: string; szukaj: string }
 export interface KragNaLiscie { id: string; nazwa: string; opis: string; ile: number }
 
-export default function ListaOsob({ osoby, kregi, krag, poczatek }: { osoby: OsobaNaLiscie[]; kregi: KragNaLiscie[]; krag: string; poczatek: string }) {
+/** JW-2 (JW-11, makiety v2): tytuł → kręgi jako pastylki („wszyscy” pierwszy) i wyszukiwarka → wstęp (gniazdo) → licznik → lista pastylek osób. */
+export default function ListaOsob({ osoby, kregi, krag, poczatek, wstep }: { osoby: OsobaNaLiscie[]; kregi: KragNaLiscie[]; krag: string; poczatek: string; wstep?: React.ReactNode }) {
     const [q, ustawQ] = React.useState(poczatek)
     const slowa = normalizuj(q).split(' ').filter(Boolean)
     const szuka = slowa.length > 0
@@ -33,20 +31,19 @@ export default function ListaOsob({ osoby, kregi, krag, poczatek }: { osoby: Oso
     const adres = (k: string) => `/osoby?krag=${k}${q.trim() ? `&q=${encodeURIComponent(q.trim())}` : ''}`
     return (
         <>
-            <div className="flex flex-col" style={{ gap: 10 }}>
-                <div className="flex flex-wrap items-center" style={{ gap: 8 }} role="group" aria-label="krąg miejscowości">
+            <div className="katalog-filtry">
+                <RzadFiltrow etykieta="krąg miejscowości">
                     {kregi.map((k) => (
-                        <Link key={k.id} href={adres(k.id)} aria-current={krag === k.id ? 'true' : undefined} className={`osoby-krag ${RAMKA}`} title={k.opis}>
-                            <b>{k.nazwa}</b> <span className="text-[var(--tekst-opis)]">· {k.opis} · {k.ile}</span>
-                        </Link>
+                        <PastylkaFiltra key={k.id} href={adres(k.id)} aktywny={krag === k.id} liczba={k.ile} title={k.opis}>{k.nazwa}</PastylkaFiltra>
                     ))}
-                </div>
-                <div className="flex flex-wrap gap-2 items-center">
-                    <PoleSzukania value={q} onChange={ustawQ} onSubmit={ustawQ} placeholder="nazwisko, imię, wieś, rok…" style={{ flex: '1 1 16rem', maxWidth: 480 }} />
-                    {szuka && <span className="text-[var(--tekst-opis)]" style={{ fontSize: 13 }} aria-live="polite">{odmiana(lista.length, ['wynik', 'wyniki', 'wyników'])}</span>}
-                    {szuka && <button type="button" className={`osoby-krag ${RAMKA}`} onClick={() => ustawQ('')}>wyczyść</button>}
+                </RzadFiltrow>
+                <div className="katalog-szukanie">
+                    <PoleSzukania value={q} onChange={ustawQ} onSubmit={ustawQ} placeholder="nazwisko, imię, wieś, rok…" className="katalog-pole" />
+                    {szuka && <span className="tekst-opis katalog-licznik" aria-live="polite">{odmiana(lista.length, ['wynik', 'wyniki', 'wyników'])}</span>}
+                    {szuka && <button type="button" className="szukaj-filtr" onClick={() => ustawQ('')}>wyczyść</button>}
                 </div>
             </div>
+            {wstep}
             {osoby.length > 0 && lista.length === 0 && <p className="text-[var(--tekst-opis)]">Nikogo tu nie ma{szuka ? ' dla tego wyszukiwania' : ''} – spróbuj „wszyscy”.</p>}
             <div className="osoby-litery">
                 {[...grupy].map(([litera, os], i) => (

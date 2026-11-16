@@ -1,27 +1,25 @@
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
 import type { GrupaMiejsc } from '@/lib/archiwum'
-import SiatkaMiejsc from './SiatkaMiejsc'
+import SpisMiejscowosci, { type PozycjaSpisuMiejsc } from './SpisMiejscowosci'
+import { TytulSekcji } from './Wzorce'
 
-/** Spis miejscowości podzielony na krainy i gminy (pod mapą na stronie „miejsca”). */
-export default function SpisMiejsc({ grupy }: { grupy: GrupaMiejsc[] }) {
+/** Spis miejscowości podzielony na krainy i gminy (pod mapą na stronie „miejsca”) – wiersze z licznikami (JW-12), tytuły grup jako tytuły sekcji. */
+export default function SpisMiejsc({ grupy, liczniki }: { grupy: GrupaMiejsc[]; liczniki: Map<string, { wpisy?: number; obiekty?: number; materialy?: number }> }) {
     const tylkoInne = grupy.length === 1 && !grupy[0].obszar
+    const pozycje = (m: { id: string; nazwa: string }[]): PozycjaSpisuMiejsc[] => m.map((x) => ({ id: x.id, nazwa: x.nazwa, ...(liczniki.get(x.id) ?? {}) }))
     return (
-        <div className="flex flex-col" style={{ gap: 'calc(1.25rem * var(--font-scale, 1))' }}>
+        <div className="spis-miejsc-grupy">
             {grupy.map((g) => (
-                <section key={g.obszar?.id ?? 'inne'} className="flex flex-col" style={{ gap: 8 }}>
+                <section key={g.obszar?.id ?? 'inne'} className="sekcja">
                     {!tylkoInne && (
-                        <h2 className="font-bold" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
-                            {g.obszar ? <Link href={`/miejsca/${g.obszar.id}`} className="!no-underline hover:underline">{g.obszar.nazwa}</Link> : 'inne'}
-                        </h2>
+                        <TytulSekcji>{g.obszar ? <Link href={`/miejsca/${g.obszar.id}`} className="tytul-sekcji-odn">{g.obszar.nazwa}</Link> : 'inne'}</TytulSekcji>
                     )}
-                    {g.miejsca.length > 0 && <SiatkaMiejsc miejsca={g.miejsca} />}
+                    <SpisMiejscowosci pozycje={pozycje(g.miejsca)} />
                     {g.podgrupy.map((pg) => (
-                        <div key={pg.obszar.id} className="flex flex-col" style={{ gap: 6, paddingLeft: 'calc(1rem * var(--font-scale, 1))' }}>
-                            <h3 className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>
-                                <Link href={`/miejsca/${pg.obszar.id}`} className="!no-underline hover:underline">{pg.obszar.nazwa}</Link>
-                            </h3>
-                            <SiatkaMiejsc miejsca={pg.miejsca} />
+                        <div key={pg.obszar.id} className="spis-miejsc-podgrupa">
+                            <h3 className="spis-miejsc-podtytul"><Link href={`/miejsca/${pg.obszar.id}`} className="tytul-sekcji-odn">{pg.obszar.nazwa}</Link></h3>
+                            <SpisMiejscowosci pozycje={pozycje(pg.miejsca)} />
                         </div>
                     ))}
                 </section>

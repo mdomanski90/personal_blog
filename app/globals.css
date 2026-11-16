@@ -139,6 +139,9 @@
   --osoba-m-tlo: #eff4fb; --osoba-m-ramka: #cfdcef;
   --osoba-u-tlo: #f4f3f0; --osoba-u-ramka: #e2e0da;
 
+  /* JW-2 · obrządki (pastylka .obrzadek na karcie osoby) – ciemniejsze niż w słowniku OBRZADKI, kontrast ≥ 4,5 na jasnym tle */
+  --obrzadek-rzymskokatolicki: #7a5c22; --obrzadek-unicki: #1f6468; --obrzadek-prawoslawny: #5b4290; --obrzadek-ewangelicki: #4b5b6d; --obrzadek-mojzeszowy: #5c5446;
+
   /* JW-1 · druk (JW-17): czarny tekst na białym, szara stopka, cienkie linie tabel – niezależnie od motywu */
   --druk-tlo: #ffffff;
   --druk-tekst: #000000;
@@ -204,6 +207,8 @@
   --uwaga: #e0b25c; --uwaga-tlo: #33291a;
   --ok: #8ccf96; --ok-tlo: #1f2e22;
   --niedostepne-tlo: #232220;
+  /* JW-2 · obrządki nocą (jasne, kontrast ≥ 4,5 na ciemnym tle) */
+  --obrzadek-rzymskokatolicki: #d9b878; --obrzadek-unicki: #7fcfd3; --obrzadek-prawoslawny: #c2aef0; --obrzadek-ewangelicki: #b5c4d6; --obrzadek-mojzeszowy: #cfc3ad;
   /* JW-1 · płeć osób nocą */
   --osoba-k-tlo: #3a2730; --osoba-k-ramka: #5a3a48;
   --osoba-m-tlo: #233040; --osoba-m-ramka: #34485f;
@@ -598,12 +603,13 @@ body {
 .dark{--pl-rodzina:#f0915a;--pl-rodzina-tlo:rgba(240,145,90,.2)}
 @media (max-width:900px){.plan-uklad{flex-direction:column;height:auto!important}.plan-ramka{height:60vh}.plan-karta{flex:0 0 auto;height:auto;border-left:0;border-top:1px solid #d6d1c6}.plan-galeria-srodek{flex-direction:column}.plan-galeria-bok{flex:0 0 auto}}
 .plan-ramka svg{display:block;width:100%;height:100%;user-select:none}
+/* JW-17: plan cmentarza drukuje się na wspólnych regułach (blok „WSPÓLNY ARKUSZ DRUKU”): plan na szerokość kartki, karta i narzędzia ukryte */
 @media print{
   .plan-bez-druku{display:none!important}
   .plan-druk-tylko{display:block!important}
-  body.drukuj-plan *{visibility:hidden}
-  body.drukuj-plan .plan-do-druku,body.drukuj-plan .plan-do-druku *{visibility:visible}
-  body.drukuj-plan .plan-do-druku{position:absolute;left:0;top:0;width:100%}
+  .plan-uklad{display:block;height:auto!important}
+  .plan-ramka{height:auto;border:0}
+  .plan-ramka svg{width:100%;height:auto;max-height:190mm}
 }
 
 /* Osoby: lista, odnośniki w kolorach płci, obrządek, drzewo (klepsydra na komputerze, lista na telefonie) */
@@ -616,7 +622,9 @@ body {
 .odp .osoba-link:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px; }
 .osoba-ukryta { color: #6b665c; font-style: italic; }
 .obrzadek { display: inline-block; font-size: 0.82em; padding: 0 6px; border-radius: 5px; color: var(--kolor); box-shadow: inset 0 0 0 1px var(--kolor); white-space: nowrap; }
-.dark .obrzadek { filter: brightness(1.6); }
+.obrzadek-rzymskokatolicki { --kolor: var(--obrzadek-rzymskokatolicki); } .obrzadek-unicki { --kolor: var(--obrzadek-unicki); } .obrzadek-prawoslawny { --kolor: var(--obrzadek-prawoslawny); }
+.obrzadek-ewangelicki { --kolor: var(--obrzadek-ewangelicki); } .obrzadek-mojzeszowy { --kolor: var(--obrzadek-mojzeszowy); }
+.obrzadek--wywnioskowany { opacity: .75; }
 
 .drzewo { margin: 0.5rem 0; font-size: calc(13px * var(--font-scale, 1)); border: 1px solid var(--linia-podzialu); border-radius: 8px; overflow: hidden; background: #fdfcf9; }
 .drzewo.dr-w-tabeli { margin: 0; border: 0; border-radius: 0; background: transparent; }
@@ -667,8 +675,8 @@ body {
 .drzewo .dr-tekst ul { list-style: none; margin: 0; padding-left: 1rem; border-left: 1px solid var(--linia-podzialu); }
 .drzewo .dr-tekst li { margin: 2px 0; }
 .drzewo .dr-t-osoba { font-weight: 700; margin: 0 0 4px; }
-.drzewo .dr-t-naglowek { margin: 8px 0 2px; color: #6b665c; }
-.drzewo .dr-t-ukryta { color: #6b665c; font-style: italic; }
+.drzewo .dr-t-naglowek { margin: 8px 0 2px; color: var(--tekst-etykieta); }
+.drzewo .dr-t-ukryta { color: var(--tekst-etykieta); font-style: italic; }
 .drzewo .dr-t-K { background: var(--osoba-k-tlo); padding: 0 3px; border-radius: 3px; }
 .drzewo .dr-t-M { background: var(--osoba-m-tlo); padding: 0 3px; border-radius: 3px; }
 @media (max-width: 640px) {
@@ -796,7 +804,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .osoby-litera[open]>summary{margin-bottom:4px}
 .osoba-portret{margin:0;display:flex;flex-direction:column;gap:4px}
 .osoba-portret img{width:100%;border-radius:6px;border:1px solid var(--linia-podzialu);display:block}
-.osoba-portret figcaption{font-size:calc(12px * var(--font-scale,1));color:#6b665c;line-height:1.4}
+.osoba-portret figcaption{font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta);line-height:1.4}
 
 .drzewo .dr-narzedzia { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--linia-podzialu); }
 /* poza pełnym ekranem tylko „pełny ekran ⤢”; na karcie osoby pasek wcale (przycisk jest w nagłówku tabeli) */
@@ -933,11 +941,11 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dark .ot-seg a,.dark .ot-przycisk{background:transparent;border-color:#7d776c;color:inherit}
 .dark .ot-seg a[aria-current=true]{background:#ece8df;color:#1a1917}
 @media (max-width:640px){.osoba-karta.z-portretem{grid-template-columns:1fr}.osoba-karta .osoba-portret{max-width:200px}.osoba-tabela>.ot-w{grid-template-columns:1fr;row-gap:2px}.ot-seg,.ot-przycisk{display:none}}
-.osoba-bez-zdjecia-krotko{display:none;margin:0;font-size:calc(14px * var(--font-scale,1));color:#6b665c}
+.osoba-bez-zdjecia-krotko{display:none;margin:0;font-size:var(--rozmiar-opis);color:var(--tekst-etykieta)}
 @media (max-width:640px){.osoba-bez-zdjecia{display:none!important}.osoba-bez-zdjecia-krotko{display:block}}
-.osoba-bez-zdjecia{min-height:calc(200px * var(--font-scale,1));box-sizing:border-box;padding:16px 14px;border:1px dashed #c9c3b7;border-radius:6px;background:var(--tlo-sekcji);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
-.osoba-bez-zdjecia-napis{font-size:calc(13px * var(--font-scale,1));color:#6b665c}
-.osoba-bez-zdjecia-prosba{font-size:calc(13px * var(--font-scale,1));line-height:1.45;color:#4f4a41}
+.osoba-bez-zdjecia{min-height:calc(200px * var(--font-scale,1));box-sizing:border-box;padding:16px 14px;border:1px dashed var(--krawedz-kontrolki);border-radius:var(--promien-maly);background:var(--tlo-sekcji);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+.osoba-bez-zdjecia-napis{font-size:var(--rozmiar-etykieta);color:var(--tekst-etykieta)}
+.osoba-bez-zdjecia-prosba{font-size:var(--rozmiar-etykieta);line-height:1.45;color:var(--tekst-opis)}
 .osoba-bez-zdjecia form,.osoba-bez-zdjecia textarea,.osoba-bez-zdjecia input{width:100%;box-sizing:border-box;text-align:left}
 .dark .osoba-bez-zdjecia{background:#2a2825;border-color:#7d776c}
 .dark .osoba-bez-zdjecia-prosba{color:#c9c3b7}
@@ -1089,7 +1097,9 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 @media (max-width:640px){.osoba-karta.z-szerokim{grid-template-columns:1fr}.karta-polozenie{grid-template-columns:1fr}}
 
 /* skan i tekst obok siebie (karta materiału) */
-.skan-z-tekstem{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border:1px solid var(--linia-podzialu);border-radius:8px;overflow:hidden;background:#fdfcf9}
+/* JW-2: podział jak siatka strony – skan na szerokość kolumny tekstu, tekst od linii paska bocznego */
+.skan-z-tekstem{display:grid;grid-template-columns:minmax(0,var(--szer-tekstu)) minmax(0,1fr);border:1px solid var(--linia-podzialu);border-radius:var(--promien);overflow:hidden;background:var(--tlo-strony)}
+.szt-html{font-size:var(--rozmiar-maly)}
 .szt-skan{border-right:1px solid var(--linia-podzialu);min-width:0}
 .szt-tekst{display:flex;flex-direction:column;min-width:0}
 .szt-pasek,.dok-karta .dok-pasek-karta{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:nowrap;height:calc(46px * var(--font-scale,1));box-sizing:border-box;padding:0 10px;background:var(--tlo-sekcji);border-bottom:1px solid var(--linia-podzialu)}
@@ -1115,7 +1125,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .szt-odczyty p.aktywny{background:rgba(76,60,196,.09)}
 .szt-odczyty .dok-obj-nr{border:0;cursor:pointer}
 .szt-tresc .dok-obj-lista{margin:0}
-.dark .skan-z-tekstem,.dark .szt-skan{border-color:#7d776c;background:transparent}
+.dark .skan-z-tekstem,.dark .szt-skan{border-color:var(--linia-podzialu);background:transparent}
 .dark .szt-pasek,.dark .dok-karta .dok-pasek-karta{background:#2a2825;border-color:#7d776c}
 .dark .dok-menu{background:#232220;border-color:#7d776c}
 @media (max-width:860px){.skan-z-tekstem{grid-template-columns:1fr}.szt-skan{border-right:0;border-bottom:1px solid var(--linia-podzialu)}.szt-tresc{height:auto;max-height:60vh}}
@@ -1642,6 +1652,9 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .karta-odcinek>.karta-kolumna{grid-column:1}
 .karta-kolumna{min-width:0;display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
 .karta-bok{grid-column:2;align-self:stretch;min-width:0;display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
+.karta-bok>figure,.karta-bok>.osoba-portret{margin:0}
+/* okruszki nad siatką: odstęp jak między okruszkami a tytułem w TytulStrony */
+.strona-tresc>.okruszki+.karta-odcinek{margin-top:.4rem}
 .karta-spis{position:sticky;top:24px;max-height:calc(100vh - 48px);overflow-y:auto}
 .pelna-szerokosc{min-width:0}
 @media (max-width:900px){
@@ -1668,7 +1681,7 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .spis-tresci details>summary::-webkit-details-marker{display:none}
 .spis-tresci-tytul{margin:0 0 8px;font-size:var(--rozmiar-etykieta);color:var(--tekst-etykieta);text-transform:lowercase}
 .spis-tresci ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-left:1px solid var(--linia-podzialu)}
-.odp .spis-tresci li a{display:flex;align-items:center;min-height:calc(32px * var(--font-scale,1));padding:0 14px;margin-left:-1px;border-left:3px solid transparent;color:var(--tekst-opis);text-decoration:none;font-size:var(--rozmiar-opis);text-transform:lowercase}
+.odp .spis-tresci li a{display:flex;align-items:center;min-height:calc(32px * var(--font-scale,1));padding:0 14px;margin-left:-1px;border-left:3px solid transparent;color:var(--tekst-opis);text-decoration:none;font-size:var(--rozmiar-opis)}
 .odp .spis-tresci li a:hover{color:var(--akcent)}
 .odp .spis-tresci li a[aria-current]{border-left-color:var(--akcent);color:var(--akcent);font-weight:700}
 @media (min-width:901px){.spis-tresci summary{pointer-events:none}}
@@ -1685,6 +1698,58 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .filtry-podpis{margin-right:4px;font-size:var(--rozmiar-etykieta);color:var(--tekst-etykieta)}
 .szukaj-filtr-liczba{font-weight:400;color:var(--tekst-etykieta)}
 .szukaj-filtr[aria-current=true] .szukaj-filtr-liczba{color:inherit}
+
+/* WstawkaMaterialu (JW-13): ten sam widok co karta materiału + podpis i przycisk do archiwum */
+.material-wstawka-widok{margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+.material-wstawka-podpis{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;font-size:var(--rozmiar-opis);color:var(--tekst-etykieta)}
+
+/* JakCytowac: poza tabelą – sekcja z tytułem sekcji; w tabeli karty – sam wiersz */
+.jak-cytowac{display:flex;flex-direction:column;gap:8px}
+.jak-cytowac-tekst{margin:0;font-size:var(--rozmiar-opis);line-height:1.55}
+.jak-cytowac-akcje{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.jak-cytowac-pliki{font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta)}
+.odp .jak-cytowac-pliki button.odn{background:none;border:0;padding:0;font:inherit;cursor:pointer}
+.wpis-tresc{min-width:0}
+
+/* tytuł karty obiektu z tarczą rodzaju */
+.tytul-z-tarcza{display:inline-flex;align-items:center;gap:10px}
+.tytul-tarcza{display:inline-flex;flex:none}
+
+/* spis miejscowości (wsie gminy, katalog miejsc): nazwa-odnośnik, liczniki po prawej, linia podziału, kolumny */
+.spis-miejsc{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(22rem * var(--font-scale,1))),1fr));gap:0 40px}
+.spis-miejsc-wiersz{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 0;border-bottom:1px solid var(--linia-podzialu);font-size:var(--rozmiar-maly)}
+.tekst-opis-maly{font-size:var(--rozmiar-opis)}
+.tekst-etykieta-maly{font-size:var(--rozmiar-etykieta)}
+.spis-miejsc{list-style:none;margin:0;padding:0}
+.spis-miejsc-grupy{display:flex;flex-direction:column;gap:calc(1.25rem * var(--font-scale,1))}
+.spis-miejsc-podgrupa{display:flex;flex-direction:column;gap:6px;padding-left:calc(1rem * var(--font-scale,1))}
+.spis-miejsc-podtytul{margin:0;font-size:var(--rozmiar-opis);font-weight:700;color:var(--tekst-opis)}
+.odp .tytul-sekcji-odn{color:inherit;text-decoration:none}
+.odp .tytul-sekcji-odn:hover{text-decoration:underline}
+
+/* JW-04 · strona główna wg makiety „Główna” (16.11): wstęp 566 + okno 566, zapowiedzi równe, miniatura 300 px, treść w kolumnie tekstu */
+.glowna-wstep-tekst{display:flex;flex-direction:column;gap:10px;min-width:0}
+.glowna-wstep-akapit{margin:0;font-size:var(--rozmiar-tresc);line-height:1.625}
+.glowna-wstep-odnosniki{display:flex;flex-direction:column;gap:4px;font-size:var(--rozmiar-opis)}
+@media (min-width:860px){.glowna-wstep.z-oknem{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.25rem 28px}}
+.karta-losowa .kl-srodek{grid-template-columns:minmax(0,1fr) calc(200px * var(--font-scale,1))}
+.karta-losowa,.dark .karta-losowa{height:calc(320px * var(--font-scale,1))}
+.glowna-naglowek-wpisow{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}
+.zapowiedz.z-obrazem .zapowiedz-uklad{grid-template-columns:calc(300px * var(--font-scale,1)) minmax(0,var(--szer-tekstu));justify-content:start}
+.zapowiedz:not(.z-obrazem) .zapowiedz-uklad{grid-template-columns:minmax(0,var(--szer-tekstu))}
+.zapowiedz-tytul{font-size:var(--rozmiar-tytul)}
+.zapowiedz-tekst{font-size:var(--rozmiar-tresc)}
+.glowna-pomoz h2.tytul-sekcji{margin:0}
+
+/* katalogi (osoby, miejsca, archiwum): filtry i wyszukiwarka bezpośrednio pod tytułem, potem wstęp w kolumnie tekstu, licznik nad listą */
+.katalog-filtry{display:flex;flex-direction:column;gap:10px}
+.katalog-szukanie{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.katalog-szukanie .katalog-pole{flex:1 1 16rem;max-width:480px}
+.wstep-dzialu-tekst{display:flex;flex-direction:column;gap:.8rem;max-width:var(--szer-tekstu);font-size:var(--rozmiar-tekst);line-height:1.625}
+.wstep-dzialu-tekst p{margin:0}
+.osoby-litery{grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(34rem * var(--font-scale,1))),1fr));gap:16px 40px}
+.osoby-lista{gap:6px}
+.osoby-lista li{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 
 /* elementy tylko do druku – na ekranie ukryte */
 .druk-naglowek,.druk-koniec,.druk-tylko{display:none}
@@ -1710,7 +1775,13 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
   .karta-odcinek{display:flex;flex-direction:column;gap:4mm}
   /* bez menu, stopki strony, filtrów, przycisków, formularzy, prośby o zdjęcie, spisu treści i paska bocznego */
   .odp>.strona-pion>header,.odp>.strona-pion>footer,nav.okruszki,.pasek-akcji,.karta-zglos,.k-btn,.odp button,.szukaj-filtr,.filtry-rzad,.odp form,
-  .osoba-bez-zdjecia,.osoba-bez-zdjecia-krotko,.ot-seg,.ot-przycisk,.ot-drzewo,#drzewo,.spis-tresci,.karta-bok,.karta-bok-dalej{display:none!important}
+  .osoba-bez-zdjecia,.osoba-bez-zdjecia-krotko,.ot-seg,.ot-przycisk,.ot-drzewo,#drzewo,.spis-tresci,.karta-bok,.karta-bok-dalej,.szt-skan,.szt-tekst,.karta-mapa,.widok-przelacznik,.material-wstawka-podpis .k-btn{display:none!important}
+  /* materiał: skan na szerokość kartki (do 190 mm), pod nim transkrypcja i tłumaczenie */
+  .skan-z-tekstem{display:block;border:0;background:none;border-radius:0}
+  .szt-druk-skan{display:block;max-width:100%;max-height:190mm;margin:0 auto 4mm;break-inside:avoid}
+  .szt-druk-tekst{break-inside:auto;margin-top:4mm}
+  .szt-druk-tekst .zrodlo{border:0;margin:0;background:none}
+  .szt-druk-tekst .zrodlo-naglowek{display:none}
   /* odnośniki jako zwykły tekst */
   .odp a,.odp a.odn,.odp button.odn{color:var(--druk-tekst)!important;text-decoration:none!important}
   /* tytuł strony czarny (decyzja 16.11), kreska czarną ramką; tytuły sekcji tak samo */
@@ -1727,6 +1798,7 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
   /* osoby pogrubione, bez tła pastylek; obrządki z cienką ramką */
   .odp .osoba-link{min-height:0;padding:0;border:0;background:none;color:var(--druk-tekst);font-weight:700}
   .obrzadek{box-shadow:none;border:.5pt solid currentColor;filter:none}
+  #cz-drzewo,.jak-cytowac-akcje{display:none!important}
   h2,h3,.tytul-sekcji{break-after:avoid}
   img,figure,tr,li,.karta-pozycji{break-inside:avoid}
   img{max-width:100%;max-height:190mm}
@@ -1737,3 +1809,5 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
   .druk-koniec::before{content:var(--nr-kat-druku) "adres strony: " var(--adres-druku) " · wydrukowano " var(--data-wydruku)}
   .druk-tylko{display:block!important}
 }
+
+.tekst-opis{color:var(--tekst-opis);font-size:var(--rozmiar-maly)}

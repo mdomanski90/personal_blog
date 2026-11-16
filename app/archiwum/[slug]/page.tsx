@@ -10,8 +10,13 @@ import PrzegladarkaDokumentu from '../../components/PrzegladarkaDokumentu'
 import TekstyZrodla from '../../components/TekstyZrodla'
 import JakCytowac from '../../components/JakCytowac'
 import { ADRES_STRONY, AUTOR_STRONY } from '@/lib/strona'
-import { RAMKA, Strona, Tresc, maTekst } from '../../components/Uklad'
-import { Czesc, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke } from '../../components/Karta'
+import { RAMKA, PelnaSzerokosc, Strona, Tresc, maTekst } from '../../components/Uklad'
+import { Czesc, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, spisCzesci } from '../../components/Karta'
+import SpisTresci from '../../components/SpisTresci'
+import { PastylkaOsoby } from '../../components/Wzorce'
+import { PrzyciskDrukuj } from '../../components/Druk'
+import { odnosnikiInstytucji, odnosnikiOsob } from '@/lib/powiazania-karty'
+import { parafie } from '@/lib/archiwum'
 import SkanZTekstem from '../../components/SkanZTekstem'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania from '../../components/Powiazania'
@@ -43,8 +48,10 @@ export default async function MaterialStrona({ params }: Parametry) {
     const nazwyObiektow = new Map((await obiekty(poziom)).map((o) => [o.id, o.nazwa]))
     const siec = await powiazania('material', m.id, poziom)
     const dostepneZbiory = new Map((await zbiory(poziom)).map((z) => [z.id, z.nazwa])) // PACZKA5_2026
+    // JW-16: osoby i instytucje z nazwami (nie identyfikatorami), tylko widoczne dla czytelnika
     const stanOsobP5 = await (await import('@/lib/osoby/dane')).stanOsob()
-    const widoczneOsobyP5 = new Set([...stanOsobP5.drzewo.osoby.keys()].filter(id => widoczne(stanOsobP5.widocznosc(id), poziom)))
+    const osobyM = odnosnikiOsob(m.osobyIds, stanOsobP5.drzewo.osoby, (id) => widoczne(stanOsobP5.widocznosc(id), poziom))
+    const instytucjeM = odnosnikiInstytucji(m.instytucje, await parafie())
     const typ = typPliku(m.plik)
     const miejscaM = m.miejsca.filter((id) => n.miejsca.has(id))
     const tematyM = m.tematy.filter((id) => n.tematy.has(id))
@@ -65,42 +72,51 @@ export default async function MaterialStrona({ params }: Parametry) {
     const reszta = naHtml(cz.reszta, ktx)
     const wpisyZMat = siec.odnosniki.filter((z) => z.zrodlo.rodzaj === 'wpis')
     const inneOdnosniki = siec.odnosniki.filter((z) => z.zrodlo.rodzaj !== 'wpis')
+    const jestOpis = !!(m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal || m.miejscePrzechowywania || m.transkrypcja || m.zbiory.length || osobyM.length || instytucjeM.length)
+    const jestDotyczy = miejscaM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0
+    const spis = spisCzesci([jestOpis && 'opis archiwalny', jestDotyczy && 'dotyczy', 'jak cytować', (oryginal || m.zrodla.length > 0) && 'źródła'])
+    const naglowek = (
+        <NaglowekKarty
+            sciezka={[]}
+            tytul={m.nazwa}
+            linia={[RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj, rok && !m.nazwa.includes(rok) ? rok : null, ileStr, m.jezyk || null, m.widocznosc === 'bliscy' ? 'dla bliskich' : null]}
+            lead={maTekst(reszta) ? <Tresc html={reszta} pusta={null} /> : undefined}
+        />
+    )
 
     return (
-        <Strona szeroka={obok} akcje={<CopyLinkButton sciezka={`/archiwum/${m.id}`} />}>
-            <div style={obok ? { maxWidth: '52rem' } : undefined}>
-                <NaglowekKarty
-                    sciezka={[{ tekst: 'archiwum', href: '/archiwum' }]}
-                    tytul={m.nazwa}
-                    linia={[RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj, rok && !m.nazwa.includes(rok) ? rok : null, ileStr, m.jezyk || null, m.widocznosc === 'bliscy' ? 'dla bliskich' : null]}
-                    lead={maTekst(reszta) ? <Tresc html={reszta} pusta={null} /> : undefined}
-                />
-            </div>
-
+        <Strona uklad="karta" sciezka={[{ tekst: 'archiwum', href: '/archiwum' }]} akcje={<><CopyLinkButton sciezka={`/archiwum/${m.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} spis={<SpisTresci pozycje={spis} />}>
+            {/* JW-2: skan z tekstem na pełnej szerokości (skan = kolumna tekstu, tekst od linii paska bocznego); spis treści wraca po nim */}
             {obok ? (
-                <SkanZTekstem strony={m.strony} objasnienia={obj} tytul={m.nazwa} {...teksty} opracowal={m.opracowal || undefined} />
+                <PelnaSzerokosc>
+                    <SkanZTekstem strony={m.strony} objasnienia={obj} tytul={m.nazwa} {...teksty} opracowal={m.opracowal || undefined} />
+                    {podpisZrodla && <p className="podpis-zrodla"><span>źródło:</span> {podpisZrodla}</p>}
+                </PelnaSzerokosc>
             ) : skan ? (
-                <PrzegladarkaDokumentu strony={m.strony} objasnienia={obj} tytul={m.nazwa} />
+                <PelnaSzerokosc>
+                    <PrzegladarkaDokumentu strony={m.strony} objasnienia={obj} tytul={m.nazwa} />
+                    {podpisZrodla && <p className="podpis-zrodla"><span>źródło:</span> {podpisZrodla}</p>}
+                </PelnaSzerokosc>
             ) : m.plik && (
-                <figure className="flex flex-col" style={{ gap: 6, margin: 0 }}>
+                <figure className="material-plik">
                     {typ === 'dzwiek' && <audio controls preload="metadata" src={m.plik} className="w-full" />}
-                    {typ === 'film' && <video controls preload="metadata" src={m.plik} className="w-full" style={{ borderRadius: 8 }} />}
-                    {typ === 'pdf' && <iframe src={m.plik} title={m.nazwa} className={`${RAMKA} w-full`} style={{ height: '75vh', borderRadius: 8 }} />}
-                    {<a href={m.plik} className="odn lowercase w-fit" style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }} download>pobierz plik</a>}
+                    {typ === 'film' && <video controls preload="metadata" src={m.plik} className="w-full material-plik-film" />}
+                    {typ === 'pdf' && <iframe src={m.plik} title={m.nazwa} className={`${RAMKA} w-full material-plik-pdf`} />}
+                    {<a href={m.plik} className="odn lowercase w-fit material-plik-pobierz" download>pobierz plik</a>}
+                    {/* P7C-1 (JV-18): źródło skanu/mapy zawsze widoczne pod obrazem, bez klikania */}
+                    {podpisZrodla && <figcaption className="podpis-zrodla"><span>źródło:</span> {podpisZrodla}</figcaption>}
                 </figure>
             )}
-            {/* P7C-1 (JV-18): źródło skanu/mapy zawsze widoczne pod obrazem, bez klikania */}
-            {(skan || m.plik) && podpisZrodla && <p className="podpis-zrodla"><span>źródło:</span> {podpisZrodla}</p>}
             {!obok && maTeksty && <TekstyZrodla {...teksty} />}
 
             <Tabela etykieta={`${m.nazwa} – opis`}>
-                {(m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal) && <Czesc tytul="opis archiwalny" />}
+                {jestOpis && <Czesc tytul="opis archiwalny" />}
                 <W e="sygnatura">{m.sygnatura}</W>
                 <W e="miejsce przechowywania">{m.miejscePrzechowywania}</W>
                 <W e="transkrypcja">{m.transkrypcja && <span className="whitespace-pre-wrap">{m.transkrypcja}</span>}</W>
                 <W e="zbiory">{m.zbiory.filter(id => dostepneZbiory.has(id)).map(id => <span key={id} className="block"><Link className="odn" href={`/archiwum/zbiory/${id}`}>{dostepneZbiory.get(id)}</Link></span>)}</W>
-                <W e="osoby">{m.osobyIds.filter(id => widoczneOsobyP5.has(id)).map(id => <span key={id} className="block"><Link className="odn" href={`/osoby/${id}`}>{id}</Link></span>)}</W>
-                <W e="instytucje">{m.instytucje.map(id => <span key={id} className="block"><Link className="odn" href={`/parafie/${id}`}>{id}</Link></span>)}</W>
+                <W e={osobyM.length > 1 ? 'osoby' : 'osoba'}>{osobyM.length > 0 && <span className="ot-osoby">{osobyM.map((o) => <PastylkaOsoby key={o.id} href={o.href} plec={o.plec}>{o.nazwa}</PastylkaOsoby>)}</span>}</W>
+                <W e={instytucjeM.length > 1 ? 'instytucje' : 'instytucja'}>{instytucjeM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[instytucjeM.map((i) => ({ tekst: i.nazwa, href: i.href }))]} />}</W>
                 <W e="pochodzenie">{m.pochodzenie && <span className="whitespace-pre-line">{m.pochodzenie}</span>}</W>
                 <W e="autor / wytwórca">{m.tworca}</W>
                 <W e="język">{m.jezyk}</W>
@@ -108,7 +124,7 @@ export default async function MaterialStrona({ params }: Parametry) {
                 <W e="przekazał(a)">{m.przekazal}</W>
                 <W e="opracował(a)">{m.opracowal}</W>
 
-                {(miejscaM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0) && <Czesc tytul="dotyczy" />}
+                {jestDotyczy && <Czesc tytul="dotyczy" />}
                 <W e={miejscaM.length > 1 ? 'miejsca' : 'miejsce'}>{miejscaM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaM.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
                 <W e={tematyM.length > 1 ? 'tematy' : 'temat'}>{tematyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyM.map((id) => ({ tekst: n.tematy.get(id), href: `/tematy/${id}` }))]} />}</W>
                 <W e="przedstawia">{obiektyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[obiektyM.map((id) => ({ tekst: nazwyObiektow.get(id), href: `/obiekty/${id}` }))]} />}</W>

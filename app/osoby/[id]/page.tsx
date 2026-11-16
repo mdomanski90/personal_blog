@@ -8,14 +8,17 @@ import { bezNawiasow } from '@/lib/odnosniki'
 import { formatujEdtf } from '@/lib/edtf'
 import { obrzadekZdarzenia, stanOsob } from '@/lib/osoby/dane'
 import { drzewoHtml } from '@/lib/osoby/drzewo'
-import { adresAncestry, lataZycia, nazwaOsoby, OBRZADKI, RODZAJE_ZDARZEN, sortujZdarzenia, type Cytat, type Obrzadek, type Zdarzenie } from '@/lib/osoby/model'
+import { adresAncestry, lataZycia, nazwaOsoby, OBRZADKI, RODZAJE_ZDARZEN, rokUrodzenia, rokZgonu, sortujZdarzenia, type Cytat, type Obrzadek, type Zdarzenie } from '@/lib/osoby/model'
 import { odmiana } from '@/lib/tekst'
 import { pochowkiOsoby } from '@/lib/plany/serwer'
 import { numerTekst } from '@/lib/plany/numeracja'
 import { logowanieWlaczone } from '@/lib/sesja'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Zgloszenie from '../../components/Zgloszenie'
-import { Strona, Tresc, TytulStrony } from '../../components/Uklad'
+import { Sekcja, Strona, Tresc, TytulStrony } from '../../components/Uklad'
+import { Czesc, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, idCzesci, spisCzesci } from '../../components/Karta'
+import SpisTresci from '../../components/SpisTresci'
+import { PrzyciskDrukuj } from '../../components/Druk'
 import Powiazania from '../../components/Powiazania'
 import { PastylkaOsoby } from '@/app/components/Wzorce'
 
@@ -32,31 +35,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 function Obrz({ o, wywnioskowany }: { o: Obrzadek; wywnioskowany: boolean }) {
     return (
-        <span className="obrzadek" style={{ ['--kolor' as string]: OBRZADKI[o].kolor, opacity: wywnioskowany ? 0.75 : 1 }} title={wywnioskowany ? 'wywnioskowany z wyznania parafii' : undefined}>
+        <span className={`obrzadek obrzadek-${o}${wywnioskowany ? ' obrzadek--wywnioskowany' : ''}`} title={wywnioskowany ? 'wywnioskowany z wyznania parafii' : undefined}>
             {OBRZADKI[o].nazwa}{wywnioskowany && ' ?'}
         </span>
     )
 }
 
-// Karta osoby jako jedna „tabela” (wizualnie): nagłówki części (h2) z tłem, wiersze to pary etykieta–wartość (dl);
-// dawniej: wiersze-nagłówki z tłem (życie, rodzina, drzewo, źródła, w archiwum i wpisach),
-// w każdym wierszu etykieta w kolumnie 150 px i treść – drzewo też jest wierszem tej tabeli.
-function Naglowek({ tytul, id, children }: { tytul: string; id?: string; children?: React.ReactNode }) {
-    return (
-        <div className="ot-nagl" id={id}>
-            <h2>{tytul}</h2>
-            {children && <span className="ot-nagl-prawa">{children}</span>}
-        </div>
-    )
-}
-function W({ e, children }: { e: string; children: React.ReactNode }) {
-    return (
-        <dl className="ot-w">
-            <dt className="ot-e">{e}</dt>
-            <dd className="ot-t">{children}</dd>
-        </dl>
-    )
-}
+// JW-2: karta osoby z komponentów tabeli karty (Tabela / Czesc / W z Karta.tsx) – jak pozostałe karty.
+const Naglowek = Czesc
 
 const RODZAJ_POWIAZANIA: Record<string, string> = { wpis: 'wpis', miejsce: 'miejsce', temat: 'temat', obiekt: 'obiekt', material: 'materiał', osoba: 'biogram' }
 
@@ -135,50 +121,50 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
         ileDzieci ? odmiana(ileDzieci, ['dziecko', 'dzieci', 'dzieci']) : '',
     ].filter(Boolean).join(' · ')
     const podpisPortretu = o.portret && [o.portret.podpis, o.portret.zrodlo && `źródło: ${o.portret.zrodlo}`].filter(Boolean).join(' · ')
+    const materialyOsoby = (await materialy(poziom)).filter((m) => m.osobyIds.includes(id))
+    // prośba o zdjęcie tylko dla osób żyjących po 1900 r. (decyzja 16.11): ur. albo zm. po 1900 albo bez dat
+    const po1900 = (rokZgonu(o) ?? rokUrodzenia(o) ?? 1901) > 1900
+    const podstawowe = [
+        lataZycia(o),
+        o.przydomek && `${o.plec === 'K' ? 'zwana' : o.plec === 'M' ? 'zwany' : 'zwany(-a)'} „${o.przydomek}”`,
+        o.inneNazwiska?.length && `${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}`,
+    ].filter(Boolean).join(' · ')
+    const spis = spisCzesci([(bio?.tresc || bio?.lead) && 'biogram', 'życie', 'rodzina', html && 'drzewo', o.notatki && poziom !== 'publiczne' && 'notatki', materialyOsoby.length > 0 && 'materiały archiwalne', wierszeZrodel.length > 0 && 'źródła', siec.odnosniki.length > 0 && 'w archiwum i wpisach'])
+    const prosbaOZdjecie = !o.portret && po1900
+    const portret = o.portret ? (
+        <figure className="osoba-portret">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/pliki/osoby/${id}/${o.portret.plik}?w=480`} alt={`${tytul}${o.portret.podpis ? ` – ${o.portret.podpis}` : ''}`} />
+            {podpisPortretu && <figcaption>{podpisPortretu}</figcaption>}
+        </figure>
+    ) : prosbaOZdjecie ? (
+        // bez zdjęcia: puste pole z prośbą – może ktoś z rodziny ma fotografię
+        <div className="osoba-bez-zdjecia">
+            <span className="osoba-bez-zdjecia-napis">brak zdjęcia</span>
+            <span className="osoba-bez-zdjecia-prosba">Masz zdjęcie tej osoby i chcesz je udostępnić?</span>
+            <Zgloszenie rodzaj="material" adres={`/osoby/${id}`} tytul={`zdjęcie: ${tytul}`} etykieta="skontaktuj się" podpowiedz="Jakie to zdjęcie (kto na nim jest, z którego mniej więcej roku, skąd pochodzi)? Odezwę się i umówimy, jak je przekazać – oryginał zostaje u Ciebie." />
+        </div>
+    ) : undefined
+    const naglowek = (
+        <NaglowekKarty sciezka={[]} tytul={tytul} linia={podstawowe ? [podstawowe] : undefined} lead={bio?.lead ? bezNawiasow(bio.lead, kontekst.rozwiaz) : undefined}>
+            {o.inneZapisy?.length ? <p className="m-0 tekst-opis-maly text-[var(--tekst-opis)]">w źródłach także: {o.inneZapisy.join(' · ')}</p> : null}
+            {prosbaOZdjecie && (
+                // na wąskim ekranie zamiast pola „brak zdjęcia” – krótka prośba (pole wypychałoby dane w dół)
+                <p className="osoba-bez-zdjecia-krotko">Masz zdjęcie tej osoby? <Zgloszenie rodzaj="material" wariant="link" etykieta="skontaktuj się" adres={`/osoby/${id}`} tytul={`zdjęcie: ${tytul}`} podpowiedz="Jakie to zdjęcie (kto na nim jest, z którego mniej więcej roku, skąd pochodzi)? Odezwę się i umówimy, jak je przekazać – oryginał zostaje u Ciebie." /></p>
+            )}
+        </NaglowekKarty>
+    )
 
+    // JW-2 (makiety v2): podstawowe → biogram → życie, rodzina → drzewo w tabeli → materiały archiwalne → źródła; okruszki wspólne
     return (
-        <Strona akcje={<CopyLinkButton sciezka={`/osoby/${id}`} />}>
-            <p className="text-[var(--tekst-opis)] lowercase" style={{ fontSize: 'calc(13px * var(--font-scale, 1))', margin: 0 }}>
-                <Link href="/osoby" className="!no-underline hover:underline">osoby</Link> /
-            </p>
-            {/* karta osoby: zdjęcie | imię i nazwisko, lata, z domu, opis */}
-            <div className="osoba-karta z-portretem">
-                {o.portret ? (
-                    <figure className="osoba-portret">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`/pliki/osoby/${id}/${o.portret.plik}?w=480`} alt={`${tytul}${o.portret.podpis ? ` – ${o.portret.podpis}` : ''}`} />
-                        {podpisPortretu && <figcaption>{podpisPortretu}</figcaption>}
-                    </figure>
-                ) : (
-                    // bez zdjęcia: puste pole z prośbą – może ktoś z rodziny ma fotografię
-                    <div className="osoba-bez-zdjecia">
-                        <span className="osoba-bez-zdjecia-napis">brak zdjęcia</span>
-                        <span className="osoba-bez-zdjecia-prosba">Masz zdjęcie tej osoby i chcesz je udostępnić?</span>
-                        <Zgloszenie rodzaj="material" adres={`/osoby/${id}`} tytul={`zdjęcie: ${tytul}`} etykieta="skontaktuj się" podpowiedz="Jakie to zdjęcie (kto na nim jest, z którego mniej więcej roku, skąd pochodzi)? Odezwę się i umówimy, jak je przekazać – oryginał zostaje u Ciebie." />
-                    </div>
-                )}
-                <div className="osoba-karta-opis">
-                    <h1 className="tytul-strony">{tytul}</h1>
-                    {(lataZycia(o) || o.inneNazwiska?.length || o.przydomek) ? (
-                        <p className="text-[var(--tekst-opis)]" style={{ margin: 0 }}>
-                            {[
-                                lataZycia(o),
-                                o.przydomek && `${o.plec === 'K' ? 'zwana' : o.plec === 'M' ? 'zwany' : 'zwany(-a)'} „${o.przydomek}”`,
-                                o.inneNazwiska?.length && `${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}`,
-                            ].filter(Boolean).join(' · ')}
-                        </p>
-                    ) : null}
-                    {o.inneZapisy?.length ? <p className="text-[var(--tekst-opis)]" style={{ margin: 0, fontSize: 'calc(14px * var(--font-scale, 1))' }}>w źródłach także: {o.inneZapisy.join(' · ')}</p> : null}
-                    {bio?.lead && <p className="osoba-lead">{bezNawiasow(bio.lead, kontekst.rozwiaz)}</p>}
-                    {!o.portret && (
-                        // na wąskim ekranie zamiast pola „brak zdjęcia” – krótka prośba (pole wypychałoby dane w dół)
-                        <p className="osoba-bez-zdjecia-krotko">Masz zdjęcie tej osoby? <Zgloszenie rodzaj="material" wariant="link" etykieta="skontaktuj się" adres={`/osoby/${id}`} tytul={`zdjęcie: ${tytul}`} podpowiedz="Jakie to zdjęcie (kto na nim jest, z którego mniej więcej roku, skąd pochodzi)? Odezwę się i umówimy, jak je przekazać – oryginał zostaje u Ciebie." /></p>
-                    )}
-                    {bio?.tresc && <Tresc html={naHtml(bio.tresc, kontekst)} pusta={null} />}
-                </div>
-            </div>
+        <Strona uklad="karta" sciezka={[{ tekst: 'osoby', href: '/osoby' }]} akcje={<><CopyLinkButton sciezka={`/osoby/${id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={portret} spis={<SpisTresci pozycje={spis} />}>
+            {bio?.tresc && (
+                <Sekcja tytul="biogram" id={idCzesci('biogram')}>
+                    <Tresc html={naHtml(bio.tresc, kontekst)} pusta={null} />
+                </Sekcja>
+            )}
 
-            <div className="osoba-tabela">
+            <Tabela etykieta={`${tytul} – dane`}>
                 <Naglowek tytul="życie">
                     {przebieg.length > 1 && <>obrządek {przebieg.map((p, i) => <span key={i}>{i > 0 && ' → '}<Obrz o={p.o} wywnioskowany={p.w} /></span>)}</>}
                 </Naglowek>
@@ -186,7 +172,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                     const ob = obrzadki.get(z.id)
                     return (
                         <W key={z.id} e={etykietaZdarzenia(z)}>
-                            <span className="flex flex-col" style={{ gap: 2 }}>
+                            <span className="flex flex-col gap-0.5">
                                 <span>
                                     {z.data ? formatujEdtf(z.data) : z.dataTekst}
                                     {z.miejsce && <>{(z.data || z.dataTekst) && ', '}<Miejsce z={z} /></>}
@@ -194,7 +180,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                                     {ob && <> <Obrz o={ob.obrzadek} wywnioskowany={ob.wywnioskowany} /></>}
                                 </span>
                                 {z.chrzestni?.length ? <span className="ot-drobne">chrzestni: {z.chrzestni.map((c, i) => <span key={i}>{i > 0 && ', '}{c.osoba && s.drzewo.osoby.has(c.osoba) ? <Osobka x={c.osoba} /> : c.tekst}</span>)}</span> : null}
-                                {z.opis && <span className="ot-drobne" style={{ whiteSpace: 'pre-line' }}>{z.opis}</span>}
+                                {z.opis && <span className="ot-drobne whitespace-pre-line">{z.opis}</span>}
                             </span>
                         </W>
                     )
@@ -202,7 +188,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                 {pochowki.map((g) => (
                     <W key={`${g.slug}/${g.elementId}`} e="grób">
                         <span className="ot-grob">
-                            <span className="flex flex-col" style={{ gap: 4 }}>
+                            <span className="flex flex-col gap-1">
                                 <Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`}>{g.tytul}</Link>
                                 <span className="ot-drobne">{g.numer ? `${numerTekst(g.numer)} · ` : ''}<Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`}>pokaż na planie →</Link></span>
                             </span>
@@ -237,10 +223,10 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
 
                 {html && (
                     <>
-                        <Naglowek tytul="drzewo" id="drzewo">
+                        <Naglowek tytul="drzewo">
                             <span className="ot-seg" role="group" aria-label="pokolenia w górę">
                                 <span className="ot-seg-podpis">pokolenia w górę</span>
-                                {[1, 2, 3].map((n) => <Link key={n} href={`/osoby/${id}?wstecz=${n}#drzewo`} aria-current={wstecz === n ? 'true' : undefined} scroll={false}>{n}</Link>)}
+                                {[1, 2, 3].map((n) => <Link key={n} href={`/osoby/${id}?wstecz=${n}#${idCzesci('drzewo')}`} aria-current={wstecz === n ? 'true' : undefined} scroll={false}>{n}</Link>)}
                             </span>
                             <button type="button" className="ot-przycisk" data-drzewo-pelny="drzewo-osoby">pełny ekran ⤢</button>
                         </Naglowek>
@@ -251,7 +237,14 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                 {o.notatki && poziom !== 'publiczne' && (
                     <>
                         <Naglowek tytul="notatki">tylko dla zalogowanych</Naglowek>
-                        <W e="notatki"><span style={{ whiteSpace: 'pre-line' }}>{o.notatki}</span></W>
+                        <W e="notatki"><span className="whitespace-pre-line">{o.notatki}</span></W>
+                    </>
+                )}
+
+                {materialyOsoby.length > 0 && (
+                    <>
+                        <Naglowek tytul="materiały archiwalne">{materialyOsoby.length}</Naglowek>
+                        <WCaly><KrotkieMaterialy materialy={materialyOsoby} /></WCaly>
                     </>
                 )}
 
@@ -260,7 +253,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                         <Naglowek tytul="źródła">{odmiana(new Set(wierszeZrodel.flatMap((w) => w.z.map((x) => x.tytul))).size, ['źródło', 'źródła', 'źródeł'])}</Naglowek>
                         {wierszeZrodel.map((w, i) => (
                             <W key={i} e={w.e}>
-                                <span className="flex flex-col" style={{ gap: 2 }}>
+                                <span className="flex flex-col gap-0.5">
                                     {w.z.map((z) => (
                                         <span key={z.tytul}>
                                             {z.tytul}
@@ -287,12 +280,8 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                         ))}
                     </>
                 )}
-            </div>
+            </Tabela>
 
-            {((await materialy(poziom)).filter(m => m.osobyIds.includes(id))).length > 0 && <section className="flex flex-col" style={{ gap: 6 }}>
-                <h2 className="font-bold lowercase">materiały archiwalne</h2>
-                {(await materialy(poziom)).filter(m => m.osobyIds.includes(id)).map(m => <p key={m.id}><Link className="odn" href={`/archiwum/${m.id}`}>{m.nazwa} →</Link></p>)}
-            </section>}
             <Powiazania dane={{ odnosniki: [], wzmianki: siec.wzmianki }} />
 
             <Zgloszenie rodzaj="poprawka" adres={`/osoby/${id}`} tytul={tytul} />

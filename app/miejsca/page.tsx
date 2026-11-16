@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { TytulDzialu, WstepDzialu, WstepTekst } from '@/app/components/WstepDzialu'
-import { miejsca, miejscaWedlugObszarow, obiekty, OBSZARY, poziomCzytelnika } from '@/lib/archiwum'
+import { licznikiMiejsc, materialy, miejsca, miejscaWedlugObszarow, obiekty, OBSZARY, poziomCzytelnika } from '@/lib/archiwum'
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import { Strona, TytulStrony } from '../components/Uklad'
@@ -19,21 +19,27 @@ export default async function Miejsca() {
     const planyGeo = await planyNaMape()
     const miejscowosci = lista.filter((m) => !OBSZARY.includes(m.rodzaj))
     const bez = miejscowosci.filter((m) => !m.wspolrzedne).length
+    // liczniki do spisu (JW-12): wpisy, obiekty w terenie, materiały – tylko widoczne dla czytelnika
+    const l = await licznikiMiejsc(poziom)
+    const liczniki = new Map<string, { wpisy?: number; obiekty?: number; materialy?: number }>()
+    for (const [id, x] of l) liczniki.set(id, { wpisy: x.opowiesci })
+    for (const o of ob) if (o.miejsce) liczniki.set(o.miejsce, { ...liczniki.get(o.miejsce), obiekty: (liczniki.get(o.miejsce)?.obiekty ?? 0) + 1 })
+    for (const m of await materialy(poziom)) for (const id of m.miejsca) liczniki.set(id, { ...liczniki.get(id), materialy: (liczniki.get(id)?.materialy ?? 0) + 1 })
 
     return (
-        <Strona>
+        <Strona uklad="pelna">
             <TytulStrony><TytulDzialu dzial="miejsca" domyslny="miejsca" /></TytulStrony>
-            <WstepDzialu dzial="miejsca" className="ot-drobne" />
-            <div className="flex flex-col" style={{ gap: 8 }}>
+            <WstepDzialu dzial="miejsca" className="ot-drobne wstep-dzialu-tekst" />
+            <div className="flex flex-col gap-2">
                 <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} granice zapamietaj="mapa-miejsca" />
                 {bez > 0 && (
-                    <p className="text-[var(--tekst-etykieta)] lowercase" style={{ fontSize: 13 }}>
+                    <p className="text-[var(--tekst-etykieta)] lowercase tekst-etykieta-maly">
                         {bez === miejscowosci.length ? 'żadna miejscowość nie ma jeszcze współrzędnych.' : `${bez} z ${miejscowosci.length} miejscowości nie ma jeszcze współrzędnych.`}
                     </p>
                 )}
                 <LegendaMapy rodzajeObiektow={[...new Set(ob.filter((o) => o.wspolrzedne).map((o) => o.rodzaj))]} />
             </div>
-            <SpisMiejsc grupy={await miejscaWedlugObszarow(poziom)} />
+            <SpisMiejsc grupy={await miejscaWedlugObszarow(poziom)} liczniki={liczniki} />
         </Strona>
     )
 }

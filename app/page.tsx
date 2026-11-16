@@ -4,6 +4,7 @@ import { materialy, nazwy, opowiesci, poziomCzytelnika, kontekstTresci, pozycjeL
 import LosowaKarta from './components/LosowaKarta'
 import { zajawka } from '@/lib/markdoc'
 import { Kreski, Strona } from './components/Uklad'
+import { TytulSekcji } from './components/Wzorce'
 import MetkiWpisu from './components/MetkiWpisu'
 import Zgloszenie from './components/Zgloszenie'
 import { pozycjaKadru } from '@/lib/kadr'
@@ -12,6 +13,8 @@ export const dynamic = 'force-dynamic'
 
 /** Ile wpisów w pełnej formie na stronie głównej; reszta pod „wszystkie wpisy”. */
 const WPISOW_NA_GLOWNEJ = 5
+/** JW-04 (decyzja 16.11): równe zapowiedzi ok. 450–500 znaków (7–8 wierszy po 66 znaków), gdy pole zapowiedzi puste. */
+const DLUGOSC_ZAPOWIEDZI = 500
 /** Ile pozycji w oknie „z archiwum”: materiał tego tygodnia + wcześniejsze. */
 const W_OKNIE = 6
 
@@ -60,15 +63,15 @@ export default async function StronaGlowna() {
     const wszystkie = `wszystkie wpisy (${wpisy.length}) →`
 
     return (
-        <Strona>
-            {/* wstęp i okno „z archiwum” obok siebie; bez pozycji wstęp zajmuje całą szerokość */}
+        <Strona uklad="pelna">
+            {/* JW-04 (makieta „Główna” 16.11): wstęp i okno „z archiwum” po połowie szerokości; bez pozycji wstęp zajmuje całą szerokość */}
             <section aria-label="o archiwum" className={`glowna-wstep${doOkna.length ? ' z-oknem' : ''}`}>
-                <div className="flex flex-col" style={{ gap: 10 }}>
-                    <span className="glowna-etykieta">o archiwum</span>
+                <div className="glowna-wstep-tekst">
+                    <TytulSekcji>o archiwum</TytulSekcji>
                     {wstep.map((a, i) => (
-                        <p key={i} className="leading-relaxed" style={{ fontSize: 'var(--blog-font-size, 18px)', margin: 0 }}>{a}</p>
+                        <p key={i} className="glowna-wstep-akapit">{a}</p>
                     ))}
-                    <span className="flex flex-col" style={{ gap: 4, fontSize: 'calc(14px * var(--font-scale, 1))' }}>
+                    <span className="glowna-wstep-odnosniki">
                         <Link href="/o-projekcie" className="odn w-fit">o projekcie →</Link>
                         <a href="#pomoz" className="odn w-fit">jak przekazać zdjęcie lub dokument →</a>
                     </span>
@@ -78,28 +81,27 @@ export default async function StronaGlowna() {
 
             <Kreski />
 
-            <div className="flex flex-wrap items-baseline justify-between" style={{ gap: '4px 16px' }}>
-                <h2 className="font-bold lowercase" style={{ fontSize: 'calc(20px * var(--font-scale, 1))' }}>ostatnie wpisy</h2>
-                {wpisy.length > pokazane.length && <Link href="/wpisy" className="odn" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>{wszystkie}</Link>}
+            <div className="glowna-naglowek-wpisow">
+                <TytulSekcji>ostatnie wpisy</TytulSekcji>
+                {wpisy.length > pokazane.length && <Link href="/wpisy" className="odn tekst-opis-maly">{wszystkie}</Link>}
             </div>
 
             {wpisy.length === 0 && <p className="text-[var(--tekst-etykieta)] italic lowercase">brak wpisów.</p>}
 
-            {/* P7E-1 (SG-02, SG-11, SG-15): zapowiedzi zamiast pełnych wpisów; najnowszy wyróżniony dłuższą zapowiedzią */}
-            {pokazane.map((w, i) => {
-                const wyr = i === 0
-                const tekst = w.zapowiedz || zajawka(w.tresc, wyr ? 700 : 320, kontekst.rozwiaz)
+            {/* P7E-1 (SG-02, SG-11, SG-15): zapowiedzi zamiast pełnych wpisów; JW-04: wszystkie równe (bez wyróżnionego najnowszego), miniatura 300 px */}
+            {pokazane.map((w) => {
+                const tekst = w.zapowiedz || zajawka(w.tresc, DLUGOSC_ZAPOWIEDZI, kontekst.rozwiaz)
                 const obraz = w.miniatura ? miniatury.get(w.miniatura) : undefined
                 return (
                     // id = identyfikator wpisu, więc stare odnośniki „/#identyfikator” nadal przewijają do wpisu
-                    <article key={w.id} id={w.id} className={`zapowiedz scroll-mt-6${wyr ? ' zapowiedz--wyrozniona' : ''}${obraz ? ' z-obrazem' : ''}`}>
+                    <article key={w.id} id={w.id} className={`zapowiedz scroll-mt-6${obraz ? ' z-obrazem' : ''}`}>
                         <MetkiWpisu wpis={w} nazwy={n} />
                         {/* miniatura zawsze po lewej, na wysokość od góry tytułu do dołu zapowiedzi (wykadrowany fragment) */}
                         <div className="zapowiedz-uklad">
                             {obraz && (
                                 <Link href={`/wpisy/${w.id}`} className="zapowiedz-obraz" tabIndex={-1} aria-hidden="true">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={obraz} alt="" loading={wyr ? 'eager' : 'lazy'} style={{ objectPosition: kadry.get(w.miniatura!) }} />
+                                    <img src={obraz} alt="" loading="lazy" style={/* styl-dynamiczny: kadr miniatury z danych materiału */ { objectPosition: kadry.get(w.miniatura!) }} />
                                 </Link>
                             )}
                             <div className="zapowiedz-tresc">
@@ -121,7 +123,7 @@ export default async function StronaGlowna() {
             {/* zaproszenie do współtworzenia – zgłoszenia trafiają do redakcji, nic nie publikuje się samo */}
             <section id="pomoz" aria-labelledby="pomoz-tytul" className="glowna-pomoz scroll-mt-6">
                 <div className="glowna-pomoz-wstep">
-                    <h2 id="pomoz-tytul" className="font-bold lowercase">pomóż uzupełnić archiwum</h2>
+                    <TytulSekcji id="pomoz-tytul">pomóż uzupełnić archiwum</TytulSekcji>
                     <p>Każde zdjęcie, dokument i wspomnienie z tych wsi coś dopowiada.</p>
                 </div>
                 <div className="glowna-pomoz-siatka">

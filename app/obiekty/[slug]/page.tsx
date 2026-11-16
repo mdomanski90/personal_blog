@@ -9,8 +9,10 @@ import { naHtml, zajawka } from '@/lib/markdoc'
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import { tarczaObiektu } from '@/lib/tarcze'
-import { Strona, Tresc, maTekst } from '../../components/Uklad'
-import { Czesc, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke } from '../../components/Karta'
+import { PelnaSzerokosc, Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
+import { Czesc, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import SpisTresci from '../../components/SpisTresci'
+import { PrzyciskDrukuj } from '../../components/Druk'
 import MapaKarty from '../../components/MapaKarty'
 import Powiazania from '../../components/Powiazania'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
@@ -58,12 +60,16 @@ export default async function ObiektStrona({ params }: Parametry) {
     const foto = o.zdjecia[0]
     const podpisFoto = foto ? [foto.podpis, foto.data, foto.autor && `fot. ${foto.autor}`].filter(Boolean).join(' · ') : ''
     const mapa = o.wspolrzedne ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={glowny ? 16 : 14} wysokosc="100%" /> : undefined
+    const jestPowiazane = mat.length > 0 || planyObiektu.length > 1
+    const jestZrodla = o.zrodla.length > 0 || o.zdjecia.some((z) => z.autor || z.prawa)
+    // JW-2: spis treści z części; drugiej mapy w wierszu „położenie” nie ma (JW-15) – mapa jest w pasku bocznym, gdy nie ma zdjęcia
+    const spis = spisCzesci(['podstawowe', o.zdjecia.length > 1 && 'fotografie', maTekst(opisHtml) && 'opis', jestPowiazane && 'powiązane', jestZrodla && 'źródła'])
     const tabelaPodstawowa = (
         <Tabela etykieta={`${o.nazwa} – dane`}>
             <Czesc tytul="podstawowe" />
             <W e="miejscowość">{wies && <Link href={`/miejsca/${wies.id}`} className="odn">{wies.nazwa}</Link>}</W>
             <W e="parafia / urząd">{(o.instytucje?.length ?? 0) > 0 && (
-                <span className="flex flex-col" style={{ gap: 4 }}>
+                <span className="flex flex-col gap-1">
                     {(o.instytucje ?? []).map((rel, i) => {
                         const p = listaParafii.find((x) => x.id === rel.parafia)
                         if (!p) return null
@@ -81,45 +87,44 @@ export default async function ObiektStrona({ params }: Parametry) {
             <W e="inne nazwy">{o.inneNazwy.length ? o.inneNazwy.join(' · ') : null}</W>
             <W e="położenie">
                 {o.wspolrzedne
-                    ? (glowny || !mapa
-                        ? <OtworzWMapach wspolrzedne={o.wspolrzedne} przyblizone={o.przyblizone} />
-                        : <span className="karta-polozenie"><span><OtworzWMapach wspolrzedne={o.wspolrzedne} przyblizone={o.przyblizone} /></span><MapaKarty mapa={mapa} wysokosc={150} /></span>)
+                    ? <OtworzWMapach wspolrzedne={o.wspolrzedne} przyblizone={o.przyblizone} />
                     : <span className="text-[var(--tekst-opis)]">nieustalone</span>}
             </W>
-            {o.zdjecia.length > 1 && <Czesc tytul="fotografie" id="fotografie">{o.zdjecia.length}</Czesc>}
+            {o.zdjecia.length > 1 && <Czesc tytul="fotografie">{o.zdjecia.length}</Czesc>}
             {o.zdjecia.length > 1 && <WCaly><GaleriaZdjec zdjecia={o.zdjecia} tytul={o.nazwa} /></WCaly>}
         </Tabela>
     )
+    const naglowek = (
+        <NaglowekKarty
+            sciezka={[]}
+            tytul={<span className="tytul-z-tarcza"><span className="tytul-tarcza" dangerouslySetInnerHTML={{ __html: tarczaObiektu(o.rodzaj, rodzaj, 32, o.istnieje) }} />{o.nazwa}</span>}
+            linia={[rodzaj, wies ? { tekst: wies.nazwa, href: `/miejsca/${wies.id}` } : null, o.czas ? formatujEdtf(o.czas) : null, o.istnieje ? 'istnieje' : 'nie istnieje']}
+            lead={lead || undefined}
+        />
+    )
+    // pasek boczny: zdjęcie (gdy jest), inaczej mapa położenia (bez planu – plan ma własną mapę w widoku obiektu)
+    const bok = foto ? (
+        <figure className="osoba-portret">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <a href={`${foto.plik}?w=1800`} target="_blank" rel="noopener" title="powiększ zdjęcie"><img src={`${foto.plik}?w=480`} alt={foto.podpis || o.nazwa} /></a>
+            <figcaption>{podpisFoto}{o.zdjecia.length > 1 && <>{podpisFoto && ' · '}<a href={`#${idCzesci('fotografie')}`} className="odn">wszystkie ({o.zdjecia.length}) ↓</a></>}</figcaption>
+        </figure>
+    ) : mapa && !glowny ? <MapaKarty mapa={mapa} wysokosc={300} podpis="położenie" /> : undefined
 
     return (
-        <Strona akcje={<><CopyLinkButton sciezka={`/obiekty/${o.id}`} /></>}>
-            <NaglowekKarty
-                sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]}
-                tytul={<span className="inline-flex items-center" style={{ gap: 10 }}><span style={{ display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: tarczaObiektu(o.rodzaj, rodzaj, 32, o.istnieje) }} />{o.nazwa}</span>}
-                obraz={foto ? (
-                    <figure className="osoba-portret">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <a href={`${foto.plik}?w=1800`} target="_blank" rel="noopener" title="powiększ zdjęcie"><img src={`${foto.plik}?w=480`} alt={foto.podpis || o.nazwa} /></a>
-                        <figcaption>{podpisFoto}{o.zdjecia.length > 1 && <>{podpisFoto && ' · '}<a href="#fotografie" className="odn">wszystkie ({o.zdjecia.length}) ↓</a></>}</figcaption>
-                    </figure>
-                ) : undefined}
-                linia={[rodzaj, wies ? { tekst: wies.nazwa, href: `/miejsca/${wies.id}` } : null, o.czas ? formatujEdtf(o.czas) : null, o.istnieje ? 'istnieje' : 'nie istnieje']}
-                lead={lead ? <p style={{ margin: 0 }}>{lead}</p> : undefined}
-            />
-
-            {/* z planem (np. cmentarz): plan na całą szerokość z zakładkami, dane obok; bez planu – tabela z mapką */}
-            {glowny ? <WidokObiektu plan={glowny.plan} ustawienia={ustawienia} zalogowany={glowny.poziom === 'bliscy'} osoby={osobyGlownego} mapa={mapa} info={tabelaPodstawowa} /> : tabelaPodstawowa}
+        <Strona uklad="karta" sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]} akcje={<><CopyLinkButton sciezka={`/obiekty/${o.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={bok} spis={<SpisTresci pozycje={spis} />}>
+            {/* z planem (np. cmentarz): plan na całą szerokość z zakładkami, dane obok; bez planu – tabela w kolumnie */}
+            {glowny ? <PelnaSzerokosc><WidokObiektu plan={glowny.plan} ustawienia={ustawienia} zalogowany={glowny.poziom === 'bliscy'} osoby={osobyGlownego} mapa={mapa} info={tabelaPodstawowa} /></PelnaSzerokosc> : tabelaPodstawowa}
 
             {maTekst(opisHtml) && (
-                <section className="flex flex-col" style={{ gap: 10 }}>
-                    <h2 className="font-bold lowercase" style={{ fontSize: 'calc(20px * var(--font-scale, 1))' }}>opis</h2>
+                <Sekcja tytul="opis" id={idCzesci('opis')}>
                     <Tresc html={opisHtml} />
-                </section>
+                </Sekcja>
             )}
 
-            {(mat.length > 0 || planyObiektu.length > 1 || o.zrodla.length > 0 || o.zdjecia.some((z) => z.autor || z.prawa)) && (
+            {(jestPowiazane || jestZrodla) && (
                 <Tabela etykieta={`${o.nazwa} – powiązane i źródła`}>
-                    {(mat.length > 0 || planyObiektu.length > 1) && <Czesc tytul="powiązane" />}
+                    {jestPowiazane && <Czesc tytul="powiązane" />}
                     <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
                     <W e="plany">{planyObiektu.length > 1 && <ListaPlanow plany={planyObiektu} />}</W>
                     <Zrodla pozycje={[

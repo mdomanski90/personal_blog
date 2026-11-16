@@ -26,7 +26,7 @@ export function PelnaSzerokosc({ children }: { children: React.ReactNode }) {
     return <div className="pelna-szerokosc">{children}</div>
 }
 
-function UkladKarty({ children, naglowek, bok, spis }: { children: React.ReactNode; naglowek?: React.ReactNode; bok?: React.ReactNode; spis?: React.ReactNode }) {
+function UkladKarty({ children, naglowek, bok, spis, sciezka }: { children: React.ReactNode; naglowek?: React.ReactNode; bok?: React.ReactNode; spis?: React.ReactNode; sciezka?: Sciezka }) {
     // podział na odcinki: kolumna z paskiem bocznym | element pełnej szerokości | kolumna z paskiem (spis wraca) …
     const odcinki: { pelny: boolean; el: React.ReactNode[] }[] = []
     for (const el of React.Children.toArray(children)) {
@@ -41,11 +41,15 @@ function UkladKarty({ children, naglowek, bok, spis }: { children: React.ReactNo
             {odcinki.map((o, i) => {
                 if (o.pelny) return <React.Fragment key={i}>{o.el}</React.Fragment>
                 if (i === 0) return (
-                    <div key={i} className="karta-odcinek karta-odcinek-pierwszy">
+                    <React.Fragment key={i}>
+                        {/* okruszki nad siatką – pasek boczny zaczyna się równo z tytułem (uwaga właściciela 16.11) */}
+                        {sciezka && <Okruszki sciezka={sciezka} />}
+                        <div className="karta-odcinek karta-odcinek-pierwszy">
                         {naglowek && <div className="karta-naglowek">{naglowek}</div>}
                         {(bok || spis) && <aside className="karta-bok" aria-label="obok treści">{bok}{spis && <div className="karta-spis">{spis}</div>}</aside>}
                         <div className="karta-kolumna">{o.el}</div>
-                    </div>
+                        </div>
+                    </React.Fragment>
                 )
                 return (
                     <div key={i} className="karta-odcinek">
@@ -60,7 +64,7 @@ function UkladKarty({ children, naglowek, bok, spis }: { children: React.ReactNo
 }
 
 /** Strona z nagłówkiem, stopką i powiększaniem obrazków. Jedna szerokość układu (1200 px) – nagłówek, treść i stopka mają tę samą krawędź. */
-export function Strona({ children, szeroka = false, uklad, akcje, naglowek, bok, spis }: {
+export function Strona({ children, szeroka = false, uklad, akcje, naglowek, bok, spis, sciezka }: {
     children: React.ReactNode
     /** dawny przełącznik „szeroka” = uklad="pelna" */
     szeroka?: boolean
@@ -72,6 +76,8 @@ export function Strona({ children, szeroka = false, uklad, akcje, naglowek, bok,
     bok?: React.ReactNode
     /** uklad="karta": spis treści (SpisTresci) pod obrazem, przyklejony przy przewijaniu */
     spis?: React.ReactNode
+    /** uklad="karta": okruszki nad siatką (wtedy NaglowekKarty / TytulStrony dostają pustą ścieżkę) */
+    sciezka?: Sciezka
 }) {
     const u: UkladStrony = uklad ?? (szeroka ? 'pelna' : 'kolumna')
     return (
@@ -80,7 +86,7 @@ export function Strona({ children, szeroka = false, uklad, akcje, naglowek, bok,
                 <div className="strona-pion space-y-6 w-full">
                     <SiteHeader akcje={akcje} />
                     <main id="tresc" tabIndex={-1} className={`strona-tresc uklad-${u} space-y-6 outline-none`}>
-                        {u === 'karta' ? <UkladKarty naglowek={naglowek} bok={bok} spis={spis}>{children}</UkladKarty> : children}
+                        {u === 'karta' ? <UkladKarty naglowek={naglowek} bok={bok} spis={spis} sciezka={sciezka}>{children}</UkladKarty> : children}
                     </main>
                     {/* JW-17: koniec treści w druku – pełny adres i data wydruku (każda przeglądarka; wartości z UstawieniaDruku) */}
                     <p className="druk-koniec" aria-hidden="true" />
@@ -115,12 +121,12 @@ export function Sekcja({ tytul, children, id }: { tytul: string; children: React
 }
 
 /** Tytuł strony: h1 w kolorze akcentu z kreską; „akcje” (np. ← mapa, kopiuj link, drukuj) nad okruszkami, po lewej. */
-export function TytulStrony({ children, sciezka, akcje }: { children: React.ReactNode; sciezka?: Sciezka; akcje?: React.ReactNode }) {
+export function TytulStrony({ children, sciezka, akcje, bezOkruszkow = false }: { children: React.ReactNode; sciezka?: Sciezka; akcje?: React.ReactNode; bezOkruszkow?: boolean }) {
     return (
         <div className="tytul-strony-blok">
             {akcje && <div className="pasek-akcji">{akcje}</div>}
             {/* P7B-2 (JV-15), P7D-1 (AUD-07): okruszki na każdej stronie poza główną; bieżąca strona to tytuł (aria-current) */}
-            <Okruszki sciezka={sciezka ?? []} />
+            {!bezOkruszkow && <Okruszki sciezka={sciezka ?? []} />}
             <h1 className="tytul-strony" aria-current="page">{children}</h1>
         </div>
     )

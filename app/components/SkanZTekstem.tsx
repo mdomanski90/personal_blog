@@ -8,7 +8,7 @@
 
 import * as React from 'react'
 import type { ObjasnienieWidoku } from '@/lib/objasnienia-widok'
-import PrzegladarkaDokumentu, { type StronaPodgladu } from './PrzegladarkaDokumentu'
+import PrzegladarkaDokumentu, { obrazStrony, type StronaPodgladu } from './PrzegladarkaDokumentu'
 import { ListaObjasnien, TekstZrodla, type ObjasnienieNaStronie } from './ObjasnieniaSkanu'
 
 type Zakladka = 'transkrypcja' | 'oryginał' | 'tłumaczenie' | 'objaśnienia'
@@ -87,7 +87,7 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
                     {html ? (
                         <>
                             {opracowal && zakladka !== 'oryginał' && <p className="szt-kto">{zakladka}: {opracowal}</p>}
-                            <div className="post-content" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }} dangerouslySetInnerHTML={{ __html: html }} />
+                            <div className="post-content szt-html" dangerouslySetInnerHTML={{ __html: html }} />
                         </>
                     ) : zakladka === 'objaśnienia' ? (
                         naStronie.length
@@ -121,6 +121,16 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
                 <div ref={tekst} className="szt-tresc" tabIndex={0} role="tabpanel" aria-label={opis}>
                     {tresc}
                 </div>
+            </div>
+            {/* JW-17: wydruk – skan (każda strona) na szerokość kartki, pod nim transkrypcja i tłumaczenie bez zakładek */}
+            <div className="szt-druk druk-tylko" aria-hidden="true">
+                {strony.map((s) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={s.adres} src={obrazStrony(s.adres, 1200)} alt="" className="szt-druk-skan" />
+                ))}
+                {transkrypcja && <div className="szt-druk-tekst"><h2 className="tytul-sekcji">transkrypcja{opracowal ? ` (${opracowal})` : ''}</h2><div className="post-content" dangerouslySetInnerHTML={{ __html: transkrypcja }} /></div>}
+                {oryginal && <div className="szt-druk-tekst"><h2 className="tytul-sekcji">oryginał</h2><div className="post-content" dangerouslySetInnerHTML={{ __html: oryginal }} /></div>}
+                {tlumaczenie && <div className="szt-druk-tekst"><h2 className="tytul-sekcji">tłumaczenie{opracowal ? ` (${opracowal})` : ''}</h2><div className="post-content" dangerouslySetInnerHTML={{ __html: tlumaczenie }} /></div>}
             </div>
         </section>
     )

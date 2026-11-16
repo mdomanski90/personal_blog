@@ -76,12 +76,9 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
     p.set('strona', String(n))
     return `/archiwum?${p.toString()}`
   }
-  return <Strona>
+  // JW-2 (decyzja 16.11): panel „szukaj i filtruj” bezpośrednio pod tytułem, potem wstęp i spis działów, licznik nad listą
+  return <Strona uklad="pelna">
     <TytulStrony><TytulDzialu dzial="archiwum" domyslny="archiwum" /></TytulStrony>
-    <p className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
-      <WstepTekst dzial="archiwum" domyslny={"Dokumenty, fotografie, wspomnienia, nagrania i mapy z opisem, pochodzeniem oraz powiązaniami."} />
-    </p>
-    <SpisDzialow dzialy={dzialy} wybrany={f.rodzaj || 'wszystkie'} />
     <FiltryArchiwum
       poczatkowe={{ q: f.q ?? '', rodzaj: f.rodzaj ?? '', miejsce: f.miejsce ?? '', temat: f.temat ?? '', obiekt: f.obiekt ?? '', osoba: f.osoba ?? '', zbior: f.zbior ?? '', od: val(sp.od), do: val(sp.do), sort: f.sort ?? '' }}
       miejscowosci={msc.map((m) => ({ id: m.id, nazwa: m.nazwa }))}
@@ -95,6 +92,10 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
       {wybrane.map((x) => <Link key={x.klucz} href={bez(x.usun)} className="k-wybrany" aria-label={`usuń filtr: ${x.etykieta}`}>{x.etykieta} <span aria-hidden="true">✕</span></Link>)}
       {wybrane.length > 1 && <Link href={bez(['q', 'miejsce', 'temat', 'obiekt', 'osoba', 'zbior', 'od', 'do'])} className="odn k-wybrane-wyczysc">wyczyść wszystko</Link>}
     </div>}
+    <p className="tekst-opis wstep-dzialu-tekst">
+      <WstepTekst dzial="archiwum" domyslny={"Dokumenty, fotografie, wspomnienia, nagrania i mapy z opisem, pochodzeniem oraz powiązaniami."} />
+    </p>
+    <SpisDzialow dzialy={dzialy} wybrany={f.rodzaj || 'wszystkie'} />
     <p className="ot-drobne" aria-live="polite">{wyn.razem} materiałów · strona {wyn.strona} z {wyn.stron}</p>
     {wyn.razem === 0
       ? <Komunikat rodzaj="pusto" tytul="nic nie pasuje do wybranych filtrów.">
@@ -106,7 +107,7 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
           </p>
         </Komunikat>
       : <ListaMaterialow materialy={wyn.wyniki} />}
-    {wyn.stron > 1 && <nav aria-label="strony katalogu archiwum" className="flex flex-wrap items-center" style={{ gap: 12 }}>
+    {wyn.stron > 1 && <nav aria-label="strony katalogu archiwum" className="flex flex-wrap items-center gap-3">
       {wyn.strona > 1 && <Link href={qs(wyn.strona - 1)} className="odn">← poprzednia</Link>}
       <span className="ot-drobne">{wyn.strona} / {wyn.stron}</span>
       {wyn.strona < wyn.stron && <Link href={qs(wyn.strona + 1)} className="odn">następna →</Link>}

@@ -4,8 +4,10 @@ import { Link } from 'next-view-transitions'
 import { nazwy, opowiesciDlaTematu, materialyDla, powiazania, poziomCzytelnika, kontekstTresci, RODZAJE_TEMATOW, temat, tematy } from '@/lib/archiwum'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml, zajawka } from '@/lib/markdoc'
-import { Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
-import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke } from '../../components/Karta'
+import { Sekcja, Strona, Tresc } from '../../components/Uklad'
+import { Czesc, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import SpisTresci from '../../components/SpisTresci'
+import { PrzyciskDrukuj } from '../../components/Druk'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania from '../../components/Powiazania'
 
@@ -44,17 +46,17 @@ export default async function TematStrona({ params }: Parametry) {
     const lead = zajawka(t.opis, 240, ktx.rozwiaz)
     const wpisyWTekstach = siec.odnosniki.filter((z) => z.zrodlo.rodzaj !== 'wpis' || !opow.some((o) => o.id === z.zrodlo.id))
 
+    const spis = spisCzesci([(t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && 'w skrócie', 'opis', 'powiązane', t.zrodla.length > 0 && 'źródła'])
+    const naglowek = (
+        <NaglowekKarty
+            sciezka={[]}
+            tytul={t.nazwa}
+            linia={[RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj, t.czas ? formatujEdtf(t.czas) : null, t.inneNazwy.length ? `także: ${t.inneNazwy.join(', ')}` : null]}
+            lead={lead || undefined}
+        />
+    )
     return (
-        <Strona akcje={<CopyLinkButton sciezka={`/tematy/${t.id}`} />}>
-            <NaglowekKarty
-                sciezka={[{ tekst: 'tematy', href: '/tematy' }]}
-                tytul={t.nazwa}
-                linia={[RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj, t.czas ? formatujEdtf(t.czas) : null, t.inneNazwy.length ? `także: ${t.inneNazwy.join(', ')}` : null]}
-                lead={lead ? <p style={{ margin: 0 }}>{lead}</p> : undefined}
-            >
-                {maTekst(opisHtml) && <a href="#opis" className="odn w-fit" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>cały opis ↓</a>}
-            </NaglowekKarty>
-
+        <Strona uklad="karta" sciezka={[{ tekst: 'tematy', href: '/tematy' }]} akcje={<><CopyLinkButton sciezka={`/tematy/${t.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} spis={<SpisTresci pozycje={spis} />}>
             {(t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && (
                 <Tabela etykieta={`${t.nazwa} – w skrócie`}>
                     <Czesc tytul="w skrócie" />
@@ -64,10 +66,9 @@ export default async function TematStrona({ params }: Parametry) {
                 </Tabela>
             )}
 
-            <section id="opis" className="flex flex-col scroll-mt-6" style={{ gap: 10 }}>
-                <h2 className="font-bold lowercase" style={{ fontSize: 'calc(20px * var(--font-scale, 1))' }}>opis</h2>
+            <Sekcja tytul="opis" id={idCzesci('opis')}>
                 <Tresc html={opisHtml} pusta="opis tematu nie został jeszcze dodany." />
-            </section>
+            </Sekcja>
 
             {(opow.length > 0 || mat.length > 0 || t.zrodla.length > 0) && (
                 <Tabela etykieta={`${t.nazwa} – powiązane i źródła`}>
@@ -81,8 +82,8 @@ export default async function TematStrona({ params }: Parametry) {
             <Powiazania dane={{ odnosniki: wpisyWTekstach, wzmianki: siec.wzmianki }} />
 
             {opow.length === 0 && mat.length === 0 && (
-                <Sekcja tytul="powiązane">
-                    <p className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>Nie ma jeszcze wpisów ani materiałów na ten temat. <Link href="/#pomoz" className="odn">Masz coś do dodania?</Link></p>
+                <Sekcja tytul="powiązane" id={idCzesci('powiązane')}>
+                    <p className="tekst-opis">Nie ma jeszcze wpisów ani materiałów na ten temat. <Link href="/#pomoz" className="odn">Masz coś do dodania?</Link></p>
                 </Sekcja>
             )}
 

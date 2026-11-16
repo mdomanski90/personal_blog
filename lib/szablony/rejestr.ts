@@ -5,14 +5,14 @@
  * Przełączniki wariantów – osobny etap (decyzja właściciela 15.11.2026: najpierw mapa).
  */
 
-export type IdWzorca = 'karta' | 'karta-lista' | 'pozycja' | 'pozycja-w-karcie' | 'lista-dzialu' | 'lista-obiektow' | 'linia' | 'siatka' | 'spis' | 'zapowiedz' | 'wlasny'
+export type IdWzorca = 'karta' | 'karta-lista' | 'pozycja' | 'pozycja-w-karcie' | 'lista-dzialu' | 'lista-obiektow' | 'linia' | 'siatka' | 'spis' | 'spis-miejsc' | 'pastylki-osob' | 'zapowiedz' | 'wlasny'
 export type Status = 'zgodne' | 'do-ujednolicenia' | 'swiadomie-inne'
 
 export interface Wzorzec { id: IdWzorca; nazwa: string; opis: string; komponent: string; /** ciąg, który musi wystąpić w pliku używającym wzorca */ znacznik: string[] }
 
 export const WZORCE: Wzorzec[] = [
     { id: 'karta', nazwa: 'tabela karty', opis: 'Karta bytu: nagłówki części z tłem, wiersze etykieta–wartość. Wzór: karta osoby i obiektu.', komponent: 'Tabela / Czesc / W (Karta.tsx)', znacznik: ['<Tabela', 'osoba-tabela'] },
-    { id: 'karta-lista', nazwa: 'lista w karcie', opis: 'Krótka lista odnośników w części tabeli karty (np. miejscowości instytucji).', komponent: 'WCaly + ul.karta-lista', znacznik: ['karta-lista'] },
+    { id: 'karta-lista', nazwa: 'lista w karcie', opis: 'Krótka lista odnośników w części tabeli karty (np. miejscowości instytucji, materiały osoby).', komponent: 'WCaly + ul.karta-lista (KrotkieMaterialy, KrotkieWpisy)', znacznik: ['karta-lista', 'KrotkieMaterialy', 'KrotkieWpisy'] },
     { id: 'pozycja', nazwa: 'karta pozycji', opis: 'Pozycja spisu z metadanymi w stylu karty: nagłówek (tytuł + informacja), wiersze, odnośniki z nazwą serwisu.', komponent: 'KartaPozycji', znacznik: ['KartaPozycji', 'TabelaKsiag'] },
     { id: 'pozycja-w-karcie', nazwa: 'pozycja w karcie', opis: 'Ta sama pozycja (nagłówek + wiersze etykieta–wartość) jako blok w części tabeli karty, bez własnej ramki – karty nie zagnieżdżamy w karcie.', komponent: 'TabelaKsiag wariant="wiersze"', znacznik: ['wariant="wiersze"'] },
     { id: 'lista-dzialu', nazwa: 'lista pozycji działu', opis: 'Indeks działu: tytuł, spokojna linia, linia podziału.', komponent: 'ul.lista-pozycji', znacznik: ['lista-pozycji', 'lista-pozycja'] },
@@ -20,6 +20,8 @@ export const WZORCE: Wzorzec[] = [
     { id: 'linia', nazwa: 'linia karty', opis: 'Powiązania w jednym wierszu tabeli karty, rozdzielone kropką.', komponent: 'LiniaKarty', znacznik: ['LiniaKarty'] },
     { id: 'siatka', nazwa: 'siatka miniatur', opis: 'Materiały z obrazem: miniatura, tytuł, rodzaj, data.', komponent: 'ListaMaterialow', znacznik: ['ListaMaterialow'] },
     { id: 'spis', nazwa: 'spis działów', opis: 'Katalog kartkowy: numer, nazwa, kropki, liczba.', komponent: 'SpisDzialow', znacznik: ['SpisDzialow', 'SpisBiblioteki'] },
+    { id: 'spis-miejsc', nazwa: 'spis miejscowości', opis: 'JW-12: nazwa-odnośnik, liczniki po prawej (puste pominięte), linia podziału, kolumny min. 22rem – wsie gminy i katalog miejsc.', komponent: 'SpisMiejscowosci', znacznik: ['SpisMiejscowosci'] },
+    { id: 'pastylki-osob', nazwa: 'pastylki osób', opis: 'JW-10: osoby jako pastylki w kolorach płci (tokeny wspólne z drzewem); lata, miejscowość, biogram obok zwykłym tekstem.', komponent: 'PastylkaOsoby', znacznik: ['PastylkaOsoby'] },
     { id: 'zapowiedz', nazwa: 'zapowiedź wpisu', opis: 'Metryczka, miniatura po lewej, tytuł, zapowiedź, „czytaj dalej”.', komponent: 'article.zapowiedz / ListaOpowiesci', znacznik: ['zapowiedz', 'ListaOpowiesci'] },
     { id: 'wlasny', nazwa: 'własny układ', opis: 'Znaczniki napisane w miejscu, bez wspólnego komponentu – wymaga uzasadnienia albo ujednolicenia.', komponent: '—', znacznik: [] },
 ]
@@ -37,8 +39,9 @@ export interface Miejsce {
 
 export const MIEJSCA: Miejsce[] = [
     // osoby
-    { byt: 'osoba', gdzie: 'karta osoby', plik: 'app/osoby/[id]/page.tsx', wzorzec: 'wlasny', status: 'do-ujednolicenia', uwaga: 'Te same klasy co tabela karty, ale znaczniki pisane ręcznie zamiast Tabela/Czesc/W; materiały jako akapity z „→”.', adres: '/osoby/…' },
-    { byt: 'osoba', gdzie: 'katalog osób', plik: 'app/osoby/ListaOsob.tsx', wzorzec: 'wlasny', status: 'do-ujednolicenia', uwaga: 'Alfabetyczny spis z literami i wyszukiwaniem na żywo – układ wierszy inny niż lista pozycji działu.', adres: '/osoby' },
+    { byt: 'osoba', gdzie: 'karta osoby', plik: 'app/osoby/[id]/page.tsx', wzorzec: 'karta', status: 'zgodne', uwaga: 'JW-2: Tabela/Czesc/W z Karta.tsx; rodzina jako pastylki osób; materiały archiwalne jako część tabeli.', adres: '/osoby/…' },
+    { byt: 'osoba', gdzie: 'katalog osób', plik: 'app/osoby/ListaOsob.tsx', wzorzec: 'pastylki-osob', status: 'zgodne', uwaga: 'Litery jako grupy; filtry kręgów – pastylki filtrów pod tytułem.', adres: '/osoby' },
+    { byt: 'osoba', gdzie: 'karta materiału – osoby', plik: 'app/archiwum/[slug]/page.tsx', wzorzec: 'pastylki-osob', status: 'zgodne', adres: '/archiwum/…' },
     { byt: 'osoba', gdzie: 'karta instytucji – osoby związane', plik: 'app/parafie/[slug]/page.tsx', wzorzec: 'karta-lista', status: 'zgodne', adres: '/parafie/…' },
     { byt: 'osoba', gdzie: 'cmentarz – lista pochowanych', plik: 'app/components/plan/ListaPochowanych.tsx', wzorzec: 'wlasny', status: 'do-ujednolicenia', uwaga: 'Tabela bez wzorca „tabela jako karty na telefonie”; do przeglądu razem z przeglądarką cmentarza.', adres: '/obiekty/… (cmentarz)' },
     { byt: 'osoba', gdzie: 'cmentarz – karta grobu na planie', plik: 'app/components/plan/PlanInteraktywny.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'Panel mapy; przebudowa w etapie przeglądarki cmentarza (CEM-03…CEM-11).', adres: '/plany/…' },
@@ -49,7 +52,8 @@ export const MIEJSCA: Miejsce[] = [
     { byt: 'obiekt', gdzie: 'karta instytucji – powiązane obiekty', plik: 'app/parafie/[slug]/page.tsx', wzorzec: 'lista-obiektow', status: 'zgodne', adres: '/parafie/…' },
     // miejscowości
     { byt: 'miejscowość', gdzie: 'karta miejscowości', plik: 'app/miejsca/[slug]/page.tsx', wzorzec: 'karta', status: 'zgodne', adres: '/miejsca/…' },
-    { byt: 'miejscowość', gdzie: 'spis pod mapą', plik: 'app/components/SiatkaMiejsc.tsx', wzorzec: 'wlasny', status: 'do-ujednolicenia', uwaga: 'Siatka komórek z ramkami – inna niż listy działów; decyzja: siatka nazw czy lista pozycji.', adres: '/miejsca' },
+    { byt: 'miejscowość', gdzie: 'spis pod mapą', plik: 'app/components/SpisMiejsc.tsx', wzorzec: 'spis-miejsc', status: 'zgodne', adres: '/miejsca' },
+    { byt: 'miejscowość', gdzie: 'karta gminy – wsie gminy', plik: 'app/miejsca/[slug]/page.tsx', wzorzec: 'spis-miejsc', status: 'zgodne', adres: '/miejsca/gmina-…' },
     { byt: 'miejscowość', gdzie: 'karta instytucji – miejscowości', plik: 'app/parafie/[slug]/page.tsx', wzorzec: 'karta-lista', status: 'zgodne', adres: '/parafie/…' },
     { byt: 'miejscowość', gdzie: 'mapa – lista pod mapą i dymki', plik: 'app/components/MapaMiejsc.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'Elementy mapy (dymki, spis widoczny na mapie) – układ mapowy, nie lista działu.', adres: '/miejsca' },
     { byt: 'miejscowość', gdzie: 'stopka – spis miejscowości', plik: 'app/components/Footer.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'Nawigacja w stopce.', adres: 'każda strona' },
@@ -69,7 +73,8 @@ export const MIEJSCA: Miejsce[] = [
     { byt: 'materiał', gdzie: 'katalog archiwum', plik: 'app/archiwum/page.tsx', wzorzec: 'siatka', status: 'zgodne', adres: '/archiwum' },
     { byt: 'materiał', gdzie: 'karta zbioru', plik: 'app/archiwum/zbiory/[slug]/page.tsx', wzorzec: 'siatka', status: 'zgodne', adres: '/archiwum/zbiory/…' },
     { byt: 'materiał', gdzie: 'karta instytucji – materiały', plik: 'app/parafie/[slug]/page.tsx', wzorzec: 'karta-lista', status: 'do-ujednolicenia', uwaga: 'Gdzie indziej materiały to siatka miniatur – tu sama lista tytułów.', adres: '/parafie/…' },
-    { byt: 'materiał', gdzie: 'karta osoby – materiały', plik: 'app/osoby/[id]/page.tsx', wzorzec: 'wlasny', status: 'do-ujednolicenia', uwaga: 'Akapity „tytuł →” – ani siatka, ani lista w karcie.', adres: '/osoby/…' },
+    { byt: 'materiał', gdzie: 'karta osoby – materiały', plik: 'app/osoby/[id]/page.tsx', wzorzec: 'karta-lista', status: 'zgodne', uwaga: 'JW-2: część „materiały archiwalne” w tabeli karty (KrotkieMaterialy).', adres: '/osoby/…' },
+    { byt: 'materiał', gdzie: 'wpis – wstawka materiału ze skanem', plik: 'app/components/WstawkaMaterialu.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'JW-13: ten sam widok co karta materiału (SkanZTekstem) na pełnej szerokości + „pełny widok w archiwum →”.', adres: '/wpisy/…' },
     // zbiory, tematy, wpisy, hasła
     { byt: 'zbiór', gdzie: 'lista zbiorów', plik: 'app/archiwum/zbiory/page.tsx', wzorzec: 'lista-dzialu', status: 'zgodne', adres: '/archiwum/zbiory' },
     { byt: 'zbiór', gdzie: 'karta zbioru', plik: 'app/archiwum/zbiory/[slug]/page.tsx', wzorzec: 'karta', status: 'zgodne', adres: '/archiwum/zbiory/…' },
@@ -110,7 +115,7 @@ export const POZA_MAPA: { plik: string; dlaczego: string }[] = [
     { plik: 'app/components/Karta.tsx', dlaczego: 'definicje wzorca karty (odnośniki w komponentach wzorca)' },
     { plik: 'app/components/ListaObiektow.tsx', dlaczego: 'komponent wzorca' },
     { plik: 'app/components/ListaMaterialow.tsx', dlaczego: 'komponent wzorca' },
-    { plik: 'app/components/SpisMiejsc.tsx', dlaczego: 'opakowanie siatki miejscowości (wpis: SiatkaMiejsc)' },
+    { plik: 'app/components/SpisMiejscowosci.tsx', dlaczego: 'komponent wzorca (spis miejscowości)' },
     { plik: 'app/obiekty/[slug]/page.tsx', dlaczego: 'pojedyncze odnośniki w wierszach karty' },
     { plik: 'app/archiwum/[slug]/page.tsx', dlaczego: 'pojedyncze odnośniki w wierszach karty' },
     { plik: 'app/components/Wzorce.tsx', dlaczego: 'komponenty bazowe (JW-1): okruszki, pastylki – definicje wzorców' },

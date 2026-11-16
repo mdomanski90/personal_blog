@@ -6,8 +6,10 @@ import { ksiegi, miejsca, obiekty, parafie, poziomCzytelnika, RODZAJE_OBIEKTOW, 
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
 import { miejscowosciInstytucji, obiektyInstytucji, ksiegiInstytucji, zapiszOkres } from '@/lib/parafie-powiazania'
 import { formatujEdtf } from '@/lib/edtf'
-import { Strona } from '../../components/Uklad'
-import { Czesc, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke } from '../../components/Karta'
+import { Sekcja, Strona } from '../../components/Uklad'
+import { Czesc, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import SpisTresci from '../../components/SpisTresci'
+import { PrzyciskDrukuj } from '../../components/Druk'
 import { PasekLat, TabelaKsiag } from '../../components/Ksiegi'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import ListaObiektow from '../../components/ListaObiektow'
@@ -38,14 +40,17 @@ export default async function ParafiaStrona({ params }: Parametry) {
     const wyznanie = WYZNANIA_PARAFII[p.wyznanie] ?? p.wyznanie
     const osobyInstytucji = p.osoby ?? []
     const zrodlaInstytucji = p.zrodla ?? []
+    const spis = spisCzesci(['podstawowe', miejscowosci.length > 0 && 'miejscowości', budynki.length > 0 && 'powiązane obiekty', osobyInstytucji.length > 0 && 'osoby związane z instytucją', matInstytucji.length > 0 && 'materiały archiwalne', spisKsieg.length > 0 && 'księgi metrykalne', 'historia', zrodlaInstytucji.length > 0 && 'źródła'])
+    const naglowek = (
+        <NaglowekKarty
+            sciezka={[]}
+            tytul={p.nazwa}
+            linia={[wyznanie, p.czas ? formatujEdtf(p.czas) : null, siedziba ? { tekst: siedziba.nazwa, href: `/miejsca/${siedziba.id}` } : null]}
+            lead={p.opis ? `${p.opis.replace(/\s+/g, ' ').slice(0, 240)}${p.opis.length > 240 ? '…' : ''}` : undefined}
+        />
+    )
     return (
-        <Strona akcje={<CopyLinkButton sciezka={`/parafie/${p.id}`} />}>
-            <NaglowekKarty
-                sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, { tekst: 'instytucje', href: '/parafie' }]}
-                tytul={p.nazwa}
-                linia={[wyznanie, p.czas ? formatujEdtf(p.czas) : null, siedziba ? { tekst: siedziba.nazwa, href: `/miejsca/${siedziba.id}` } : null]}
-                lead={p.opis ? <p style={{ margin: 0 }}>{p.opis.replace(/\s+/g, ' ').slice(0, 240)}{p.opis.length > 240 ? '…' : ''}</p> : undefined}
-            />
+        <Strona uklad="karta" sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, { tekst: 'instytucje', href: '/parafie' }]} akcje={<><CopyLinkButton sciezka={`/parafie/${p.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} spis={<SpisTresci pozycje={spis} />}>
 
             <Tabela etykieta={`${p.nazwa} – dane instytucji`}>
                 <Czesc tytul="podstawowe" />
@@ -55,7 +60,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
                 <W e="diecezja / dekanat">{p.diecezja || null}</W>
                 <W e="strona w sieci">{p.sameAs ? <a href={p.sameAs} target="_blank" rel="noopener noreferrer" className="odn">{p.sameAs.replace(/^https?:\/\//, '')}</a> : null}</W>
 
-                {miejscowosci.length > 0 && <Czesc tytul="miejscowości" id="miejscowosci">{miejscowosci.length}</Czesc>}
+                {miejscowosci.length > 0 && <Czesc tytul="miejscowości">{miejscowosci.length}</Czesc>}
                 {miejscowosci.length > 0 && <WCaly>
                     <ul className="karta-lista">
                         {miejscowosci.map(({ miejsce, okresy }) => <li key={miejsce.id}>
@@ -65,7 +70,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
                     </ul>
                 </WCaly>}
 
-                {budynki.length > 0 && <Czesc tytul="powiązane obiekty" id="obiekty">{budynki.length}</Czesc>}
+                {budynki.length > 0 && <Czesc tytul="powiązane obiekty">{budynki.length}</Czesc>}
                 {budynki.length > 0 && <WCaly>
                     {/* P7F-2: ta sama lista obiektów co na karcie miejscowości – tarcza rodzaju, nazwa, okres przynależności, źródło */}
                     <ListaObiektow pozycje={budynki.map(({ obiekt: o, relacje }) => ({
@@ -77,7 +82,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
                     }))} />
                 </WCaly>}
 
-                {osobyInstytucji.length > 0 && <Czesc tytul="osoby związane z instytucją" id="osoby">{osobyInstytucji.length}</Czesc>}
+                {osobyInstytucji.length > 0 && <Czesc tytul="osoby związane z instytucją">{osobyInstytucji.length}</Czesc>}
                 {osobyInstytucji.length > 0 && <WCaly>
                     <ul className="karta-lista">
                         {osobyInstytucji.map((o, i) => <li key={`${o.nazwa}-${i}`}>
@@ -87,23 +92,22 @@ export default async function ParafiaStrona({ params }: Parametry) {
                     </ul>
                 </WCaly>}
 
-                {matInstytucji.length > 0 && <Czesc tytul="materiały archiwalne" id="materialy">{matInstytucji.length}</Czesc>}
+                {matInstytucji.length > 0 && <Czesc tytul="materiały archiwalne">{matInstytucji.length}</Czesc>}
                 {matInstytucji.length > 0 && <WCaly><ul className="karta-lista">{matInstytucji.map(m => <li key={m.id}><Link href={`/archiwum/${m.id}`} className="odn">{m.nazwa}</Link></li>)}</ul></WCaly>}
-                {spisKsieg.length > 0 && <Czesc tytul="księgi metrykalne" id="ksiegi">{spisKsieg.length}</Czesc>}
+                {spisKsieg.length > 0 && <Czesc tytul="księgi metrykalne">{spisKsieg.length}</Czesc>}
                 {spisKsieg.length > 0 && <WCaly>
-                    <div className="flex flex-col" style={{ gap: 12 }}>
+                    <div className="flex flex-col gap-3">
                         <PasekLat ksiegi={spisKsieg} />
                         <TabelaKsiag ksiegi={spisKsieg} nazwyMiejsc={nazwyMiejsc} kontekst={{ instytucja: p.id }} wariant="wiersze" />
-                        <Link href={`/biblioteka/ksiegi?widok=parafie#${encodeURIComponent(p.id)}`} className="odn" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>pełny katalog ksiąg →</Link>
+                        <Link href={`/biblioteka/ksiegi?widok=parafie#${encodeURIComponent(p.id)}`} className="odn tekst-opis-maly">pełny katalog ksiąg →</Link>
                     </div>
                 </WCaly>}
             </Tabela>
 
-            <section id="historia" className="flex flex-col scroll-mt-6" style={{ gap: 10 }}>
-                <h2 className="font-bold lowercase" style={{ fontSize: 'calc(20px * var(--font-scale, 1))' }}>historia</h2>
-                {p.opis ? <div className="post-content whitespace-pre-line" style={{ fontSize: 'var(--blog-font-size, 18px)' }}>{p.opis}</div> :
+            <Sekcja tytul="historia" id={idCzesci('historia')}>
+                {p.opis ? <div className="post-content tresc-czytana whitespace-pre-line">{p.opis}</div> :
                     <p className="ot-drobne">Opis historii tej instytucji jest w przygotowaniu.</p>}
-            </section>
+            </Sekcja>
             {zrodlaInstytucji.length > 0 && (
                 <Tabela etykieta={`${p.nazwa} – źródła`}>
                     <Zrodla pozycje={zrodlaInstytucji.map((z, i) => <ZAdresami key={i} tekst={z} />)} />

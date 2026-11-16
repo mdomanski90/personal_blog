@@ -1,3 +1,4 @@
+import { identyfikatorZNazwy } from './tekst'
 import Markdoc, { Tag, type Node, type Config, type RenderableTreeNode, type RenderableTreeNodes } from '@markdoc/markdoc'
 import type { ObjasnienieWidoku } from './objasnienia-widok'
 import { bezNawiasow, ODNOSNIK, tekstOdnosnika, type Rozwiaz } from './odnosniki'
@@ -120,6 +121,17 @@ const config: Config = {
         },
     },
     nodes: {
+        // JW-2: nagłówki treści z identyfikatorem (spis treści na kartach i we wpisach – pisownia autora, id „t-…”)
+        heading: {
+            render: 'h2',
+            attributes: { level: { type: Number } },
+            transform(node, cfg) {
+                const dzieci = node.transformChildren(cfg)
+                const tekst = node.children.flatMap((c) => [...c.walk()]).filter((n) => n.type === 'text').map((n) => String(n.attributes.content ?? '')).join('')
+                const id = tekst.trim() ? `t-${identyfikatorZNazwy(tekst)}` : undefined
+                return new Tag(`h${node.attributes.level}`, id ? { id } : {}, dzieci)
+            },
+        },
         image: {
             render: 'img',
             attributes: { src: { type: String }, alt: { type: String }, title: { type: String } },
@@ -182,7 +194,7 @@ export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string): Tag {
         const ile = n === 1 ? '' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? `${n} strony` : `${n} stron`
         // P7E-1 (SG-04, SG-05): jedna czynność powiększania i jeden odnośnik „szczegóły w archiwum →”
         const opis: RenderableTreeNode[] = [new Tag('span', {}, [podpis || m.nazwa]), ' · ', new Tag('button', { type: 'button', class: 'dok-otworz' }, [ile ? `przeglądaj ${ile} ⤢` : 'powiększ skan ⤢']), ' · ', new Tag('a', { href: adres }, ['szczegóły w archiwum →'])]
-        return new Tag('figure', { class: 'material-wstawka', 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony, ...(m.objasnienia?.length ? { objasnienia: m.objasnienia } : {}), ...(m.transkrypcja ? { transkrypcja: m.transkrypcja } : {}) }) }, [
+        return new Tag('figure', { class: 'material-wstawka', 'data-id': m.id, 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony, ...(m.objasnienia?.length ? { objasnienia: m.objasnienia } : {}), ...(m.transkrypcja ? { transkrypcja: m.transkrypcja } : {}) }) }, [
             // wysoki (pionowy) skan pokazany do pewnej wysokości; DokumentyWTresci dodaje cieniowanie i przycisk,
             // gdy obraz faktycznie jest dłuższy od kadru
             new Tag('span', { class: 'dok-kadr' }, [
@@ -265,6 +277,35 @@ export function naHtml(node: Node | null | undefined, kontekst?: KontekstTresci 
     const drzewo = Markdoc.transform(node, config)
     const wynik = wstawOdnosniki(drzewo, k)
     return Markdoc.renderers.html(wynik as RenderableTreeNodes)
+}
+
+/** JW-2: pozycje spisu treści z gotowego HTML – nagłówki h2 z identyfikatorem (pisownia autora). */
+export function naglowkiZHtml(html: string): { id: string; tekst: string }[] {
+    const wyn: { id: string; tekst: string }[] = []
+    for (const m of html.matchAll(/<h2 id="([^"]+)"[^>]*>([\s\S]*?)<\/h2>/g)) {
+        const tekst = m[2].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim()
+        if (tekst) wyn.push({ id: m[1], tekst })
+    }
+    return wyn
+}
+
+/**
+ * JW-2 (JW-13): dzieli HTML wpisu na odcinki tekstu i wstawki materiałów ze skanem – strona pokazuje je tym samym
+ * widokiem co karta materiału (SkanZTekstem) na pełnej szerokości; odcinki tekstu zostają w kolumnie.
+ */
+export function podzielWstawki(html: string): ({ html: string } | { material: string })[] {
+    if (!html.includes('class="material-wstawka" data-id=')) return html.trim() ? [{ html }] : []
+    // zewnętrzny <article> otacza całość – każdy odcinek dostaje własne opakowanie w Tresc
+    html = html.replace(/^\s*<article>/, '').replace(/<\/article>\s*$/, '')
+    const wyn: ({ html: string } | { material: string })[] = []
+    let ostatni = 0
+    for (const m of html.matchAll(/<figure class="material-wstawka" data-id="([a-z0-9-]+)"[^>]*>[\s\S]*?<\/figure>/g)) {
+        if (m.index! > ostatni) wyn.push({ html: html.slice(ostatni, m.index) })
+        wyn.push({ material: m[1] })
+        ostatni = m.index! + m[0].length
+    }
+    if (ostatni < html.length) wyn.push({ html: html.slice(ostatni) })
+    return wyn.filter((o) => !('html' in o) || o.html.trim())
 }
 
 /** Sam tekst (bez znaczników) – do wyszukiwarki i zajawek. */

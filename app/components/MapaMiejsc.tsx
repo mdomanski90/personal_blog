@@ -533,49 +533,22 @@ export default function MapaMiejsc({
     const wypelnij = typeof wysokosc === 'string'
     return (
         <div className="flex flex-col" style={{ gap: 6, height: wypelnij ? wysokosc : undefined }}>
+            {/* JW-11: filtry mapy jako pastylki (.szukaj-filtr) – jak w katalogach */}
             {(grupy.length > 0 || (planyGeo?.length ?? 0) > 0) && (
-                <div className="mapa-filtry flex flex-wrap items-center" style={{ gap: '6px 12px', fontSize: 'calc(13px * var(--font-scale, 1))' }}>
-                    <div className="flex flex-wrap w-fit" style={{ paddingLeft: 1, paddingTop: 1 }} role="group" aria-label="pokaż na mapie tylko">
+                <div className="mapa-filtry filtry-rzad">
+                    <span className="filtry-podpis">na mapie:</span>
+                    <div className="filtry-rzad" role="group" aria-label="pokaż na mapie tylko">
                         {grupy.length > 1 && (
-                            <button
-                                type="button"
-                                aria-pressed={!wybrane.length}
-                                onClick={() => setWybrane([])}
-                                className={`border border-[var(--linia-podzialu)] lowercase cursor-pointer ${!wybrane.length ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
-                                style={{ margin: '-1px 0 0 -1px', padding: '0 10px', height: 26, fontSize: 'inherit', fontFamily: 'inherit' }}
-                            >
-                                wszystkie
-                            </button>
+                            <button type="button" aria-pressed={!wybrane.length} onClick={() => setWybrane([])} className="szukaj-filtr lowercase">wszystkie</button>
                         )}
-                        {grupy.map((g) => {
-                            const wl = wybrane.includes(g)
-                            return (
-                                <button
-                                    key={g}
-                                    type="button"
-                                    aria-pressed={wl}
-                                    onClick={() => przelacz(g)}
-                                    className={`border border-[var(--linia-podzialu)] lowercase cursor-pointer ${wl ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
-                                    style={{ margin: '-1px 0 0 -1px', padding: '0 10px', height: 26, fontSize: 'inherit', fontFamily: 'inherit' }}
-                                >
-                                    {GRUPY_OBIEKTOW[g]}
-                                </button>
-                            )
-                        })}
+                        {grupy.map((g) => (
+                            <button key={g} type="button" aria-pressed={wybrane.includes(g)} onClick={() => przelacz(g)} className="szukaj-filtr lowercase">{GRUPY_OBIEKTOW[g]}</button>
+                        ))}
                         {(planyGeo?.length ?? 0) > 0 && (
-                            <button
-                                type="button"
-                                aria-pressed={pokazPlany}
-                                onClick={() => setPokazPlany((x) => !x)}
-                                title="rysunki planów (cmentarzy, wsi) na mapie przy dużym przybliżeniu"
-                                className={`border border-[var(--linia-podzialu)] lowercase cursor-pointer ${pokazPlany ? 'bg-muted text-accent-foreground font-bold' : 'bg-transparent text-current'}`}
-                                style={{ margin: '-1px 0 0 -1px', padding: '0 10px', height: 26, fontSize: 'inherit', fontFamily: 'inherit' }}
-                            >
-                                plany
-                            </button>
+                            <button type="button" aria-pressed={pokazPlany} onClick={() => setPokazPlany((x) => !x)} title="rysunki planów (cmentarzy, wsi) na mapie przy dużym przybliżeniu" className="szukaj-filtr lowercase">plany</button>
                         )}
                     </div>
-                    {zoom < PROG_OBIEKTOW && (aktywne.length > 0 || (planyGeo?.length ?? 0) > 0) && <span className="text-[var(--tekst-etykieta)] lowercase">przybliż mapę, żeby zobaczyć obiekty{(planyGeo?.length ?? 0) > 0 ? ' i plany' : ''}</span>}
+                    {zoom < PROG_OBIEKTOW && (aktywne.length > 0 || (planyGeo?.length ?? 0) > 0) && <span className="text-[var(--tekst-etykieta)] lowercase mapa-podpowiedz">przybliż mapę, żeby zobaczyć obiekty{(planyGeo?.length ?? 0) > 0 ? ' i plany' : ''}</span>}
                 </div>
             )}
             <div style={{ position: 'relative', ...(wypelnij ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : {}) }}>
@@ -595,10 +568,10 @@ export default function MapaMiejsc({
             </p>
             </div>
             {granice && (
-                <div className="flex flex-col" style={{ gap: 6, fontSize: 'calc(13px * var(--font-scale, 1))' }}>
-                    <div className="flex flex-wrap items-center" style={{ gap: '6px 10px' }}>
-                        <span className="lowercase text-[var(--tekst-opis)]">granice historyczne:</span>
-                        <div className="flex flex-wrap w-fit" style={{ gap: 4 }} role="group" aria-label="granice historyczne – rok">
+                <div className="mapa-granice">
+                    <div className="filtry-rzad">
+                        <span className="filtry-podpis">granice historyczne:</span>
+                        <div className="filtry-rzad" role="group" aria-label="granice historyczne – rok">
                             {[null, ...LATA_GRANIC].map((l) => {
                                 const wl = l ? rok === l.rok : rok === null
                                 return (
@@ -608,7 +581,7 @@ export default function MapaMiejsc({
                                         aria-pressed={wl}
                                         title={l ? l.opis : 'bez granic historycznych'}
                                         onClick={() => setRok(l ? l.rok : null)}
-                                        className="k-btn k-btn--s lowercase whitespace-nowrap"
+                                        className="szukaj-filtr lowercase whitespace-nowrap"
                                     >
                                         {l?.etykieta ?? 'brak'}
                                     </button>

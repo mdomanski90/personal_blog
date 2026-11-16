@@ -27,17 +27,16 @@ export default function JakCytowac({ dane, plik, wTabeli = false }: { dane: Dane
     const bib = `@misc{${plik},\n  title = {${dane.tytul}},\n  howpublished = {${SERWIS}},\n  note = {oprac. ${dane.opracowal}${dane.oryginal ? `; oryginał: ${dane.oryginal}` : ''}},\n  ${dane.rok ? `year = {${dane.rok}},\n  ` : ''}url = {${dane.adres}},\n  urldate = {${iso}}\n}\n`
     const ris = [`TY  - ${dane.rodzaj === 'wpis' ? 'BLOG' : 'GEN'}`, `TI  - ${dane.tytul}`, ...(dane.autor ? [`AU  - ${dane.autor}`] : []), `A2  - ${dane.opracowal}`, ...(dane.rok ? [`PY  - ${dane.rok}`] : []), `T2  - ${SERWIS}`, `UR  - ${dane.adres}`, `Y2  - ${iso}`, ...(dane.oryginal ? [`N1  - Oryginał: ${dane.oryginal}`] : []), 'ER  - ', ''].join('\r\n')
     return (
-        <div className={wTabeli ? 'flex flex-col' : 'border border-[var(--linia-podzialu)] rounded-[8px] flex flex-col'} style={{ padding: wTabeli ? 0 : 12, gap: 8 }}>
-            <div className="flex items-center justify-between" style={{ gap: 8, ...(wTabeli ? { order: 2, justifyContent: 'flex-start' } : {}) }}>
-                {!wTabeli && <b className="lowercase" style={{ fontSize: 'calc(14px * var(--font-scale, 1))' }}>jak cytować</b>}
-                <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(tekst); ustaw(true); window.setTimeout(() => ustaw(false), 2000) } catch {} }}
-                    className="border border-[var(--linia-podzialu)] rounded-[7px] lowercase" style={{ height: 'calc(26px * var(--font-scale, 1))', padding: '0 10px', fontSize: 'calc(13px * var(--font-scale, 1))', background: 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit' }}>{skopiowano ? 'skopiowano ✓' : 'kopiuj'}</button>
+        <div className={`jak-cytowac${wTabeli ? ' jak-cytowac--w-tabeli' : ''}`}>
+            {!wTabeli && <h2 className="tytul-sekcji">jak cytować</h2>}
+            <p className="jak-cytowac-tekst">{tekst}</p>
+            <div className="jak-cytowac-akcje">
+                <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(tekst); ustaw(true); window.setTimeout(() => ustaw(false), 2000) } catch {} }} className="k-btn k-btn--s lowercase">{skopiowano ? 'skopiowano ✓' : 'kopiuj'}</button>
+                <span className="jak-cytowac-pliki">
+                    też jako: <button type="button" onClick={() => pobierz(`${plik}.bib`, bib, 'application/x-bibtex')} className="odn">BibTeX</button>
+                    {' · '}<button type="button" onClick={() => pobierz(`${plik}.ris`, ris, 'application/x-research-info-systems')} className="odn">RIS (do Zotero)</button>
+                </span>
             </div>
-            <p style={{ margin: 0, fontSize: 'calc(14px * var(--font-scale, 1))', lineHeight: 1.55 }}>{tekst}</p>
-            <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>
-                też jako: <button type="button" onClick={() => pobierz(`${plik}.bib`, bib, 'application/x-bibtex')} className="underline" style={{ background: 'none', border: 0, padding: 0, color: 'inherit', cursor: 'pointer', font: 'inherit' }}>BibTeX</button>
-                {' · '}<button type="button" onClick={() => pobierz(`${plik}.ris`, ris, 'application/x-research-info-systems')} className="underline" style={{ background: 'none', border: 0, padding: 0, color: 'inherit', cursor: 'pointer', font: 'inherit' }}>RIS (do Zotero)</button>
-            </span>
         </div>
     )
 }

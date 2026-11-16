@@ -191,7 +191,7 @@ export default config({
         lead: fields.text({
           label: 'Zapowiedź na stronie głównej',
           multiline: true,
-          description: '2–3 zdania, które zaczynają historię: człowiek, wydarzenie, wierny cytat albo pytanie (bez clickbaitu). Najnowszy wpis jest wyróżniony – tu warto dłużej, ok. 120–200 słów. Puste – początek tekstu wpisu.',
+          description: '2–3 zdania, które zaczynają historię: człowiek, wydarzenie, wierny cytat albo pytanie (bez clickbaitu). Wszystkie zapowiedzi na stronie głównej są równe – ok. 450–500 znaków (7–8 wierszy). Puste – początek tekstu wpisu.',
         }),
         cover: fields.relationship({
           label: 'Miniatura zapowiedzi (materiał z archiwum)',
