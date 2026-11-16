@@ -9,6 +9,8 @@ import {
     type Element, type Geometria, type Macierz, type Osoba, type Pkt, type Plan, type Podklad, type Zdjecie,
 } from '@/lib/plany/model'
 import { GRUPY, katalog, typGrobu, WARSTWY, type TypElementu, type UstawieniaPlanow, type Warstwa } from '@/lib/plany/typy'
+import { DOKLADNOSCI, RODZAJE_PLANU, RODZAJE_ZRODLA, ROZMIAR_STOPNIA, planGrobowy, rodzajPlanu, stopienNapisu, type RodzajPlanu, type Stopien } from '@/lib/plany/metadane'
+import { Uchwyt, useSzerokosc } from './Uchwyt'
 import { katWMiejscu, kopia, obrocGeom, podgladDanych, propozycjaGrobu, przeniesDane, zamienDane, pozycjaStempla, przesun, przyciagnij, przyciagnijKat, rozlozRowno, rozmiarBokiem, rozmiarGrobu, wektor, wyrownajWLinie, type Przyciaganie, type WzorStempla } from '@/lib/plany/edycja'
 import { ETAPY, ETYKIETA_ETAPU, ETYKIETA_POLOZENIA, ETYKIETA_ZRODEL, etapElementu, polozenie, poZmianieDanych, STANY_ZRODEL, stanZrodel, type Etap, type Polozenie, type StanZrodel } from '@/lib/plany/statusy'
 import { odczytajExif } from '@/lib/plany/exif'
@@ -40,6 +42,25 @@ type SkrotOsoby = { id: string; nazwa: string; imiona: string; nazwisko: string;
 const API = (slug: string) => `/api/keystatic/plany/${slug}`
 const plikUrl = (slug: string, plik: string) => `${API(slug)}/plik/${plik}`
 
+interface Listy {
+    miejsca: { id: string; nazwa: string }[]
+    obiekty: { id: string; nazwa: string; miejsce: string | null }[]
+    /** PH1: materiały ze stronami skanu – źródło planu i podkład ze strony materiału */
+    materialy: { id: string; nazwa: string; strony: string[] }[]
+}
+/** Podkład ze strony materiału: obraz z panelu materiałów (bez kopii pliku w planie). */
+const adresPodkladu = (slug: string, p: Podklad, materialy: Listy['materialy']) => {
+    if (!p.material) return plikUrl(slug, p.plik)
+    const plik = materialy.find((m) => m.id === p.material!.id)?.strony[p.material.strona]
+    return plik ? `/api/keystatic/materialy/${p.material.id}/strony?podglad=${encodeURIComponent(plik)}` : ''
+}
+/** PH-22: grupy rozwinięte domyślnie według rodzaju planu (potem stan zapamiętany w przeglądarce). */
+const GRUPY_ROZWINIETE: Record<RodzajPlanu, string[]> = {
+    cmentarz: ['Na cmentarzu', 'Cmentarze (obszary)', 'Drogi i linie', 'Napisy'],
+    historyczny: ['Zabudowa i miasto', 'Drogi i linie', 'Woda i teren', 'Świątynie i domy modlitwy', 'Napisy'],
+    schemat: ['Zabudowa i miasto', 'Drogi i linie', 'Woda i teren', 'Napisy'],
+}
+
 const odwrotna = (m: Macierz): Macierz => {
     const [a, b, c, d, e, f] = m, det = a * d - b * c || 1
     return [d / det, -b / det, -c / det, a / det, (c * f - d * e) / det, (b * e - a * f) / det]
@@ -67,7 +88,13 @@ const KLUCZ_KOPII = (slug: string) => `plan-niezapisany:${slug}`
 export default function Edytor({ slug }: { slug: string }) {
     const [plan, ustawPlanSurowo] = React.useState<Plan | null>(null)
     const [ust, ustawUst] = React.useState<UstawieniaPlanow>({ progLat: 30, ukryteTypy: [], wlasneTypy: [] })
-    const [listy, ustawListy] = React.useState<{ miejsca: { id: string; nazwa: string }[]; obiekty: { id: string; nazwa: string; miejsce: string | null }[] }>({ miejsca: [], obiekty: [] })
+    const [listy, ustawListy] = React.useState<Listy>({ miejsca: [], obiekty: [], materialy: [] })
+    // PH-21: szerokości paleta / panel – uchwyty, zapamiętane w przeglądarce
+    const [szerPalety, ustawSzerPalety] = useSzerokosc('plan-szer-paleta', 230, 170, 420)
+    const [szerPanelu, ustawSzerPanelu] = useSzerokosc('plan-szer-panel', 320, 260, 560)
+    // PH-22: zwinięte grupy typów – osobno dla każdego rodzaju planu (domyślnie rozwinięte grupy właściwe dla rodzaju)
+    const [pamiecGrup, ustawPamiecGrup] = React.useState<Record<string, string[]>>({})
+    React.useEffect(() => { try { const z = JSON.parse(localStorage.getItem('plan-grupy') ?? '{}'); if (z && typeof z === 'object') ustawPamiecGrup(z) } catch { /* bez pamięci */ } }, [])
     const [blad, ustawBlad] = React.useState('')
     const [zapis, ustawZapis] = React.useState<Zapis>('ok')
     const [zazn, ustawZazn] = React.useState<Set<string>>(new Set())
@@ -142,7 +169,7 @@ export default function Edytor({ slug }: { slug: string }) {
                     else if (sz) fetch(`${API(slug)}/szkic`, { method: 'DELETE' }).catch(() => {})
                 })
                 ustawUst(l.ustawienia)
-                ustawListy({ miejsca: l.miejsca, obiekty: l.obiekty })
+                ustawListy({ miejsca: l.miejsca, obiekty: l.obiekty, materialy: l.materialy ?? [] })
                 // ?el=<id> (z panelu zgłoszeń): zaznacz element i pokaż go
                 const elId = new URLSearchParams(window.location.search).get('el')
                 const e = elId ? (p as Plan).elementy.find((x) => x.id === elId) : null
@@ -850,6 +877,15 @@ export default function Edytor({ slug }: { slug: string }) {
 
     const prefix = `ed-${plan.slug}`
     const duchy = pw.otwarte ? planPowiel() : []
+    const rodzajGrup = rodzajPlanu(plan)
+    const grupyOtwarte = new Set(pamiecGrup[rodzajGrup] ?? GRUPY_ROZWINIETE[rodzajGrup])
+    const przelaczGrupe = (g: string) => {
+        const n = new Set(grupyOtwarte)
+        if (n.has(g)) n.delete(g); else n.add(g)
+        const nowa = { ...pamiecGrup, [rodzajGrup]: [...n] }
+        ustawPamiecGrup(nowa)
+        try { localStorage.setItem('plan-grupy', JSON.stringify(nowa)) } catch { /* bez pamięci */ }
+    }
     const grupy = GRUPY.map((g) => ({ g, t: [...typy.values()].filter((t) => t.grupa === g && !ukryteTypy.has(t.id) && (!szukajTypu || t.nazwa.toLowerCase().includes(szukajTypu.toLowerCase()))) })).filter((x) => x.t.length)
     const r = promien()
 
@@ -885,26 +921,30 @@ export default function Edytor({ slug }: { slug: string }) {
                 <button className="ed-btn" aria-pressed={teren} onClick={() => { if (!teren && plan.geo.length < 2) { pokaz('Tryb terenowy potrzebuje co najmniej 2 punktów geo (zakładka „plan”).'); return } ustawTeren(!teren); ustawNarz('wybierz') }} title="Na cmentarzu z telefonem: twoje położenie na planie, zdjęcie i „sprawdzony” jednym dotknięciem">w terenie</button>
                 <a className="ed-btn ed-nie-teren" href={`/plany/${plan.slug}`} target="_blank" rel="noreferrer">zobacz na stronie ↗</a>
             </header>
-            <div className={`ed-glowna${teren ? ' ed-glowna-teren' : ''}`} style={{ gridTemplateColumns: teren || tryb !== 'rysuj' ? 'minmax(0,1fr) 320px' : paletaOtwarta ? '230px minmax(0,1fr) 320px' : '36px minmax(0,1fr) 320px' }}>
+            <div className={`ed-glowna${teren ? ' ed-glowna-teren' : ''}`} style={{ gridTemplateColumns: teren || tryb !== 'rysuj' ? `minmax(0,1fr) 6px ${szerPanelu}px` : paletaOtwarta ? `${szerPalety}px 6px minmax(0,1fr) 6px ${szerPanelu}px` : `36px minmax(0,1fr) 6px ${szerPanelu}px` }}>
                 {!teren && tryb === 'rysuj' && <aside className="ed-paleta">
                     <button className="ed-btn" style={{ width: '100%' }} onClick={() => ustawPaletaOtwarta((o) => !o)} title="pokaż / ukryj typy">{paletaOtwarta ? '« typy' : '»'}</button>
                     {paletaOtwarta && (
                         <>
                             <form role="search" className="pole-szukania" onSubmit={(e) => { e.preventDefault(); const t = grupy[0]?.t[0]; if (t) wybierzTyp(t.id) }}><button type="submit">szukaj</button><input type="search" placeholder="typ, np. krzyż" aria-label="szukaj typu" value={szukajTypu} onChange={(e) => ustawSzukajTypu(e.target.value)} /></form>
-                            {grupy.map(({ g, t }) => (
+                            {grupy.map(({ g, t }) => {
+                                const otwarta = !!szukajTypu || grupyOtwarte.has(g)
+                                return (
                                 <div key={g} className="ed-grupa">
-                                    <div className="ed-gt">{g}</div>
-                                    {t.map((x) => (
+                                    <button type="button" className="ed-gt ed-gt-przycisk" aria-expanded={otwarta} onClick={() => przelaczGrupe(g)}>{otwarta ? '▾' : '▸'} {g} <span className="ed-maly">{t.length}</span></button>
+                                    {otwarta && t.map((x) => (
                                         <button key={x.id} className="ed-typ" aria-pressed={typId === x.id} onClick={() => wybierzTyp(x.id)} title={x.nazwa}>
                                             <Probka typ={x} prefix={`${prefix}-sw`} /><span>{x.nazwa}</span>
                                         </button>
                                     ))}
                                 </div>
-                            ))}
+                                )
+                            })}
                             <a href="/keystatic/plany/typy" className="ed-maly">katalog typów (widoczność, własne) →</a>
                         </>
                     )}
                 </aside>}
+                {!teren && tryb === 'rysuj' && paletaOtwarta && <Uchwyt wartosc={szerPalety} ustaw={ustawSzerPalety} domyslna={230} min={170} max={420} po="lewej" etykieta="szerokość palety typów" />}
                 <div className="ed-mapa">
                     <svg ref={svgRef} viewBox={vb.join(' ')} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDoubleClick={onDouble} onContextMenu={(e) => e.preventDefault()}
                         style={{ cursor: narz === 'wybierz' ? 'default' : 'crosshair' }}>
@@ -912,7 +952,7 @@ export default function Edytor({ slug }: { slug: string }) {
                         <rect x={vb[0] - vb[2]} y={vb[1] - vb[3]} width={vb[2] * 3} height={vb[3] * 3} style={{ fill: 'var(--pl-papier)' }} />
                         {przyc.siatka && <Siatka vb={vb} krok={przyc.krok} />}
                         {plan.podklady.filter((p) => !ukrytePodklady.has(p.id)).map((p) => (
-                            <image key={p.id} href={plikUrl(slug, p.plik)} width={p.szer} height={p.wys} transform={`matrix(${p.macierz.join(' ')})`} opacity={p.krycie} preserveAspectRatio="none" pointerEvents="none" />
+                            <image key={p.id} href={adresPodkladu(slug, p, listy.materialy)} width={p.szer} height={p.wys} transform={`matrix(${p.macierz.join(' ')})`} opacity={p.krycie} preserveAspectRatio="none" pointerEvents="none" />
                         ))}
                         <g opacity={plan.podklady.some((p) => !ukrytePodklady.has(p.id)) ? kryRys : 1}>
                             <RysunekPlanu plan={{ ...plan, obrot: 0 }} o={{ prefix, typy, ukryteTypy, wybrane: zazn, numery, ukryteWarstwy, edycja: true }} />
@@ -993,6 +1033,7 @@ export default function Edytor({ slug }: { slug: string }) {
                         </div>
                     )}
                 </div>
+                <Uchwyt wartosc={szerPanelu} ustaw={ustawSzerPanelu} domyslna={320} min={260} max={560} po="prawej" etykieta="szerokość panelu" />
                 <aside className="ed-panel">
                     {roznice && <TabelaRoznic plan={plan} roznice={roznice} zatwierdz={zatwierdzNumery} anuluj={() => ustawRoznice(null)} pokaz={pokazGrob} />}
                     <div className="ed-zakl">
@@ -1032,11 +1073,12 @@ export default function Edytor({ slug }: { slug: string }) {
                         </div>
                     )}
                     {zakl === 'plan' && <PanelPlanu plan={plan} listy={listy} skala={skala} rys={rys} narz={narz} ustawNarz={(n) => { ustawNarz(n); ustawRys([]) }} zmien={(zm) => zmien((p) => ({ ...p, ...zm }))} />}
-                    {zakl === 'plan' && <div className="ed-sekcja"><StanNumeracjiPlanu plan={plan} typy={typy} podglad={ustawRoznice} pokaz={pokazGrob} /></div>}
+                    {zakl === 'plan' && planGrobowy(plan) && <div className="ed-sekcja"><StanNumeracjiPlanu plan={plan} typy={typy} podglad={ustawRoznice} pokaz={pokazGrob} /></div>}
                     {zakl === 'podklady' && (
                         <PanelPodkladow plan={plan} slug={slug} ukryte={ukrytePodklady} przelacz={(id) => ustawUkrytePodklady((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })}
                             wgraj={wgrajPodklad} zmien={(id, zm) => zmien((p) => ({ ...p, podklady: p.podklady.map((x) => (x.id === id ? { ...x, ...zm } : x)) }))}
-                            usun={(id) => { const pd = plan.podklady.find((x) => x.id === id); zmien((p) => ({ ...p, podklady: p.podklady.filter((x) => x.id !== id) })); if (pd) fetch(`${API(slug)}/plik?plik=${encodeURIComponent(pd.plik)}`, { method: 'DELETE' }) }}
+                            materialy={listy.materialy} dodaj={(pd) => zmien((p) => ({ ...p, podklady: [...p.podklady, pd] }))}
+                            usun={(id) => { const pd = plan.podklady.find((x) => x.id === id); zmien((p) => ({ ...p, podklady: p.podklady.filter((x) => x.id !== id) })); if (pd && !pd.material && pd.plik) fetch(`${API(slug)}/plik?plik=${encodeURIComponent(pd.plik)}`, { method: 'DELETE' }) }}
                             dop={dop} zacznijDop={(id) => { ustawDop({ podklad: id, pary: [] }); ustawNarz('dopasuj') }} anulujDop={() => { ustawDop(null); ustawNarz('wybierz') }}
                             zastosujDop={() => {
                                 if (!dop) return
@@ -1191,6 +1233,61 @@ function RokZgonu({ e }: { e: Element }) {
     return <span className="ed-maly">Przyjęty rok śmierci: {r.rok} (z napisu) – jeśli to np. rok odnowienia nagrobka, wpisz właściwy rok śmierci.</span>
 }
 
+/** PH1 (PH-03, 11): rodzaj planu, dwie daty, źródło, dokładność, kolejność na liście planów miejscowości. */
+function MetadanePlanu({ plan, listy, zmien }: { plan: Plan; listy: Listy; zmien: (zm: Partial<Plan>) => void }) {
+    const opc = (v: string) => v || undefined
+    return (
+        <>
+            <div className="ed-gt">rodzaj i metadane</div>
+            <Pole etykieta="rodzaj planu"><select className="ed-in" value={rodzajPlanu(plan)} onChange={(e) => zmien({ rodzaj: e.target.value as RodzajPlanu })}>{(Object.keys(RODZAJE_PLANU) as RodzajPlanu[]).map((r) => <option key={r} value={r}>{RODZAJE_PLANU[r]}</option>)}</select></Pole>
+            {!plan.rodzaj && <p className="ed-maly">Rodzaj niezapisany – plan zachowuje się jak plan cmentarza.</p>}
+            <Pole etykieta="stan przedstawiony (EDTF, np. 1939, 193X)"><input className="ed-in" value={plan.okres ?? ''} onChange={(e) => zmien({ okres: opc(e.target.value) })} /></Pole>
+            <Pole etykieta="sporządzono (EDTF)"><input className="ed-in" value={plan.sporzadzono ?? ''} onChange={(e) => zmien({ sporzadzono: opc(e.target.value) })} /></Pole>
+            <Pole etykieta="rodzaj źródła"><select className="ed-in" value={plan.rodzajZrodla ?? ''} onChange={(e) => zmien({ rodzajZrodla: opc(e.target.value) as Plan['rodzajZrodla'] })}><option value="">—</option>{Object.entries(RODZAJE_ZRODLA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Pole>
+            <Pole etykieta="twórca"><input className="ed-in" value={plan.tworca ?? ''} onChange={(e) => zmien({ tworca: opc(e.target.value) })} /></Pole>
+            <Pole etykieta="materiał źródłowy (skan w archiwum) – plan otworzy się na stronie materiału"><select className="ed-in" value={plan.zrodlo?.material ?? ''} onChange={(e) => zmien({ zrodlo: e.target.value || plan.zrodlo?.opis ? { ...plan.zrodlo, material: opc(e.target.value) } : undefined })}><option value="">—</option>{listy.materialy.map((m) => <option key={m.id} value={m.id}>{m.nazwa}</option>)}</select></Pole>
+            <Pole etykieta="źródło – opis"><input className="ed-in" value={plan.zrodlo?.opis ?? ''} onChange={(e) => zmien({ zrodlo: e.target.value || plan.zrodlo?.material ? { ...plan.zrodlo, opis: opc(e.target.value) } : undefined })} /></Pole>
+            <Pole etykieta="prawa do rekonstrukcji"><input className="ed-in" value={plan.prawa ?? ''} onChange={(e) => zmien({ prawa: opc(e.target.value) })} /></Pole>
+            <Pole etykieta="dokładność"><select className="ed-in" value={plan.dokladnosc ?? ''} onChange={(e) => zmien({ dokladnosc: opc(e.target.value) as Plan['dokladnosc'] })}><option value="">—</option>{Object.entries(DOKLADNOSCI).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Pole>
+            {plan.dokladnosc === 'schematyczny' && <p className="ed-maly">Plan schematyczny – na stronie bez paska skali.</p>}
+            <Pole etykieta="zasięg (opis)"><input className="ed-in" value={plan.zasieg ?? ''} onChange={(e) => zmien({ zasieg: opc(e.target.value) })} /></Pole>
+            <div className="ed-rzad">
+                <label className="ed-ch"><input type="checkbox" checked={!!plan.wyrozniony} onChange={(e) => zmien({ wyrozniony: e.target.checked || undefined })} /> plan reprezentacyjny miejscowości</label>
+                <label className="ed-ch">kolejność <input className="ed-in" type="number" value={plan.kolejnosc ?? ''} onChange={(e) => zmien({ kolejnosc: e.target.value === '' ? undefined : +e.target.value })} /></label>
+            </div>
+        </>
+    )
+}
+
+/** PH1 (K6): podkład = strona materiału archiwum; rozmiar z obrazu, wstępnie dopasowany do szerokości planu. */
+function PodkladZMaterialu({ plan, materialy, dodaj }: { plan: Plan; materialy: Listy['materialy']; dodaj: (p: Podklad) => void }) {
+    const [id, ustawId] = React.useState(plan.zrodlo?.material ?? '')
+    const [strona, ustawStrone] = React.useState(0)
+    const [blad, ustawBlad] = React.useState('')
+    const m = materialy.find((x) => x.id === id)
+    const wstaw = () => {
+        if (!m || !m.strony[strona]) return
+        const img = new Image()
+        img.onload = () => {
+            const k = plan.szer / img.naturalWidth
+            dodaj({ id: noweId(), plik: '', nazwa: `${m.nazwa}${m.strony.length > 1 ? `, s. ${strona + 1}` : ''}`, szer: img.naturalWidth, wys: img.naturalHeight, macierz: [k, 0, 0, k, 0, 0], krycie: 1, widocznosc: 'edycja', material: { id: m.id, strona } })
+            ustawBlad('')
+        }
+        img.onerror = () => ustawBlad('Nie udało się wczytać strony materiału.')
+        img.src = `/api/keystatic/materialy/${m.id}/strony?podglad=${encodeURIComponent(m.strony[strona])}`
+    }
+    if (!materialy.length) return null
+    return (
+        <div className="ed-ramka-sek ed-sekcja">
+            <div className="ed-gt">podkład ze strony materiału</div>
+            <select className="ed-in" value={id} onChange={(e) => { ustawId(e.target.value); ustawStrone(0) }} aria-label="materiał"><option value="">— materiał —</option>{materialy.map((x) => <option key={x.id} value={x.id}>{x.nazwa}</option>)}</select>
+            {m && m.strony.length > 1 && <select className="ed-in" value={strona} onChange={(e) => ustawStrone(+e.target.value)} aria-label="strona">{m.strony.map((_, i) => <option key={i} value={i}>strona {i + 1}</option>)}</select>}
+            <button className="ed-btn" disabled={!m} onClick={wstaw}>+ dodaj podkład</button>
+            {blad && <p className="ed-maly">{blad}</p>}
+        </div>
+    )
+}
+
 function Pole({ etykieta, children }: { etykieta: string; children: React.ReactNode }) {
     return <label className="ed-pole"><span>{etykieta}</span>{children}</label>
 }
@@ -1261,7 +1358,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
             {t?.rys !== 'napis' && t?.id !== 'kwatera' && <label className="ed-ch"><input type="checkbox" checked={e.pokazNazwe ?? (t?.rodzaj === 'obszar' && !t?.grob)} onChange={(x) => zmiana({ pokazNazwe: x.target.checked })} /> pokaż nazwę na planie</label>}
             {(t?.rys === 'napis' || e.pokazNazwe) && (
                 <div className="ed-rzad">
-                    <span className="ed-seg">{(['s', 'm', 'l'] as const).map((r) => <button key={r} aria-pressed={(e.rozmiar ?? (t?.rys === 'napis' ? 'm' : 's')) === r} onClick={() => zmiana({ rozmiar: r })}>{r.toUpperCase()}</button>)}</span>
+                    <span className="ed-seg" role="group" aria-label="wielkość napisu (stopień)">{(Object.keys(ROZMIAR_STOPNIA).map(Number) as Stopien[]).map((n) => <button key={n} aria-pressed={stopienNapisu(e, t?.rys === 'napis' ? 3 : 2) === n} title={`stopień ${n} (${ROZMIAR_STOPNIA[n]} jednostki planu)`} onClick={() => zmiana({ stopien: n, rozmiar: undefined })}>{n}</button>)}</span>
                     <select className="ed-in" value={e.styl ?? ''} onChange={(x) => zmiana({ styl: (x.target.value || undefined) as Element['styl'] })}><option value="">styl domyślny</option><option value="zwykly">zwykły</option><option value="kursywa">kursywa</option><option value="rozstrzelony">rozstrzelony</option></select>
                     <select className="ed-in" value={e.kolor ?? ''} onChange={(x) => zmiana({ kolor: (x.target.value || undefined) as Element['kolor'] })}><option value="">kolor domyślny</option><option value="tekst">czarny</option><option value="szary">szary</option><option value="woda">woda</option><option value="las">roślinność</option><option value="teren">teren</option><option value="pamiec">pamięć</option></select>
                 </div>
@@ -1452,7 +1549,7 @@ function PanelWielu({ zaznaczone, wzor, typy, duplikuj, usun, obroc, powielOtwar
 }
 
 function PanelPlanu({ plan, listy, skala, rys, narz, ustawNarz, zmien }: {
-    plan: Plan; listy: { miejsca: { id: string; nazwa: string }[]; obiekty: { id: string; nazwa: string; miejsce: string | null }[] }; skala: number | null; rys: Pkt[]; narz: Narzedzie
+    plan: Plan; listy: Listy; skala: number | null; rys: Pkt[]; narz: Narzedzie
     ustawNarz: (n: Narzedzie) => void; zmien: (zm: Partial<Plan>) => void
 }) {
     const [metry, ustawMetry] = React.useState('')
@@ -1465,6 +1562,7 @@ function PanelPlanu({ plan, listy, skala, rys, narz, ustawNarz, zmien }: {
             <Pole etykieta="obiekt (np. cmentarz)"><select className="ed-in" value={plan.obiekt ?? ''} onChange={(e) => zmien({ obiekt: e.target.value || undefined })}><option value="">—</option>{listy.obiekty.filter((o) => !plan.miejsce || o.miejsce === plan.miejsce).map((o) => <option key={o.id} value={o.id}>{o.nazwa}</option>)}</select></Pole>
             <Pole etykieta="widoczność planu"><select className="ed-in" value={plan.widocznosc} onChange={(e) => zmien({ widocznosc: e.target.value as Plan['widocznosc'] })}><option value="ja">szkic – tylko ja</option><option value="bliscy">dla bliskich</option><option value="publiczne">publiczny</option></select></Pole>
             <Pole etykieta="opis pod tytułem"><textarea className="ed-in" rows={3} value={plan.opis ?? ''} onChange={(e) => zmien({ opis: e.target.value || undefined })} /></Pole>
+            <MetadanePlanu plan={plan} listy={listy} zmien={zmien} />
             <div className="ed-gt">skala i kierunek</div>
             <div className="ed-wiersz"><span>skala</span><b>{skala ? `1 j. = ${skala.toFixed(4)} m` : 'nieustawiona'}{plan.skala === null && skala ? ' (z punktów geo)' : ''}</b></div>
             <button className="ed-btn" aria-pressed={narz === 'skala'} onClick={() => ustawNarz('skala')}>ustaw skalę: 2 punkty i odległość</button>
@@ -1491,19 +1589,22 @@ function PanelPlanu({ plan, listy, skala, rys, narz, ustawNarz, zmien }: {
     )
 }
 
-function PanelPodkladow({ plan, slug, ukryte, przelacz, wgraj, zmien, usun, dop, zacznijDop, anulujDop, zastosujDop }: {
+function PanelPodkladow({ plan, slug, ukryte, przelacz, wgraj, zmien, usun, dop, zacznijDop, anulujDop, zastosujDop, materialy, dodaj }: {
     plan: Plan; slug: string; ukryte: Set<string>; przelacz: (id: string) => void; wgraj: (f: File) => void; zmien: (id: string, zm: Partial<Podklad>) => void; usun: (id: string) => void
+    materialy: Listy['materialy']; dodaj: (p: Podklad) => void
     dop: { podklad: string; pary: { zr: Pkt; cel?: Pkt }[] } | null; zacznijDop: (id: string) => void; anulujDop: () => void; zastosujDop: () => void
 }) {
     void slug
     return (
         <div className="ed-sekcja">
             <p className="ed-maly">Podkład to obraz, na którym rysujesz: zrzut ortofotomapy z Geoportalu, skan dawnej mapy, zdjęcie z drona, szkic. JPG, PNG, WebP albo TIFF; duże pliki są zmniejszane. Na stronie widać tylko rysunek – chyba że udostępnisz podkład.</p>
+            <PodkladZMaterialu plan={plan} materialy={materialy} dodaj={dodaj} />
             <label className="ed-btn">+ wgraj podkład<input type="file" accept="image/jpeg,image/png,image/webp,image/tiff" hidden onChange={(e) => e.target.files?.[0] && wgraj(e.target.files[0])} /></label>
             {plan.podklady.map((p, i) => (
                 <div key={p.id} className="ed-ramka-sek ed-sekcja">
                     <div className="ed-rzad"><label className="ed-ch"><input type="checkbox" checked={!ukryte.has(p.id)} onChange={() => przelacz(p.id)} /></label><input className="ed-in" value={p.nazwa} onChange={(e) => zmien(p.id, { nazwa: e.target.value })} /></div>
                     <Pole etykieta={`krycie ${Math.round(p.krycie * 100)}%`}><input type="range" min={0.05} max={1} step={0.05} value={p.krycie} onChange={(e) => zmien(p.id, { krycie: +e.target.value })} /></Pole>
+                    {p.material && <p className="ed-maly">strona {p.material.strona + 1} materiału „{materialy.find((m) => m.id === p.material!.id)?.nazwa ?? p.material.id}” – obraz i prawa z karty materiału; na stronie rekonstrukcja jest warstwą skanu.</p>}
                     <Pole etykieta="kto widzi na stronie"><select className="ed-in" value={p.widocznosc} onChange={(e) => zmien(p.id, { widocznosc: e.target.value as Podklad['widocznosc'] })}><option value="edycja">tylko edycja</option><option value="bliscy">dla bliskich</option><option value="publiczne">publicznie</option></select></Pole>
                     <div className="ed-rzad">
                         {i > 0 && (dop?.podklad === p.id ? (
@@ -1542,6 +1643,9 @@ textarea.ed-in{height:auto;padding:6px 8px;resize:vertical}
 .ed-paleta{border-right:1px solid #d6d1c6;background:#fff;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
 .ed-grupa{display:flex;flex-direction:column;gap:2px}
 .ed-gt{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--tekst-etykieta);margin-top:4px}
+.ed-gt-przycisk{font:inherit;font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:none;border:0;padding:2px 0;text-align:left;cursor:pointer;display:flex;gap:6px;align-items:baseline;color:var(--tekst-etykieta)}
+.ed-uchwyt{cursor:col-resize;background:transparent;touch-action:none;border-left:1px solid transparent}
+.ed-uchwyt:hover,.ed-uchwyt:focus-visible{background:var(--linia-podzialu,#d6d1c6);outline:none}
 .ed-typ{font:inherit;display:flex;align-items:center;gap:8px;padding:3px 6px;border:1px solid transparent;border-radius:6px;background:none;color:inherit;cursor:pointer;text-align:left;font-size:12px}
 .ed-typ[aria-pressed=true]{border-color:#4c3cc4;background:rgba(76,60,196,.08)}
 .ed-typ span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1594,6 +1698,6 @@ p.ed-maly,span.ed-maly{cursor:default}
 .ed-zapis{font-size:12px;color:#6b665c}.ed-ostatni{font-size:12px;color:#6b665c;white-space:nowrap;font-variant-numeric:tabular-nums}.ed-napis{font-family:var(--font-jetbrains),monospace;text-align:center;white-space:pre}.ed-uch-bok{cursor:ew-resize}.ed-duch-ok{stroke:#15803d!important;fill:rgba(21,128,61,.15)!important}.ed-filtr{fill:none;stroke:#ea580c;stroke-width:2.2;vector-effect:non-scaling-stroke}.ed-ja{fill:#4c3cc4;stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}.ed-ja-acc{fill:rgba(76,60,196,.12);stroke:rgba(76,60,196,.5);stroke-width:1;vector-effect:non-scaling-stroke}.ed-staty{position:absolute;left:10px;top:10px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:11.5px;background:rgba(255,255,255,.92);border:1px solid #d6d1c6;border-radius:8px;padding:3px 6px;max-width:calc(100% - 70px)}.dark .ed-staty{background:rgba(28,31,36,.92);border-color:#3a3f48}.ed-staty button{font:inherit;border:1px solid #d6d1c6;border-radius:6px;background:transparent;padding:1px 7px;cursor:pointer;color:inherit}.ed-staty button[aria-pressed=true]{background:#ea580c;border-color:#ea580c;color:#fff}.ed-staty button:disabled{opacity:.45;cursor:default}.ed-teren{position:absolute;left:8px;right:8px;bottom:8px;display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid #d6d1c6;border-radius:10px;padding:8px;box-shadow:0 2px 12px rgb(0 0 0/.15)}.dark .ed-teren{background:#1c1f24;border-color:#3a3f48}.ed-teren .ed-rzad{flex-wrap:wrap}.ed-teren-info{font-size:13px;font-weight:600}.ed-wyl{opacity:.45;pointer-events:none}.ed-glowna-teren .ed-pomoc,.ed-glowna-teren .ed-akcje{display:none}.ed-osoba{display:flex;flex-direction:column;gap:3px;position:relative}.ed-podp{display:flex;flex-direction:column;border:1px solid #d6d1c6;border-radius:7px;overflow:hidden;background:#fff}.dark .ed-podp{background:#1c1f24;border-color:#3a3f48}.ed-podp button{display:flex;justify-content:space-between;gap:8px;text-align:left;font:inherit;font-size:12.5px;padding:5px 8px;border:0;border-bottom:1px solid #eeeae2;background:transparent;color:inherit;cursor:pointer}.ed-podp button:hover{background:rgba(76,60,196,.08)}.ed-link{border:0;background:none;padding:0;font:inherit;color:#4c3cc4;cursor:pointer;text-decoration:underline}.dark .ed-link{color:#a597ff}.ed-kopia{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;background:#fef3c7;color:#78350f;padding:2px 8px;border-radius:7px}.ed-zapis-blad,.ed-zapis-konflikt{color:#b91c1c}.ed-zapis-ok{color:#15803d}
 .ed-zapis-odrzucony{color:#b91c1c}
 .dark .ed-zapis,.dark .ed-ostatni{color:#9ca3af}.dark .ed-zapis-ok{color:#4ade80}.dark .ed-zapis-konflikt,.dark .ed-zapis-odrzucony{color:#f87171}
-@media (max-width:900px){.ed-glowna{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto minmax(55vh,1fr) auto}.ed-paleta{border-right:0;border-bottom:1px solid #d6d1c6;max-height:30vh}.ed-panel{border-left:0;border-top:1px solid #d6d1c6;max-height:45vh}}
+@media (max-width:900px){.ed-uchwyt{display:none}.ed-glowna{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto minmax(55vh,1fr) auto}.ed-paleta{border-right:0;border-bottom:1px solid #d6d1c6;max-height:30vh}.ed-panel{border-left:0;border-top:1px solid #d6d1c6;max-height:45vh}}
 .ed-pasek-teren .ed-nie-teren{display:none!important}.ed-pasek:not(.ed-tryb-rysuj) .ed-tylko-rysuj{display:none!important}@media (max-width:900px){.ed-glowna-teren{grid-template-rows:minmax(64vh,1fr) auto!important}.ed-glowna-teren .ed-panel{max-height:32vh}.ed-teren{left:4px;right:4px;bottom:4px;padding:6px;gap:4px}}@media (pointer:coarse){.ed-btn,.ed-seg button,.ed-zakl button,.ed-akcje button,.ed-in{height:36px}.ed-uch{stroke-width:3}}
 `

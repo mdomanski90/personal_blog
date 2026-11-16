@@ -1,4 +1,5 @@
-import { miejsca, obiekty } from '@/lib/archiwum'
+import { materialy, miejsca, obiekty } from '@/lib/archiwum'
+import { stronyMaterialu } from '@/lib/strony-materialow'
 import { brakDostepu, listaPlanow, listaZgloszen, wczytajPlan, wczytajUstawienia, zapiszObraz, zapiszPlan } from '@/lib/plany/dane'
 import { nowyPlan, popraw, SLUG, type Plan } from '@/lib/plany/model'
 import { zNadaniemNumerow } from '@/lib/katalog/dane'
@@ -13,6 +14,8 @@ export async function GET(req: Request) {
         plany: plany.map((p) => ({ slug: p.slug, tytul: p.tytul, widocznosc: p.widocznosc, miejsce: p.miejsce, obiekt: p.obiekt, elementow: p.elementy.length, zmieniono: p.zmieniono })),
         miejsca: (await miejsca('ja')).map((m) => ({ id: m.id, nazwa: m.nazwa })),
         obiekty: (await obiekty('ja')).map((o) => ({ id: o.id, nazwa: o.nazwa, miejsce: o.miejsce })),
+        // PH1: materiały ze stronami skanu – źródło planu i podkład ze strony materiału (panel za hasłem: wszystkie poziomy)
+        materialy: (await materialy('ja')).map((m) => ({ id: m.id, nazwa: m.nazwa, strony: stronyMaterialu(m.id).map((x) => x.plik) })).filter((m) => m.strony.length),
         zgloszenia: (await listaZgloszen()).length,
         ustawienia: await wczytajUstawienia(),
     })
