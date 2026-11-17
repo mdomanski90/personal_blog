@@ -33,7 +33,7 @@ export default async function Publikacje({ searchParams }: { searchParams: Promi
     <p className="ot-drobne" aria-live="polite">{lista.length} {lista.length === 1 ? 'pozycja' : lista.length % 10 >= 2 && lista.length % 10 <= 4 && (lista.length % 100 < 12 || lista.length % 100 > 14) ? 'pozycje' : 'pozycji'}</p>
     {/* P7F-3: publikacje jako karty – ten sam wzorzec co księgi metrykalne i karty osób */}
     {lista.length ? <div className="karty-ksiag">
-      {lista.map(p => <KartaPozycji key={p.id} etykieta={p.nazwa}
+      {lista.map(p => <KartaPozycji key={p.id} poziom={2} etykieta={p.nazwa}
         tytul={<Link href={`/biblioteka/publikacje/${p.id}`} className="kp-tytul">{p.nazwa}</Link>}
         prawa={[RODZAJE_PUBLIKACJI[p.rodzaj], p.rok].filter(Boolean).join(' · ')}>
         <Wiersz e="autor">{p.autor}</Wiersz>

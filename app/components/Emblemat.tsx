@@ -85,7 +85,8 @@ export default function Emblemat({ rozmiar = 56, animacja = true }: { rozmiar?: 
                     <path key={i} d={k.d} transform={k.g} strokeWidth={k.w ?? 1.4} />
                 ))}
                 <text fill="currentColor" stroke="none" fontSize={5} fontWeight={700} letterSpacing={0.6} textAnchor="middle" aria-hidden="true">
-                    <tspan x={40} y={89.5}>KAPLICZKA</tspan>
+                    {/* spacja na końcu 1. wiersza: tekst odczytany z rysunku to „KAPLICZKA W OLSZANCE” (axe label-content-name-mismatch); dx cofa jej przesunięcie środka */}
+                    <tspan x={40} y={89.5} dx={1.81}>{'KAPLICZKA '}</tspan>
                     <tspan x={40} y={95.7}>W OLSZANCE</tspan>
                 </text>
             </g>

@@ -46,7 +46,7 @@ export default function ScrollToTop() {
             style={{
                 width: '48px',
                 height: '48px',
-                fontSize: '20px',
+                fontSize: 'calc(20px * var(--font-scale, 1))',
                 fontWeight: '700',
                 backgroundColor: 'var(--background)', // Upewnij się, że nie jest przezroczysty
             }}

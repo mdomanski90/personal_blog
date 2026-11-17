@@ -90,20 +90,20 @@ export default function SiteHeader({ akcje }: { akcje?: React.ReactNode } = {}) 
     return (
         <header>
             {/* niewidoczny, dopóki nie dojdzie się do niego klawiszem Tab */}
-            <a href={glowna ? '#wysz-start' : '#tresc'} className="pomin-do-tresci">przejdź do treści</a>
+            <a href="#tresc" className="pomin-do-tresci">przejdź do treści</a>
             {/* na telefonie przyciski (zaloguj, motyw, A−/A+) nad tytułem, na szerszym ekranie obok */}
             <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between" style={{ gap: '0.75rem 1rem' }}>
                 <div className="min-w-0 flex items-end" style={{ gap: '14px' }}>
-                    <Link href="/" className="!no-underline text-current shrink-0 naglowek-emblemat" aria-label="odniepamieci.pl – strona główna">
+                    <Link href="/" className="!no-underline text-current shrink-0 naglowek-emblemat" aria-label="kapliczka w Olszance – odniepamieci.pl, strona główna">
                         <Emblemat rozmiar={100} />
                     </Link>
                     <div className="min-w-0">
                     <Link href="/" className="!no-underline text-current">
-                        <span className="block font-bold whitespace-nowrap" style={{ fontSize: 'clamp(1.5rem, 8vw, 2rem)', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                        <span className="block font-bold whitespace-nowrap" style={{ fontSize: 'clamp(1.5rem, 8vw, 2rem)' /* skala-wyjatek: nazwa serwisu w stałym układzie nagłówka */, lineHeight: 1, letterSpacing: '-0.02em' }}>
                             odniepamieci.pl
                         </span>
                     </Link>
-                    <p className="lowercase" style={{ fontSize: '16px', lineHeight: 1.2, marginTop: '7px' }}>
+                    <p className="lowercase" style={{ fontSize: 'calc(16px * var(--font-scale, 1))', lineHeight: 1.2, marginTop: '7px' }}>
                         społeczne archiwum pamięci lokalnej
                     </p>
                     <p className="naglowek-rzeki">

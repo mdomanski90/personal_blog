@@ -16,7 +16,7 @@ export default async function Zaloguj({ searchParams }: { searchParams: Promise<
     const sp = await searchParams
     const wroc = adresPowrotu(sp.wroc)
     const zalogowany = (await poziomCzytelnika()) !== 'publiczne'
-    const pole = { fontSize: 'calc(15px * var(--font-scale, 1))', minHeight: 'calc(32px * var(--font-scale, 1))', padding: '0 10px', borderRadius: 7 }
+    const pole = { fontSize: 'calc(15px * var(--font-scale, 1))', minHeight: 'calc(44px * var(--font-scale, 1))', padding: '0 10px', borderRadius: 7 }
     return (
         <Strona>
             <TytulStrony>dla bliskich</TytulStrony>

@@ -68,7 +68,7 @@ export default function ThemeToggle() {
                 type="button"
                 onClick={() => zmienRozmiar(-1)}
                 disabled={najmniejszy}
-                aria-label="mniejsza czcionka"
+                aria-label="A−, mniejsza czcionka"
                 title="mniejsza czcionka"
             >
                 A−
@@ -77,7 +77,7 @@ export default function ThemeToggle() {
                 type="button"
                 onClick={() => zmienRozmiar(1)}
                 disabled={najwiekszy}
-                aria-label="większa czcionka"
+                aria-label="A+, większa czcionka"
                 title="większa czcionka"
             >
                 A+

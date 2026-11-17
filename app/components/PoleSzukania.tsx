@@ -2,7 +2,7 @@ import * as React from 'react'
 
 // Jedno wspólne pole wyszukiwania: przycisk „szukaj” wewnątrz ramki (kliknięcie = Enter), obok pole tekstowe.
 // Działa jako zwykły formularz GET (action) albo z obsługą w komponencie (onSubmit / onChange).
-export default function PoleSzukania({ action, name = 'q', value, defaultValue, onChange, onSubmit, placeholder, etykieta = 'szukaj', obszar, id, ukryte, className = '', style, autoFocus, children }: {
+export default function PoleSzukania({ action, name = 'q', value, defaultValue, onChange, onSubmit, placeholder, etykieta = 'szukaj', obszar = 'szukaj na tej stronie', id, ukryte, className = '', style, autoFocus, children }: {
     action?: string
     name?: string
     value?: string

@@ -15,7 +15,7 @@ import { adresZGrobem, elementyKadruStartowego, napisyDoOdczytania, elementyNawi
 import { kadr, Podzialka, RysunekPlanu, Wzory } from './Rysunek'
 import { WzoryProbek } from './Probka'
 import PanelPlanu, { CalyPanelu, CzescPanelu, KartaElementu, KartaGrobu, LegendaNumerowana, LegendaTypow, PanelRodziny, WierszPanelu, WynikiSzukania, opisElementu, type Rodzina } from './PanelPlanu'
-import { animuj, useFokusPowrotu } from '@/lib/ruch'
+import { animuj, useFokusPowrotu, useUwiezionyFokus } from '@/lib/ruch'
 import { odmiana } from '@/lib/tekst'
 
 export interface NarzedziaPlanu { png: () => void; drukuj: () => void }
@@ -431,6 +431,8 @@ function Galeria({ plan, el, numer, i, ustaw }: { plan: Plan; el: Element; numer
     // 5A (scena 4): okno wchodzi wygaszeniem (globals.css), fokus na „zamknij”, po zamknięciu wraca na miniaturę
     const zamknijRef = React.useRef<HTMLButtonElement>(null)
     useFokusPowrotu(true, { wejscie: () => zamknijRef.current })
+    const okno = React.useRef<HTMLDivElement>(null)
+    useUwiezionyFokus(true, okno)
     React.useEffect(() => {
         const k = (e: KeyboardEvent) => {
             if (e.key === 'Escape') { e.stopPropagation(); ustaw(null) }
@@ -444,7 +446,7 @@ function Galeria({ plan, el, numer, i, ustaw }: { plan: Plan; el: Element; numer
     }, [i, L.length, ustaw])
     const z = L[i]
     return (
-        <div className="plan-galeria" role="dialog" aria-modal="true" aria-label="zdjęcie nagrobka" onClick={(e) => { if (e.target === e.currentTarget) ustaw(null) }}>
+        <div ref={okno} className="plan-galeria" role="dialog" aria-modal="true" aria-label="zdjęcie nagrobka" onClick={(e) => { if (e.target === e.currentTarget) ustaw(null) }}>
             <div className="plan-galeria-glowa">
                 <span>{plan.tytul}{numer ? ` · ${numerTekst(numer)}` : ''}</span>
                 <span className="plan-panel-odstep" />

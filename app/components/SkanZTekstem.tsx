@@ -16,6 +16,7 @@ import { KartaElementu, LegendaNumerowana } from './plan/PanelPlanu'
 import { katalog } from '@/lib/plany/typy'
 import { elementyLegendy } from '@/lib/plany/ph3'
 import { znakObjasnienia } from '@/lib/plany/przegladarka'
+import { ListaZakladek, atrybutyPanelu } from './Zakladki'
 
 // PH4: zakładka „plan” – obiekty rekonstrukcji (legenda numerowana) i wybrany obiekt, te same części co PanelPlanu
 type Zakladka = 'transkrypcja' | 'oryginał' | 'tłumaczenie' | 'objaśnienia' | 'plan'
@@ -87,17 +88,15 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
         return () => window.clearTimeout(t)
     }, [aktywne, zakladka])
 
-    const pasek = (
-                <div className="szt-pasek">
-                    {dostepne.length > 1 ? (
-                        <span className="dok-grupa" role="tablist" aria-label="tekst">
-                            {dostepne.map((z) => (
-                                <button key={z} type="button" role="tab" aria-selected={zakladka === z} onClick={() => ustawZakladke(z)}>{z}</button>
-                            ))}
-                        </span>
-                    ) : <b className="szt-jedna">{dostepne[0]}</b>}
-                    <span className="szt-strona">{strony.length > 1 ? `strona ${strona + 1}` : ''}</span>
-                </div>
+    // UX-04: jedna lista zakładek (WAI-ARIA); pasek jest w karcie i – osobno – w panelu pełnego ekranu, stąd dwa prefiksy identyfikatorów
+    const uid = React.useId()
+    const pasek = (prefix: string) => (
+        <div className="szt-pasek">
+            {dostepne.length > 1
+                ? <ListaZakladek prefix={prefix} etykieta="tekst" zakladki={dostepne.map((z) => ({ id: z, etykieta: z }))} aktywna={zakladka} ustaw={ustawZakladke} />
+                : <b className="szt-jedna">{dostepne[0]}</b>}
+            <span className="szt-strona">{strony.length > 1 ? `strona ${strona + 1}` : ''}</span>
+        </div>
     )
     const tresc = (
         <>
@@ -131,6 +130,8 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
         </>
     )
     const opis = `${zakladka}${strony.length > 1 ? `, strona ${strona + 1}` : ''}`
+    // panel tekstu: z zakładkami – tabpanel powiązany z aktywną zakładką; bez zakładek (jedna część) – zwykły obszar z nazwą
+    const atrybutyTekstu = (prefix: string) => (dostepne.length > 1 ? atrybutyPanelu(prefix, zakladka) : { role: 'region' as const, 'aria-label': opis })
     return (
         <section className="skan-z-tekstem" aria-label="skan i tekst">
             <div className="szt-skan">
@@ -138,11 +139,11 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
                 <PrzegladarkaDokumentu strony={strony} objasnienia={objasnienia} tytul={tytul} wariant="karta" wysokosc="calc(560px * var(--font-scale, 1))"
                     naZmianeStrony={ustawStrone} aktywneZ={aktywne} naAktywne={zSkanu} rekonstrukcja={rekonstrukcja}
                     elementZ={rekonstrukcja ? element : undefined} naElement={rekonstrukcja ? (id) => { ustawElement(id); if (id) ustawZakladke('plan') } : undefined}
-                    panelTekstu={<div className="szt-tekst szt-tekst-pelny">{pasek}<div className="szt-tresc" tabIndex={0} role="tabpanel" aria-label={opis}>{tresc}</div></div>} />
+                    panelTekstu={<div className="szt-tekst szt-tekst-pelny">{pasek(`${uid}-p`)}<div className="szt-tresc" tabIndex={0} {...atrybutyTekstu(`${uid}-p`)}>{tresc}</div></div>} />
             </div>
             <div className="szt-tekst">
-                {pasek}
-                <div ref={tekst} className="szt-tresc" tabIndex={0} role="tabpanel" aria-label={opis}>
+                {pasek(`${uid}-k`)}
+                <div ref={tekst} className="szt-tresc" tabIndex={0} {...atrybutyTekstu(`${uid}-k`)}>
                     {tresc}
                 </div>
             </div>

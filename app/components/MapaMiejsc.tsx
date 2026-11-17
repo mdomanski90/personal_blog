@@ -654,17 +654,17 @@ function PanelPlanu({ panel, zamknij }: { panel: { nazwa: string; href: string; 
             <style>{`.mapa-panel-planu{position:absolute;top:10px;right:10px;bottom:10px;width:min(300px,calc(100% - 20px));overflow:auto;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:14px;box-shadow:0 4px 18px rgb(0 0 0 / .14);z-index:5}@media (max-width:640px){.mapa-panel-planu{top:auto;left:0;right:0;bottom:0;width:auto;max-height:75%;border-radius:12px 12px 0 0}}`}</style>
             <div className="flex items-start justify-between" style={{ gap: 8 }}>
                 <div className="flex flex-col" style={{ gap: 2 }}>
-                    <b style={{ fontSize: 15 }}>{panel.nazwa}</b>
-                    <a href={panel.href} style={{ fontSize: 13 }}>strona miejsca →</a>
+                    <b style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{panel.nazwa}</b>
+                    <a href={panel.href} style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>strona miejsca →</a>
                 </div>
-                <button type="button" onClick={zamknij} aria-label="zamknij" className="text-[var(--tekst-etykieta)]" style={{ fontSize: 20, lineHeight: 1, background: 'none', border: 0, cursor: 'pointer' }}>×</button>
+                <button type="button" onClick={zamknij} aria-label="zamknij" className="text-[var(--tekst-etykieta)]" style={{ fontSize: 'calc(20px * var(--font-scale, 1))', lineHeight: 1, background: 'none', border: 0, cursor: 'pointer' }}>×</button>
             </div>
             {panel.plany.map((p) => (
                 <a key={p.slug} href={`/plany/${p.slug}`} className="flex flex-col !no-underline text-current" style={{ gap: 6 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={`/plany/${p.slug}/podglad.svg`} alt={`podgląd: ${p.tytul}`} loading="lazy" style={{ width: '100%', borderRadius: 6, border: '1px solid var(--linia-podzialu)', background: '#f6f3ec', aspectRatio: '4 / 3', objectFit: 'contain' }} />
-                    <span style={{ fontSize: 13 }}>{p.tytul}</span>
-                    <span className="border border-[var(--linia-podzialu)] rounded-[7px] w-fit" style={{ fontSize: 13, padding: '3px 10px' }}>otwórz plan →</span>
+                    <span style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>{p.tytul}</span>
+                    <span className="border border-[var(--linia-podzialu)] rounded-[7px] w-fit" style={{ fontSize: 'calc(13px * var(--font-scale, 1))', padding: '3px 10px' }}>otwórz plan →</span>
                 </a>
             ))}
         </div>

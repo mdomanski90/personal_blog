@@ -51,6 +51,7 @@ export default async function StronaGlowna() {
 
     return (
         <Strona uklad="pelna">
+            <h1 className="sr-only">odniepamieci.pl – społeczne archiwum pamięci lokalnej</h1>
             {/* JW-04 (makieta „Główna” 16.11): wstęp i okno „z archiwum” po połowie szerokości; bez pozycji wstęp zajmuje całą szerokość */}
             <section aria-label="o archiwum" className={`glowna-wstep${doOkna.length ? ' z-oknem' : ''}`}>
                 <div className="glowna-wstep-tekst">

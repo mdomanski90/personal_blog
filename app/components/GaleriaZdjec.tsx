@@ -5,7 +5,7 @@
 
 import * as React from 'react'
 import { pozycjaKadru } from '@/lib/kadr'
-import { useFokusPowrotu } from '@/lib/ruch'
+import { useFokusPowrotu, useUwiezionyFokus } from '@/lib/ruch'
 
 export interface Zdjecie { plik: string; podpis?: string; data?: string; autor?: string; prawa?: string; kadr?: string }
 const opisZrodla = (z: Zdjecie) => [z.data, z.autor && `fot. ${z.autor}`, z.prawa].filter(Boolean).join(' · ')
@@ -15,6 +15,8 @@ export default function GaleriaZdjec({ zdjecia, tytul }: { zdjecia: Zdjecie[]; t
     // 5A (scena 4): okno wchodzi wygaszeniem (globals.css .plan-galeria), fokus na „zamknij”, po zamknięciu wraca na miniaturę
     const zamknijRef = React.useRef<HTMLButtonElement>(null)
     useFokusPowrotu(i !== null, { wejscie: () => zamknijRef.current })
+    const okno = React.useRef<HTMLDivElement>(null)
+    useUwiezionyFokus(i !== null, okno)
     React.useEffect(() => {
         if (i === null) return
         const k = (e: KeyboardEvent) => {
@@ -43,21 +45,21 @@ export default function GaleriaZdjec({ zdjecia, tytul }: { zdjecia: Zdjecie[]; t
                 ))}
             </div>
             {z && i !== null && (
-                <div className="plan-galeria" role="dialog" aria-label={z.podpis || 'zdjęcie'} onClick={(e) => { if (e.target === e.currentTarget) ustaw(null) }}>
+                <div ref={okno} className="plan-galeria" role="dialog" aria-modal="true" aria-label={z.podpis || 'zdjęcie'} onClick={(e) => { if (e.target === e.currentTarget) ustaw(null) }}>
                     <div className="flex items-center" style={{ gap: 12, color: '#e8e6e1' }}>
-                        <span style={{ fontSize: 13 }}>{tytul}</span>
+                        <span style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>{tytul}</span>
                         <span style={{ flex: 1 }} />
-                        {zdjecia.length > 1 && <span style={{ fontSize: 12.5, color: '#a3a09a' }}>zdjęcie {i + 1} z {zdjecia.length}</span>}
+                        {zdjecia.length > 1 && <span style={{ fontSize: 'calc(12.5px * var(--font-scale, 1))', color: '#a3a09a' }}>zdjęcie {i + 1} z {zdjecia.length}</span>}
                         <button ref={zamknijRef} type="button" onClick={() => ustaw(null)} className="plan-galeria-btn">zamknij (Esc)</button>
                     </div>
                     <div className="plan-galeria-srodek" style={{ flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {i > 0 && <button type="button" aria-label="poprzednie zdjęcie" onClick={() => ustaw(i - 1)} className="plan-galeria-btn" style={{ position: 'absolute', left: 0, width: 44, height: 44, fontSize: 18 }}>‹</button>}
+                            {i > 0 && <button type="button" aria-label="poprzednie zdjęcie" onClick={() => ustaw(i - 1)} className="plan-galeria-btn" style={{ position: 'absolute', left: 0, width: 44, height: 44, fontSize: 'calc(18px * var(--font-scale, 1))' }}>‹</button>}
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={`${z.plik}?w=1800`} alt={z.podpis || tytul} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 4 }} />
-                            {i < zdjecia.length - 1 && <button type="button" aria-label="następne zdjęcie" onClick={() => ustaw(i + 1)} className="plan-galeria-btn" style={{ position: 'absolute', right: 0, width: 44, height: 44, fontSize: 18 }}>›</button>}
+                            {i < zdjecia.length - 1 && <button type="button" aria-label="następne zdjęcie" onClick={() => ustaw(i + 1)} className="plan-galeria-btn" style={{ position: 'absolute', right: 0, width: 44, height: 44, fontSize: 'calc(18px * var(--font-scale, 1))' }}>›</button>}
                         </div>
-                        {(z.podpis || opisZrodla(z)) && <p style={{ margin: 0, color: '#e8e6e1', fontSize: 13, textAlign: 'center' }}>{z.podpis}{z.podpis && opisZrodla(z) ? ' · ' : ''}<span style={{ color: '#a3a09a' }}>{opisZrodla(z)}</span></p>}
+                        {(z.podpis || opisZrodla(z)) && <p style={{ margin: 0, color: '#e8e6e1', fontSize: 'calc(13px * var(--font-scale, 1))', textAlign: 'center' }}>{z.podpis}{z.podpis && opisZrodla(z) ? ' · ' : ''}<span style={{ color: '#a3a09a' }}>{opisZrodla(z)}</span></p>}
                     </div>
                 </div>
             )}

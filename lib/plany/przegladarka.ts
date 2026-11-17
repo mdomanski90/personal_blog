@@ -96,15 +96,7 @@ export function ruchKlawisza(klawisz: string, shift = false): RuchKlawisza {
 export const przesunVB = ([x, y, w, h]: VB, [fx, fy]: [number, number]): VB => [x + w * fx, y + h * fy, w, h]
 
 /** CEM-24: zakładki (role=tab) – strzałki w lewo / prawo, Home, End; null – klawisz bez znaczenia. */
-export function zakladkaKlawisza<T>(lista: readonly T[], biezaca: T, klawisz: string): T | null {
-    const i = lista.indexOf(biezaca), n = lista.length
-    if (!n) return null
-    if (klawisz === 'ArrowRight' || klawisz === 'ArrowDown') return lista[(i + 1) % n]
-    if (klawisz === 'ArrowLeft' || klawisz === 'ArrowUp') return lista[(i - 1 + n) % n]
-    if (klawisz === 'Home') return lista[0]
-    if (klawisz === 'End') return lista[n - 1]
-    return null
-}
+export { zakladkaKlawisza } from '../zakladki'
 
 /** CEM-13: adres strony z wybranym grobem (?grob=<id>) – podmieniany przy wyborze (history.replaceState), bez innych parametrów. */
 export function adresZGrobem(href: string, id: string | null): string {

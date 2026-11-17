@@ -5,11 +5,12 @@ import * as React from 'react'
  * nagłówek części (tytuł + informacja po prawej) i wiersze etykieta–wartość. Bez zależności serwerowych –
  * działa także w komponentach klienckich (katalog ksiąg na żywo).
  */
-export function KartaPozycji({ tytul, prawa, id, etykieta, children }: { tytul: React.ReactNode; prawa?: React.ReactNode; id?: string; etykieta?: string; children?: React.ReactNode }) {
+export function KartaPozycji({ tytul, prawa, id, etykieta, poziom = 3, children }: { tytul: React.ReactNode; prawa?: React.ReactNode; id?: string; etykieta?: string; /** poziom nagłówka tytułu (h2–h4): pod h1 strony bez pominięcia poziomu (axe heading-order) */ poziom?: 2 | 3 | 4; children?: React.ReactNode }) {
+    const H = `h${poziom}` as 'h2' | 'h3' | 'h4'
     return (
         <section id={id} className="osoba-tabela karta-tabela karta-pozycji scroll-mt-6" aria-label={etykieta}>
             <div className="ot-nagl">
-                <h3>{tytul}</h3>
+                <H>{tytul}</H>
                 {prawa && <span className="ot-nagl-prawa kp-prawa">{prawa}</span>}
             </div>
             {children}

@@ -29,8 +29,8 @@ export default function InfoZMapa({ info, mapa, wysokosc = 320 }: { info: React.
             <div className="info-z-mapa-info">{info}</div>
             <div ref={ramka} className={`info-z-mapa-mapa${pelny ? ' widok-pelny' : ''}`}>
                 <div className="flex items-center" style={{ gap: 6, justifyContent: 'flex-end' }}>
-                    {!pelny && <button type="button" onClick={przelacz} aria-pressed={szeroki} className={`${przycisk} info-z-mapa-rozszerz`} style={{ height: 26, padding: '0 9px', fontSize: 12.5 }} title={szeroki ? 'mapa obok danych' : 'mapa na całą szerokość, dane pod spodem'}>{szeroki ? 'zwęź' : 'rozszerz'}</button>}
-                    <button type="button" onClick={pelny ? zamknij : () => { ustawPelny(true); ramka.current?.requestFullscreen?.().catch(() => {}) }} className={przycisk} style={{ height: 26, padding: '0 9px', fontSize: 12.5 }}>{pelny ? 'zamknij (Esc)' : 'pełny ekran'}</button>
+                    {!pelny && <button type="button" onClick={przelacz} aria-pressed={szeroki} className={`${przycisk} info-z-mapa-rozszerz`} style={{ height: 26, padding: '0 9px', fontSize: 'calc(12.5px * var(--font-scale, 1))' }} title={szeroki ? 'mapa obok danych' : 'mapa na całą szerokość, dane pod spodem'}>{szeroki ? 'zwęź' : 'rozszerz'}</button>}
+                    <button type="button" onClick={pelny ? zamknij : () => { ustawPelny(true); ramka.current?.requestFullscreen?.().catch(() => {}) }} className={przycisk} style={{ height: 26, padding: '0 9px', fontSize: 'calc(12.5px * var(--font-scale, 1))' }}>{pelny ? 'zamknij (Esc)' : 'pełny ekran'}</button>
                 </div>
                 <div style={{ position: 'relative', height: pelny ? 'calc(100dvh - 60px)' : szeroki ? 'min(70vh, 620px)' : wysokosc }}><div style={{ position: 'absolute', inset: 0 }}>{mapa}</div></div>
             </div>

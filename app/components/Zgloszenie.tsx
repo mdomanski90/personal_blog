@@ -4,6 +4,7 @@
 import * as React from 'react'
 import Komunikat from './Komunikat'
 import EmailLink from './EmailLink'
+import { komunikatBleduZgloszenia } from '@/lib/zgloszenie-blad'
 import { POMOC, type IdBraku, type RodzajFormularza } from '@/lib/wspoltworz-reguly'
 
 const OPISY: Record<RodzajFormularza, { przycisk: string; podpowiedz: string }> = {
@@ -51,20 +52,36 @@ export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk',
     const [kontakt, ustawKontakt] = React.useState('')
     const [podpis, ustawPodpis] = React.useState(false)
     const idPola = `zg-${React.useId()}`
+    const [status, ustawStatus] = React.useState<number | null>(null)
+    const wynikRef = React.useRef<HTMLDivElement>(null)
+    const poleRef = React.useRef<HTMLTextAreaElement>(null)
+    // P1 (UX-05): po wysłaniu fokus na komunikacie (potwierdzenie albo błąd); przy odrzuconej treści – na polu treści
+    const [fokusWyniku, ustawFokusWyniku] = React.useState(0)
+    React.useEffect(() => {
+        if (!fokusWyniku) return
+        if (stan === 'blad' && komunikatBleduZgloszenia(status).pole === 'tresc') poleRef.current?.focus()
+        else wynikRef.current?.focus()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fokusWyniku])
     // nowy kontekst z adresu (inne „uzupełnij”) – formularz przejmuje rodzaj i „czego dotyczy”
     React.useEffect(() => { ustawRodzaj(rodzaj); ustawDotyczy(czegoDotyczy ?? '') }, [rodzaj, czegoDotyczy])
     const r = pelny ? rodzajWybrany : rodzaj
     const wyslij = async (e: React.FormEvent) => {
         e.preventDefault()
         ustawStan('wysylanie')
+        ustawStatus(null)
         const tyt = pelny ? dotyczy.trim() || tytul : tytul
         const odp = await fetch('/api/zgloszenie', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rodzaj: r, adres, tytul: tyt, tresc, kontakt, ...(brak ? { brak } : {}), ...(zgoda && podpis ? { podpis: true } : {}) }) }).catch(() => null)
+        ustawStatus(odp ? odp.status : null)
         ustawStan(odp?.ok ? 'wyslany' : 'blad')
+        ustawFokusWyniku((n) => n + 1)
     }
     if (stan === 'wyslany') return (
-        <Komunikat rodzaj="ok" tytul="dziękuję – zgłoszenie trafiło do redakcji." rola="status">
-            <p>Nic nie pojawi się na stronie bez sprawdzenia{kontakt.trim() ? '; odezwiemy się pod podany kontakt' : ''}.</p>
-        </Komunikat>
+        <div ref={wynikRef} tabIndex={-1} className="zgl-wynik">
+            <Komunikat rodzaj="ok" tytul="dziękuję – zgłoszenie trafiło do redakcji." rola="status">
+                <p>Nic nie pojawi się na stronie bez sprawdzenia{kontakt.trim() ? '; odezwiemy się pod podany kontakt' : ''}.</p>
+            </Komunikat>
+        </div>
     )
     if (stan === 'zamkniety')
         return wariant === 'link'
@@ -86,24 +103,28 @@ export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk',
             <label className="k-etykieta" htmlFor={idPola}>
                 <b>{pelny ? 'co wiesz albo co masz' : podpowiedz ?? (r === 'poprawka' ? pytaniePoprawki(adres) : OPISY[r].podpowiedz)}</b>
             </label>
-            <textarea id={idPola} autoFocus={!pelny} required minLength={3} maxLength={4000} rows={pelny ? 5 : 4} value={tresc} onChange={(e) => ustawTresc(e.target.value)} className="k-pole k-pole--tekst" aria-describedby={`${idPola}-pom`}
+            <textarea ref={poleRef} id={idPola} autoFocus={!pelny} aria-invalid={stan === 'blad' && komunikatBleduZgloszenia(status).pole === 'tresc' ? true : undefined} aria-describedby={`${idPola}-pom${stan === 'blad' ? ` ${idPola}-blad` : ''}`} required minLength={3} maxLength={4000} rows={pelny ? 5 : 4} value={tresc} onChange={(e) => ustawTresc(e.target.value)} className="k-pole k-pole--tekst"
                 placeholder={pelny ? OPISY[r].podpowiedz : undefined} />
             <span id={`${idPola}-pom`} className="k-podpowiedz">
                 {email
                     ? <>Zdjęcia, skany i nagrania wyślij na adres <EmailLink u={email.u} d={email.d} /> – w temacie wpisz, czego dotyczą.</>
                     : 'Zgłoszenie trafia do redakcji – nie jest publikowane automatycznie.'}
             </span>
-            <label className="k-etykieta" htmlFor={`${idPola}-k`}>kontakt do Ciebie <span className="k-podpowiedz">(nieobowiązkowy, nie będzie pokazany)</span></label>
-            <input id={`${idPola}-k`} value={kontakt} onChange={(e) => ustawKontakt(e.target.value)} maxLength={200} className="k-pole" placeholder="np. e-mail albo telefon" />
+            <label className="k-etykieta" htmlFor={`${idPola}-k`}>kontakt do Ciebie (nieobowiązkowy)</label>
+            <input id={`${idPola}-k`} aria-describedby={`${idPola}-kp`} autoComplete="email" value={kontakt} onChange={(e) => ustawKontakt(e.target.value)} maxLength={200} className="k-pole" placeholder="np. e-mail albo telefon" />
+            <span id={`${idPola}-kp`} className="k-podpowiedz">Podaj, jeśli chcesz odpowiedź. Kontakt nie będzie pokazany na stronie.</span>
             {zgoda && (
                 <label className="wsp-zgoda" htmlFor={`${idPola}-z`}>
                     <input id={`${idPola}-z`} type="checkbox" checked={podpis} onChange={(e) => ustawPodpis(e.target.checked)} />
                     <span>zgadzam się na podanie mojego autorstwa przy uzupełnieniu (opracował/a)</span>
                 </label>
             )}
-            {stan === 'blad' && <Komunikat rodzaj="blad" tytul="nie udało się wysłać zgłoszenia." rola="alert">
-                <p>Sprawdź połączenie z internetem i spróbuj ponownie – treść zostaje w polu.</p>
-            </Komunikat>}
+            {stan === 'blad' && (() => {
+                const b = komunikatBleduZgloszenia(status)
+                return <div ref={wynikRef} id={`${idPola}-blad`} tabIndex={-1} className="zgl-wynik">
+                    <Komunikat rodzaj="blad" tytul={b.tytul} rola="alert"><p>{b.tresc}</p></Komunikat>
+                </div>
+            })()}
             <div className="k-formularz-akcje">
                 <button type="submit" disabled={stan === 'wysylanie'} className="k-btn k-btn--glowny">{stan === 'wysylanie' ? 'wysyłam…' : stan === 'blad' ? 'spróbuj ponownie' : 'wyślij'}</button>
                 {!pelny && <button type="button" onClick={() => ustawStan('zamkniety')} className="k-btn">anuluj</button>}

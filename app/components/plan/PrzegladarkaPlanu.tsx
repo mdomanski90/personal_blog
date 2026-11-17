@@ -9,8 +9,9 @@ import * as React from 'react'
 import type { Plan } from '@/lib/plany/model'
 import type { UstawieniaPlanow } from '@/lib/plany/typy'
 import type { OsobaNaPlanie } from '@/lib/plany/rodzina'
-import { interfejsPlanu, zakladkaKlawisza } from '@/lib/plany/przegladarka'
-import { useFokusPowrotu } from '@/lib/ruch'
+import { interfejsPlanu } from '@/lib/plany/przegladarka'
+import { ListaZakladek, atrybutyPanelu } from '../Zakladki'
+import { useFokusPowrotu, useUwiezionyFokus } from '@/lib/ruch'
 import PlanInteraktywny, { type NarzedziaPlanu } from './PlanInteraktywny'
 import ListaPochowanych from './ListaPochowanych'
 import ListaObiektowPlanu from './ListaObiektowPlanu'
@@ -30,11 +31,15 @@ export default function PrzegladarkaPlanu({ plan, ustawienia, zalogowany, osoby,
     const [pokazGrob, ustawPokazGrob] = React.useState<{ id: string; n: number } | null>(null)
     const ramka = React.useRef<HTMLDivElement>(null)
     const narzedzia = React.useRef<NarzedziaPlanu>(null)
-    const zakladki: [Zakladka, string][] = [['plan', 'plan'], ['lista', interfejs.zakladkaListy]]
+    const zakladki: { id: Zakladka; etykieta: string }[] = [{ id: 'plan', etykieta: 'plan' }, { id: 'lista', etykieta: interfejs.zakladkaListy }]
     const prefix = `aplet-${plan.slug}`
 
     // VIEW-03: po zamknięciu pełnego ekranu fokus wraca na przycisk, którym go otwarto
-    useFokusPowrotu(pelny, { zapasowy: () => ramka.current?.querySelector<HTMLElement>('button[aria-label="pełny ekran"]') })
+    useFokusPowrotu(pelny, {
+        wejscie: () => ramka.current?.querySelector<HTMLElement>('button[aria-label="zamknij pełny ekran"]'),
+        zapasowy: () => ramka.current?.querySelector<HTMLElement>('button[aria-label="pełny ekran"]'),
+    })
+    useUwiezionyFokus(pelny, ramka)
     const zamknijPelny = React.useCallback(() => {
         ustawPelny(false)
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
@@ -54,27 +59,16 @@ export default function PrzegladarkaPlanu({ plan, ustawienia, zalogowany, osoby,
         return () => { document.removeEventListener('keydown', esc); document.removeEventListener('fullscreenchange', wyjscie); document.body.style.overflow = przewijanie }
     }, [pelny, zamknijPelny])
 
-    // CEM-24: zakładki ze strzałkami (wzorzec WAI-ARIA tabs: aktywna w kolejności Tab, reszta strzałkami)
-    const klawiszZakladki = (e: React.KeyboardEvent) => {
-        const n = zakladkaKlawisza(zakladki.map(([t]) => t), zakl, e.key)
-        if (!n) return
-        e.preventDefault()
-        ustawZakl(n)
-        ramka.current?.querySelector<HTMLElement>(`#${prefix}-zakl-${n}`)?.focus()
-    }
     const naPlanie = (id: string) => { ustawZakl('plan'); ustawPokazGrob((p) => ({ id, n: (p?.n ?? 0) + 1 })) }
 
     return (
-        <div ref={ramka} className={`plan-aplet przegladarka-aplet plan-do-druku${zakl === 'lista' ? ' plan-aplet--lista' : ''}${pelny ? ' plan-aplet--pelny' : ''}`}>
+        <div ref={ramka} className={`plan-aplet przegladarka-aplet plan-do-druku${zakl === 'lista' ? ' plan-aplet--lista' : ''}${pelny ? ' plan-aplet--pelny' : ''}`}
+            role={pelny ? 'dialog' : undefined} aria-modal={pelny ? true : undefined} aria-label={pelny ? `${plan.tytul} – pełny ekran` : undefined}>
             <div className="plan-aplet-pasek">
                 <div className="dok-pasek dok-pasek-karta" role="toolbar" aria-label="przeglądanie planu">
                     <span className="dok-pasek-lewa">
                         {pelny && <b className="dok-tytul">{plan.tytul}</b>}
-                        <span className="dok-grupa" role="tablist" aria-label="widok planu" onKeyDown={klawiszZakladki}>
-                            {zakladki.map(([t, nazwa]) => (
-                                <button key={t} id={`${prefix}-zakl-${t}`} type="button" role="tab" aria-selected={zakl === t} aria-controls={`${prefix}-${t}`} tabIndex={zakl === t ? 0 : -1} onClick={() => ustawZakl(t)}>{nazwa}</button>
-                            ))}
-                        </span>
+                        <ListaZakladek prefix={prefix} etykieta="widok planu" zakladki={zakladki} aktywna={zakl} ustaw={ustawZakl} />
                     </span>
                     <span className="dok-pasek-prawa">
                         <span className="dok-grupa plan-pasek-eksport" role="group" aria-label="eksport">
@@ -90,10 +84,10 @@ export default function PrzegladarkaPlanu({ plan, ustawienia, zalogowany, osoby,
                 </div>
             </div>
             {/* obszar zakładki „plan” – display: contents (siatka apletu: pasek panelu, mapa, panel) */}
-            <div id={`${prefix}-plan`} role="tabpanel" aria-labelledby={`${prefix}-zakl-plan`} className="plan-aplet-obszar">
+            <div {...atrybutyPanelu(prefix, 'plan')} className="plan-aplet-obszar">
                 <PlanInteraktywny plan={plan} ustawienia={ustawienia} zalogowany={zalogowany} osoby={osoby} pokazGrob={pokazGrob} oPlanie={oPlanie} narzedzia={narzedzia} />
             </div>
-            <div id={`${prefix}-lista`} role="tabpanel" aria-labelledby={`${prefix}-zakl-lista`} className="plan-aplet-lista">
+            <div {...atrybutyPanelu(prefix, 'lista')} className="plan-aplet-lista">
                 {interfejs.grobowy
                     ? <ListaPochowanych plan={plan} ustawienia={ustawienia} osoby={osoby ?? {}} naPlanie={naPlanie} />
                     : <ListaObiektowPlanu plan={plan} ustawienia={ustawienia} naPlanie={naPlanie} />}

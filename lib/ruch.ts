@@ -7,6 +7,7 @@
  * Test: lib/ruch.test.ts (także „zero czasów ruchu spoza tokenów” w CSS i plikach publicznych).
  */
 import * as React from 'react'
+import { nastepnyWPulapce } from './fokus'
 
 export type TokenRuchu = 'szybki' | 'sredni' | 'wolny'
 
@@ -133,4 +134,31 @@ export function przywrocFokus(el: { isConnected?: boolean; focus: (o?: FocusOpti
         document.addEventListener('fullscreenchange', () => { if (el.isConnected !== false) el.focus({ preventScroll: true }) }, { once: true })
     }
     return true
+}
+
+const FOKUSOWALNE = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])'
+
+/**
+ * P1 · VIEW-03: okno na całą stronę (pełny ekran skanu, planu, zdjęcia) trzyma fokus w sobie – Tab i Shift+Tab krążą w oknie,
+ * strona pod spodem nie jest osiągalna. Czysta logika: lib/fokus.ts (`nastepnyWPulapce`).
+ */
+export function useUwiezionyFokus(otwarte: boolean, okno: React.RefObject<HTMLElement | null>): void {
+    React.useEffect(() => {
+        if (!otwarte) return
+        const klawisz = (e: KeyboardEvent) => {
+            if (e.key !== 'Tab') return
+            const el = okno.current
+            if (!el) return
+            const lista = [...el.querySelectorAll<HTMLElement>(FOKUSOWALNE)].filter((x) => x.getClientRects().length > 0)
+            const i = lista.indexOf(document.activeElement as HTMLElement)
+            const n = nastepnyWPulapce(lista.length, i, e.shiftKey)
+            if (n === null) { e.preventDefault(); return }
+            // w środku okna zwykły Tab; ręcznie tylko na krawędziach i gdy fokus wypadł poza okno
+            if (i >= 0 && !(e.shiftKey ? i === 0 : i === lista.length - 1)) return
+            e.preventDefault()
+            lista[n].focus()
+        }
+        document.addEventListener('keydown', klawisz)
+        return () => document.removeEventListener('keydown', klawisz)
+    }, [otwarte, okno])
 }

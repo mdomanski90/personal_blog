@@ -20,7 +20,8 @@ import { katalog } from '@/lib/plany/typy'
 import { elementyLegendy } from '@/lib/plany/ph3'
 import { szukajNaPlanie, znakObjasnienia } from '@/lib/plany/przegladarka'
 import type { Element } from '@/lib/plany/model'
-import { czasRuchu, useFokusPowrotu } from '@/lib/ruch'
+import { czasRuchu, useFokusPowrotu, useUwiezionyFokus } from '@/lib/ruch'
+import { punktPozaProstokatem } from '@/lib/fokus'
 
 export interface StronaPodgladu { adres: string; podpis?: string }
 
@@ -87,7 +88,13 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     pelnyRef.current = pelny
     // 5A (scena 4): pełny ekran wchodzi wygaszeniem (globals.css .dok-pelny); po zamknięciu fokus wraca na przycisk,
     // którym go otwarto, a po kliknięciu w skan – na „pełny ekran ⤢” (okno otwarte od razu – DokumentyWTresci)
-    useFokusPowrotu(pelny && !pelnyNaStart, { zapasowy: () => ramka.current?.querySelector<HTMLElement>('button[aria-label="pełny ekran"]') })
+    // P1 (VIEW-01/03): pełny ekran to okno – fokus wchodzi na „zamknij”, krąży tylko w oknie, a Esc i kliknięcie poza obrazem zamykają
+    useFokusPowrotu(pelny && !pelnyNaStart, {
+        wejscie: () => ramka.current?.querySelector<HTMLElement>('button[aria-label="zamknij pełny ekran"]'),
+        zapasowy: () => ramka.current?.querySelector<HTMLElement>('button[aria-label="pełny ekran"]'),
+    })
+    useUwiezionyFokus(pelny, ramka)
+    React.useEffect(() => { if (pelnyNaStart) ramka.current?.querySelector<HTMLElement>('button[aria-label="zamknij pełny ekran"]')?.focus({ preventScroll: true }) }, [pelnyNaStart])
     const n = strony.length
     const [warstwy, ustawWarstwy] = React.useState<TrybWarstw>('skan')
     const [krycie, ustawKrycie] = React.useState(0.75)
@@ -120,6 +127,8 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
         if (onZamknij) onZamknij()
         else ustawPelny(false)
     }, [onZamknij])
+    const zamknijRef = React.useRef(zamknij)
+    zamknijRef.current = zamknij
 
     React.useEffect(() => {
         let zywy = true
@@ -170,6 +179,14 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
                             ustawAktywne(pod ?? null)
                             return
                         }
+                    }
+                }
+                // P1 (VIEW-01): w pełnym ekranie puste tło poza obrazem zamyka okno (brzeg obrazu należy do obrazu)
+                if (pelnyRef.current) {
+                    const ti = v.world.getItemAt(0)
+                    if (ti) {
+                        const r = v.viewport.viewportToViewerElementRectangle(ti.getBounds(true))
+                        if (punktPozaProstokatem({ x: r.x, y: r.y, w: r.width, h: r.height }, ev.position.x, ev.position.y)) { zamknijRef.current(); return }
                     }
                 }
                 ustawElement(null)
@@ -419,7 +436,8 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     )
 
     return (
-        <div ref={ramka} id={rekonstrukcja ? 'warstwa-rekonstrukcji' : undefined} className={`dok${pelny ? ' dok-pelny' : ''}${karta ? ' dok-karta' : ''}`}>
+        <div ref={ramka} id={rekonstrukcja ? 'warstwa-rekonstrukcji' : undefined} className={`dok${pelny ? ' dok-pelny' : ''}${karta ? ' dok-karta' : ''}`}
+            role={pelny ? 'dialog' : undefined} aria-modal={pelny ? true : undefined} aria-label={pelny ? `${tytul} – pełny ekran` : undefined}>
             {/* P7C-2 (JV-19): jeden pasek w karcie i na pełnym ekranie – ta sama kolejność i te same kontrolki;
                 na pełnym ekranie dochodzą tytuł, skala w %, dopasuj, obróć i transkrypcja; na telefonie pasek u dołu, przyciski 44 px */}
             <div className="dok-pasek dok-pasek-karta" role="toolbar" aria-label="przeglądanie dokumentu">

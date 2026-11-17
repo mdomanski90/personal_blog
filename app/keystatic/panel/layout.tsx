@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation'
 import { CSS } from './wspolne'
 
 const KLUCZ = 'odniepamieci-panel-szerokosc-v1'
+/** ADM-04: zwinięcie menu zapamiętane między stronami panelu */
+const KLUCZ_SCHOWANY = 'odniepamieci-panel-menu-v1'
 const MIN = 190, MAX = 480, START = 240
 const ogranicz = (n: number) => Math.min(MAX, Math.max(MIN, n))
 
@@ -70,6 +72,9 @@ const CSS_BOK = `
 .pn-bok-uchwyt:hover,.pn-bok-uchwyt:focus-visible{background:var(--wyb);outline:0;box-shadow:inset -2px 0 0 var(--akcent)}
 .pn-bok-uchwyt:focus-visible{outline:2px solid var(--akcent);outline-offset:-2px}
 .pn-pokaz-menu{align-self:flex-start;margin:0 0 4px}
+.pn-pomin{position:absolute;left:-9999px;top:8px;z-index:60;background:#1c1b18;color:#fff!important;padding:7px 14px;border-radius:6px;text-decoration:none!important}
+.pn-pomin:focus{left:8px;outline:2px solid var(--akcent);outline-offset:2px}
+#panel-tresc:focus{outline:none}
 .pn-bok .pn-nav a{min-width:0}
 .pn-bok .pn-nav a .pn-nazwa{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:820px){
@@ -92,6 +97,10 @@ export default function UkladPanelu({ children }: { children: React.ReactNode })
     const [schowany, ustawSchowany] = React.useState(false)
     const [mobilny, ustawMobilny] = React.useState(false)
     const bok = React.useRef<HTMLElement>(null)
+    const pokazRef = React.useRef<HTMLButtonElement>(null)
+    const schowajRef = React.useRef<HTMLButtonElement>(null)
+    // zmiana zwinięcia wywołana przez czytelnika (nie wczytanie zapamiętanego stanu) – tylko wtedy przenosimy fokus
+    const przeniesFokus = React.useRef(false)
 
     React.useEffect(() => {
         try {
@@ -99,6 +108,21 @@ export default function UkladPanelu({ children }: { children: React.ReactNode })
             if (Number.isFinite(v) && v >= MIN) ustawSzer(ogranicz(v))
         } catch { /* np. zablokowany localStorage */ }
     }, [])
+    React.useEffect(() => {
+        try { if (localStorage.getItem(KLUCZ_SCHOWANY) === '1') ustawSchowany(true) } catch { /* bez pamięci */ }
+    }, [])
+    const przelacz = (chowaj: boolean) => {
+        przeniesFokus.current = true
+        ustawSchowany(chowaj)
+        try { localStorage.setItem(KLUCZ_SCHOWANY, chowaj ? '1' : '0') } catch { /* bez pamięci */ }
+    }
+    // po schowaniu menu fokus na „pokaż menu”, po pokazaniu – na „schowaj menu” (przycisk, którego użyto, znika z drzewa)
+    React.useEffect(() => {
+        if (!przeniesFokus.current) return
+        przeniesFokus.current = false
+        if (schowany && !mobilny) pokazRef.current?.focus()
+        else schowajRef.current?.focus()
+    }, [schowany, mobilny])
     React.useEffect(() => {
         const mq = window.matchMedia('(max-width:820px)')
         const aktualizuj = () => ustawMobilny(mq.matches)
@@ -136,14 +160,15 @@ export default function UkladPanelu({ children }: { children: React.ReactNode })
         <div className="pn" style={{ '--pn-bok-szer': schowany && !mobilny ? '0px' : `${szer}px` } as React.CSSProperties}>
             <style>{CSS}</style>
             <style>{CSS_BOK}</style>
-            <aside className="pn-bok" ref={bok} style={schowany && !mobilny ? { padding: 0, border: 0 } : undefined} aria-hidden={schowany && !mobilny ? true : undefined}>
+            <a href="#panel-tresc" className="pn-pomin">przejdź do treści panelu</a>
+            <aside id="panel-menu" className="pn-bok" ref={bok} style={schowany && !mobilny ? { padding: 0, border: 0 } : undefined} aria-hidden={schowany && !mobilny ? true : undefined}>
                 {(!schowany || mobilny) && <>
                     <div className="pn-bok-head">
                         <div className="pn-bok-podpis" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 10px' }}>
                             <b style={{ fontSize: 15 }}>odniepamieci.pl</b>
                             <span className="pn-maly">panel administracyjny</span>
                         </div>
-                        <button type="button" className="pn-bok-tog" onClick={() => ustawSchowany(true)} title="schowaj menu" aria-label="schowaj menu">◀</button>
+                        <button ref={schowajRef} type="button" className="pn-bok-tog" onClick={() => przelacz(true)} title="schowaj menu" aria-label="schowaj menu" aria-expanded={true} aria-controls="panel-menu">◀</button>
                     </div>
                     <nav className="pn-bok-grupy" aria-label="panel administracyjny">
                         {GRUPY.map((g, i) => (
@@ -174,8 +199,8 @@ export default function UkladPanelu({ children }: { children: React.ReactNode })
                         }} />
                 </>}
             </aside>
-            <main className="pn-glowna">
-                {schowany && !mobilny && <button type="button" className="pn-btn pn-pokaz-menu" onClick={() => ustawSchowany(false)}>☰ pokaż menu</button>}
+            <main id="panel-tresc" tabIndex={-1} className="pn-glowna">
+                {schowany && !mobilny && <button ref={pokazRef} type="button" className="pn-btn pn-pokaz-menu" onClick={() => przelacz(false)} aria-expanded={false} aria-controls="panel-menu">☰ pokaż menu</button>}
                 {children}
             </main>
         </div>
