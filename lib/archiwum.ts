@@ -74,6 +74,8 @@ export interface Miejsce {
     /** źródła karty (pole „Źródła” w panelu) – pokazywane na dole, numerowane */
     zrodla: string[]
     opis: Node | null
+    /** WSP-02: pole „nie pokazuj w współtwórz” */
+    bezWspoltworz: boolean
 }
 
 export interface Parafia {
@@ -158,6 +160,8 @@ export interface Opowiesc {
     zajawka: string
     /** P7E-1: zapowiedź redakcyjna (pole „lead”) – pusta, gdy autor jej nie napisał */
     zapowiedz: string
+    /** D-SG-14: autorskie zaproszenie pod wpisem (pole „invitation”) – puste = brak sekcji */
+    zaproszenie: string
     /** P7E-1: materiał na miniaturę – wybrany („cover”) albo pierwszy wstawiony w tekst */
     miniatura: string | null
     /** dzień, którego dotyczy wpis (RRRR-MM-DD) – do „ten dzień w historii” */
@@ -190,6 +194,8 @@ export interface Obiekt {
     widocznosc: Widocznosc
     dodano: string | null
     opis: Node | null
+    /** WSP-02: pole „nie pokazuj w współtwórz” */
+    bezWspoltworz: boolean
     zdjecia: ZdjecieObiektu[]
     zrodla: string[]
 }
@@ -230,13 +236,20 @@ export interface Material {
     dodano: string | null
     zrodla: string[]
     opis: Node | null
+    /** WSP-02: pole „nie pokazuj w współtwórz” */
+    bezWspoltworz: boolean
+}
+
+/** SRC-01: jeden kanoniczny podpis źródła materiału (pole „credit”, a gdy puste – miejsce przechowywania · sygnatura · prawa) – karta i wstawki we wpisach. */
+export function podpisZrodlaMaterialu(m: Pick<Material, 'podpisZrodla' | 'miejscePrzechowywania' | 'sygnatura' | 'prawa'>): string {
+    return m.podpisZrodla.trim() || [m.miejscePrzechowywania, m.sygnatura, m.prawa].map((x) => x.trim()).filter(Boolean).join(' · ')
 }
 
 export const RODZAJE_TEMATOW: Record<string, string> = {
     zjawisko: 'zjawisko', wydarzenie: 'wydarzenie', instytucja: 'instytucja',
 }
 export const RODZAJE_OPOWIESCI: Record<string, string> = {
-    'o-zrodle': 'o źródle', esej: 'esej',
+    'o-zrodle': 'o źródle', esej: 'esej', wywiad: 'wywiad', reportaz: 'reportaż', wspomnienie: 'wspomnienie',
 }
 
 export function parsujWspolrzedne(s: string | null | undefined): [number, number] | null {
@@ -270,6 +283,7 @@ const wszystkieMiejscaSurowe = cache(async (): Promise<Miejsce[]> => {
             zrodloOpisu: entry.descriptionSource ?? '',
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             opis: entry.description?.node ?? null,
+            bezWspoltworz: !!(entry as { contributeHide?: boolean }).contributeHide,
         }))
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
@@ -423,6 +437,7 @@ const wszystkieObiektySurowe = cache(async (): Promise<Obiekt[]> => {
             dodano: entry.dateSubmitted,
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             opis: entry.description?.node ?? null,
+            bezWspoltworz: !!(entry as { contributeHide?: boolean }).contributeHide,
             zdjecia: (entry.photos ?? []).filter((z) => z.image).map((z) => ({ plik: String(z.image), podpis: z.caption, data: z.date, autor: z.creator, prawa: z.rights, kadr: z.focus })),
         }))
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
@@ -465,6 +480,7 @@ const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
             dodano: entry.dateSubmitted,
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             opis: entry.description?.node ?? null,
+            bezWspoltworz: !!(entry as { contributeHide?: boolean }).contributeHide,
         }))
         .sort((a, b) => kluczSortowania(a.czas) - kluczSortowania(b.czas) || porownajPl(a.nazwa, b.nazwa))
 })
@@ -486,6 +502,7 @@ const wszystkieOpowiesciSurowe = cache(async (): Promise<Opowiesc[]> => {
                 tresc,
                 zajawka: zajawka(tresc),
                 zapowiedz: ((entry as { lead?: string }).lead ?? '').trim(),
+                zaproszenie: ((entry as { invitation?: string }).invitation ?? '').trim(),
                 miniatura: (entry as { cover?: string | null }).cover || pierwszyMaterial(tresc),
             }
         })
@@ -703,6 +720,16 @@ export async function oProjekcie(): Promise<Node | null> {
     return s?.content?.node ?? null
 }
 
+/** Etap R (decyzja 17.11): adres do kontaktu i na pliki – pole w singletonie „O projekcie”, domyślnie kontakt@odniepamieci.pl.
+ *  Zwracany w częściach (bez „@” w HTML) – składa je EmailLink w przeglądarce. */
+export const ADRES_DOMYSLNY = 'kontakt@odniepamieci.pl'
+export async function adresKontaktowy(): Promise<{ u: string; d: string }> {
+    const s = await reader.singletons.oProjekcie.read().catch(() => null)
+    const a = String((s as { contact?: string } | null)?.contact ?? '').trim()
+    const [u, d] = (/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(a) ? a : ADRES_DOMYSLNY).split('@')
+    return { u, d }
+}
+
 /** Wstęp strony głównej (singleton „Strona główna”); bez wpisu – tekst domyślny. Akapity rozdzielone pustym wierszem. */
 export async function wstepStronyGlownej(): Promise<string[]> {
     const s = await reader.singletons.stronaGlowna.read().catch(() => null)
@@ -763,7 +790,7 @@ export const rozwiazOdnosniki = cache(async (poziom: Widocznosc): Promise<Rozwia
 
 /** Wszystko, czego treść potrzebuje przy renderowaniu: odnośniki [[…]] i wstawione materiały. */
 export const kontekstTresci = cache(async (poziom: Widocznosc): Promise<KontekstTresci> => {
-    const mat = new Map<string, MaterialWstawki>(await Promise.all((await materialy(poziom)).map(async (m) => [m.id, { id: m.id, nazwa: m.nazwa, rodzaj: m.rodzaj, plik: m.plik, strony: m.strony, objasnienia: await objasnieniaDoWidoku(m.id, poziom), transkrypcja: naHtml(rozdzielZrodla(m.opis).transkrypcja) || undefined }] as const)))
+    const mat = new Map<string, MaterialWstawki>(await Promise.all((await materialy(poziom)).map(async (m) => [m.id, { id: m.id, nazwa: m.nazwa, rodzaj: m.rodzaj, plik: m.plik, strony: m.strony, objasnienia: await objasnieniaDoWidoku(m.id, poziom), transkrypcja: naHtml(rozdzielZrodla(m.opis).transkrypcja) || undefined, zrodlo: podpisZrodlaMaterialu(m) || undefined }] as const)))
     const { stanOsob } = await import('./osoby/dane')
     const { drzewoOsoby } = await import('./osoby/drzewo')
     const stan = await stanOsob()

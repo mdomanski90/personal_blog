@@ -1,5 +1,7 @@
 import { odmiana } from '@/lib/tekst'
 import { parafie } from '@/lib/archiwum'
+import { brakiDoPomocy } from '@/lib/wspoltworz-dane'
+import Zgloszenie from '../../components/Zgloszenie'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import { zapiszOkres } from '@/lib/parafie-powiazania'
 import type { Metadata } from 'next'
@@ -63,6 +65,8 @@ export default async function ObiektStrona({ params }: Parametry) {
 
     const ktx = await kontekstTresci(poziom)
     const opisHtml = naHtml(o.opis, ktx)
+    // WSP-04: brak opisu – część „opis” z „pomóż uzupełnić” (dziś część znikała); decyzje redakcji jak w „współtwórz”
+    const pomoc = await brakiDoPomocy('obiekty', o.id, maTekst(opisHtml) ? [] : ['bez-opisu'], o.bezWspoltworz)
     const lead = zajawka(o.opis, 240, ktx.rozwiaz)
     const foto = o.zdjecia[0]
     const podpisFoto = foto ? [foto.podpis, foto.data, foto.autor && `fot. ${foto.autor}`].filter(Boolean).join(' · ') : ''
@@ -72,7 +76,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     const jestPowiazane = mat.length > 0 || planyObiektu.length > 1 || wyst.plany.length > 0 || wyst.skany.length > 0
     const jestZrodla = o.zrodla.length > 0 || o.zdjecia.some((z) => z.autor || z.prawa)
     // JW-2: spis treści z części; drugiej mapy w wierszu „położenie” nie ma (JW-15) – mapa jest w pasku bocznym, gdy nie ma zdjęcia
-    const spis = spisCzesci(['podstawowe', o.zdjecia.length > 1 && 'fotografie', maTekst(opisHtml) && 'opis', jestPowiazane && 'powiązane', ...czesciPowiazan(siec), 'jak cytować', jestZrodla && 'źródła'])
+    const spis = spisCzesci(['podstawowe', o.zdjecia.length > 1 && 'fotografie', (maTekst(opisHtml) || pomoc.has('bez-opisu')) && 'opis', jestPowiazane && 'powiązane', ...czesciPowiazan(siec), 'jak cytować', jestZrodla && 'źródła'])
     const tabelaPodstawowa = (
         <Tabela etykieta={`${o.nazwa} – dane`}>
             <Czesc tytul="podstawowe" />
@@ -126,9 +130,18 @@ export default async function ObiektStrona({ params }: Parametry) {
             {/* z planem (np. cmentarz): plan na całą szerokość z zakładkami, dane obok; bez planu – tabela w kolumnie */}
             {glowny ? <PelnaSzerokosc><WidokObiektu plan={glowny.plan} ustawienia={ustawienia} zalogowany={glowny.poziom === 'bliscy'} osoby={osobyGlownego} mapa={mapa} info={tabelaPodstawowa} /></PelnaSzerokosc> : tabelaPodstawowa}
 
-            {maTekst(opisHtml) && (
+            {maTekst(opisHtml) ? (
                 <Sekcja tytul="opis" id={idCzesci('opis')}>
                     <Tresc html={opisHtml} />
+                </Sekcja>
+            ) : pomoc.has('bez-opisu') && (
+                <Sekcja tytul="opis" id={idCzesci('opis')}>
+                    {/* ten sam tekst co na karcie miejscowości (komentarz właściciela na makiecie 17.11) */}
+                    <p className="tekst-opis">Opis tego obiektu jest w opracowaniu. Jeśli masz na ten temat wiedzę –{' '}
+                        <Zgloszenie rodzaj="poprawka" wariant="link" etykieta="pomóż go uzupełnić" adres={`/obiekty/${o.id}`} tytul={`${o.nazwa} – opis`} brak="bez-opisu" zgoda
+                            podpowiedz="Co wiesz o tym obiekcie – kiedy powstał, kto go postawił, co się z nim działo? Zdjęcia możesz wysłać mailem." />
+                        . Wspólnie możemy tworzyć ten serwis.
+                    </p>
                 </Sekcja>
             )}
 

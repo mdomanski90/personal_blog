@@ -96,9 +96,9 @@ const config: Config = {
         material: {
             render: 'figure',
             selfClosing: true,
-            attributes: { id: { type: String }, podpis: { type: String } },
+            attributes: { id: { type: String }, podpis: { type: String }, strona: { type: Number } },
             transform(node) {
-                return new Tag('figure', { 'data-material': String(node.attributes.id ?? ''), 'data-podpis': String(node.attributes.podpis ?? '') }, [])
+                return new Tag('figure', { 'data-material': String(node.attributes.id ?? ''), 'data-podpis': String(node.attributes.podpis ?? ''), 'data-strona': String(node.attributes.strona ?? '') }, [])
             },
         },
         // drzewo osoby z działu „osoby” – treść wstawia naHtml (zna widoczność czytelnika)
@@ -179,22 +179,36 @@ export interface MaterialWstawki {
     strony?: { adres: string; podpis?: string }[]
     /** objaśnienia na skanie (już przefiltrowane dla czytelnika) */
     objasnienia?: ObjasnienieWidoku[]
+    /** SRC-01: kanoniczny podpis źródła materiału (podpisZrodlaMaterialu) – ten sam co na karcie */
+    zrodlo?: string
+}
+
+/** PD-07: numer strony skanu z bloku (1 = pierwsza) → indeks od 0, przycięty do liczby stron. */
+export function indeksStrony(strona: number | string | undefined | null, ile: number): number {
+    const n = Math.trunc(Number(strona) || 1)
+    return Math.max(0, Math.min(Math.max(ile, 1) - 1, n - 1))
+}
+
+/** SRC-01: linia „źródło: …” pod wstawką – ten sam podpis co na karcie materiału. */
+function zrodloWstawki(m: MaterialWstawki): RenderableTreeNode[] {
+    return m.zrodlo ? [new Tag('span', { class: 'podpis-zrodla wstawka-zrodlo' }, [new Tag('span', {}, ['źródło:']), ' ', m.zrodlo])] : []
 }
 
 /** Podgląd materiału: obraz (z powiększeniem), odtwarzacz, PDF albo odnośnik – i podpis z linkiem do archiwum. */
-export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string): Tag {
+export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string, strona?: number): Tag {
     const adres = `/archiwum/${m.id}`
     const typ = typPliku(m.plik)
     const podglad: RenderableTreeNode[] = []
     if (m.strony?.length) {
         // skan (jedna albo wiele stron): kliknięcie otwiera przeglądarkę dokumentu na pełnym ekranie (DokumentyWTresci)
-        const pierwsza = m.strony[0].adres
+        const start = indeksStrony(strona, m.strony.length)
+        const pierwsza = m.strony[start].adres
         const obraz = pierwsza.startsWith('/pliki/strony/') ? `${pierwsza}?w=1200` : pierwsza
         const n = m.strony.length
         const ile = n === 1 ? '' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? `${n} strony` : `${n} stron`
         // P7E-1 (SG-04, SG-05): jedna czynność powiększania i jeden odnośnik „szczegóły w archiwum →”
-        const opis: RenderableTreeNode[] = [new Tag('span', {}, [podpis || m.nazwa]), ' · ', new Tag('button', { type: 'button', class: 'dok-otworz' }, [ile ? `przeglądaj ${ile} ⤢` : 'powiększ skan ⤢']), ' · ', new Tag('a', { href: adres }, ['szczegóły w archiwum →'])]
-        return new Tag('figure', { class: 'material-wstawka', 'data-id': m.id, 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony, ...(m.objasnienia?.length ? { objasnienia: m.objasnienia } : {}), ...(m.transkrypcja ? { transkrypcja: m.transkrypcja } : {}) }) }, [
+        const opis: RenderableTreeNode[] = [new Tag('span', {}, [podpis || m.nazwa]), ' · ', new Tag('button', { type: 'button', class: 'dok-otworz' }, [ile ? `przeglądaj ${ile} ⤢` : 'powiększ skan ⤢']), ' · ', new Tag('a', { href: adres }, ['szczegóły w archiwum →']), ...zrodloWstawki(m)]
+        return new Tag('figure', { class: 'material-wstawka', 'data-id': m.id, ...(podpis ? { 'data-podpis': podpis } : {}), ...(start ? { 'data-strona': String(start + 1) } : {}), 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony, ...(m.objasnienia?.length ? { objasnienia: m.objasnienia } : {}), ...(m.transkrypcja ? { transkrypcja: m.transkrypcja } : {}) }) }, [
             // wysoki (pionowy) skan pokazany do pewnej wysokości; DokumentyWTresci dodaje cieniowanie i przycisk,
             // gdy obraz faktycznie jest dłuższy od kadru
             new Tag('span', { class: 'dok-kadr' }, [
@@ -214,6 +228,7 @@ export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string): Tag {
     }
     const opis: RenderableTreeNode[] = [new Tag('span', {}, [podpis || m.nazwa]), ' · ', new Tag('a', { href: adres }, ['szczegóły w archiwum →'])]
     if (m.plik && (typ === 'pdf' || typ === 'inny')) opis.push(' · ', new Tag('a', { href: m.plik }, [typ === 'pdf' ? 'otwórz PDF' : 'otwórz plik']))
+    opis.push(...zrodloWstawki(m))
     return new Tag('figure', { class: 'material-wstawka' }, [...podglad, new Tag('figcaption', {}, opis)])
 }
 
@@ -255,7 +270,7 @@ function wstawOdnosniki(n: RenderableTreeNode, k: KontekstTresci): RenderableTre
     }
     if (n.name === 'figure' && 'data-material' in n.attributes) {
         const m = k.material?.(String(n.attributes['data-material']))
-        return m ? wstawkaMaterialu(m, String(n.attributes['data-podpis'] || '') || undefined) : []
+        return m ? wstawkaMaterialu(m, String(n.attributes['data-podpis'] || '') || undefined, Number(n.attributes['data-strona']) || undefined) : []
     }
     // tekst bywa podzielony na kilka sąsiednich kawałków – sklejamy, żeby [[…]] był w jednym
     const sklejone: RenderableTreeNode[] = []
@@ -293,15 +308,21 @@ export function naglowkiZHtml(html: string): { id: string; tekst: string }[] {
  * JW-2 (JW-13): dzieli HTML wpisu na odcinki tekstu i wstawki materiałów ze skanem – strona pokazuje je tym samym
  * widokiem co karta materiału (SkanZTekstem) na pełnej szerokości; odcinki tekstu zostają w kolumnie.
  */
-export function podzielWstawki(html: string): ({ html: string } | { material: string })[] {
+const ENCJE: Record<string, string> = { '&amp;': '&', '&quot;': '"', '&#39;': "'", '&lt;': '<', '&gt;': '>' }
+const bezEncji = (s: string) => s.replace(/&(amp|quot|#39|lt|gt);/g, (e) => ENCJE[e])
+
+export type OdcinekWpisu = { html: string } | { material: string; podpis?: string; strona?: number }
+export function podzielWstawki(html: string): OdcinekWpisu[] {
     if (!html.includes('class="material-wstawka" data-id=')) return html.trim() ? [{ html }] : []
     // zewnętrzny <article> otacza całość – każdy odcinek dostaje własne opakowanie w Tresc
     html = html.replace(/^\s*<article>/, '').replace(/<\/article>\s*$/, '')
-    const wyn: ({ html: string } | { material: string })[] = []
+    const wyn: OdcinekWpisu[] = []
     let ostatni = 0
-    for (const m of html.matchAll(/<figure class="material-wstawka" data-id="([a-z0-9-]+)"[^>]*>[\s\S]*?<\/figure>/g)) {
+    for (const m of html.matchAll(/<figure class="material-wstawka" data-id="([a-z0-9-]+)"([^>]*)>[\s\S]*?<\/figure>/g)) {
         if (m.index! > ostatni) wyn.push({ html: html.slice(ostatni, m.index) })
-        wyn.push({ material: m[1] })
+        // PD-07: podpis i strona z bloku przechodzą do wstawki na pełnej szerokości (wcześniej gubione)
+        const podpis = /\sdata-podpis="([^"]*)"/.exec(m[2])?.[1], strona = Number(/\sdata-strona="(\d+)"/.exec(m[2])?.[1]) || undefined
+        wyn.push({ material: m[1], ...(podpis ? { podpis: bezEncji(podpis) } : {}), ...(strona ? { strona } : {}) })
         ostatni = m.index! + m[0].length
     }
     if (ostatni < html.length) wyn.push({ html: html.slice(ostatni) })

@@ -5,12 +5,17 @@ import LosowaKarta from './components/LosowaKarta'
 import { Kreski, Strona } from './components/Uklad'
 import { TytulSekcji } from './components/Wzorce'
 import ZapowiedziWpisow from './components/ZapowiedziWpisow'
-import Zgloszenie from './components/Zgloszenie'
 
 export const dynamic = 'force-dynamic'
 
 /** Ile wpisów w pełnej formie na stronie głównej; reszta pod „wszystkie wpisy”. */
 const WPISOW_NA_GLOWNEJ = 5
+/** Sekcja „pomóż”: pytania i odnośniki do formularza na stronie „współtwórz” (rodzaj zgłoszenia w ?pomoc=). */
+const POMOC_GLOWNA = [
+    { pytanie: 'Masz stare zdjęcie albo dokument z tych wsi?', etykieta: 'udostępnij →', pomoc: 'material' },
+    { pytanie: 'Rozpoznajesz kogoś na zdjęciu albo miejsce?', etykieta: 'podpowiedz →', pomoc: 'rozpoznanie' },
+    { pytanie: 'Chcesz podzielić się rodzinną historią?', etykieta: 'opowiedz →', pomoc: 'wspomnienie' },
+] as const
 /** Ile pozycji w oknie „z archiwum”: materiał tego tygodnia + wcześniejsze. */
 const W_OKNIE = 6
 
@@ -77,28 +82,20 @@ export default async function StronaGlowna() {
                 </div>
             )}
 
-            {/* zaproszenie do współtworzenia – zgłoszenia trafiają do redakcji, nic nie publikuje się samo */}
+            {/* zaproszenie do współtworzenia – WSP-04 (uwaga właściciela 17.11 na makiecie): odnośniki po prawej prowadzą
+                do formularza na stronie „współtwórz” z ustawionym pytaniem; bez osobnego odnośnika „zobacz, czego brakuje” */}
             <section id="pomoz" aria-labelledby="pomoz-tytul" className="glowna-pomoz scroll-mt-6">
                 <div className="glowna-pomoz-wstep">
                     <TytulSekcji id="pomoz-tytul">pomóż uzupełnić archiwum</TytulSekcji>
                     <p>Każde zdjęcie, dokument i wspomnienie z tych wsi coś dopowiada.</p>
                 </div>
                 <div className="glowna-pomoz-siatka">
-                    <div>
-                        <p>Masz stare zdjęcie albo dokument z tych wsi?</p>
-                        <Zgloszenie rodzaj="material" adres="/" tytul="strona główna – udostępnij materiał" wariant="link" etykieta="udostępnij →"
-                            podpowiedz="Co masz (zdjęcie, dokument, list, nagranie)? Odezwę się i umówimy, jak zrobić skan – oryginał zostaje u Ciebie." />
-                    </div>
-                    <div>
-                        <p>Rozpoznajesz kogoś na zdjęciu albo miejsce?</p>
-                        <Zgloszenie rodzaj="poprawka" adres="/" tytul="strona główna – rozpoznanie osoby lub miejsca" wariant="link" etykieta="podpowiedz →"
-                            podpowiedz="Kogo albo co rozpoznajesz i na którym zdjęciu lub materiale (wklej adres strony albo opisz)?" />
-                    </div>
-                    <div>
-                        <p>Chcesz podzielić się rodzinną historią?</p>
-                        <Zgloszenie rodzaj="material" adres="/" tytul="strona główna – wspomnienie" wariant="link" etykieta="opowiedz →"
-                            podpowiedz="O czym albo o kim chcesz opowiedzieć? Odezwę się i umówimy rozmowę – na piśmie, przez telefon albo z nagraniem." />
-                    </div>
+                    {POMOC_GLOWNA.map((x) => (
+                        <div key={x.pomoc}>
+                            <p>{x.pytanie}</p>
+                            <Link href={`/wspoltworz?pomoc=${x.pomoc}#napisz`} className="odn">{x.etykieta}</Link>
+                        </div>
+                    ))}
                 </div>
             </section>
         </Strona>

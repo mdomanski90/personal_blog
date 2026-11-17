@@ -165,12 +165,13 @@ export function KrotkieMaterialy({ materialy }: { materialy: Material[] }) {
     )
 }
 
-/** Dół karty: zgłoszenie poprawki (trafia do redakcji). */
-export function ZglosPoprawke({ adres, tytul, pytanie }: { adres: string; tytul: string; pytanie: string }) {
+/** Dół karty: zgłoszenie poprawki (trafia do redakcji). Etap R: opcjonalnie własna etykieta przycisku i dopisek po nim (wpis). */
+export function ZglosPoprawke({ adres, tytul, pytanie, etykieta, dopisek }: { adres: string; tytul: string; pytanie: string; etykieta?: string; dopisek?: string }) {
     return (
         <div className="karta-zglos">
             <span>{pytanie}</span>
-            <Zgloszenie rodzaj="poprawka" adres={adres} tytul={tytul} />
+            <Zgloszenie rodzaj="poprawka" adres={adres} tytul={tytul} etykieta={etykieta} />
+            {dopisek && <span>{dopisek}</span>}
         </div>
     )
 }

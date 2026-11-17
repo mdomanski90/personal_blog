@@ -13,6 +13,7 @@ import { stanOsob, sladImportu } from '../osoby/dane'
 import { nazwaOsoby } from '../osoby/model'
 import { ostrzezeniaWgOsob } from '../osoby/serwer'
 import { listaZgloszenStrony, RODZAJE_ZGLOSZEN, type ZgloszenieStrony } from '../zgloszenia'
+import { etykietaBraku } from '../wspoltworz-reguly'
 import { logowanieWlaczone } from '../sesja'
 
 const CONTENT = () => path.join(process.cwd(), 'content')
@@ -61,6 +62,9 @@ export interface ZgloszeniePanelu {
     data: string
     stan: StanZgloszenia
     notatka: string
+    /** WSP-03: rodzaj braku (etykieta) i zgoda na podpis w „opracował(a)” */
+    brak?: string
+    podpis?: boolean
 }
 
 const czeka = (s: StanZgloszenia) => s === 'nowe' || s === 'odlozone'
@@ -71,6 +75,7 @@ export async function zgloszeniaPanelu(): Promise<ZgloszeniePanelu[]> {
     const zS = (s as (ZgloszenieStrony & Dopiski)[]).map((z): ZgloszeniePanelu => ({
         id: z.id, zrodlo: 'strona', rodzaj: RODZAJE_ZGLOSZEN[z.rodzaj] ?? z.rodzaj, tytul: z.tytul || z.adres, adres: z.adres || null,
         doPoprawy: z.adres ? doPoprawy(z.adres) : null, tresc: z.tresc, kontakt: z.kontakt, data: z.data, stan: z.stan ?? 'nowe', notatka: z.notatka ?? '',
+        ...(z.brak ? { brak: etykietaBraku(z.brak) } : {}), ...(z.podpis ? { podpis: true } : {}),
     }))
     const zP = (p as (Zgloszenie & Dopiski)[]).map((z): ZgloszeniePanelu => {
         const pl = tytulPlanu.get(z.plan)

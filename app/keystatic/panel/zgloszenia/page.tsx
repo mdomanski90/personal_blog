@@ -5,7 +5,7 @@ import * as React from 'react'
 import { kiedy, useDane, wyslijJson } from '../wspolne'
 
 type Stan = 'nowe' | 'odlozone' | 'zalatwione' | 'odrzucone'
-type Zgl = { id: string; zrodlo: 'strona' | 'plan'; rodzaj: string; tytul: string; adres: string | null; doPoprawy: string | null; tresc: string; kontakt: string; data: string; stan: Stan; notatka: string }
+type Zgl = { id: string; zrodlo: 'strona' | 'plan'; rodzaj: string; tytul: string; adres: string | null; doPoprawy: string | null; tresc: string; kontakt: string; data: string; stan: Stan; notatka: string; brak?: string; podpis?: boolean }
 
 const STAN: Record<Stan, string> = { nowe: 'nowe', odlozone: 'odłożone', zalatwione: 'załatwione', odrzucone: 'odrzucone' }
 const WIDOK = { czeka: 'czekają', zalatwione: 'załatwione', odrzucone: 'odrzucone' } as const
@@ -20,10 +20,13 @@ export default function Zgloszenia() {
     const { dane, blad, odswiez } = useDane<Zgl[]>('/api/keystatic/panel/zgloszenia')
     const [widok, ustawWidok] = React.useState<Widok>('czeka')
     const [zrodlo, ustawZrodlo] = React.useState<Zrodlo>('wszystkie')
+    const [rodzaj, ustawRodzaj] = React.useState('')
     const [wybrane, ustawWybrane] = React.useState<string | null>(null)
     const [notatka, ustawNotatka] = React.useState('')
     const [kom, ustawKom] = React.useState('')
-    const L = (dane ?? []).filter((z) => pasuje(z, widok) && (zrodlo === 'wszystkie' || z.zrodlo === zrodlo))
+    // WSP-03: filtr rodzaju zgłoszenia (odczyt, wspomnienie, rozpoznanie…)
+    const rodzaje = [...new Set((dane ?? []).map((z) => z.rodzaj))].sort((a, b) => a.localeCompare(b, 'pl'))
+    const L = (dane ?? []).filter((z) => pasuje(z, widok) && (zrodlo === 'wszystkie' || z.zrodlo === zrodlo) && (!rodzaj || z.rodzaj === rodzaj))
     const z = L.find((x) => `${x.zrodlo}/${x.id}` === wybrane) ?? L[0] ?? null
     React.useEffect(() => { ustawNotatka(z?.notatka ?? '') }, [z?.id, z?.notatka]) // eslint-disable-line react-hooks/exhaustive-deps
     const ile = (w: Widok) => (dane ?? []).filter((x) => pasuje(x, w)).length
@@ -57,6 +60,12 @@ export default function Zgloszenia() {
                 <div className="pn-seg" role="group" aria-label="skąd">
                     {(Object.keys(ZRODLO) as Zrodlo[]).map((w) => <button key={w} type="button" aria-pressed={zrodlo === w} onClick={() => { ustawZrodlo(w); ustawWybrane(null) }}>{ZRODLO[w]}</button>)}
                 </div>
+                {rodzaje.length > 1 && (
+                    <label className="pn-maly">rodzaj <select className="pn-in" value={rodzaj} onChange={(e) => { ustawRodzaj(e.target.value); ustawWybrane(null) }}>
+                        <option value="">wszystkie</option>
+                        {rodzaje.map((x) => <option key={x} value={x}>{x}</option>)}
+                    </select></label>
+                )}
             </div>
 
             {dane && L.length === 0 && <p className="pn-szary" style={{ margin: 0 }}>{widok === 'czeka' ? 'Nic nie czeka – wszystkie zgłoszenia załatwione.' : 'Pusto.'}</p>}
@@ -88,6 +97,8 @@ export default function Zgloszenia() {
                             <dl className="pn-dl">
                                 <dt>kontakt</dt><dd>{z.kontakt || <span className="pn-szary">nie podano</span>}</dd>
                                 <dt>wysłano</dt><dd>{new Date(z.data).toLocaleString('pl-PL')}</dd>
+                                {z.brak && <><dt>brak</dt><dd>{z.brak}</dd></>}
+                                {z.zrodlo === 'strona' && <><dt>podpis w „opracował(a)”</dt><dd>{z.podpis ? 'zgoda' : <span className="pn-szary">bez zgody</span>}</dd></>}
                                 {z.adres && <><dt>strona</dt><dd><a href={z.adres} target="_blank" rel="noreferrer">{z.adres} ↗</a></dd></>}
                             </dl>
                             <div className="pn-rzad">

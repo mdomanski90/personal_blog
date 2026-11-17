@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import { Link } from 'next-view-transitions'
 import { nazwy, opowiesc, powiazania, poziomCzytelnika, kontekstTresci, materialy } from '@/lib/archiwum'
-import { adresMiniatury } from '@/lib/zapowiedzi'
+import { adresMiniatury, miniaturaWBoku } from '@/lib/zapowiedzi'
 import { pozycjaKadru } from '@/lib/kadr'
 import { naHtml, naglowkiZHtml, podzielWstawki } from '@/lib/markdoc'
 import { PelnaSzerokosc, Strona, Tresc, TytulStrony } from '../../components/Uklad'
@@ -16,6 +16,8 @@ import WstawkaMaterialu from '../../components/WstawkaMaterialu'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import { numerKat } from '@/lib/katalog/dane'
 import { LiniaNrKat } from '../../components/NrKat'
+import { TytulSekcji } from '../../components/Wzorce'
+import Zgloszenie from '../../components/Zgloszenie'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,7 +51,8 @@ export default async function OpowiescStrona({ params }: Parametry) {
     // makieta 17.11 (P1): miniatura wpisu (cover albo pierwszy materiał) w gnieździe „bok” – jak zdjęcie na karcie obiektu
     const mat = o.miniatura ? (await materialy(poziom)).find((m) => m.id === o.miniatura) : undefined
     const obraz = adresMiniatury(mat, 480)
-    const bok = mat && obraz ? (
+    // uwaga 17.11 (wariant B): przy krótkim wstępie przed wstawką ze skanem miniatura byłaby dublem dokumentu – bez niej
+    const bok = mat && obraz && miniaturaWBoku(odcinki) ? (
         <figure className="osoba-portret kadr-poziomy">
             <Link href={`/archiwum/${mat.id}`} tabIndex={-1} aria-hidden="true">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -71,14 +74,25 @@ export default async function OpowiescStrona({ params }: Parametry) {
     return (
         <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'wpisy', href: '/wpisy' }]} akcje={<><CopyLinkButton sciezka={`/wpisy/${o.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={bok} spis={spis.length ? <SpisTresci pozycje={spis} /> : undefined}>
             {odcinki.map((cz, i) => ('material' in cz
-                ? <PelnaSzerokosc key={i}><WstawkaMaterialu id={cz.material} poziom={poziom} /></PelnaSzerokosc>
+                ? <PelnaSzerokosc key={i}><WstawkaMaterialu id={cz.material} poziom={poziom} podpis={cz.podpis} strona={cz.strona} /></PelnaSzerokosc>
                 : <article key={i} className="wpis-tresc"><Tresc html={cz.html} /></article>))}
             {/* uwaga 16.11: „jak cytować” jako część tabeli karty – jak na pozostałych kartach */}
             <Tabela etykieta={`${o.tytul} – jak cytować`}>
                 <Powiazania dane={{ odnosniki: siec.odnosniki, wzmianki: [] }} />
                 <CzescJakCytowac plik={o.id} dane={daneCytatu({ tytul: o.tytul, sciezka: `/wpisy/${o.id}`, nrKat, rodzaj: 'wpis', rok: o.data?.slice(0, 4) })} />
             </Tabela>
-            <ZglosPoprawke adres={`/wpisy/${o.id}`} tytul={o.tytul} pytanie="Coś się nie zgadza albo wiesz więcej?" />
+            {/* D-SG-14 / HOME-D-07 (etap R): autorskie zaproszenie pod wybranym wpisem – tylko gdy autor je wpisał (pole „Zaproszenie pod wpisem”) */}
+            {o.zaproszenie && (
+                <section className="glowna-pomoz wpis-zaproszenie" aria-labelledby="zaproszenie-t">
+                    <div className="glowna-pomoz-wstep"><TytulSekcji id="zaproszenie-t">dopowiedz tę historię</TytulSekcji></div>
+                    <div className="wpis-zaproszenie-tresc">
+                        <p>{o.zaproszenie}</p>
+                        <Zgloszenie rodzaj="wspomnienie" wariant="link" etykieta="opowiedz →" adres={`/wpisy/${o.id}`} tytul={`${o.tytul} – zaproszenie`} podpowiedz={o.zaproszenie} zgoda />
+                    </div>
+                </section>
+            )}
+            {/* tekst właściciela (komentarz na makiecie 17.11) */}
+            <ZglosPoprawke adres={`/wpisy/${o.id}`} tytul={o.tytul} pytanie="Masz więcej informacji na ten temat albo znasz historię z innej perspektywy?" etykieta="napisz" dopisek="– wspólnie możemy tworzyć ten serwis." />
         </Strona>
     )
 }

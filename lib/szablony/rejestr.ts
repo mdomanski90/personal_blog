@@ -91,6 +91,8 @@ export const MIEJSCA: Miejsce[] = [
     { byt: 'plan', gdzie: 'wszystkie plany', plik: 'app/plany/page.tsx', wzorzec: 'siatka', status: 'zgodne', adres: '/plany' },
     { byt: 'różne', gdzie: 'sieć powiązań – odnośniki w tekstach i wzmianki (części tabeli karty)', plik: 'app/components/Powiazania.tsx', wzorzec: 'pozycja-w-karcie', status: 'zgodne', uwaga: 'Makieta wpisu 17.11 (P3): części „odnośniki w tekstach” i „wspomniane bez odnośnika” w tabeli karty przed „jak cytować”, pozycje jako bloki (PozycjaWKarcie) z fragmentem tekstu; wpis, miejscowość, obiekt, temat, materiał, osoba.', adres: '/wpisy/… · /miejsca/… · /obiekty/… · /tematy/… · /archiwum/… · /osoby/…' },
     { byt: 'różne', gdzie: 'drukuj całość – spis pozycji z nr kat.', plik: 'app/druk/[rodzaj]/[id]/page.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'KAT-05: wydruk – strona tytułowa, spis z numerami katalogowymi, każda pozycja od nowej kartki.', adres: '/druk/miejsce/…' },
+    { byt: 'różne', gdzie: 'współtwórz – braki: dokumenty i zdjęcia (siatka miniatur z etykietą braku i „uzupełnij”)', plik: 'app/wspoltworz/page.tsx', wzorzec: 'siatka', status: 'zgodne', uwaga: 'WSP-01: SiatkaMiniatur z gniazdem „dol” (EtykietaBraku + uzupełnij); grupy GrupaZadan; zadania tylko z danych publicznych (lib/wspoltworz-dane.ts).', adres: '/wspoltworz' },
+    { byt: 'różne', gdzie: 'współtwórz – braki: miejsca i obiekty (lista pozycji z etykietą braku i „uzupełnij”)', plik: 'app/wspoltworz/page.tsx', wzorzec: 'lista-dzialu', status: 'zgodne', adres: '/wspoltworz?zadanie=bez-opisu' },
     { byt: 'różne', gdzie: 'wyniki wyszukiwania', plik: 'app/szukaj/page.tsx', wzorzec: 'wlasny', status: 'do-ujednolicenia', uwaga: 'Własna lista z etykietą rodzaju – powinna być listą pozycji działu z etykietą.', adres: '/szukaj?q=…' },
 ]
 
@@ -111,6 +113,9 @@ export const KOMPONENTY_BAZOWE: KomponentBazowy[] = [
     { id: 'pozycja-w-karcie', nazwa: 'pozycja w karcie', komponent: 'PozycjaWKarcie', plik: 'app/components/KartaPozycji.tsx', klasa: 'pozycja-w-karcie', opis: 'Blok w części tabeli karty: nagłówek (tytuł + informacja po prawej), wiersze etykieta–wartość, bez własnej ramki; wariant z miniaturą 160×120 przy prawej krawędzi (PH-23). Księgi metrykalne i plany.' },
     { id: 'siatka-miniatur', nazwa: 'siatka miniatur', komponent: 'SiatkaMiniatur', plik: 'app/components/SiatkaMiniatur.tsx', klasa: 'siatka-miniatur', opis: 'Kafle 12rem+: obraz 4:3, tytuł, linia (rodzaj · data). Materiały archiwum (ListaMaterialow) i „wszystkie plany”.' },
     { id: 'drukuj', nazwa: 'drukuj', komponent: 'PrzyciskDrukuj', plik: 'app/components/Druk.tsx', klasa: 'druk-koniec', opis: 'Przycisk w pasku akcji karty + wspólny arkusz druku A4 (stopka „odniepamieci.pl · tytuł | wydrukowano … · strona X z Y”, blok na końcu treści).' },
+    { id: 'kroki', nazwa: 'kroki „jak to działa”', komponent: 'KrokiDzialania', plik: 'app/components/Wzorce.tsx', klasa: 'wsp-kroki', opis: 'WSP-01: 3 kroki w kolumnach (telefon – jeden pod drugim), kreska akcentu 3 px nad krokiem, numer w akcencie. Strona „współtwórz”.' },
+    { id: 'grupa-zadan', nazwa: 'grupa zadań', komponent: 'GrupaZadan', plik: 'app/components/Wzorce.tsx', klasa: 'wsp-grupa', opis: 'WSP-01: nagłówek-wiersz z tłem sekcji (jak .ot-nagl) z liczbą, opis grupy, zawartość – siatka miniatur albo lista pozycji; pusta grupa – Komunikat „gotowe”.' },
+    { id: 'etykieta-braku', nazwa: 'etykieta braku', komponent: 'EtykietaBraku', plik: 'app/components/Wzorce.tsx', klasa: 'wsp-brak', opis: 'WSP-01: neutralna pastylka (tło kontrolki, tekst opisu, ramka linii podziału) – „brak transkrypcji · łacina”; brak to zaproszenie, nie ostrzeżenie.' },
 ]
 
 /**

@@ -70,9 +70,6 @@
     "app/components/WstepDzialu.tsx": {
       "styl": 1
     },
-    "app/components/Zgloszenie.tsx": {
-      "styl": 5
-    },
     "app/components/plan/ListaPochowanych.tsx": {
       "styl": 34
     },
@@ -91,10 +88,7 @@
       "hex": 2
     },
     "app/globals.css": {
-      "hex": 275
-    },
-    "app/o-projekcie/page.tsx": {
-      "styl": 1
+      "hex": 274
     },
     "app/parafie/page.tsx": {
       "styl": 1

@@ -88,3 +88,30 @@ export function NawigacjaStron({ strona, stron, adres, etykieta }: { strona: num
         </nav>
     )
 }
+
+// ---- WSP-01 (etap R): wzorce strony „współtwórz” z przyjętej makiety 16.11 (rejestr: KOMPONENTY_BAZOWE) ----
+
+/** Kroki „jak to działa”: numerowana lista w kolumnach (na telefonie jedna pod drugą), kreska akcentu nad krokiem. */
+export function KrokiDzialania({ kroki }: { kroki: { tytul: string; opis: React.ReactNode }[] }) {
+    return (
+        <ol className="wsp-kroki">
+            {kroki.map((k) => <li key={k.tytul}><b>{k.tytul}</b><span>{k.opis}</span></li>)}
+        </ol>
+    )
+}
+
+/** Grupa zadań: nagłówek-wiersz z tłem (jak nagłówek części tabeli karty) z liczbą, opis, zawartość. */
+export function GrupaZadan({ id, tytul, liczba, opis, children }: { id?: string; tytul: string; liczba: number; opis?: string; children: React.ReactNode }) {
+    return (
+        <section className="wsp-grupa" id={id} aria-labelledby={id ? `${id}-t` : undefined}>
+            <div className="wsp-grupa-nagl"><h3 id={id ? `${id}-t` : undefined}>{tytul}</h3><span className="ot-drobne">{liczba}</span></div>
+            {opis && <p className="wsp-grupa-opis">{opis}</p>}
+            {children}
+        </section>
+    )
+}
+
+/** Etykieta braku – neutralna (brak to zaproszenie, nie ostrzeżenie): tło kontrolki, tekst opisu, ramka linii podziału. */
+export function EtykietaBraku({ children }: { children: React.ReactNode }) {
+    return <span className="wsp-brak">{children}</span>
+}

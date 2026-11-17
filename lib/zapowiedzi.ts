@@ -21,3 +21,17 @@ export function adresMiniatury(m: { strony: { adres: string }[]; plik?: string |
     if (skan) return skan.startsWith('/pliki/strony/') ? `${skan}?w=${w}` : skan
     return m.plik && /\.(jpe?g|png|webp)$/i.test(m.plik) ? `${m.plik}?w=${w}` : undefined
 }
+
+/**
+ * Uwaga właściciela 17.11 (wariant B): miniatura wpisu w pasku bocznym znika, gdy przed pierwszą wstawką materiału ze skanem
+ * (pełna szerokość) jest mniej niż PROG_WSTEPU_MINIATURY znaków tekstu wpisu – inaczej ten sam dokument widać od razu dwa razy.
+ * Bez wstawki – miniatura zostaje. Liczy się tekst treści (bez zapowiedzi pod metryczką).
+ */
+export const PROG_WSTEPU_MINIATURY = 800
+export function miniaturaWBoku(odcinki: ({ html: string } | { material: string })[]): boolean {
+    const i = odcinki.findIndex((o) => 'material' in o)
+    if (i < 0) return true
+    const tekst = odcinki.slice(0, i).map((o) => ('html' in o ? o.html : '')).join(' ')
+        .replace(/<[^>]*>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' ').replace(/\s+/g, ' ').trim()
+    return tekst.length >= PROG_WSTEPU_MINIATURY
+}

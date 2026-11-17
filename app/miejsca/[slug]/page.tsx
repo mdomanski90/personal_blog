@@ -20,6 +20,7 @@ import { pozycjeMiejsc } from '../../components/SpisMiejsc'
 import { PrzyciskDrukuj, PrzyciskDrukujCalosc } from '../../components/Druk'
 import MapaKarty from '../../components/MapaKarty'
 import Zgloszenie from '../../components/Zgloszenie'
+import { brakiDoPomocy } from '@/lib/wspoltworz-dane'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania, { czesciPowiazan } from '../../components/Powiazania'
@@ -53,6 +54,8 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const bezDaty = tematy.filter((t) => !t.czas)
     const opow = await opowiesciDlaMiejsca(m.id, poziom)
     const opisHtml = naHtml(m.opis, await kontekstTresci(poziom))
+    // WSP-04: pusta historia – „pomóż uzupełnić” (decyzje redakcji jak w „współtwórz”)
+    const pomoc = await brakiDoPomocy('miejsca', m.id, maTekst(opisHtml) ? [] : ['bez-opisu'], m.bezWspoltworz)
     const swiatynie = await obiektyDlaMiejsca(m.id, poziom)
     const punkty = m.wspolrzedne || m.rodzaj === 'gmina' ? await dolaczPlany(punktyMapy(wszystkie, await obiekty(poziom))) : []
     const planyGeo = await planyNaMape()
@@ -158,7 +161,13 @@ export default async function MiejsceStrona({ params }: Parametry) {
 
             <Sekcja tytul={tytulHistorii} id={idCzesci(tytulHistorii)}>
                 {maTekst(opisHtml) ? <Tresc html={opisHtml} /> : (
-                    <p className="tekst-opis">Opis historii {obszar ? 'tego obszaru' : 'tej miejscowości'} jest w przygotowaniu.</p>
+                    // tekst właściciela (komentarz na makiecie 17.11)
+                    <p className="tekst-opis">Opis {obszar ? 'tego obszaru' : 'tej miejscowości'} jest w opracowaniu.{pomoc.has('bez-opisu') && <>
+                        {' '}Jeśli masz na ten temat wiedzę –{' '}
+                        <Zgloszenie rodzaj="poprawka" wariant="link" etykieta="pomóż go uzupełnić" adres={`/miejsca/${m.id}`} tytul={`${m.nazwa} – historia`} brak="bez-opisu" zgoda
+                            podpowiedz={`Co wiesz o dziejach ${obszar ? 'tego obszaru' : 'tej miejscowości'}? Wystarczy kilka zdań, wspomnienie albo wskazanie źródła.`} />
+                        . Wspólnie możemy tworzyć ten serwis.
+                    </>}</p>
                 )}
             </Sekcja>
 

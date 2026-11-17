@@ -5,7 +5,11 @@ import { Link } from 'next-view-transitions'
  * Siatka miniatur (wzorzec „siatka”, rejestr szablonów): obraz 4:3, tytuł, linia z rodzajem i datą.
  * Wspólna dla materiałów archiwum (ListaMaterialow) i planów (PH-23, „wszystkie plany”). Bez stylów inline – klasy .siatka-miniatur.
  */
-export interface PozycjaSiatki { klucz: string; href: string; tytul: string; linia?: string; obraz?: React.ReactNode; znak?: string }
+export interface PozycjaSiatki {
+    klucz: string; href: string; tytul: string; linia?: string; obraz?: React.ReactNode; znak?: string
+    /** WSP-01 (etap R): dół kafla poza odnośnikiem – np. etykieta braku i „uzupełnij” na stronie „współtwórz” */
+    dol?: React.ReactNode
+}
 
 export default function SiatkaMiniatur({ pozycje, pusto = 'brak pozycji.' }: { pozycje: PozycjaSiatki[]; pusto?: string }) {
     if (!pozycje.length) return <p className="brak-danych">{pusto}</p>
@@ -20,6 +24,7 @@ export default function SiatkaMiniatur({ pozycje, pusto = 'brak pozycji.' }: { p
                             {p.linia && <span className="sm-linia">{p.linia}</span>}
                         </div>
                     </Link>
+                    {p.dol && <div className="sm-dol">{p.dol}</div>}
                 </li>
             ))}
         </ul>

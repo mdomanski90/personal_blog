@@ -15,7 +15,7 @@ import { przewin, przewinDo } from '@/lib/ruch'
 
 type Zakladka = 'transkrypcja' | 'oryginał' | 'tłumaczenie' | 'objaśnienia'
 
-export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja, oryginal, tlumaczenie, opracowal, rekonstrukcja }: {
+export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja, oryginal, tlumaczenie, opracowal, rekonstrukcja, startowa = 0 }: {
     strony: StronaPodgladu[]
     objasnienia: ObjasnienieWidoku[]
     tytul: string
@@ -25,8 +25,10 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
     opracowal?: string
     /** PH1: warstwa rekonstrukcji planu nad skanem */
     rekonstrukcja?: DaneRekonstrukcji
+    /** PD-07: strona widoczna na początku (indeks od 0) – z bloku „Materiał z archiwum” we wpisie */
+    startowa?: number
 }) {
-    const [strona, ustawStrone] = React.useState(0)
+    const [strona, ustawStrone] = React.useState(Math.max(0, Math.min(strony.length - 1, startowa)))
     const [aktywne, ustawAktywne] = React.useState<string | null>(null)
     const [wskazane, ustawWskazane] = React.useState<string | null>(null)
     const tekst = React.useRef<HTMLDivElement>(null)

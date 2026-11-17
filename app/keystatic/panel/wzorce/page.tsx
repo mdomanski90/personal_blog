@@ -1,7 +1,7 @@
 'use client'
 import * as React from 'react'
 import { KOMPONENTY_BAZOWE } from '@/lib/szablony/rejestr'
-import { Okruszki, PastylkaFiltra, PastylkaOsoby, RzadFiltrow, TytulSekcji } from '@/app/components/Wzorce'
+import { EtykietaBraku, GrupaZadan, KrokiDzialania, Okruszki, PastylkaFiltra, PastylkaOsoby, RzadFiltrow, TytulSekcji } from '@/app/components/Wzorce'
 import SpisTresci from '@/app/components/SpisTresci'
 import { PrzyciskDrukuj } from '@/app/components/Druk'
 import { PozycjaWKarcie } from '@/app/components/KartaPozycji'
@@ -58,6 +58,11 @@ function Probka({ motyw }: { motyw: string }) {
                 { klucz: 'a', href: '#', tytul: 'Materiał przykładowy', linia: 'dokument · 1917', znak: '▣' },
                 { klucz: 'b', href: '#', tytul: 'Plan przykładowy', linia: 'plan historyczny · 1939', znak: '▤' },
             ]} />
+            {/* WSP-01 (etap R): wzorce strony „współtwórz” */}
+            <KrokiDzialania kroki={[{ tytul: 'Przesłanie zgłoszenia', opis: 'krok pierwszy (wsp-kroki)' }, { tytul: 'Weryfikacja', opis: 'krok drugi' }, { tytul: 'Uzupełnienie na stronie', opis: 'krok trzeci' }]} />
+            <GrupaZadan tytul="grupa zadań (wsp-grupa)" liczba={2} opis="Opis grupy – jedno zdanie.">
+                <SiatkaMiniatur pozycje={[{ klucz: 'w', href: '#', tytul: 'Materiał przykładowy', linia: 'dokument · 1925', znak: '▣', dol: <><EtykietaBraku>brak transkrypcji · łacina</EtykietaBraku><a href="#" className="k-btn k-btn--s lowercase">uzupełnij</a></> }]} />
+            </GrupaZadan>
             <div className="wz-rozmiary">
                 {ROZMIARY.map(([t, opis]) => <p key={t} className={`wz-r-${t.slice(10)}`}>{t} · {opis} · zażółć gęślą jaźń</p>)}
             </div>

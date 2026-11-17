@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
-import { kontekstTresci, material, nazwy, obiekty, objasnieniaDoWidoku, powiazania, poziomCzytelnika } from '@/lib/archiwum'
+import { adresKontaktowy, kontekstTresci, material, nazwy, obiekty, objasnieniaDoWidoku, podpisZrodlaMaterialu, powiazania, poziomCzytelnika } from '@/lib/archiwum'
+import { brakiDoPomocy } from '@/lib/wspoltworz-dane'
+import { zadaniaMaterialu } from '@/lib/wspoltworz'
+import Zgloszenie from '../../components/Zgloszenie'
 import { RODZAJE_MATERIALOW } from '@/lib/materialy'
 import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
@@ -75,7 +78,11 @@ export default async function MaterialStrona({ params }: Parametry) {
     const typyRek = rek ? katalog(rek.ustawienia) : new Map()
     const legendaRek = rek ? elementyLegendy(rek.plan.elementy.filter((e) => typyRek.has(e.typ))) : []
     const oryginal = [m.pochodzenie, m.sygnatura].filter(Boolean).join(', ')
-    const podpisZrodla = m.podpisZrodla || [m.miejscePrzechowywania, m.sygnatura, m.prawa].filter(Boolean).join(' · ')
+    const podpisZrodla = podpisZrodlaMaterialu(m)
+    // WSP-04: skan bez transkrypcji – „pomóż odczytać” (ta sama definicja braku co w „współtwórz”)
+    const brakiM = zadaniaMaterialu(m, { odczyt: obj.some((o) => o.rodzaj === 'odczyt'), tlumaczenie: obj.some((o) => o.rodzaj === 'tlumaczenie') }, () => '').map((z) => z.brak)
+    const pomoc = await brakiDoPomocy('materialy', m.id, brakiM.filter((b) => b === 'brak-transkrypcji'), m.bezWspoltworz)
+    const email = pomoc.size ? await adresKontaktowy() : undefined
 
     const rok = m.czas ? formatujEdtf(m.czas) : null
     const ileStr = m.strony.length > 1 ? `${m.strony.length} ${m.strony.length % 10 >= 2 && m.strony.length % 10 <= 4 && (m.strony.length % 100 < 12 || m.strony.length % 100 > 14) ? 'strony' : 'stron'}` : null
@@ -107,6 +114,13 @@ export default async function MaterialStrona({ params }: Parametry) {
                 <PelnaSzerokosc>
                     <PrzegladarkaDokumentu strony={m.strony} objasnienia={obj} tytul={m.nazwa} rekonstrukcja={rek ?? undefined} />
                     {podpisZrodla && <p className="podpis-zrodla"><span>źródło:</span> {podpisZrodla}</p>}
+                    {pomoc.has('brak-transkrypcji') && (
+                        // dopisek właściciela (komentarz na makiecie 17.11) – jak na kartach miejscowości i obiektu
+                        <p className="podpis-zrodla wsp-pomoc">Ten dokument nie ma jeszcze transkrypcji –{' '}
+                            <Zgloszenie rodzaj="odczyt" wariant="link" etykieta="pomóż go odczytać" adres={`/archiwum/${m.id}`} tytul={`${m.nazwa} – odczyt`} brak="brak-transkrypcji" zgoda email={email} />
+                            . Wspólnie możemy tworzyć ten serwis.
+                        </p>
+                    )}
                 </PelnaSzerokosc>
             ) : m.plik && (
                 <figure className="material-plik">

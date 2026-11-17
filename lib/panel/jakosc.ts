@@ -9,6 +9,9 @@ import matter from 'gray-matter'
 import { wczytajPrzekierowania, celPrzekierowania, RODZAJE_PRZEKIEROWAN, type Przekierowanie } from '../przekierowania'
 import { normalizuj } from '../tekst'
 import { objasnieniaMaterialu } from '../objasnienia'
+import { stronyMaterialu } from '../strony-materialow'
+import { typPliku } from '../pliki'
+import { brakiMaterialu, brakiObiektu, OPISY_PANELU, zrodlaWTekscie } from '../wspoltworz-reguly'
 
 export type StanUwagi = 'aktywne' | 'odlozone' | 'ignorowane'
 export type UwagaJakosci = {
@@ -22,7 +25,9 @@ const REGULY = [
     'brak-miejscowosci', 'brak-siedziby', 'brak-pochodzenia', 'brak-praw',
     'brak-lat', 'brak-archiwum', 'brak-sygnatury', 'brak-autora',
     'brak-roku', 'brak-linku', 'brak-definicji', 'brak-instytucji',
-    'relacja-do-nieistniejacego', 'przekierowanie-bledne'
+    'relacja-do-nieistniejacego', 'przekierowanie-bledne',
+    // WSP-02 (etap R): braki pokazywane publicznie w „współtwórz” – jedna definicja w lib/wspoltworz-reguly.ts
+    'brak-transkrypcji', 'brak-tlumaczenia', 'zdjecie-do-rozpoznania', 'brak-zdjecia-obiektu'
 ] as const
 const KOLEKCJE = ['posts', 'miejsca', 'tematy', 'obiekty', 'materialy', 'zbiory', 'publikacje', 'parafie', 'hasla', 'biogramy', 'zespoly', 'ksiegi'] as const
 const DB = () => path.join(process.cwd(), 'content', '_panel', 'jakosc.json')
@@ -142,6 +147,9 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
             if (kolekcja === 'obiekty') {
                 if (!pole(d,'coordinates')) dodaj('brak-wspolrzednych', 'Brak współrzędnych obiektu', 'Uzupełnij, jeśli znane.')
                 if (!pole(d,'spatial')) dodaj('brak-miejscowosci', 'Obiekt bez przypisanej miejscowości', 'Powiąż obiekt z miejscowością.')
+                const zdjecia = Array.isArray(d.photos) && d.photos.some((z) => z && typeof z === 'object' && ma((z as Record<string, unknown>).image))
+                if (brakiObiektu({ maOpis, maWspolrzedne: pole(d, 'coordinates'), maZdjecie: zdjecia, istnieje: d.exists !== false }).includes('brak-zdjecia-obiektu'))
+                    dodaj('brak-zdjecia-obiektu', ...OPISY_PANELU['brak-zdjecia-obiektu'])
             }
             if (kolekcja === 'parafie') {
                 if (!pole(d,'seat')) dodaj('brak-siedziby', 'Brak siedziby instytucji', 'Wybierz miejscowość, o ile siedziba jest znana.')
@@ -150,6 +158,14 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
             if (kolekcja === 'materialy') {
                 if (!pole(d,'source','provenance')) dodaj('brak-pochodzenia','Nie opisano pochodzenia materiału','Ustal pochodzenie i miejsce przechowania, o ile możliwe.')
                 if (!pole(d,'rights')) dodaj('brak-praw','Nie określono praw do materiału','Zweryfikuj prawa i zakres udostępnienia; nie publikuj bez kontroli.')
+                const z = zrodlaWTekscie(r.tekst), obj = objasnieniaMaterialu(r.slug)
+                const plik = typeof d.file === 'string' ? d.file : ''
+                for (const b of brakiMaterialu({
+                    rodzaj: String(d.type ?? ''), maSkan: stronyMaterialu(r.slug).length > 0 || (!!plik && typPliku(plik) === 'obraz'),
+                    maTranskrypcje: z.transkrypcja || pole(d, 'transcription') || obj.some((o) => o.rodzaj === 'odczyt'),
+                    maTlumaczenie: z.tlumaczenie || obj.some((o) => o.rodzaj === 'tlumaczenie'),
+                    jezyk: typeof d.language === 'string' ? d.language : '', maCzas: pole(d, 'temporal'), maMiejsca: pole(d, 'spatial'), maOpis: z.opis,
+                })) if (b !== 'bez-opisu' && b !== 'brak-wspolrzednych' && b !== 'brak-zdjecia-obiektu') dodaj(b, ...OPISY_PANELU[b])
             }
             if (kolekcja === 'zbiory' && !pole(d,'provenance')) dodaj('brak-pochodzenia','Brak informacji o pochodzeniu zbioru','Uzupełnij pochodzenie, jeśli znane.')
             if (kolekcja === 'publikacje') {
@@ -205,6 +221,12 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
         else if (!cel || !zbior.has(cel)) dodaj('Nowy identyfikator nie istnieje', 'Wpisz identyfikator istniejącego wpisu – inaczej stary adres nadal da „nie znaleziono”.')
     })
     return wynik.sort((a,b) => a.kolekcja.localeCompare(b.kolekcja,'pl') || a.tytul.localeCompare(b.tytul,'pl') || a.regula.localeCompare(b.regula,'pl'))
+}
+
+/** WSP-02: klucze uwag z decyzją „zignoruj” (`kolekcja:rekord:regula`) – strona „współtwórz” takich zadań nie pokazuje. Same klucze, bez notatek. */
+export async function zignorowaneUwagi(): Promise<Set<string>> {
+    const p = await pamiec()
+    return new Set(Object.entries(p.decyzje).filter(([, d]) => d.stan === 'ignorowane').map(([k]) => k))
 }
 
 /** Akcja tylko dla istniejącego ostrzeżenia, aby nie dało się zapisać arbitralnego klucza. */

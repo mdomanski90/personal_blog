@@ -70,6 +70,9 @@ const widocznosc = () =>
     defaultValue: 'publiczne',
   });
 
+// WSP-02 (decyzja 17.11): rekord z zaznaczonym polem nie trafia do zadań na stronie „współtwórz” (obok „zignoruj” w panelu)
+const bezWspoltworz = () =>
+  fields.checkbox({ label: 'Nie pokazuj w „współtwórz”', description: 'Braki tego rekordu (opis, położenie, zdjęcie, transkrypcja) nie będą pokazywane czytelnikom jako zadania do uzupełnienia – np. gdy położenie jest historycznie nieznane.', defaultValue: false });
 const notatka = () =>
   fields.text({ label: 'Notatka robocza', description: 'Widoczna tylko w panelu, nie trafia na stronę ani do eksportu.', multiline: true });
 
@@ -111,6 +114,8 @@ const komponenty = {
     schema: {
       id: fields.relationship({ label: 'Materiał', collection: 'materialy', validation: { isRequired: true } }),
       podpis: fields.text({ label: 'Podpis', description: 'Puste – tytuł materiału.' }),
+      // PD-07 (etap R): wstawka otwiera się na wskazanej stronie skanu
+      strona: fields.integer({ label: 'Strona skanu', description: 'Która strona skanu ma być widoczna na początku (1 = pierwsza). Puste – pierwsza.', validation: { min: 1, max: 999 } }),
     },
   }),
   drzewo: block({
@@ -184,6 +189,10 @@ export default config({
           options: [
             { label: 'o źródle', value: 'o-zrodle' },
             { label: 'esej', value: 'esej' },
+            // D-SG-12 (etap R): gatunki z rekomendacji SG-12
+            { label: 'wywiad', value: 'wywiad' },
+            { label: 'reportaż', value: 'reportaz' },
+            { label: 'wspomnienie', value: 'wspomnienie' },
           ],
           defaultValue: 'o-zrodle',
         }),
@@ -191,7 +200,7 @@ export default config({
         lead: fields.text({
           label: 'Zapowiedź (strona główna i lista wpisów)',
           multiline: true,
-          description: '2–3 zdania, które zaczynają historię: człowiek, wydarzenie, wierny cytat albo pytanie (bez clickbaitu). Na stronie głównej i liście wpisów: z miniaturą do 2 kolumn × 7 wierszy (ok. 500 znaków), bez miniatury do 3 × 9 (ok. 900); dłuższy tekst zostanie skrócony, krótki stoi w jednej kolumnie. Puste – początek tekstu wpisu.',
+          description: '2–3 zdania, które zaczynają historię: człowiek, wydarzenie, wierny cytat albo pytanie (bez clickbaitu). Wywiad – autentyczny cytat albo fragment rozmowy; reportaż – scena lub ważny szczegół; wspomnienie – głos świadka i konkret; o źródle – lokalny kontekst i znaczenie dokumentu. Cytat zawsze wierny źródłu. Na stronie głównej i liście wpisów: z miniaturą do 2 kolumn × 7 wierszy (ok. 500 znaków), bez miniatury do 3 × 9 (ok. 900); dłuższy tekst zostanie skrócony, krótki stoi w jednej kolumnie. Puste – początek tekstu wpisu.',
         }),
         cover: fields.relationship({
           label: 'Miniatura zapowiedzi (materiał z archiwum)',
@@ -200,6 +209,12 @@ export default config({
         }),
         spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
         subject: fields.multiRelationship({ label: 'Tematy', collection: 'tematy' }),
+        // D-SG-14 (etap R): autorskie zaproszenie pod wybranym wpisem – puste = nic (bez identycznego formularza pod każdym wpisem)
+        invitation: fields.text({
+          label: 'Zaproszenie pod wpisem',
+          multiline: true,
+          description: 'Nieobowiązkowe. Pytanie do czytelników związane z tym wpisem, np. „Pamiętasz szkołę w Testowie? Może masz zdjęcie klasy?”. Pod wpisem pojawi się sekcja „dopowiedz tę historię” z formularzem wspomnienia. Puste – sekcji nie ma.',
+        }),
         about: fields.text({
           label: 'Dzień, którego dotyczy wpis',
           description: 'Nieobowiązkowe. Dokładna data wydarzenia, np. 1915-08-12 – wpis pojawi się w „ten dzień w historii” na stronie głównej.',
@@ -276,7 +291,7 @@ export default config({
         ),
         sameAs: fields.url({ label: 'Wikidata / GeoNames', description: 'Adres strony tego miejsca w Wikidata lub GeoNames (opcjonalnie).' }),
         visibility: widocznosc(),
-        note: notatka(),
+        note: notatka(), contributeHide: bezWspoltworz(),
         dateSubmitted: dodano(),
         sources: zrodlaKarty(),
         descriptionSource: fields.text({ label: 'Źródło opisu', description: 'Np. „na podstawie: Wikipedia, hasło Olszanka (powiat łosicki), CC BY-SA 4.0 – https://pl.wikipedia.org/wiki/…”. Adresy zamieniają się w odnośniki.', multiline: true }),
@@ -371,7 +386,7 @@ export default config({
           { label: 'Fotografie', itemLabel: (p) => p.fields.caption.value || 'zdjęcie' },
         ),
         visibility: widocznosc(),
-        note: notatka(),
+        note: notatka(), contributeHide: bezWspoltworz(),
         dateSubmitted: dodano(),
         sources: zrodlaKarty(),
         description: opisMarkdoc('Opis i historia', 'obiekty'),
@@ -429,7 +444,7 @@ export default config({
           ],
           defaultValue: 'publiczne',
         }),
-        note: notatka(),
+        note: notatka(), contributeHide: bezWspoltworz(),
         dateSubmitted: dodano(),
         sources: zrodlaKarty(),
         description: opisMarkdoc('Opis, transkrypcja, tłumaczenie', 'materialy'),
@@ -736,6 +751,13 @@ export default config({
       path: 'content/o-projekcie',
       format: { contentField: 'content' },
       schema: {
+        // etap R (decyzja 17.11): jeden adres na stronie „o projekcie” i przy formularzu „współtwórz”
+        contact: fields.text({
+          label: 'Adres e-mail do kontaktu',
+          description: 'Pokazywany w „o projekcie” i przy formularzu „współtwórz” (pliki). Składany w przeglądarce – nie ma go w HTML strony. Nigdy prywatny adres.',
+          defaultValue: 'kontakt@odniepamieci.pl',
+          validation: { pattern: { regex: /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i, message: 'Podaj adres e-mail.' } },
+        }),
         content: opisMarkdoc('Treść', 'o-projekcie'),
       },
     }),
