@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { dlaCzytelnika, popraw, type Element, type Plan } from './model'
 import { numeryPlanu } from './numeracja'
 import { katalog, USTAWIENIA_DOMYSLNE } from './typy'
-import { adresZGrobem, elementyKadruStartowego, interfejsPlanu, kwateryPlanu, opisany, przesunVB, ruchKlawisza, stanPlanu, szukajNaPlanie, zakladkaKlawisza } from './przegladarka'
+import { adresZGrobem, elementyKadruStartowego, interfejsPlanu, kwateryPlanu, opisany, przesunVB, ruchKlawisza, stanPlanu, szukajNaPlanie, zakladkaKlawisza, opisKwater } from './przegladarka'
 
 const typy = katalog()
 const grob = (id: string, x: number, y: number, reszta: Partial<Element> = {}): Element => ({ id, typ: 'grob', g: { k: 'r', x, y, w: 10, h: 20, a: 0 }, ...reszta })
@@ -121,4 +121,11 @@ test('PH4: litery dla objaśnień, gdy plan ma numerowaną legendę; inaczej num
     const { znakObjasnienia } = await import('./przegladarka')
     assert.deepEqual([0, 1, 25, 26, 27, 51, 52].map((i) => znakObjasnienia(i, true)), ['a', 'b', 'z', 'aa', 'ab', 'az', 'ba'])
     assert.deepEqual([0, 9].map((i) => znakObjasnienia(i, false)), ['1', '10'])
+})
+
+test('plansza 17.11: kwatery w linii pod tytułem planu', () => {
+    assert.equal(opisKwater([]), null)
+    assert.equal(opisKwater(['A']), 'kwatera A')
+    assert.equal(opisKwater(['A', 'B']), 'kwatery A, B')
+    assert.equal(opisKwater(['A', 'B', 'C', 'D']), 'kwatery A–D')
 })

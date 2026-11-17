@@ -7,7 +7,8 @@ import { poziomCzytelnika, szukaj } from '@/lib/archiwum'
 import { krotszeZapytanie } from '@/lib/szukanie'
 import { adresFiltrow, wartosc, type Parametry } from '@/lib/adres-filtrow'
 import { stronicuj } from '@/lib/stronicowanie'
-import { RODZINY, rodzinaRodzaju, rodzinaZParametru } from '@/lib/rodziny-wynikow'
+import { RODZAJE_FILTRA, RODZINY, filtrZParametru, pasujeDoFiltra, rodzinaRodzaju } from '@/lib/rodziny-wynikow'
+import { formaPoLiczbie } from '@/lib/tekst'
 import PoleSzukania from '../components/PoleSzukania'
 import Komunikat from '../components/Komunikat'
 import StronaDzialu, { LicznikWynikow } from '../components/StronaDzialu'
@@ -25,15 +26,18 @@ export default async function Szukaj({ searchParams }: { searchParams: Promise<P
     const adresKat = nrKat ? await adresNumeru(nrKat, await poziomCzytelnika()) : null
     if (adresKat) redirect(adresKat)
     const wszystkie = q ? await szukaj(q, await poziomCzytelnika()) : []
-    const rodzina = rodzinaZParametru(wartosc(sp.rodzaj))
-    const wybrane = rodzina ? wszystkie.filter((w) => rodzinaRodzaju(w.rodzaj) === rodzina) : wszystkie
+    const filtr = filtrZParametru(wartosc(sp.rodzaj))
+    const wybrane = wszystkie.filter((w) => pasujeDoFiltra(w.rodzaj, filtr))
     const strona = /^\d{1,5}$/.test(wartosc(sp.strona)) ? Number(wartosc(sp.strona)) : 1
     const wyn = stronicuj(wybrane, strona)
-    const ile = (id: string) => wszystkie.filter((w) => rodzinaRodzaju(w.rodzaj) === id).length
+    const ile = (r: string) => wszystkie.filter((w) => w.rodzaj === r).length
     const krotsze = q && !wszystkie.length ? krotszeZapytanie(q) : null
-    const nazwaRodziny = RODZINY.find((r) => r.id === rodzina)?.nazwa
-    // legenda znaków: tylko rodziny, które występują w wynikach (przy filtrze – wszystkie z całości, żeby kolory się nie zmieniały)
-    const wRodzinach = RODZINY.filter((r) => ile(r.id) > 0)
+    // pastylki: konkretne rodzaje obecne w wynikach (plansza 17.11); legenda kropek – zawsze wszystkie rodziny
+    const rodzajeWWynikach = RODZAJE_FILTRA.filter((r) => ile(r.rodzaj) > 0)
+    const nazwaFiltra = !filtr ? undefined : 'rodzaj' in filtr
+        ? formaPoLiczbie(ile(filtr.rodzaj), RODZAJE_FILTRA.find((r) => r.rodzaj === filtr.rodzaj)!.formy)
+        : RODZINY.find((r) => r.id === filtr.rodzina)?.nazwa
+    const aktywny = (r: string) => !!filtr && 'rodzaj' in filtr && filtr.rodzaj === r
 
     return (
         <StronaDzialu
@@ -43,19 +47,19 @@ export default async function Szukaj({ searchParams }: { searchParams: Promise<P
                 <PoleSzukania action={BAZA} defaultValue={q} placeholder="nazwa wsi, nazwisko, temat…" obszar="zmień zapytanie" className="szukaj-pole-strony" />
                 {q && wszystkie.length > 0 && (
                     <RzadFiltrow etykieta="rodzaj wyników">
-                        <PastylkaFiltra href={adresFiltrow(BAZA, sp, { ustaw: { rodzaj: '' } })} aktywny={!rodzina} liczba={wszystkie.length}>wszystko</PastylkaFiltra>
-                        {RODZINY.map((r) => <PastylkaFiltra key={r.id} href={adresFiltrow(BAZA, sp, { ustaw: { rodzaj: r.id } })} aktywny={rodzina === r.id} liczba={ile(r.id)}>{r.nazwa}</PastylkaFiltra>)}
+                        <PastylkaFiltra href={adresFiltrow(BAZA, sp, { ustaw: { rodzaj: '' } })} aktywny={!filtr} liczba={wszystkie.length}>wszystko</PastylkaFiltra>
+                        {rodzajeWWynikach.map((r) => <PastylkaFiltra key={r.rodzaj} href={adresFiltrow(BAZA, sp, { ustaw: { rodzaj: r.rodzaj } })} aktywny={aktywny(r.rodzaj)} liczba={ile(r.rodzaj)}>{formaPoLiczbie(ile(r.rodzaj), r.formy)}</PastylkaFiltra>)}
                     </RzadFiltrow>
                 )}
             </>}
-            wybrane={rodzina && nazwaRodziny ? <WybraneFiltry wybrane={[{ klucz: 'rodzaj', etykieta: nazwaRodziny, href: adresFiltrow(BAZA, sp, { pomin: ['rodzaj'] }) }]} wyczysc={adresFiltrow(BAZA, sp, { pomin: ['rodzaj'] })} /> : undefined}
+            wybrane={filtr && nazwaFiltra ? <WybraneFiltry wybrane={[{ klucz: 'rodzaj', etykieta: nazwaFiltra, href: adresFiltrow(BAZA, sp, { pomin: ['rodzaj'] }) }]} wyczysc={adresFiltrow(BAZA, sp, { pomin: ['rodzaj'] })} /> : undefined}
             licznik={q && wszystkie.length > 0 ? (
-                <>
+                <div className="szukaj-licznik">
                     <LicznikWynikow fraza={q} liczba={wybrane.length} formy={['wynik', 'wyniki', 'wyników']} strona={wyn.strona} stron={wyn.stron} dodatek="najpierw najlepiej pasujące" />
                     <p className="szukaj-legenda" aria-label="znaczenie kolorowych znaków">
-                        {wRodzinach.map((r) => <span key={r.id} className="szukaj-legenda-poz"><span className={`szukaj-znak szukaj-znak--${r.id}`} aria-hidden="true" />{r.nazwa}</span>)}
+                        {RODZINY.map((r) => <span key={r.id} className="szukaj-legenda-poz"><span className={`szukaj-znak szukaj-znak--${r.id}`} aria-hidden="true" />{r.nazwa}</span>)}
                     </p>
-                </>
+                </div>
             ) : undefined}
             tresc={<>
                 {q && !wszystkie.length && (

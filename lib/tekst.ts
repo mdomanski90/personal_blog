@@ -32,8 +32,12 @@ export function normalizuj(s: string): string {
 export const porownajPl = new Intl.Collator('pl').compare
 
 /** Polska odmiana po liczbie: odmiana(1, ['wpis', 'wpisy', 'wpisów']) → „1 wpis”, 3 → „3 wpisy”, 12 → „12 wpisów”. */
-export function odmiana(n: number, [jeden, kilka, wiele]: [string, string, string]): string {
+export function odmiana(n: number, formy: [string, string, string]): string {
+    return `${n} ${formaPoLiczbie(n, formy)}`
+}
+
+/** Sama forma słowa po liczbie (bez liczby): 1 → „osoba”, 3 → „osoby”, 5 → „osób” – np. pastylka „osób · 5”. */
+export function formaPoLiczbie(n: number, [jeden, kilka, wiele]: [string, string, string]): string {
     const d = n % 10, s = n % 100
-    const slowo = n === 1 ? jeden : d >= 2 && d <= 4 && (s < 12 || s > 14) ? kilka : wiele
-    return `${n} ${slowo}`
+    return n === 1 ? jeden : d >= 2 && d <= 4 && (s < 12 || s > 14) ? kilka : wiele
 }

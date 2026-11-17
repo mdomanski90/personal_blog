@@ -26,3 +26,38 @@ export function rodzinaZParametru(p: string | undefined): RodzinaWynikow | undef
     const z = RODZINY.find((x) => (x.rodzaje as string[]).includes(p))
     return z?.id
 }
+
+/**
+ * Pastylki filtra /szukaj – plansza 17.11 i ankieta po odbiorze P3: konkretne rodzaje wyników (w kolejności planszy), nazwa
+ * odmieniona przez liczbę („osób · 5”, „hasła · 4”). Rodziny zostają dla koloru znaku i legendy.
+ */
+export const RODZAJE_FILTRA: { rodzaj: RodzajWyniku; formy: [string, string, string] }[] = [
+    { rodzaj: 'miejsce', formy: ['miejscowość', 'miejscowości', 'miejscowości'] },
+    { rodzaj: 'osoba', formy: ['osoba', 'osoby', 'osób'] },
+    { rodzaj: 'materiał', formy: ['materiał', 'materiały', 'materiałów'] },
+    { rodzaj: 'zbiór', formy: ['zbiór', 'zbiory', 'zbiorów'] },
+    { rodzaj: 'parafia', formy: ['parafia / urząd', 'parafie i urzędy', 'parafii i urzędów'] },
+    { rodzaj: 'hasło', formy: ['hasło', 'hasła', 'haseł'] },
+    { rodzaj: 'obiekt', formy: ['obiekt', 'obiekty', 'obiektów'] },
+    { rodzaj: 'księga', formy: ['księga', 'księgi', 'ksiąg'] },
+    { rodzaj: 'publikacja', formy: ['publikacja', 'publikacje', 'publikacji'] },
+    { rodzaj: 'objaśnienie', formy: ['objaśnienie', 'objaśnienia', 'objaśnień'] },
+    { rodzaj: 'wpis', formy: ['wpis', 'wpisy', 'wpisów'] },
+    { rodzaj: 'temat', formy: ['temat', 'tematy', 'tematów'] },
+]
+
+export type FiltrWynikow = { rodzaj: RodzajWyniku } | { rodzina: RodzinaWynikow }
+
+/** ?rodzaj= z adresu: rodzaj wyniku albo (stare odnośniki SRCH-D-12) id rodziny; nieznane = brak filtra. */
+export function filtrZParametru(p: string | undefined): FiltrWynikow | undefined {
+    if (!p) return undefined
+    const r = RODZAJE_FILTRA.find((x) => x.rodzaj === p)
+    if (r) return { rodzaj: r.rodzaj }
+    const z = RODZINY.find((x) => x.id === p)
+    return z ? { rodzina: z.id } : undefined
+}
+
+export function pasujeDoFiltra(r: RodzajWyniku, f: FiltrWynikow | undefined): boolean {
+    if (!f) return true
+    return 'rodzaj' in f ? r === f.rodzaj : rodzinaRodzaju(r) === f.rodzina
+}

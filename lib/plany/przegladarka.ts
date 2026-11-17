@@ -154,3 +154,11 @@ export function znakObjasnienia(i: number, litery: boolean): string {
     do { s = String.fromCharCode(97 + (n % 26)) + s; n = Math.floor(n / 26) - 1 } while (n >= 0)
     return s
 }
+
+/** Linia pod tytułem planu (plansza 17.11): „kwatery A–D” (zakres przy 3+), „kwatery A, B”, „kwatera A”; bez kwater – null. */
+export function opisKwater(nazwy: string[]): string | null {
+    if (!nazwy.length) return null
+    if (nazwy.length === 1) return `kwatera ${nazwy[0]}`
+    if (nazwy.length === 2) return `kwatery ${nazwy.join(', ')}`
+    return `kwatery ${nazwy[0]}–${nazwy[nazwy.length - 1]}`
+}

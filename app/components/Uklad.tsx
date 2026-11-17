@@ -48,7 +48,7 @@ export function UkladKarty({ children, naglowek, bok, spis, sciezka }: { childre
         return (
             <>
                 {sciezka && <Okruszki sciezka={sciezka} />}
-                <div className="karta-odcinek karta-odcinek-pierwszy">
+                <div className="karta-odcinek karta-odcinek-pierwszy karta-odcinek-od-gory">
                     {aside}
                     <div className="karta-kolumna">
                         {naglowek && <div className="karta-naglowek">{naglowek}</div>}

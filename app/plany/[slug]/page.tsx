@@ -12,7 +12,11 @@ import { osobyPlanu } from '@/lib/plany/rodzina'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import { numerKat } from '@/lib/katalog/dane'
 import { LiniaNrKat } from '../../components/NrKat'
-import { CzescJakCytowac, WierszZglosil, Tabela } from '../../components/Karta'
+import { CzescJakCytowac, LiniaKarty, WierszZglosil, Tabela } from '../../components/Karta'
+import { katalog } from '@/lib/plany/typy'
+import { opisPlanu } from '@/lib/plany/katalog'
+import { numeryPlanu } from '@/lib/plany/model'
+import { kwateryPlanu, opisKwater } from '@/lib/plany/przegladarka'
 import { daneCytatu } from '@/lib/cytowanie'
 import { formatujEdtf } from '@/lib/edtf'
 import { DOKLADNOSCI, RODZAJE_PLANU, RODZAJE_ZRODLA, planGrobowy } from '@/lib/plany/metadane'
@@ -46,6 +50,17 @@ export default async function PlanStrona({ params }: Parametry) {
     const osoby = await osobyPlanu(plan, poz)
     const nrKat = numerKat('plan', plan.slug)
     const grobowy = planGrobowy(plan)
+    // plansza 17.11: linia pod tytułem – rodzaj · miejscowość · obiekt (VIEW-07: odnośnik do karty obiektu) · kwatery · groby · rysunek
+    const typy = katalog(ustawienia)
+    const opis = opisPlanu(plan, typy)
+    const linia = [
+        opis.linia.split(' · ')[0],
+        wies && { tekst: wies.nazwa, href: `/miejsca/${wies.id}` },
+        ob && { tekst: ob.nazwa, href: `/obiekty/${ob.id}` },
+        grobowy && opisKwater(kwateryPlanu(plan, typy, numeryPlanu(plan)).map((k) => k.nazwa)),
+        opis.pola.find(([e]) => e === 'na planie')?.[1],
+        plan.sporzadzono && `rysunek ${formatujEdtf(plan.sporzadzono)}`,
+    ]
     const zrodloRysunku = [plan.rodzajZrodla && RODZAJE_ZRODLA[plan.rodzajZrodla], plan.zrodlo?.opis].filter(Boolean).join(' – ')
     const oPlanie = (
         <>
@@ -75,10 +90,9 @@ export default async function PlanStrona({ params }: Parametry) {
             >
                 {plan.tytul}
             </TytulStrony>
+            <LiniaKarty elementy={linia} className="karta-linia przegladarka-linia" />
             <LiniaNrKat nr={nrKat} />
             {plan.opis && <p className="przegladarka-opis">{plan.opis}</p>}
-            {/* VIEW-07: plan i karta obiektu linkują wzajemnie */}
-            {ob && <p className="przegladarka-opis karta-linia">karta obiektu: <Link href={`/obiekty/${ob.id}`} className="odn">{ob.nazwa} →</Link></p>}
             <PrzegladarkaPlanu plan={plan} ustawienia={ustawienia} zalogowany={poziom === 'bliscy'} osoby={osoby} oPlanie={oPlanie} />
             {/* uwaga 16.11: „jak cytować” na każdej karcie, także planu */}
             <Tabela etykieta={`${plan.tytul} – jak cytować`}>

@@ -40,7 +40,7 @@ export default async function Haslo({ params }: P) {
     const zobacz = (h.zobaczTez ?? []).map((id) => wszystkie.find((x) => x.id === id)).filter((x): x is NonNullable<typeof x> => !!x && x.id !== h.id)
     const maWystepuje = siec.odnosniki.length + siec.wzmianki.length > 0
     const rodzaj = RODZAJE_HASEL[h.rodzaj] ?? h.rodzaj
-    const opracowanie = [h.opracowal, h.dataOpracowania && `dodano ${formatujEdtf(h.dataOpracowania)}`].filter(Boolean).join(' · ')
+    const opracowanie = [h.opracowal, h.dataOpracowania && `dodano ${/^\d{4}-\d{2}-\d{2}$/.test(h.dataOpracowania) ? h.dataOpracowania.split('-').reverse().join('.') : formatujEdtf(h.dataOpracowania)}`].filter(Boolean).join(' · ')
     const prawa = (z: { zrodlo: { rodzaj: string; id: string } }) => {
         if (z.zrodlo.rodzaj !== 'material') return OPIS_CZESCI[z.zrodlo.rodzaj] ?? z.zrodlo.rodzaj
         const m = mats.find((x) => x.id === z.zrodlo.id)
@@ -63,7 +63,7 @@ export default async function Haslo({ params }: P) {
                 <W e="źródło znaczenia">{h.zrodlo && <ZAdresami tekst={h.zrodlo} />}</W>
                 <WierszZglosil v={h.zglosil} />
                 <W e="opracował(a)">{opracowanie || null}</W>
-                <W e="zobacz też">{(zobacz.length > 0 || rodzaj) && <LiniaKarty className="karta-linia-w" elementy={[[...zobacz.map((x) => ({ tekst: x.haslo, href: adresHasla(x.id) })), { tekst: `wszystkie: ${rodzaj}`, href: `/biblioteka/slownik?rodzaj=${encodeURIComponent(h.rodzaj)}` }]]} />}</W>
+                <W e="zobacz też">{(zobacz.length > 0 || rodzaj) && <LiniaKarty className="karta-linia-w" elementy={[...zobacz.map((x) => ({ tekst: x.haslo, href: adresHasla(x.id) })), { tekst: `wszystkie: ${rodzaj}`, href: `/biblioteka/slownik?rodzaj=${encodeURIComponent(h.rodzaj)}` }]} />}</W>
                 <WystepujeW dane={siec} prawa={prawa} />
             </Tabela>
             <Tabela etykieta={`${h.haslo} – jak cytować`}>

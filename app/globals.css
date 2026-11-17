@@ -1732,6 +1732,12 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
   .karta-bok,.karta-odcinek-pierwszy>.karta-bok,.karta-odcinek-pierwszy>.karta-kolumna{grid-column:1;grid-row:auto}
   .karta-spis{position:static;max-height:none;overflow:visible}
   .karta-bok-dalej{display:none}
+  /* karta bez obrazu (spis od tytułu): na wąskim ekranie spis pod nagłówkiem, nie nad tytułem (porównanie z planszami 18.11) */
+  .karta-odcinek-od-gory{display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
+  .karta-odcinek-od-gory>.karta-kolumna{display:contents}
+  .karta-odcinek-od-gory>.karta-kolumna>*{order:2}
+  .karta-odcinek-od-gory>.karta-kolumna>.karta-naglowek{order:0}
+  .karta-odcinek-od-gory>.karta-bok{order:1}
 }
 
 /* TytulStrony – h1 w kolorze akcentu z kreską 40 × 3 px (decyzja 16.11, wszystkie strony) */
@@ -2133,7 +2139,15 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
   .lista-pochowanych td[data-e="nazwisko i imię"]{flex:0 0 100%}
   .lista-pochowanych td[data-e="zdjęcie"],.lista-pochowanych td:empty{display:none}
   .lista-pochowanych td.lp-plan{margin-left:auto}
+  /* porównanie z planszą 18.11: „karta →” przy prawej w linii nazwiska, „na planie →” przy prawej w linii lat i grobu */
+  .lista-pochowanych td[data-e="drzewo"]{display:none}
+  .lista-pochowanych .lp-karta-waski{display:inline;float:right;margin-left:8px}
+  .lista-pochowanych td.lp-razem-pusto{display:none}
 }
+.lp-karta-waski{display:none}
+.szukaj-licznik{display:flex;flex-direction:column;gap:2px}
+.kb-nagl h3>a.odn{font-weight:400}
+.przegladarka-linia{margin-bottom:12px}
 .lista-cichy{color:var(--tekst-opis)}
 .lista-drobne{font-size:var(--rozmiar-drobny)}
 .lista-nowrap{white-space:nowrap}

@@ -135,6 +135,6 @@ export const POZA_MAPA: { plik: string; dlaczego: string }[] = [
     { plik: 'app/components/SiatkaMiniatur.tsx', dlaczego: 'komponent wzorca (siatka miniatur)' },
     { plik: 'app/obiekty/[slug]/page.tsx', dlaczego: 'pojedyncze odnośniki w wierszach karty' },
     { plik: 'app/archiwum/[slug]/page.tsx', dlaczego: 'pojedyncze odnośniki w wierszach karty' },
-    { plik: 'app/plany/[slug]/page.tsx', dlaczego: 'pojedynczy odnośnik „karta obiektu →” nad apletem (VIEW-07)' },
+    { plik: 'app/plany/[slug]/page.tsx', dlaczego: 'linia pod tytułem (LiniaKarty: miejscowość, obiekt – VIEW-07) i „dla bliskich” w panelu' },
     { plik: 'app/components/Wzorce.tsx', dlaczego: 'komponenty bazowe (JW-1): okruszki, pastylki – definicje wzorców' },
 ]

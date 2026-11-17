@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Link } from 'next-view-transitions'
 import type { Powiazania as DanePowiazan, ZrodloPowiazania } from '@/lib/archiwum'
 import { odmiana } from '@/lib/tekst'
+import { skrocFragment } from '@/lib/odnosniki'
 import { Czesc, WCaly } from './Karta'
 import { PozycjaWKarcie } from './KartaPozycji'
 
@@ -17,9 +18,10 @@ function Pozycje({ zrodla, wyroznienie, prawa }: { zrodla: ZrodloPowiazania[]; w
     return (
         <>
             {zrodla.map((z) => (
-                <PozycjaWKarcie key={`${z.zrodlo.rodzaj}:${z.zrodlo.id}`} tytul={<Link href={z.zrodlo.adres}>{z.zrodlo.nazwa}</Link>}
+                <PozycjaWKarcie key={`${z.zrodlo.rodzaj}:${z.zrodlo.id}`} tytul={<Link href={z.zrodlo.adres} className={wyroznienie === 'slowo' ? 'odn' : undefined}>{z.zrodlo.nazwa}</Link>}
                     prawa={prawa ? prawa(z) : [RODZAJ[z.zrodlo.rodzaj] ?? z.zrodlo.rodzaj, z.ile > z.fragmenty.length && odmiana(z.ile, ['raz', 'razy', 'razy'])].filter(Boolean).join(' · ')} pola={[]}>
-                    {z.fragmenty.map((f, i) => (
+                    {/* strona hasła (plansza): jeden krótki fragment wokół słowa */}
+                    {(wyroznienie === 'slowo' ? z.fragmenty.slice(0, 1).map((f) => skrocFragment(f)) : z.fragmenty).map((f, i) => (
                         <p key={i} className="kb-fragment">{f.przed}<mark className={`powiazanie-${wyroznienie}`}>{f.trafienie}</mark>{f.po}</p>
                     ))}
                 </PozycjaWKarcie>

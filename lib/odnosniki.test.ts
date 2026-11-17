@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { bezNawiasow, fragment, slownikOdnosnikow, tekstOdnosnika, wzorzecWzmianek, znajdzWzmianki, type Cel } from './odnosniki'
+import { bezNawiasow, fragment, slownikOdnosnikow, tekstOdnosnika, wzorzecWzmianek, znajdzWzmianki, type Cel, skrocFragment } from './odnosniki'
 
 const olszanka: Cel = { rodzaj: 'miejsce', id: 'olszanka', nazwa: 'Olszanka', adres: '/miejsca/olszanka' }
 const luby: Cel = { rodzaj: 'miejsce', id: 'luby', nazwa: 'Łuby', adres: '/miejsca/luby' }
@@ -50,4 +50,15 @@ test('fragment: ucięty na słowach, odnośniki zamienione na tekst', () => {
     assert.ok(f.przed.includes('Bieżeństwo'))
     assert.ok(!f.przed.includes('[['))
     assert.ok(f.po.endsWith('…'))
+})
+
+test('plansza strony hasła: fragment w „występuje w” skrócony do kilku słów wokół trafienia', () => {
+    const f = { przed: '…Umowa zawarta w roku pańskim przed wójtem, który nabył od gromady trzy ', trafienie: 'morgi', po: ' pola za rzeką Przykładówką, a świadkami byli sołtys i ławnicy…' }
+    const k = skrocFragment(f)
+    assert.ok(k.przed.startsWith('…') && k.przed.endsWith('trzy '), k.przed)
+    assert.ok(k.przed.length <= 34, k.przed)
+    assert.ok(k.po.endsWith('…') && k.po.startsWith(' pola'), k.po)
+    assert.equal(k.trafienie, 'morgi')
+    const krotki = { przed: 'Wieś ', trafienie: 'Arenda', po: ' karczmy.' }
+    assert.deepEqual(skrocFragment(krotki), krotki)
 })

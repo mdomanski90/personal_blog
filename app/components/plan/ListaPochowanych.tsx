@@ -108,10 +108,10 @@ export default function ListaPochowanych({ plan, ustawienia, osoby, naPlanie }: 
                     <tbody>
                         {lista.map((w) => (
                             <tr key={w.klucz}>
-                                <td data-e="nazwisko i imię">{w.zNapisu ? <><span>{w.nazwisko}</span> <span className="lista-cichy lista-drobne">z napisu</span></> : <><b>{w.nazwisko}</b> {w.imie}{w.napisObok && <span className="lista-cichy lista-drobne"> · na napisie: {w.napisObok}</span>}</>}</td>
+                                <td data-e="nazwisko i imię">{w.zNapisu ? <><span>{w.nazwisko}</span> <span className="lista-cichy lista-drobne">z napisu</span></> : <><b>{w.nazwisko}</b> {w.imie}{w.napisObok && <span className="lista-cichy lista-drobne"> · na napisie: {w.napisObok}</span>}</>}{w.idOsoby && <a href={`/osoby/${w.idOsoby}`} className="odn lp-karta-waski">karta →</a>}</td>
                                 <td data-e="lata" className="lista-nowrap">{w.lata}</td>
                                 <td data-e="grób" className="lista-nowrap">{numerKrotki(numery.get(w.el.id)) || '—'}</td>
-                                <td data-e="razem w grobie" className="lista-cichy">{w.razem.join(', ') || '—'}</td>
+                                <td data-e="razem w grobie" className={`lista-cichy${w.razem.length ? '' : ' lp-razem-pusto'}`}>{w.razem.join(', ') || '—'}</td>
                                 <td data-e="zdjęcie">{w.el.zdjecia?.length ? '✓' : ''}</td>
                                 <td data-e="drzewo">{w.idOsoby ? <a href={`/osoby/${w.idOsoby}`} className="odn">karta →</a> : ''}</td>
                                 <td className="lp-plan"><button type="button" onClick={() => naPlanie(w.el.id)} className="plan-panel-odn lista-nowrap">na planie →</button></td>

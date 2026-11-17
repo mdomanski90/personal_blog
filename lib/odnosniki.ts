@@ -109,6 +109,25 @@ export interface Fragment {
 }
 
 /** Kawałek zdania wokół trafienia (ok. 80 znaków z każdej strony, ucięty na granicy słowa). */
+/** Krótszy fragment (plansza strony hasła: kilka słów wokół trafienia z „…”) – tniemy na granicy słów, nie w środku. */
+export function skrocFragment(f: Fragment, zasieg = 32): Fragment {
+    const przedBez = f.przed.replace(/^…/, '')
+    let przed = f.przed
+    if (przedBez.length > zasieg) {
+        const t = przedBez.slice(-zasieg)
+        const sp = t.indexOf(' ')
+        przed = '…' + (sp >= 0 ? t.slice(sp + 1) : t)
+    }
+    const poBez = f.po.replace(/…$/, '')
+    let po = f.po
+    if (poBez.length > zasieg) {
+        const t = poBez.slice(0, zasieg)
+        const sp = t.lastIndexOf(' ')
+        po = (sp > 0 ? t.slice(0, sp) : t) + '…'
+    }
+    return { przed, trafienie: f.trafienie, po }
+}
+
 export function fragment(tekst: string, start: number, koniec: number, rozwiaz?: Rozwiaz, zasieg = 80): Fragment {
     let a = Math.max(0, start - zasieg)
     let b = Math.min(tekst.length, koniec + zasieg)
