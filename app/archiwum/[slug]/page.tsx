@@ -159,7 +159,7 @@ export default async function MaterialStrona({ params }: Parametry) {
 
                 {rek && opisRek && (
                     <>
-                        <Czesc tytul="rekonstrukcja" id="rekonstrukcja">{opisRek.prawa}</Czesc>
+                        <Czesc tytul="rekonstrukcja">{opisRek.prawa}</Czesc>
                         <W e="plan">{rek.plan.tytul}</W>
                         {opisRek.pola.map(([e, v]) => <W key={e} e={e}>{v}</W>)}
                         <W e="opis">{rek.plan.opis}</W>

@@ -67,3 +67,12 @@ test('układ karty: spis od tytułu na karcie bez obrazu, wraca po elemencie pe�
     assert.match(galaz, /\{dalej\}/, 'spis wraca w odcinku po elemencie pełnej szerokości')
     assert.doesNotMatch(karta, /karta-pasek-czesci/)
 })
+
+// sprawdzenie 17.11: pozycja „rekonstrukcja” w spisie materiału bez celu – część miała własne id="rekonstrukcja",
+// a spis prowadzi do idCzesci(tytuł); część karty bierze id wyłącznie z tytułu
+test('części kart bez własnego id – cel odnośnika ze spisu = idCzesci(tytuł)', () => {
+    const strony: string[] = []
+    const szukaj = (d: string) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) { if (e.name !== 'keystatic') szukaj(p) } else if (e.name === 'page.tsx') strony.push(p) } }
+    szukaj(path.join(ROOT, 'app'))
+    for (const p of strony) assert.doesNotMatch(fs.readFileSync(p, 'utf8'), /<Czesc tytul="[^"]*"[^>]*\bid=/, path.relative(ROOT, p))
+})
