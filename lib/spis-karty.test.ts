@@ -76,3 +76,12 @@ test('części kart bez własnego id – cel odnośnika ze spisu = idCzesci(tytu
     szukaj(path.join(ROOT, 'app'))
     for (const p of strony) assert.doesNotMatch(fs.readFileSync(p, 'utf8'), /<Czesc tytul="[^"]*"[^>]*\bid=/, path.relative(ROOT, p))
 })
+
+// decyzja 17.11 (odbiór: „nie widzę spisu treści na stronie wpisu”): spis na każdym wpisie, także bez nagłówków autora
+test('wpis: spis treści zawsze – bez nagłówków pozycja „treść”', () => {
+    const w = fs.readFileSync(path.join(ROOT, 'app/wpisy/[slug]/page.tsx'), 'utf8')
+    assert.match(w, /spis=\{<SpisTresci pozycje=\{spis\} \/>\}/)
+    assert.doesNotMatch(w, /naglowki\.length \? \[\.\.\.spisCzesci/)
+    assert.match(w, /tekst: 'treść'/)
+    assert.match(w, /id=\{i === pierwszyTekst && !naglowki\.length \? ID_TRESCI_WPISU : undefined\}/)
+})

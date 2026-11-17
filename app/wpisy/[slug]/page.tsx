@@ -34,6 +34,8 @@ export async function generateMetadata({ params }: Parametry): Promise<Metadata>
  * + „jak cytować” w pasku bocznym; materiały ze skanem osadzone w treści pokazują ten sam widok co karta materiału
  * (SkanZTekstem) na pełnej szerokości, a spis wraca po nich; jedno „kopiuj link” (w pasku akcji).
  */
+const ID_TRESCI_WPISU = 'cz-tresc'
+
 export default async function OpowiescStrona({ params }: Parametry) {
     const { slug } = await params
     const poziom = await poziomCzytelnika()
@@ -45,10 +47,12 @@ export default async function OpowiescStrona({ params }: Parametry) {
     const html = naHtml(o.tresc, await kontekstTresci(poziom))
     const odcinki = podzielWstawki(html)
     const naglowki = naglowkiZHtml(html)
-    // wpis bez nagłówków – bez spisu (decyzja 16.11)
     const dalej = spisCzesci([...czesciPowiazan({ odnosniki: siec.odnosniki, wzmianki: [] }), 'jak cytować'])
-    // zasada „wstęp” (17.11): zapowiedź nad tekstem ma pozycję w spisie
-    const spis = naglowki.length ? [...spisCzesci([], { wstep: !!o.zapowiedz }), ...naglowki, ...dalej] : []
+    // spis na każdym wpisie (decyzja 17.11, zmienia 16.11 „wpis bez nagłówków – bez spisu”): nagłówki autora, a bez nich
+    // jedna pozycja „treść” (początek pierwszego fragmentu tekstu); zasada „wstęp” (17.11) – zapowiedź ma pozycję w spisie
+    const pierwszyTekst = odcinki.findIndex((cz) => !('material' in cz))
+    const trescWpisu = naglowki.length ? naglowki : pierwszyTekst >= 0 ? [{ id: ID_TRESCI_WPISU, tekst: 'treść' }] : []
+    const spis = [...spisCzesci([], { wstep: !!o.zapowiedz }), ...trescWpisu, ...dalej]
     // makieta 17.11 (P1): miniatura wpisu (cover albo pierwszy materiał) w gnieździe „bok” – jak zdjęcie na karcie obiektu
     const mat = o.miniatura ? (await materialy(poziom)).find((m) => m.id === o.miniatura) : undefined
     const obraz = adresMiniatury(mat, 480)
@@ -73,10 +77,10 @@ export default async function OpowiescStrona({ params }: Parametry) {
         </>
     )
     return (
-        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'wpisy', href: '/wpisy' }]} akcje={<><CopyLinkButton sciezka={`/wpisy/${o.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={bok} spis={spis.length ? <SpisTresci pozycje={spis} /> : undefined}>
+        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'wpisy', href: '/wpisy' }]} akcje={<><CopyLinkButton sciezka={`/wpisy/${o.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={bok} spis={<SpisTresci pozycje={spis} />}>
             {odcinki.map((cz, i) => ('material' in cz
                 ? <PelnaSzerokosc key={i}><WstawkaMaterialu id={cz.material} poziom={poziom} podpis={cz.podpis} strona={cz.strona} /></PelnaSzerokosc>
-                : <article key={i} className="wpis-tresc"><Tresc html={cz.html} /></article>))}
+                : <article key={i} className="wpis-tresc" id={i === pierwszyTekst && !naglowki.length ? ID_TRESCI_WPISU : undefined}><Tresc html={cz.html} /></article>))}
             {/* uwaga 16.11: „jak cytować” jako część tabeli karty – jak na pozostałych kartach */}
             <Tabela etykieta={`${o.tytul} – jak cytować`}>
                 <Powiazania dane={{ odnosniki: siec.odnosniki, wzmianki: [] }} />
