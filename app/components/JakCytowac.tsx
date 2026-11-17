@@ -9,7 +9,7 @@ const dzis = () => new Date().toLocaleDateString('pl-PL', { day: '2-digit', mont
 const SERWIS = 'odniepamieci.pl – społeczne archiwum pamięci lokalnej'
 
 export function opisCytatu(d: DaneCytatu): string {
-    return `„${d.tytul}”${d.nrKat ? `, nr kat. ${d.nrKat}` : ''}, w: ${SERWIS}, oprac. ${d.opracowal}, ${d.adres} (dostęp: ${dzis()}).${d.oryginal ? ` Oryginał: ${d.oryginal}.` : ''}`
+    return `„${d.tytul}”${d.dopisek ? ` (${d.dopisek})` : ''}${d.nrKat ? `, nr kat. ${d.nrKat}` : ''}, w: ${SERWIS}, oprac. ${d.opracowal}, ${d.adres} (dostęp: ${dzis()}).${d.oryginal ? ` Oryginał: ${d.oryginal}.` : ''}`
 }
 
 function pobierz(nazwa: string, tresc: string, typ: string) {

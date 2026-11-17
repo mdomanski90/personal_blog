@@ -10,7 +10,7 @@ import { widoczne } from '@/lib/archiwum'
 import { PastylkaOsoby } from '@/app/components/Wzorce'
 import { formatujEdtf } from '@/lib/edtf'
 import { Sekcja, Strona } from '../../components/Uklad'
-import { Czesc, CzescJakCytowac, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, WierszZglosil, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
@@ -72,6 +72,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
                 <W e="diecezja / dekanat">{p.diecezja || null}</W>
                 <W e="strona w sieci">{p.sameAs ? <a href={p.sameAs} target="_blank" rel="noopener noreferrer" className="odn">{p.sameAs.replace(/^https?:\/\//, '')}</a> : null}</W>
 
+                <WierszZglosil v={p.zglosil} />
                 {miejscowosci.length > 0 && <Czesc tytul="miejscowości">{miejscowosci.length}</Czesc>}
                 {miejscowosci.length > 0 && <WCaly>
                     <ul className="karta-lista">
@@ -130,7 +131,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
             {/* uwaga 16.11: „jak cytować” na każdej karcie – tabela zawsze, źródła gdy są */}
             {(
                 <Tabela etykieta={`${p.nazwa} – jak cytować i źródła`}>
-                    <CzescJakCytowac plik={p.id} zglosil={p.zglosil} dane={daneCytatu({ tytul: p.nazwa, sciezka: `/parafie/${p.id}`, nrKat, rodzaj: 'instytucja' })} />
+                    <CzescJakCytowac plik={p.id} dane={daneCytatu({ tytul: p.nazwa, sciezka: `/parafie/${p.id}`, nrKat, rodzaj: 'instytucja' })} />
                     <Zrodla pozycje={zrodlaInstytucji.map((z, i) => <ZAdresami key={i} tekst={z} />)} />
                 </Tabela>
             )}

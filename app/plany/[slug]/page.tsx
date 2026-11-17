@@ -12,7 +12,7 @@ import { osobyPlanu } from '@/lib/plany/rodzina'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import { numerKat } from '@/lib/katalog/dane'
 import { LiniaNrKat } from '../../components/NrKat'
-import { CzescJakCytowac, Tabela } from '../../components/Karta'
+import { CzescJakCytowac, WierszZglosil, Tabela } from '../../components/Karta'
 import { daneCytatu } from '@/lib/cytowanie'
 import { formatujEdtf } from '@/lib/edtf'
 import { DOKLADNOSCI, RODZAJE_PLANU, RODZAJE_ZRODLA, planGrobowy } from '@/lib/plany/metadane'
@@ -82,7 +82,8 @@ export default async function PlanStrona({ params }: Parametry) {
             <PrzegladarkaPlanu plan={plan} ustawienia={ustawienia} zalogowany={poziom === 'bliscy'} osoby={osoby} oPlanie={oPlanie} />
             {/* uwaga 16.11: „jak cytować” na każdej karcie, także planu */}
             <Tabela etykieta={`${plan.tytul} – jak cytować`}>
-                <CzescJakCytowac plik={plan.slug} zglosil={plan.zglosil} dane={daneCytatu({ tytul: plan.tytul, sciezka: `/plany/${plan.slug}`, nrKat, rodzaj: 'plan' })} />
+                <WierszZglosil v={plan.zglosil} />
+                <CzescJakCytowac plik={plan.slug} dane={daneCytatu({ tytul: plan.tytul, sciezka: `/plany/${plan.slug}`, nrKat, rodzaj: 'plan' })} />
             </Tabela>
         </Strona>
     )

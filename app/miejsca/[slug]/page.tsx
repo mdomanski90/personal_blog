@@ -16,7 +16,7 @@ import { formatujEdtf } from '@/lib/edtf'
 import { naHtml } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
 import { wystapieniaKarty } from '@/lib/plany/wystapienia'
-import { Czesc, CzescJakCytowac, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, WierszZglosil, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import SpisDzialow from '../../archiwum/SpisDzialow'
@@ -166,6 +166,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                 <W e="obejmuje">{podrzedne.length > 0 && m.rodzaj !== 'gmina' && <LiniaKarty className="karta-linia-w" elementy={[podrzedne.map((p) => ({ tekst: p.nazwa, href: `/miejsca/${p.id}` }))]} />}</W>
                 <W e="położenie">{m.wspolrzedne && !obszar && <OtworzWMapach wspolrzedne={m.wspolrzedne} />}</W>
                 <W e="zobacz też">{m.sameAs && <a href={m.sameAs} target="_blank" rel="noopener noreferrer" className="odn">{m.sameAs.replace(/^https?:\/\//, '')}</a>}</W>
+                <WierszZglosil v={m.zglosil} />
 
                 {m.rodzaj === 'gmina' && potomkowie.length > 0 && (
                     <>
@@ -249,7 +250,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                     <span className="ot-drobne">{opow.length === 0 && mat.length === 0 ? `Nie ma jeszcze wpisów ani materiałów o ${obszar ? 'tym obszarze' : 'tej miejscowości'}. ` : ''}Masz zdjęcie, dokument albo wspomnienie? <Zgloszenie rodzaj="material" adres={`/miejsca/${m.id}`} tytul={m.nazwa} wariant="link" etykieta="przyślij materiał" /></span>
                 </WCaly>
                 <Powiazania dane={daneSieci} />
-                <CzescJakCytowac plik={m.id} zglosil={m.zglosil} dane={daneCytatu({ tytul: m.nazwa, sciezka: `/miejsca/${m.id}`, nrKat, rodzaj: 'miejsce' })} />
+                <CzescJakCytowac plik={m.id} dane={daneCytatu({ tytul: m.nazwa, sciezka: `/miejsca/${m.id}`, nrKat, rodzaj: 'miejsce' })} />
                 <Zrodla pozycje={[
                     ...m.zrodla.map((z, i) => <ZAdresami key={`z${i}`} tekst={z} />),
                     zrodlo && <ZAdresami key="opis" tekst={zrodlo} />,

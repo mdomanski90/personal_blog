@@ -14,7 +14,7 @@ import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import { tarczaObiektu } from '@/lib/tarcze'
 import { Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
 import { wystapieniaKarty } from '@/lib/plany/wystapienia'
-import { Czesc, CzescJakCytowac, KrotkieMaterialy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, WierszZglosil, KrotkieMaterialy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
@@ -114,6 +114,7 @@ export default async function ObiektStrona({ params }: Parametry) {
                     ? <OtworzWMapach wspolrzedne={o.wspolrzedne} przyblizone={o.przyblizone} />
                     : <span className="text-[var(--tekst-opis)]">nieustalone</span>}
             </W>
+            <WierszZglosil v={o.zglosil} />
             {glowny && tytulPlanu && (
                 <>
                     <Czesc tytul={tytulPlanu}><Link href={`/plany/${glowny.plan.slug}`} className="odn">otwórz plan →</Link></Czesc>
@@ -188,7 +189,7 @@ export default async function ObiektStrona({ params }: Parametry) {
                     <WierszeWystapien w={wyst} />
                     {planyObiektu.length > 1 && <><Czesc tytul="plany">{odmiana(planyObiektu.length, ['plan', 'plany', 'planów'])}</Czesc><WCaly><ListaPlanow plany={planyObiektu} /></WCaly></>}
                     <Powiazania dane={siec} />
-                    <CzescJakCytowac plik={o.id} zglosil={o.zglosil} dane={daneCytatu({ tytul: o.nazwa, sciezka: `/obiekty/${o.id}`, nrKat, rodzaj: 'obiekt' })} />
+                    <CzescJakCytowac plik={o.id} dane={daneCytatu({ tytul: o.nazwa, sciezka: `/obiekty/${o.id}`, nrKat, rodzaj: 'obiekt' })} />
                     <Zrodla pozycje={[
                         ...o.zrodla.map((z, i) => <ZAdresami key={`z${i}`} tekst={z} />),
                         ...o.zdjecia.filter((z) => z.autor || z.prawa).map((z, i) => <span key={`f${i}`}>fotografia{z.podpis ? ` „${z.podpis}”` : ''}{z.data ? `, ${z.data}` : ''}: {[z.autor, z.prawa].filter(Boolean).join(', ')}</span>),

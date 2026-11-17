@@ -6,7 +6,7 @@ import { formatujEdtf } from '@/lib/edtf'
 import { naHtml, zajawka } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc } from '../../components/Uklad'
 import { wystapieniaKarty } from '@/lib/plany/wystapienia'
-import { Czesc, CzescJakCytowac, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, WierszZglosil, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj, PrzyciskDrukujCalosc } from '../../components/Druk'
@@ -70,6 +70,7 @@ export default async function TematStrona({ params }: Parametry) {
                     <W e="okres">{t.czas ? formatujEdtf(t.czas) : null}</W>
                     <W e={miejscaTematu.length > 1 ? 'miejsca' : 'miejsce'}>{miejscaTematu.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaTematu.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
                     <W e="powiązane tematy">{wspolne.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[wspolne.map((x) => ({ tekst: x.nazwa, href: `/tematy/${x.id}` }))]} />}</W>
+                    <WierszZglosil v={t.zglosil} />
                 </Tabela>
             )}
 
@@ -85,7 +86,7 @@ export default async function TematStrona({ params }: Parametry) {
                     <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
                     <WierszeWystapien w={wyst} />
                     <Powiazania dane={{ odnosniki: wpisyWTekstach, wzmianki: siec.wzmianki }} />
-                    <CzescJakCytowac plik={t.id} zglosil={t.zglosil} dane={daneCytatu({ tytul: t.nazwa, sciezka: `/tematy/${t.id}`, nrKat, rodzaj: 'temat' })} />
+                    <CzescJakCytowac plik={t.id} dane={daneCytatu({ tytul: t.nazwa, sciezka: `/tematy/${t.id}`, nrKat, rodzaj: 'temat' })} />
                     <Zrodla pozycje={t.zrodla.map((z, i) => <ZAdresami key={i} tekst={z} />)} />
                 </Tabela>
             )}

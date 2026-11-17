@@ -19,3 +19,10 @@ test('ARC-09 (P3): zbiór bez materiałów – puste wiersze, bez lat', () => {
     assert.equal(w.lata, null)
     assert.equal(w.rodzaje.length, 0)
 })
+
+test('łatka P3: opis rodzajów materiałów zbioru jak na planszy', async () => {
+    const { opisRodzajow } = await import('./zbior')
+    const { odmiana } = await import('./tekst')
+    assert.equal(opisRodzajow([{ rodzaj: 'dokument', ile: 2 }, { rodzaj: 'zdjecie', ile: 2 }, { rodzaj: 'akt', ile: 1 }, { rodzaj: 'wspomnienie', ile: 1 }], odmiana), '6 – 2 dokumenty, 2 zdjęcia, akt metrykalny, wspomnienie')
+    assert.equal(opisRodzajow([], odmiana), '')
+})

@@ -17,7 +17,7 @@ import CopyLinkButton from '../../components/CopyLinkButton'
 import Zgloszenie from '../../components/Zgloszenie'
 import { Sekcja, Strona, Tresc, TytulStrony } from '../../components/Uklad'
 import { wystapieniaKarty } from '@/lib/plany/wystapienia'
-import { Czesc, CzescJakCytowac, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, WierszeWystapien, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, WierszZglosil, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, WierszeWystapien, idCzesci, spisCzesci } from '../../components/Karta'
 import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
@@ -234,6 +234,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                         </span>
                     </W>
                 )}
+                <WierszZglosil v={o.zglosil} />
                 {wszystkie.length === 0 && !pochowki.length && !funkcje.length && <W e="—"><span className="text-[var(--tekst-etykieta)]">brak dat i miejsc</span></W>}
 
                 <Naglowek tytul="rodzina">{podsumowanieRodziny}</Naglowek>
@@ -290,7 +291,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
 
                 {/* makieta wpisu 17.11 (P3): powiązania jak na pozostałych kartach – części tabeli przed „jak cytować” */}
                 <Powiazania dane={siec} />
-                <CzescJakCytowac plik={id} zglosil={o.zglosil} dane={daneCytatu({ tytul: lataZycia(o) ? `${tytul} (${lataZycia(o)})` : tytul, sciezka: `/osoby/${id}`, nrKat, rodzaj: 'osoba' })} />
+                <CzescJakCytowac plik={id} dane={daneCytatu({ tytul: lataZycia(o) ? `${tytul} (${lataZycia(o)})` : tytul, sciezka: `/osoby/${id}`, nrKat, rodzaj: 'osoba' })} />
                 {wierszeZrodel.length > 0 && (
                     <>
                         <Naglowek tytul="źródła">{odmiana(new Set(wierszeZrodel.flatMap((w) => w.z.map((x) => x.tytul))).size, ['źródło', 'źródła', 'źródeł'])}</Naglowek>

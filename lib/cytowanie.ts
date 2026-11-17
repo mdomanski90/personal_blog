@@ -2,10 +2,10 @@
 // także tam, gdzie jej wcześniej nie było). Opis cytatu i pliki BibTeX / RIS składa komponent JakCytowac.
 import { ADRES_STRONY, AUTOR_STRONY } from './strona'
 
-export interface DaneCytatu { tytul: string; adres: string; opracowal: string; autor?: string; rok?: string; oryginal?: string; rodzaj?: string; /** KAT-03: nr kat.; adres wtedy = stały adres /k/NR */ nrKat?: string | null }
+export interface DaneCytatu { tytul: string; adres: string; opracowal: string; autor?: string; rok?: string; oryginal?: string; rodzaj?: string; /** łatka P3: dopisek za tytułem w opisie, np. „hasło słownika” */ dopisek?: string; /** KAT-03: nr kat.; adres wtedy = stały adres /k/NR */ nrKat?: string | null }
 
 /** Dane cytatu karty: stały adres /k/NR, gdy karta ma numer katalogowy, inaczej adres strony (ścieżka od „/”). */
-export function daneCytatu(o: { tytul: string; sciezka: string; nrKat?: string | null; rodzaj: string; opracowal?: string; autor?: string; rok?: string; oryginal?: string }): DaneCytatu {
+export function daneCytatu(o: { tytul: string; sciezka: string; nrKat?: string | null; rodzaj: string; opracowal?: string; autor?: string; rok?: string; oryginal?: string; dopisek?: string }): DaneCytatu {
     return {
         tytul: o.tytul,
         adres: o.nrKat ? `${ADRES_STRONY}/k/${o.nrKat}` : `${ADRES_STRONY}${o.sciezka}`,
@@ -15,5 +15,6 @@ export function daneCytatu(o: { tytul: string; sciezka: string; nrKat?: string |
         ...(o.autor ? { autor: o.autor } : {}),
         ...(o.rok ? { rok: o.rok } : {}),
         ...(o.oryginal ? { oryginal: o.oryginal } : {}),
+        ...(o.dopisek ? { dopisek: o.dopisek } : {}),
     }
 }

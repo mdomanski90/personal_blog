@@ -51,7 +51,7 @@ export default async function Szukaj({ searchParams }: { searchParams: Promise<P
             wybrane={rodzina && nazwaRodziny ? <WybraneFiltry wybrane={[{ klucz: 'rodzaj', etykieta: nazwaRodziny, href: adresFiltrow(BAZA, sp, { pomin: ['rodzaj'] }) }]} wyczysc={adresFiltrow(BAZA, sp, { pomin: ['rodzaj'] })} /> : undefined}
             licznik={q && wszystkie.length > 0 ? (
                 <>
-                    <LicznikWynikow liczba={wybrane.length} formy={['wynik', 'wyniki', 'wyników']} strona={wyn.strona} stron={wyn.stron} />
+                    <LicznikWynikow fraza={q} liczba={wybrane.length} formy={['wynik', 'wyniki', 'wyników']} strona={wyn.strona} stron={wyn.stron} dodatek="najpierw najlepiej pasujące" />
                     <p className="szukaj-legenda" aria-label="znaczenie kolorowych znaków">
                         {wRodzinach.map((r) => <span key={r.id} className="szukaj-legenda-poz"><span className={`szukaj-znak szukaj-znak--${r.id}`} aria-hidden="true" />{r.nazwa}</span>)}
                     </p>

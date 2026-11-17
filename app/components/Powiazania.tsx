@@ -13,12 +13,12 @@ export const TYTUL_WZMIANEK = 'wspomniane bez odnośnika'
 /** Tytuły części do spisu treści (puste pomijane – spisCzesci). */
 export const czesciPowiazan = (d: DanePowiazan) => [d.odnosniki.length > 0 && TYTUL_ODNOSNIKOW, d.wzmianki.length > 0 && TYTUL_WZMIANEK]
 
-function Pozycje({ zrodla, wyroznienie }: { zrodla: ZrodloPowiazania[]; wyroznienie: 'odnosnik' | 'wzmianka' }) {
+function Pozycje({ zrodla, wyroznienie, prawa }: { zrodla: ZrodloPowiazania[]; wyroznienie: 'odnosnik' | 'wzmianka' | 'slowo'; prawa?: (z: ZrodloPowiazania) => string }) {
     return (
         <>
             {zrodla.map((z) => (
                 <PozycjaWKarcie key={`${z.zrodlo.rodzaj}:${z.zrodlo.id}`} tytul={<Link href={z.zrodlo.adres}>{z.zrodlo.nazwa}</Link>}
-                    prawa={[RODZAJ[z.zrodlo.rodzaj] ?? z.zrodlo.rodzaj, z.ile > z.fragmenty.length && odmiana(z.ile, ['raz', 'razy', 'razy'])].filter(Boolean).join(' · ')} pola={[]}>
+                    prawa={prawa ? prawa(z) : [RODZAJ[z.zrodlo.rodzaj] ?? z.zrodlo.rodzaj, z.ile > z.fragmenty.length && odmiana(z.ile, ['raz', 'razy', 'razy'])].filter(Boolean).join(' · ')} pola={[]}>
                     {z.fragmenty.map((f, i) => (
                         <p key={i} className="kb-fragment">{f.przed}<mark className={`powiazanie-${wyroznienie}`}>{f.trafienie}</mark>{f.po}</p>
                     ))}
@@ -65,13 +65,14 @@ export const TYTUL_WYSTEPUJE = 'występuje w'
 
 /** SLW-02/03 (P3): strona hasła – „występuje w”: teksty z odnośnikiem [[hasło]] i teksty, w których słowo pada (oba rodzaje razem –
  *  dla słownika każde użycie słowa jest istotne), każdy z fragmentem. Część tabeli karty, przed „jak cytować”. */
-export function WystepujeW({ dane }: { dane: DanePowiazan }) {
+/** Łatka P3 (plansza „strona hasła”): po prawej rodzaj i rok (`prawa`), słowo we fragmencie pogrubione, bez tła (`slowo`). */
+export function WystepujeW({ dane, prawa }: { dane: DanePowiazan; prawa?: (z: ZrodloPowiazania) => string }) {
     const zrodla = [...dane.odnosniki, ...dane.wzmianki.filter((w) => !dane.odnosniki.some((o) => o.zrodlo.rodzaj === w.zrodlo.rodzaj && o.zrodlo.id === w.zrodlo.id))]
     if (!zrodla.length) return null
     return (
         <>
             <Czesc tytul={TYTUL_WYSTEPUJE}>{odmiana(zrodla.length, ['tekst', 'teksty', 'tekstów'])}</Czesc>
-            <WCaly><Pozycje zrodla={zrodla} wyroznienie="wzmianka" /></WCaly>
+            <WCaly><Pozycje zrodla={zrodla} wyroznienie="slowo" prawa={prawa} /></WCaly>
         </>
     )
 }

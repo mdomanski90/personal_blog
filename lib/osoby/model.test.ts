@@ -69,3 +69,14 @@ test('KRT-01 (P3): „zgłosił(a)” w karcie osoby – podpis zostaje, adres e
     assert.equal(poprawOsobe({ id: 'x', zglosil: ' Jan z Testowa ' }).zglosil, 'Jan z Testowa')
     assert.equal(poprawOsobe({ id: 'x', zglosil: 'jan@example.org' }).zglosil, undefined)
 })
+
+test('KOREKTA (łatka P3): forma żeńska nazwisk -owy/-ny/-ły; żona o tym samym nazwisku nie dostaje dopisku „po mężu”', () => {
+    assert.equal(formaZenskaNazwiska('Przykładowy'), 'Przykładowa')
+    assert.equal(formaZenskaNazwiska('Biały'), 'Biała')
+    assert.equal(formaZenskaNazwiska('Nowak'), 'Nowak')
+    const d = drzewo()
+    d.osoby.set('k9', { ...d.osoby.get('k1')!, id: 'k9', imiona: 'Agata', nazwisko: 'Przykładowa', inneNazwiska: [] })
+    d.osoby.set('m9', { ...d.osoby.get('m1')!, id: 'm9', imiona: 'Wojciech', nazwisko: 'Przykładowy' })
+    d.rodziny.set('r9', { id: 'r9', maz: 'm9', zona: 'k9', dzieci: [], zdarzenia: [], wersja: 1 })
+    assert.deepEqual(dopiskiPoMezu(d, d.osoby.get('k9')!), [], 'Przykładowa żona Przykładowego – bez „po mężu: Przykładowy”')
+})

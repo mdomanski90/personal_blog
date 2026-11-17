@@ -119,15 +119,20 @@ export function ZAdresami({ tekst }: { tekst: string }) {
 
 /** Numerowana lista źródeł (część „źródła” – zawsze ostatnia w tabeli). */
 /** „Jak cytować” jako część tabeli karty – ta sama na każdej karcie (uwaga właściciela 16.11). Dane: daneCytatu() z lib/cytowanie. */
-/** „Jak cytować” na każdej karcie. KRT-01 (P3): `zglosil` – wiersz „zgłosił(a)” (podpis za zgodą, bez e-maila) – jedno miejsce dla wszystkich kart. */
-export function CzescJakCytowac({ plik, dane, zglosil }: { plik: string; dane: DaneCytatu; zglosil?: string }) {
+/** KRT-01 (P3, łatka 17.11 – decyzja: w części głównej karty, jak na makiecie hasła): „zgłosił(a)” – podpis za zgodą, bez e-maila. */
+export function WierszZglosil({ v }: { v?: string }) {
+    if (!v || v.includes('@')) return null
+    return <W e="zgłosił(a)"><>{v}<span className="ot-drobne"> – podpis ze zgłoszenia, za zgodą</span></></W>
+}
+
+/** „Jak cytować” na każdej karcie. */
+export function CzescJakCytowac({ plik, dane }: { plik: string; dane: DaneCytatu }) {
     return (
         <>
             <Czesc tytul="jak cytować" />
             <WCaly>
                 <JakCytowac wTabeli plik={plik} dane={dane} />
             </WCaly>
-            <W e="zgłosił(a)">{zglosil && !zglosil.includes('@') ? zglosil : null}</W>
         </>
     )
 }

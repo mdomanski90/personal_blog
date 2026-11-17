@@ -16,3 +16,16 @@ export function wierszeZbioru(mats: MaterialZbioru[], osobaWidoczna: (id: string
         osoby: unik(mats.flatMap((m) => m.osobyIds)).filter(osobaWidoczna),
     }
 }
+
+const FORMY: Record<string, [string, string, string]> = {
+    dokument: ['dokument', 'dokumenty', 'dokumentów'], akt: ['akt metrykalny', 'akty metrykalne', 'aktów metrykalnych'], zdjecie: ['zdjęcie', 'zdjęcia', 'zdjęć'],
+    nagranie: ['nagranie', 'nagrania', 'nagrań'], mapa: ['mapa', 'mapy', 'map'], wspomnienie: ['wspomnienie', 'wspomnienia', 'wspomnień'],
+}
+
+/** Łatka P3 (plansza zbioru): „6 – 2 dokumenty, 2 zdjęcia, akt metrykalny, wspomnienie” – suma, potem rodzaje (pojedynczy bez liczby). */
+export function opisRodzajow(rodzaje: { rodzaj: string; ile: number }[], odmiana: (n: number, f: [string, string, string]) => string): string {
+    const razem = rodzaje.reduce((a, r) => a + r.ile, 0)
+    if (!razem) return ''
+    const czesci = rodzaje.map((r) => { const f = FORMY[r.rodzaj] ?? [r.rodzaj, r.rodzaj, r.rodzaj]; return r.ile === 1 ? f[0] : odmiana(r.ile, f) })
+    return `${razem} – ${czesci.join(', ')}`
+}

@@ -117,7 +117,7 @@
   --uwaga: #7a5200; --uwaga-tlo: #fbf3df;
   --ok: #2f6b3a; --ok-tlo: #ecf4ea;
   /* /szukaj: znak rodziny wyniku (kropka, tylko ozdoba – nazwę niesie napis); każdy ≥ 3:1 na tle strony */
-  --rodzaj-archiwum-znak: #4c3cc4; --rodzaj-miejsca-znak: #2f6b3a; --rodzaj-osoby-znak: #a3541a; --rodzaj-biblioteka-znak: #8a3a6a; --rodzaj-wpisy-znak: #1f6a80;
+  /* łatka P3: kolory rodzin jak na planszy /szukaj (17.11) – kropka obok napisu rodzaju (informację niesie napis) */ --rodzaj-archiwum-znak: #bb8c4a; --rodzaj-miejsca-znak: #659455; --rodzaj-osoby-znak: #6d91c0; --rodzaj-biblioteka-znak: #8e7cc4; --rodzaj-wpisy-znak: #c07671;
   --niedostepne-tlo: #f6f4ef;
   --promien-maly: 6px; --promien: 8px; --promien-duzy: 12px;
 
@@ -233,7 +233,7 @@
   --blad: #ef8f7e; --blad-tlo: #3a2420;
   --uwaga: #e0b25c; --uwaga-tlo: #33291a;
   --ok: #8ccf96; --ok-tlo: #1f2e22;
-  --rodzaj-archiwum-znak: #9a8fff; --rodzaj-miejsca-znak: #6fc07f; --rodzaj-osoby-znak: #e39a5a; --rodzaj-biblioteka-znak: #d98ab8; --rodzaj-wpisy-znak: #5cc0d9;
+  --rodzaj-archiwum-znak: #d5ab69; --rodzaj-miejsca-znak: #92c375; --rodzaj-osoby-znak: #95b1e3; --rodzaj-biblioteka-znak: #ad9de7; --rodzaj-wpisy-znak: #e09b90;
   --niedostepne-tlo: #232220;
   /* JW-2 · obrządki nocą (jasne, kontrast ≥ 4,5 na ciemnym tle) */
   --obrzadek-rzymskokatolicki: #d9b878; --obrzadek-unicki: #7fcfd3; --obrzadek-prawoslawny: #c2aef0; --obrzadek-ewangelicki: #b5c4d6; --obrzadek-mojzeszowy: #cfc3ad;
@@ -519,6 +519,7 @@ body {
 .odp mark.powiazanie-wzmianka { background: #fef3c7; }
 .dark .odp mark.powiazanie-odnosnik { background: #1e3a5f; }
 .dark .odp mark.powiazanie-wzmianka { background: #4a3b12; }
+.odp mark.powiazanie-slowo { background: none; color: var(--tekst); font-weight: 700; } /* łatka P3: „występuje w” na stronie hasła (plansza) */
 .odp details#wzmianki > summary { list-style-position: inside; }
 
 /* materiał z archiwum wstawiony w tekst */
@@ -2121,16 +2122,17 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .plan-lista-litery{display:flex;flex-wrap:wrap;gap:2px}
 .lista-pochowanych{position:relative;overflow-x:auto;border:1px solid var(--linia-podzialu);border-radius:var(--promien)}
 .lista-pochowanych table{width:100%;border-collapse:collapse;min-width:760px}
-/* KRT-03 (P3): na wąskim ekranie wiersze jako bloki – bez tabeli 760 px rozpychającej stronę; etykiety z data-e, puste pola ukryte */
+/* KRT-03 (P3; łatka wg planszy 390): na wąskim ekranie wiersz zwarty – nazwisko, pod nim lata · grób · razem, „na planie →” przy prawej; bez etykiet */
 @media (max-width:640px){
   .lista-pochowanych{overflow-x:visible}
   .lista-pochowanych table{min-width:0}
   .lista-pochowanych thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-  .lista-pochowanych tbody,.lista-pochowanych tr,.lista-pochowanych td{display:block}
-  .lista-pochowanych tr{padding:10px 12px;border-bottom:1px solid var(--linia-podzialu)}
-  .lista-pochowanych td{border:0;padding:2px 0}
-  .lista-pochowanych td[data-e]:not([data-e="nazwisko i imię"])::before{content:attr(data-e) ": ";color:var(--tekst-etykieta);font-size:var(--rozmiar-drobny)}
-  .lista-pochowanych td:empty{display:none}
+  .lista-pochowanych tbody{display:block}
+  .lista-pochowanych tr{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:10px;padding:8px 12px;border-bottom:1px solid var(--linia-podzialu)}
+  .lista-pochowanych td{display:block;border:0;padding:2px 0}
+  .lista-pochowanych td[data-e="nazwisko i imię"]{flex:0 0 100%}
+  .lista-pochowanych td[data-e="zdjęcie"],.lista-pochowanych td:empty{display:none}
+  .lista-pochowanych td.lp-plan{margin-left:auto}
 }
 .lista-cichy{color:var(--tekst-opis)}
 .lista-drobne{font-size:var(--rozmiar-drobny)}
@@ -2209,8 +2211,19 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .sm-fiszka-zrodlo{text-transform:none}
 .sm-fiszka .zapowiedz-dalej{margin-top:auto;align-self:flex-end;font-weight:700;font-size:var(--rozmiar-maly);color:var(--akcent)}
 .sm-fiszka-odn:hover .zapowiedz-dalej{text-decoration:underline}
-.sm-zaproszenie{border-style:dashed}
-.sm-plus{font-size:calc(72px * var(--font-scale,1));line-height:1;color:var(--akcent);font-weight:400}
+.sm-zaproszenie{border-style:dashed;border-color:var(--tekst-etykieta)} /* łatka P3: ramka wyraźniejsza (plansza) */
+.sm-zaproszenie .sm-fiszka-haslo{align-items:center;text-align:center}
+.sm-fiszka-tresc .sm-fiszka-zrodlo{margin-top:auto} /* źródło przy dole fiszki, nad „czytaj dalej” (plansza) */
+.sm-fiszka-tresc .sm-fiszka-zrodlo+.zapowiedz-dalej{margin-top:4px}
+.sm-fiszka-dopisek{font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta)}
+.slownik-litery{display:flex;flex-wrap:wrap;gap:2px 4px}
+.slownik-litery .lista-litera{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:var(--tekst);font-weight:700}
+.slownik-litery .lista-litera--brak{color:var(--tekst-etykieta);font-weight:400}
+.tytul-sekcji+.siatka-fiszek{margin-top:16px}
+.slownik-litery .lista-litera[aria-current=true]{background:var(--akcent-tlo);color:var(--akcent-na-tle);font-weight:700}
+.lista-litera--brak{color:var(--tekst-etykieta);cursor:default}
+.lista-litera--brak:hover{border-color:transparent}
+.sm-plus{font-size:calc(72px * var(--font-scale,1));line-height:1;color:var(--akcent);font-weight:700}
 @media (max-width:640px){.sm-fiszka-odn{grid-template-columns:minmax(0,1fr)}}
 
 /* P1 · UX-06 / KIER-03: obszary dotyku 44 px wszędzie tam, gdzie wskaźnik jest palcem – nie tylko do 640 px (tablet, telefon poziomo).

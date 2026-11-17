@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import { odmiana } from '@/lib/tekst'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
-import { adresKontaktowy, haslaWTekscie, kontekstTresci, material, nazwy, obiekty, objasnieniaDoWidoku, podpisZrodlaMaterialu, powiazania, poziomCzytelnika } from '@/lib/archiwum'
+import { adresKontaktowy, hasla, haslaWTekscie, kontekstTresci, material, nazwy, obiekty, objasnieniaDoWidoku, podpisZrodlaMaterialu, powiazania, poziomCzytelnika } from '@/lib/archiwum'
 import { adresHasla, skrocZnaczenie } from '@/lib/slownik'
+import { linkujHasla } from '@/lib/slownik-linki'
 import { brakiDoPomocy } from '@/lib/wspoltworz-dane'
 import { zadaniaMaterialu } from '@/lib/wspoltworz'
 import Zgloszenie from '../../components/Zgloszenie'
@@ -15,7 +16,7 @@ import PrzegladarkaDokumentu from '../../components/PrzegladarkaDokumentu'
 import TekstyZrodla from '../../components/TekstyZrodla'
 import { daneCytatu } from '@/lib/cytowanie'
 import { RAMKA, PelnaSzerokosc, Strona, Tresc, maTekst } from '../../components/Uklad'
-import { Czesc, CzescJakCytowac, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, WierszZglosil, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, spisCzesci } from '../../components/Karta'
 import SpisTresci from '../../components/SpisTresci'
 import { PastylkaFiltra, PastylkaOsoby } from '../../components/Wzorce'
 import { PrzyciskDrukuj } from '../../components/Druk'
@@ -88,7 +89,9 @@ export default async function MaterialStrona({ params }: Parametry) {
 
     const rok = m.czas ? formatujEdtf(m.czas) : null
     const ileStr = m.strony.length > 1 ? odmiana(m.strony.length, ['strona', 'strony', 'stron']) : null
-    const reszta = naHtml(cz.reszta, ktx)
+    // SLW-03 (łatka P3, decyzja 17.11): słowa ze słownika w opisie jako odnośniki do haseł (pierwsze wystąpienie, hasła widoczne dla czytelnika)
+    const haslaCzytelnika = (await hasla(poziom)).map((h) => ({ id: h.id, haslo: h.haslo, formy: h.formy, znaczenie: h.znaczenie, adres: adresHasla(h.id) }))
+    const reszta = linkujHasla(naHtml(cz.reszta, ktx), haslaCzytelnika)
     const wpisyZMat = siec.odnosniki.filter((z) => z.zrodlo.rodzaj === 'wpis')
     const inneOdnosniki = siec.odnosniki.filter((z) => z.zrodlo.rodzaj !== 'wpis')
     const nrKat = numerKat('material', m.id)
@@ -154,6 +157,7 @@ export default async function MaterialStrona({ params }: Parametry) {
                 <W e="prawa">{m.prawa}</W>
                 <W e="przekazał(a)">{m.przekazal}</W>
                 <W e="opracował(a)">{m.opracowal}</W>
+                <WierszZglosil v={m.zglosil} />
 
                 {jestDotyczy && <Czesc tytul="dotyczy" />}
                 <W e={miejscaM.length > 1 ? 'miejsca' : 'miejsce'}>{miejscaM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaM.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
@@ -161,9 +165,11 @@ export default async function MaterialStrona({ params }: Parametry) {
                 <W e="przedstawia">{obiektyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[obiektyM.map((id) => ({ tekst: nazwyObiektow.get(id), href: `/obiekty/${id}` }))]} />}</W>
                 <W e="we wpisach">{wpisyZMat.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[wpisyZMat.map((z) => ({ tekst: z.zrodlo.nazwa, href: z.zrodlo.adres }))]} />}</W>
                 <W e="słowa ze słownika">{slowa.length > 0 && (
-                    <span className="karta-pastylki">
-                        {slowa.map((h) => <PastylkaFiltra key={h.id} href={adresHasla(h.id)} title={skrocZnaczenie(h.znaczenie, 160)}>{h.haslo}</PastylkaFiltra>)}
-                        <Link href="/biblioteka/slownik" className="odn tekst-opis-maly">słownik →</Link>
+                    <span className="flex flex-col gap-1">
+                        <span className="karta-pastylki">
+                            {slowa.map((h) => <PastylkaFiltra key={h.id} href={adresHasla(h.id)} title={skrocZnaczenie(h.znaczenie, 160)}>{h.haslo}</PastylkaFiltra>)}
+                        </span>
+                        <span className="ot-drobne">wykryte w opisie i transkrypcji · <Link href="/biblioteka/slownik" className="odn">słownik →</Link></span>
                     </span>
                 )}</W>
 
@@ -194,7 +200,7 @@ export default async function MaterialStrona({ params }: Parametry) {
                 )}
 
                 <Powiazania dane={{ odnosniki: inneOdnosniki, wzmianki: [] }} />
-                <CzescJakCytowac plik={m.id} zglosil={m.zglosil} dane={daneCytatu({ tytul: m.czas && !m.nazwa.includes(formatujEdtf(m.czas)) ? `${m.nazwa}, ${formatujEdtf(m.czas)}` : m.nazwa, sciezka: `/archiwum/${m.id}`, nrKat, rodzaj: 'material', opracowal: m.opracowal || undefined, autor: m.tworca || undefined, rok: m.czas?.slice(0, 4), oryginal: oryginal || undefined })} />
+                <CzescJakCytowac plik={m.id} dane={daneCytatu({ tytul: m.czas && !m.nazwa.includes(formatujEdtf(m.czas)) ? `${m.nazwa}, ${formatujEdtf(m.czas)}` : m.nazwa, sciezka: `/archiwum/${m.id}`, nrKat, rodzaj: 'material', opracowal: m.opracowal || undefined, autor: m.tworca || undefined, rok: m.czas?.slice(0, 4), oryginal: oryginal || undefined })} />
                 <Zrodla pozycje={[
                     oryginal && <>oryginał: {oryginal}</>,
                     ...m.zrodla.map((z, i) => <ZAdresami key={i} tekst={z} />),

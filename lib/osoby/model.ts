@@ -356,14 +356,16 @@ export function rdzenNazwiska(n: string): string {
     return t.length > 4 ? t.replace(/(ski|ska|cki|cka|dzki|dzka)$/, (k) => k.slice(0, -1)).replace(/[aiy]$/, '') : t
 }
 
-/** Forma żeńska nazwiska przymiotnikowego męża: Kowalski → Kowalska, Zawadzki → Zawadzka; inne nazwiska bez zmian. */
-export const formaZenskaNazwiska = (n: string): string => n.replace(/(sk|ck|dzk|zk)i$/i, (k) => k.slice(0, -1) + 'a')
+/** Forma żeńska nazwiska przymiotnikowego męża: Kowalski → Kowalska, Zawadzki → Zawadzka, Przykładowy → Przykładowa; inne nazwiska bez zmian. */
+// KOREKTA (łatka P3, 23:10): także przymiotnikowe -owy/-ewy/-ny/-ły/-iwy/-aty (Przykładowy → Przykładowa, Biały → Biała) –
+// dawniej forma bez zmiany dawała w wynikach „po mężu: Przykładowy” przy Agacie Przykładowej
+export const formaZenskaNazwiska = (n: string): string => n.replace(/(sk|ck|dzk|zk)i$/i, (k) => k.slice(0, -1) + 'a').replace(/(ow|ew|n|ł|iw|at)y$/i, (k) => k.slice(0, -1) + 'a')
 
 /** SRCH-D-20 (P3): dawna forma nazwiska żony na „-owa” – nazwiska nieprzymiotnikowe zakończone spółgłoską (Nowak → Nowakowa)
  *  albo na „-o” (Moniuszko → Moniuszkowa). Przymiotnikowe (-ski, -cki…), zakończone na -a/-e/-i/-y/-u i już „-owa” – bez formy (null). */
 export function formaOwaNazwiska(n: string): string | null {
     const t = n.trim()
-    if (!t || /(sk|ck|dzk|zk)i$/i.test(t) || /owa$/i.test(t)) return null
+    if (!t || /(sk|ck|dzk|zk)i$/i.test(t) || /(ow|ew|n|ł|iw|at)y$/i.test(t) || /owa$/i.test(t)) return null
     if (/o$/i.test(t)) return t.slice(0, -1) + 'owa'
     if (/[aeiouyąęó]$/i.test(t)) return null
     return t + 'owa'
@@ -404,7 +406,8 @@ export function nazwiskaPoMezu(d: Drzewo, o: Pick<Osoba, 'id' | 'nazwisko' | 'in
 export function dopiskiPoMezu(d: Drzewo, o: Pick<Osoba, 'id' | 'nazwisko' | 'inneNazwiska'>): string[] {
     const znane = new Set([o.nazwisko, ...(o.inneNazwiska ?? [])].map((n) => normalizuj(n)))
     return mezowie(d, o)
-        .filter(({ maz, formy }) => [...formy, maz].some((n) => !znane.has(normalizuj(n))))
+        // osoba nosi już formę żony (albo – gdy jej nie ma – nazwisko męża): bez dopisku (Agata Przykładowa, mąż Przykładowy)
+        .filter(({ maz, formy }) => !znane.has(normalizuj(formy[0] ?? maz)))
         .map(({ maz, formy }) => (formy.length ? `${formy[0]} (${maz})` : maz))
 }
 

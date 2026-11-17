@@ -15,10 +15,10 @@ export default function StronaDzialu({ tytul, sciezka, ...elementy }: { tytul: R
 }
 
 /** Licznik nad listą (UX-11/ARC-08): „N pozycji · strona X z Y”; odmiana zawsze przez odmiana(). */
-export function LicznikWynikow({ liczba, formy, strona, stron, dodatek }: { liczba: number; formy: [string, string, string]; strona?: number; stron?: number; dodatek?: React.ReactNode }) {
+export function LicznikWynikow({ liczba, formy, strona, stron, dodatek, fraza }: { liczba: number; formy: [string, string, string]; strona?: number; stron?: number; dodatek?: React.ReactNode; /** łatka P3 (plansza /szukaj): „„fraza” – N wyników” */ fraza?: string }) {
     return (
         <p className="ot-drobne" aria-live="polite">
-            {odmiana(liczba, formy)}{stron !== undefined && strona !== undefined && <> · strona {strona} z {stron}</>}
+            {fraza && <>„{fraza}” – </>}{odmiana(liczba, formy)}{stron !== undefined && strona !== undefined && <> · strona {strona} z {stron}</>}
             {dodatek && <> · {dodatek}</>}
         </p>
     )

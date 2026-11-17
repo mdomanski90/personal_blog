@@ -30,7 +30,7 @@ function adres(baza: string, w: WartosciFiltrow, parametrDzialu: string): string
  * krótkiej przerwie w pisaniu (fraza od 2 liter). Adres strony zmienia się tak jak przy formularzu,
  * więc odnośniki i „wstecz” działają. Bez JavaScriptu działa zwykły przycisk „filtruj”.
  */
-export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'szukaj w metadanych i transkrypcjach', poczatkowe: poczatkoweCzesc, miejscowosci, tematy, obiekty, osoby, zbiory, lata = true, sortowanie = true, parametrDzialu = 'rodzaj' }: {
+export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'szukaj w metadanych i transkrypcjach', poczatkowe: poczatkoweCzesc, miejscowosci, tematy, obiekty, osoby, zbiory, lata = true, sortowanie = true, parametrDzialu = 'rodzaj', dodatek }: {
     /** np. „/archiwum”, „/biblioteka” */
     adresBazowy: string
     /** np. „szukaj i filtruj w archiwum” */
@@ -47,6 +47,8 @@ export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'sz
     zbiory?: OpcjaWyboru[]
     lata?: boolean
     sortowanie?: boolean
+    /** łatka P3 (plansza słownika): dodatkowe pole wewnątrz panelu pod frazą – np. pastylki rodzaju hasła */
+    dodatek?: React.ReactNode
 }) {
     const adresDla = (w: WartosciFiltrow) => adres(adresBazowy, w, parametrDzialu)
     const poczatkowe = { ...PUSTE, ...poczatkoweCzesc }
@@ -120,6 +122,7 @@ export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'sz
                     <input id={idFrazy} name="q" type="search" value={w.q} onChange={(e) => zmien('q', e.target.value, false)} placeholder="wpisz frazę (min. 2 litery)…" />
                 </span>
             </div>
+            {dodatek && <div className="k-filtry-szeroki">{dodatek}</div>}
             {/* dział (rodzaj) wybiera się w spisie działów nad filtrami; tu tylko go zachowujemy */}
             <input type="hidden" name={parametrDzialu} value={w.rodzaj} />
             {miejscowosci && <PoleWyboru name="miejsce" etykieta="miejscowość" opcje={miejscowosci} wartosc={w.miejsce} naZmiane={(v) => zmien('miejsce', v)} />}

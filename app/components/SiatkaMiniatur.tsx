@@ -22,7 +22,7 @@ export default function SiatkaMiniatur({ pozycje, pusto = 'brak pozycji.', waria
                 <li className="sm-pozycja sm-fiszka sm-zaproszenie">
                     <Link href={zaproszenie.href} className="sm-odnosnik sm-fiszka-odn">
                         <div className="sm-fiszka-haslo"><span className="sm-plus" aria-hidden="true">+</span><span className="sm-linia">{zaproszenie.podpis}</span></div>
-                        <div className="sm-fiszka-tresc"><p className="sm-fiszka-znaczenie">{zaproszenie.tekst}</p><span className="sm-linia sm-fiszka-zrodlo">{zaproszenie.male}</span><span className="zapowiedz-dalej">{zaproszenie.akcja}</span></div>
+                        <div className="sm-fiszka-tresc"><p className="sm-fiszka-znaczenie">{zaproszenie.tekst}</p><span className="sm-fiszka-dopisek">{zaproszenie.male}</span><span className="zapowiedz-dalej">{zaproszenie.akcja}</span></div>
                     </Link>
                 </li>
             )}

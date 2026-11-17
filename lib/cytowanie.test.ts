@@ -14,3 +14,8 @@ test('dane cytatu: stały adres przy numerze katalogowym, inaczej adres strony; 
     assert.equal(b.opracowal, 'Jan Przykładowski')
     assert.ok(!('autor' in b) || b.autor === undefined)
 })
+
+test('łatka P3: dopisek za tytułem w danych cytatu (hasło słownika)', async () => {
+    const { daneCytatu } = await import('./cytowanie')
+    assert.equal(daneCytatu({ tytul: 'morga', dopisek: 'hasło słownika', sciezka: '/biblioteka/slownik/morga', rodzaj: 'haslo' }).dopisek, 'hasło słownika')
+})

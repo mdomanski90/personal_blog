@@ -58,3 +58,10 @@ test('adres hasła nigdzie nie wraca do kotwicy /biblioteka/slownik#…', () => 
     przejdz('app'); przejdz('lib')
     assert.deepEqual(zle, [], 'użyj adresHasla() z lib/slownik')
 })
+
+test('łatka P3: filtr miejscowości (występowanie) i pełny alfabet liter', async () => {
+    const { filtrujHasla, ALFABET } = await import('./slownik')
+    const h = (id: string, wystepowanie: string[]) => ({ id, haslo: id, rodzaj: 'pojecie', znaczenie: '', przyklad: '', zrodlo: '', formy: [], wystepowanie })
+    assert.deepEqual(filtrujHasla([h('arenda', ['testowo']), h('folwark', ['wola'])], { miejsce: 'testowo' }).map((x) => x.id), ['arenda'])
+    assert.ok(ALFABET.includes('Ł') && ALFABET.includes('Ż') && !ALFABET.includes('Q'))
+})
