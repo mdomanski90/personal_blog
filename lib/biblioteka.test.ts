@@ -24,7 +24,7 @@ test('jedna lista w kolejności działów, z odnośnikami do podstron', () => {
     assert.deepEqual(p.map((x) => x.dzial), ['publikacje', 'ksiegi', 'ksiegi', 'slownik'])
     assert.equal(p[0].href, '/biblioteka/publikacje/pub-1')
     assert.equal(p[0].linia, 'książka · Autor X · 1999')
-    assert.equal(p[3].href, '/biblioteka/slownik#h-1')
+    assert.equal(p[3].href, '/biblioteka/slownik/h-1')
     // nazwa instytucji nadal opisuje księgę
     assert.match(p[1].linia, /Parafia Testowa/)
 })

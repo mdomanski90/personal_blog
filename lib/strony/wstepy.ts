@@ -2,7 +2,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-export const DZIALY = ['wpisy', 'miejsca', 'osoby', 'tematy', 'archiwum', 'zbiory', 'biblioteka', 'publikacje', 'instytucje', 'obiekty'] as const
+export const DZIALY = ['wpisy', 'miejsca', 'osoby', 'tematy', 'archiwum', 'zbiory', 'biblioteka', 'publikacje', 'instytucje', 'obiekty', 'ksiegi', 'slownik', 'plany'] as const
 export type Dzial = typeof DZIALY[number]
 export type UstawienieDzialu = { tytul: string; wstep: string; linkTekst: string; linkAdres: string }
 const puste = (): UstawienieDzialu => ({ tytul: '', wstep: '', linkTekst: '', linkAdres: '' })

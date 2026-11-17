@@ -3,6 +3,9 @@
 import { ksiegaDotyczyMiejsca, type KsiegaPowiazania, type MiejscePowiazania } from './ksiegi-powiazania'
 import { scalZakresy, zakresyTekst } from './ksiegi'
 
+/** REL-05/CAT-05: po filtrze „ze skanami”, gdy tomy ze skanami nie mają własnych lat. */
+export const LATA_TOMOW_NIEZNANE = 'lata tomów ze skanami nieznane'
+
 export type WidokKatalogu = 'miejscowosci' | 'parafie'
 export type KsiegaKatalogu = KsiegaPowiazania & {
     id: string
@@ -40,7 +43,8 @@ export function filtrujKatalog<K extends KsiegaKatalogu>(
         // Filtr „ze skanami” dotyczy również tomów, podpisu lat i paska roczników.
         const jednostki = k.jednostki.filter(tomMaSkany)
         const zakresy = scalZakresy(jednostki.flatMap((j) => j.zakresy ?? []))
-        return { ...k, jednostki, ...(zakresy.length ? { zakresy, lata: zakresyTekst(zakresy) } : {}) } as K
+        // KI-13: tomy ze skanami bez własnych lat → nie pokazujemy lat całego zespołu (wprowadzałyby w błąd)
+        return { ...k, jednostki, zakresy, lata: zakresy.length ? zakresyTekst(zakresy) : LATA_TOMOW_NIEZNANE } as K
     })
 }
 

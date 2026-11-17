@@ -354,6 +354,29 @@ export function rdzenNazwiska(n: string): string {
     return t.length > 4 ? t.replace(/(ski|ska|cki|cka|dzki|dzka)$/, (k) => k.slice(0, -1)).replace(/[aiy]$/, '') : t
 }
 
+/** Forma żeńska nazwiska przymiotnikowego męża: Kowalski → Kowalska, Zawadzki → Zawadzka; inne nazwiska bez zmian. */
+export const formaZenskaNazwiska = (n: string): string => n.replace(/(sk|ck|dzk|zk)i$/i, (k) => k.slice(0, -1) + 'a')
+
+/**
+ * Nazwiska kobiety po mężu, do wyszukiwarki (P2, decyzja właściciela 17.11): z każdej rodziny, w której jest żoną, nazwisko męża –
+ * także gdy mąż sam jest niewidoczny dla czytelnika (widoczność dotyczy karty męża, nie nazwiska w karcie żony).
+ * Pomija nazwiska już znane osobie (podstawowe i „inne nazwiska”). Zwraca zapis męża i jego formę żeńską.
+ */
+export function nazwiskaPoMezu(d: Drzewo, o: Pick<Osoba, 'id' | 'nazwisko' | 'inneNazwiska'>): string[] {
+    const znane = new Set([o.nazwisko, ...(o.inneNazwiska ?? [])].map((n) => normalizuj(n)))
+    const wyn: string[] = []
+    for (const f of d.rodziny.values()) {
+        if (f.zona !== o.id || !f.maz) continue
+        const nazwisko = d.osoby.get(f.maz)?.nazwisko?.trim()
+        if (!nazwisko) continue
+        for (const n of [formaZenskaNazwiska(nazwisko), nazwisko]) {
+            const k = normalizuj(n)
+            if (!znane.has(k)) { znane.add(k); wyn.push(n) }
+        }
+    }
+    return wyn
+}
+
 export function nazwiskaOsoby(o: Osoba): string[] {
     return [o.nazwisko, ...(o.inneNazwiska ?? []), ...(o.inneZapisy ?? []).map((z) => z.split(' ').at(-1) ?? '')].flatMap((n) => normalizuj(n).split(' ')).filter(Boolean).map(rdzenNazwiska)
 }

@@ -4,8 +4,7 @@ import * as React from 'react'
 import type { Ksiega } from '@/lib/archiwum'
 import { KartaPozycji, OdnosnikZewn as Odnosnik, PozycjaWKarcie, Wiersz } from './KartaPozycji'
 import { RODZAJE_KSIAG, DOSTEP_KSIAG, KOLEJNOSC_KSIAG } from '@/lib/ksiegi'
-
-const male = { fontSize: 'calc(13px * var(--font-scale, 1))' }
+import { odmiana } from '@/lib/tekst'
 
 /** Zakres osi: od pełnej dekady przed najstarszą księgą do pełnej dekady po najmłodszej. */
 export function zakresOsi(ks: Ksiega[]): [number, number] {
@@ -33,7 +32,7 @@ export function PasekLat({ ksiegi, os }: { ksiegi: Ksiega[]; os?: [number, numbe
                 <React.Fragment key={r}>
                     <span className="pasek-lat-podpis">{RODZAJE_KSIAG[r]}</span>
                     <div className="pasek-lat-os">
-                        {kreski.map((x) => <span key={x} className="pasek-lat-kreska" style={{ left: proc(x) }} />)}
+                        {kreski.map((x) => <span key={x} className="pasek-lat-kreska" style={/* styl-dynamiczny: położenie kreski na osi lat */ { left: proc(x) }} />)}
                         {ksiegi
                             .filter((k) => k.rodzaje.includes(r))
                             .flatMap((k) => k.zakresy.map((z, i) => (
@@ -41,7 +40,7 @@ export function PasekLat({ ksiegi, os }: { ksiegi: Ksiega[]; os?: [number, numbe
                                     key={`${k.id}-${i}`}
                                     title={`${RODZAJE_KSIAG[r]}: ${z[0] === z[1] ? z[0] : `${z[0]}–${z[1]}`}`}
                                     className="pasek-lat-odcinek"
-                                    style={{ left: proc(z[0]), width: `max(3px, calc(${((z[1] - z[0] + 1) / dl) * 100}% - 1px))`, opacity: k.dostep === 'zaginione' ? 0.25 : undefined }}
+                                    style={/* styl-dynamiczny: położenie i szerokość odcinka na osi lat, krycie dla zaginionych */ { left: proc(z[0]), width: `max(3px, calc(${((z[1] - z[0] + 1) / dl) * 100}% - 1px))`, opacity: k.dostep === 'zaginione' ? 0.25 : undefined }}
                                 />
                             )))}
                     </div>
@@ -49,13 +48,13 @@ export function PasekLat({ ksiegi, os }: { ksiegi: Ksiega[]; os?: [number, numbe
             ))}
             <span className="pasek-lat-podpis pasek-lat-objasnienie">zachowane roczniki</span>
             <div className="pasek-lat-lata">
-                {kreski.map((x) => <span key={x} style={{ left: proc(x), transform: x === od ? 'none' : x === doRoku ? 'translateX(-100%)' : 'translateX(-50%)' }}>{x}</span>)}
+                {kreski.map((x) => <span key={x} style={/* styl-dynamiczny: podpis roku pod kreską osi */ { left: proc(x), transform: x === od ? 'none' : x === doRoku ? 'translateX(-100%)' : 'translateX(-50%)' }}>{x}</span>)}
             </div>
         </div>
     )
 }
 
-const ileTomow = (n: number) => `${n} ${n === 1 ? 'tom' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'tomy' : 'tomów'}`
+const ileTomow = (n: number) => odmiana(n, ['tom', 'tomy', 'tomów'])
 
 /**
  * P7F-3: księgi w stylu kart osoby i obiektu (nagłówek: rodzaje aktów i lata; wiersze etykieta–wartość).
@@ -81,6 +80,7 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg, k
                 const miejsca = k.miejsca.filter((m) => m !== kontekst?.miejsce)
                 const instytucje = k.instytucje.filter((i) => i !== kontekst?.instytucja)
                 const rodzaje = k.rodzaje.map((r) => RODZAJE_KSIAG[r] ?? r).join(' · ')
+                const etykieta = [rodzaje, k.lata].filter(Boolean).join(', ')
                 const id = !kotwiceKsieg || kotwiceKsieg.has(k.id) ? `ksiega-${k.id}` : undefined
                 const pola: [string, React.ReactNode][] = [
                     ['luki i uwagi', k.braki],
@@ -97,10 +97,10 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg, k
                 ]
                 const tomy = k.jednostki.length > 0 && <Tomy k={k} />
                 if (wariant === 'wiersze') return (
-                    <PozycjaWKarcie key={k.id} id={id} etykieta={`${rodzaje}, ${k.lata}`} tytul={rodzaje || 'księga'} prawa={k.lata} pola={pola}>{tomy}</PozycjaWKarcie>
+                    <PozycjaWKarcie key={k.id} id={id} etykieta={etykieta} tytul={rodzaje || 'księga'} prawa={k.lata} pola={pola}>{tomy}</PozycjaWKarcie>
                 )
                 return (
-                    <KartaPozycji key={k.id} id={id} etykieta={`${rodzaje}, ${k.lata}`} tytul={rodzaje || 'księga'} prawa={k.lata}>
+                    <KartaPozycji key={k.id} id={id} etykieta={etykieta} tytul={rodzaje || 'księga'} prawa={k.lata}>
                         {pola.map(([e, v]) => <Wiersz key={e} e={e}>{v}</Wiersz>)}
                         {tomy && <div className="ot-cala">{tomy}</div>}
                     </KartaPozycji>
@@ -113,7 +113,7 @@ export function TabelaKsiag({ ksiegi, nazwyMiejsc, nazwyParafii, kotwiceKsieg, k
 /** Tomy zespołu – rozwijane (wspólne dla obu wariantów). */
 function Tomy({ k }: { k: Ksiega }) {
     return (
-        <details className="ksiega-tomy" style={male}>
+        <details className="ksiega-tomy">
             <summary>{ileTomow(k.jednostki.length)}: roczniki, sygnatury, skany</summary>
             <div className="rozwin-tresc">
             <ul>

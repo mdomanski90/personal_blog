@@ -672,68 +672,17 @@ export default config({
       label: 'Wstępy działów',
       path: 'content/_panel/wstepy-dzialow',
       format: { data: 'json' },
-      schema: {
-        wpisy: fields.object({
-          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
-          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
-          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
-          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
-        }, { label: 'Wpisy' }),
-        miejsca: fields.object({
-          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
-          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
-          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
-          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
-        }, { label: 'Miejsca' }),
-        osoby: fields.object({
-          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
-          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
-          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
-          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
-        }, { label: 'Osoby' }),
-        tematy: fields.object({
-          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
-          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
-          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
-          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
-        }, { label: 'Tematy' }),
-        archiwum: fields.object({
-          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
-          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
-          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
-          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
-        }, { label: 'Archiwum' }),
-        zbiory: fields.object({
-          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
-          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
-          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
-          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
-        }, { label: 'Zbiory i kolekcje' }),
-        biblioteka: fields.object({
-          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
-          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
-          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
-          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
-        }, { label: 'Biblioteka' }),
-        publikacje: fields.object({
-          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
-          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
-          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
-          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
-        }, { label: 'Publikacje' }),
-        instytucje: fields.object({
-          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
-          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
-          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
-          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
-        }, { label: 'Instytucje' }),
-        obiekty: fields.object({
-          tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
-          wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
-          linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
-          linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
-        }, { label: 'Obiekty' }),
-      },
+      // P2 (ADM-06): jedna definicja pól wstępu; kolejność i klucze zgodne z lib/strony/wstepy.ts (DZIALY)
+      schema: Object.fromEntries(([
+        ['wpisy', 'Wpisy'], ['miejsca', 'Miejsca'], ['osoby', 'Osoby'], ['tematy', 'Tematy'], ['archiwum', 'Archiwum'],
+        ['zbiory', 'Zbiory i kolekcje'], ['biblioteka', 'Biblioteka'], ['publikacje', 'Publikacje'], ['instytucje', 'Instytucje'], ['obiekty', 'Obiekty'],
+        ['ksiegi', 'Księgi metrykalne'], ['slownik', 'Słownik'], ['plany', 'Plany i schematy'],
+      ] as const).map(([klucz, nazwa]) => [klucz, fields.object({
+        tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
+        wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
+        linkTekst: fields.text({ label: 'Podpis linku redakcyjnego' }),
+        linkAdres: fields.text({ label: 'Adres linku (/ścieżka albo https://...)' }),
+      }, { label: nazwa })])),
     }),
     stronaGlowna: singleton({
       label: 'Strona główna',

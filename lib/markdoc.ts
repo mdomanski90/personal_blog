@@ -1,4 +1,4 @@
-import { identyfikatorZNazwy } from './tekst'
+import { identyfikatorZNazwy, odmiana } from './tekst'
 import Markdoc, { Tag, type Node, type Config, type RenderableTreeNode, type RenderableTreeNodes } from '@markdoc/markdoc'
 import type { ObjasnienieWidoku } from './objasnienia-widok'
 import { bezNawiasow, ODNOSNIK, tekstOdnosnika, type Rozwiaz } from './odnosniki'
@@ -205,7 +205,7 @@ export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string, strona?: n
         const pierwsza = m.strony[start].adres
         const obraz = pierwsza.startsWith('/pliki/strony/') ? `${pierwsza}?w=1200` : pierwsza
         const n = m.strony.length
-        const ile = n === 1 ? '' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? `${n} strony` : `${n} stron`
+        const ile = n === 1 ? '' : odmiana(n, ['strona', 'strony', 'stron'])
         // P7E-1 (SG-04, SG-05): jedna czynność powiększania i jeden odnośnik „szczegóły w archiwum →”
         const opis: RenderableTreeNode[] = [new Tag('span', {}, [podpis || m.nazwa]), ' · ', new Tag('button', { type: 'button', class: 'dok-otworz' }, [ile ? `przeglądaj ${ile} ⤢` : 'powiększ skan ⤢']), ' · ', new Tag('a', { href: adres }, ['szczegóły w archiwum →']), ...zrodloWstawki(m)]
         return new Tag('figure', { class: 'material-wstawka', 'data-id': m.id, ...(podpis ? { 'data-podpis': podpis } : {}), ...(start ? { 'data-strona': String(start + 1) } : {}), 'data-dokument': JSON.stringify({ tytul: m.nazwa, strony: m.strony, ...(m.objasnienia?.length ? { objasnienia: m.objasnienia } : {}), ...(m.transkrypcja ? { transkrypcja: m.transkrypcja } : {}) }) }, [

@@ -6,7 +6,7 @@ import { poziomCzytelnika, szukaj, type RodzajWyniku } from '@/lib/archiwum'
 
 export const dynamic = 'force-dynamic'
 
-const KOLEJNOSC: RodzajWyniku[] = ['miejsce', 'osoba', 'wpis', 'materiał', 'publikacja', 'zbiór', 'księga', 'parafia' /* PACZKA5_2026 */, 'hasło', 'obiekt', 'temat']
+const KOLEJNOSC: RodzajWyniku[] = ['miejsce', 'osoba', 'wpis', 'materiał', 'publikacja', 'zbiór', 'księga', 'parafia' /* PACZKA5_2026 */, 'hasło', 'obiekt', 'temat', 'objaśnienie']
 const NA_RODZAJ = 2
 const RAZEM = 7
 

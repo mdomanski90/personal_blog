@@ -106,7 +106,7 @@ test('UX-14: nazwa dostępna zawiera widoczny napis (WCAG 2.5.3, axe label-conte
 
 test('UX-14: strona główna ma jeden h1; pola szukania mają odrębne nazwy (axe page-has-heading-one, landmark-unique)', () => {
     assert.match(czytaj('app/page.tsx'), /<h1[ >]/)
-    assert.match(czytaj('app/components/Wyszukiwarka.tsx'), /role="search" aria-label="szukaj w serwisie"/)
+    assert.match(czytaj('app/components/Wyszukiwarka.tsx'), /role="search" aria-label="szukaj w całym serwisie"/)
     assert.match(czytaj('app/components/PoleSzukania.tsx'), /obszar = 'szukaj na tej stronie'/)
 })
 

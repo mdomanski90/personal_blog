@@ -3,85 +3,87 @@ import { Link } from 'next-view-transitions'
 import { redirect } from 'next/navigation'
 import { parsujNr } from '@/lib/katalog/model'
 import { adresNumeru } from '@/lib/katalog/widocznosc'
-import { poziomCzytelnika, szukaj, type RodzajWyniku } from '@/lib/archiwum'
+import { poziomCzytelnika, szukaj } from '@/lib/archiwum'
 import { krotszeZapytanie } from '@/lib/szukanie'
+import { adresFiltrow, wartosc, type Parametry } from '@/lib/adres-filtrow'
+import { stronicuj } from '@/lib/stronicowanie'
+import { RODZINY, rodzinaRodzaju, rodzinaZParametru } from '@/lib/rodziny-wynikow'
 import PoleSzukania from '../components/PoleSzukania'
-import { Strona, TytulStrony } from '../components/Uklad'
-import { odmiana } from '@/lib/tekst'
+import Komunikat from '../components/Komunikat'
+import StronaDzialu, { LicznikWynikow } from '../components/StronaDzialu'
+import { NawigacjaStron, PastylkaFiltra, RzadFiltrow, WybraneFiltry } from '../components/Wzorce'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'szukaj · odniepamieci.pl', robots: { index: false } }
+const BAZA = '/szukaj'
 
-const GRUPY: { r: RodzajWyniku; nazwa: [string, string, string] }[] = [
-    { r: 'miejsce', nazwa: ['miejscowość', 'miejscowości', 'miejscowości'] },
-    { r: 'osoba', nazwa: ['osoba', 'osoby', 'osób'] },
-    { r: 'wpis', nazwa: ['wpis', 'wpisy', 'wpisów'] },
-    { r: 'materiał', nazwa: ['materiał', 'materiały', 'materiałów'] },
-    { r: 'publikacja', nazwa: ['publikacja', 'publikacje', 'publikacji'] },
-    { r: 'zbiór', nazwa: ['zbiór', 'zbiory', 'zbiorów'] }, // PACZKA5_2026
-    { r: 'księga', nazwa: ['księga', 'księgi', 'ksiąg'] },
-    { r: 'parafia', nazwa: ['parafia / urząd', 'parafie / urzędy', 'parafii / urzędów'] },
-    { r: 'hasło', nazwa: ['hasło', 'hasła', 'haseł'] },
-    { r: 'obiekt', nazwa: ['obiekt', 'obiekty', 'obiektów'] },
-    { r: 'temat', nazwa: ['temat', 'tematy', 'tematów'] },
-]
-const male = { fontSize: 'calc(13px * var(--font-scale, 1))' }
-
-export default async function Szukaj({ searchParams }: { searchParams: Promise<{ q?: string | string[]; rodzaj?: string }> }) {
+export default async function Szukaj({ searchParams }: { searchParams: Promise<Parametry> }) {
     const sp = await searchParams
-    const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q ?? '').slice(0, 100).trim()
+    const q = wartosc(sp.q).slice(0, 100).trim()
     // KAT-04: numer katalogowy (MA-0042, ma-42) – od razu strona pozycji, gdy czytelnik ją widzi; inaczej zwykłe wyszukiwanie
     const nrKat = parsujNr(q)
     const adresKat = nrKat ? await adresNumeru(nrKat, await poziomCzytelnika()) : null
     if (adresKat) redirect(adresKat)
     const wszystkie = q ? await szukaj(q, await poziomCzytelnika()) : []
-    const rodzaj = GRUPY.find((g) => g.r === sp.rodzaj)?.r
-    const wyniki = rodzaj ? wszystkie.filter((w) => w.rodzaj === rodzaj) : wszystkie
-    const ile = (r: RodzajWyniku) => wszystkie.filter((w) => w.rodzaj === r).length
-    const adres = (r?: RodzajWyniku) => `/szukaj?q=${encodeURIComponent(q)}${r ? `&rodzaj=${encodeURIComponent(r)}` : ''}`
+    const rodzina = rodzinaZParametru(wartosc(sp.rodzaj))
+    const wybrane = rodzina ? wszystkie.filter((w) => rodzinaRodzaju(w.rodzaj) === rodzina) : wszystkie
+    const strona = /^\d{1,5}$/.test(wartosc(sp.strona)) ? Number(wartosc(sp.strona)) : 1
+    const wyn = stronicuj(wybrane, strona)
+    const ile = (id: string) => wszystkie.filter((w) => rodzinaRodzaju(w.rodzaj) === id).length
     const krotsze = q && !wszystkie.length ? krotszeZapytanie(q) : null
+    const nazwaRodziny = RODZINY.find((r) => r.id === rodzina)?.nazwa
+    // legenda znaków: tylko rodziny, które występują w wynikach (przy filtrze – wszystkie z całości, żeby kolory się nie zmieniały)
+    const wRodzinach = RODZINY.filter((r) => ile(r.id) > 0)
 
     return (
-        <Strona uklad="pelna">
-            <TytulStrony>szukaj</TytulStrony>
-            <PoleSzukania action="/szukaj" defaultValue={q} placeholder="nazwa wsi, nazwisko, temat…" style={{ maxWidth: 560 }} />
-            {!q && <p className="text-[var(--tekst-opis)]">Wpisz nazwę miejscowości, nazwisko albo temat. Polskie znaki nie są potrzebne, a słowo może być w dowolnej formie – „w Olszance”, „bieżeństwa”.</p>}
-            {q && wszystkie.length > 0 && (
-                <nav aria-label="rodzaj wyników" className="flex flex-wrap items-center" style={{ gap: '6px 8px', ...male }}>
-                    <Link href={adres()} aria-current={!rodzaj ? 'true' : undefined} className="szukaj-filtr">wszystko · {wszystkie.length}</Link>
-                    {GRUPY.filter((g) => ile(g.r)).map((g) => (
-                        <Link key={g.r} href={adres(g.r)} aria-current={rodzaj === g.r ? 'true' : undefined} className="szukaj-filtr">{odmiana(ile(g.r), g.nazwa)}</Link>
-                    ))}
-                </nav>
-            )}
-            {q && !wszystkie.length && (
-                <div className="k-kom k-kom--pusto" role="status">
-                    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" className="k-kom-ikona"><circle cx="8.5" cy="8.5" r="6" /><path d="M13 13l5 5" /></svg>
-                    <div className="k-kom-tresc">
-                    <p className="k-kom-tytul">„{q}” – nic nie znaleziono.</p>
-                    <ul className="flex flex-col text-[var(--tekst-opis)]" style={{ gap: 4, margin: 0, paddingLeft: '1.1rem', ...male }}>
-                        {krotsze && <li>spróbuj krótszego zapytania: <Link href={`/szukaj?q=${encodeURIComponent(krotsze)}`}>{krotsze}</Link></li>}
-                        <li>sprawdź pisownię albo wpisz inny wariant nazwy (np. dawną nazwę wsi, nazwisko panieńskie)</li>
-                        <li>osoby z drzewa: <Link href={`/osoby?krag=wszystkie&q=${encodeURIComponent(q)}`}>szukaj w dziale osoby</Link> · miejscowości: <Link href="/miejsca">mapa i spis</Link> · księgi metrykalne: <Link href="/biblioteka/ksiegi">spis ksiąg</Link></li>
-                        <li>archiwum jest w opracowaniu – brak wyniku nie znaczy, że o tym nic nie ma</li>
+        <StronaDzialu
+            tytul="szukaj"
+            wstep={!q ? <p className="tekst-opis">Wpisz nazwę miejscowości, nazwisko albo temat. Polskie znaki nie są potrzebne, a słowo może być w dowolnej formie – „w Olszance”, „bieżeństwa”.</p> : undefined}
+            panel={<>
+                <PoleSzukania action={BAZA} defaultValue={q} placeholder="nazwa wsi, nazwisko, temat…" obszar="zmień zapytanie" className="szukaj-pole-strony" />
+                {q && wszystkie.length > 0 && (
+                    <RzadFiltrow etykieta="rodzaj wyników">
+                        <PastylkaFiltra href={adresFiltrow(BAZA, sp, { ustaw: { rodzaj: '' } })} aktywny={!rodzina} liczba={wszystkie.length}>wszystko</PastylkaFiltra>
+                        {RODZINY.map((r) => <PastylkaFiltra key={r.id} href={adresFiltrow(BAZA, sp, { ustaw: { rodzaj: r.id } })} aktywny={rodzina === r.id} liczba={ile(r.id)}>{r.nazwa}</PastylkaFiltra>)}
+                    </RzadFiltrow>
+                )}
+            </>}
+            wybrane={rodzina && nazwaRodziny ? <WybraneFiltry wybrane={[{ klucz: 'rodzaj', etykieta: nazwaRodziny, href: adresFiltrow(BAZA, sp, { pomin: ['rodzaj'] }) }]} wyczysc={adresFiltrow(BAZA, sp, { pomin: ['rodzaj'] })} /> : undefined}
+            licznik={q && wszystkie.length > 0 ? (
+                <>
+                    <LicznikWynikow liczba={wybrane.length} formy={['wynik', 'wyniki', 'wyników']} strona={wyn.strona} stron={wyn.stron} />
+                    <p className="szukaj-legenda" aria-label="znaczenie kolorowych znaków">
+                        {wRodzinach.map((r) => <span key={r.id} className="szukaj-legenda-poz"><span className={`szukaj-znak szukaj-znak--${r.id}`} aria-hidden="true" />{r.nazwa}</span>)}
+                    </p>
+                </>
+            ) : undefined}
+            tresc={<>
+                {q && !wszystkie.length && (
+                    <Komunikat rodzaj="pusto" tytul={`„${q}” – nic nie znaleziono.`}>
+                        <ul className="szukaj-wskazowki">
+                            {krotsze && <li>spróbuj krótszego zapytania: <Link href={`${BAZA}?q=${encodeURIComponent(krotsze)}`}>{krotsze}</Link></li>}
+                            <li>sprawdź pisownię albo wpisz inny wariant nazwy (np. dawną nazwę wsi, nazwisko panieńskie)</li>
+                            <li>osoby z drzewa: <Link href={`/osoby?krag=wszystkie&q=${encodeURIComponent(q)}`}>szukaj w dziale osoby</Link> · miejscowości: <Link href="/miejsca">mapa i spis</Link> · księgi metrykalne: <Link href="/biblioteka/ksiegi">spis ksiąg</Link></li>
+                            <li>archiwum jest w opracowaniu – brak wyniku nie znaczy, że o tym nic nie ma</li>
+                        </ul>
+                    </Komunikat>
+                )}
+                {wyn.wyniki.length > 0 && (
+                    <ul className="szukaj-lista">
+                        {wyn.wyniki.map((w) => (
+                            <li key={`${w.rodzaj}:${w.id}`} className="szukaj-wynik">
+                                <div className="szukaj-wynik-gora">
+                                    <span className="szukaj-rodzaj"><span className={`szukaj-znak szukaj-znak--${rodzinaRodzaju(w.rodzaj)}`} aria-hidden="true" />{w.etykieta}</span>
+                                    <Link href={w.adres} className="szukaj-tytul">{w.tytul}</Link>
+                                </div>
+                                {w.przez && <span className="szukaj-przez">powiązane z: {w.przez}</span>}
+                                {w.fragment && <p className="szukaj-fragment">{w.fragment}</p>}
+                            </li>
+                        ))}
                     </ul>
-                    </div>
-                </div>
-            )}
-            {wyniki.length > 0 && (
-                <ul className="flex flex-col border-t border-[var(--linia-podzialu)]" style={{ margin: 0, padding: 0, listStyle: 'none' }}>
-                    {wyniki.map((w) => (
-                        <li key={`${w.rodzaj}:${w.id}`} className="flex flex-col py-3 border-b border-[var(--linia-podzialu)]" style={{ gap: 4 }}>
-                            <div className="flex flex-wrap items-baseline" style={{ gap: '2px 10px' }}>
-                                <span className={`szukaj-rodzaj szukaj-${w.rodzaj === 'materiał' ? 'material' : w.rodzaj}`}>{w.etykieta}</span>
-                                <Link href={w.adres} className="font-bold" style={{ fontSize: 'calc(17px * var(--font-scale, 1))' }}>{w.tytul}</Link>
-                            </div>
-                            {w.przez && <span className="text-[var(--tekst-opis)]" style={male}>powiązane z: {w.przez}</span>}
-                            {w.fragment && <p className="text-[var(--tekst-opis)]" style={{ fontSize: 'calc(15px * var(--font-scale, 1))', margin: 0 }}>{w.fragment}</p>}
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </Strona>
+                )}
+            </>}
+            stronicowanie={<NawigacjaStron strona={wyn.strona} stron={wyn.stron} adres={(n) => adresFiltrow(BAZA, sp, { ustaw: { strona: String(n) } })} etykieta="strony wyników" />}
+        />
     )
 }

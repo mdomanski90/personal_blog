@@ -119,7 +119,7 @@ export function zrodlaWTekscie(tekst: string): { transkrypcja: boolean; tlumacze
 }
 
 /** Rodzaje formularza zgłoszenia (te same co RodzajZgloszenia w lib/zgloszenia.ts – tu bez zależności serwerowych). */
-export type RodzajFormularza = 'poprawka' | 'miejsce' | 'material' | 'odczyt' | 'wspomnienie' | 'rozpoznanie'
+export type RodzajFormularza = 'poprawka' | 'miejsce' | 'material' | 'odczyt' | 'wspomnienie' | 'rozpoznanie' | 'haslo'
 
 /** „w czym chcesz pomóc” na stronie „współtwórz” – kolejność z planszy właściciela (16.11). */
 export const POMOC: { rodzaj: RodzajFormularza; etykieta: string }[] = [
@@ -129,4 +129,6 @@ export const POMOC: { rodzaj: RodzajFormularza; etykieta: string }[] = [
     { rodzaj: 'odczyt', etykieta: 'odczytam albo przetłumaczę dokument' },
     { rodzaj: 'miejsce', etykieta: 'dodam miejsce do mapy' },
     { rodzaj: 'poprawka', etykieta: 'poprawka albo uzupełnienie' },
+    // SLW-01 (P2): zgłoszenie hasła do słownika (fiszka-zaproszenie w słowniku)
+    { rodzaj: 'haslo', etykieta: 'zgłoszę hasło do słownika' },
 ]

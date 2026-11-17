@@ -116,6 +116,8 @@
   --blad: #a3321f; --blad-tlo: #fbeee9;
   --uwaga: #7a5200; --uwaga-tlo: #fbf3df;
   --ok: #2f6b3a; --ok-tlo: #ecf4ea;
+  /* /szukaj: znak rodziny wyniku (kropka, tylko ozdoba – nazwę niesie napis); każdy ≥ 3:1 na tle strony */
+  --rodzaj-archiwum-znak: #4c3cc4; --rodzaj-miejsca-znak: #2f6b3a; --rodzaj-osoby-znak: #a3541a; --rodzaj-biblioteka-znak: #8a3a6a; --rodzaj-wpisy-znak: #1f6a80;
   --niedostepne-tlo: #f6f4ef;
   --promien-maly: 6px; --promien: 8px; --promien-duzy: 12px;
 
@@ -231,6 +233,7 @@
   --blad: #ef8f7e; --blad-tlo: #3a2420;
   --uwaga: #e0b25c; --uwaga-tlo: #33291a;
   --ok: #8ccf96; --ok-tlo: #1f2e22;
+  --rodzaj-archiwum-znak: #9a8fff; --rodzaj-miejsca-znak: #6fc07f; --rodzaj-osoby-znak: #e39a5a; --rodzaj-biblioteka-znak: #d98ab8; --rodzaj-wpisy-znak: #5cc0d9;
   --niedostepne-tlo: #232220;
   /* JW-2 · obrządki nocą (jasne, kontrast ≥ 4,5 na ciemnym tle) */
   --obrzadek-rzymskokatolicki: #d9b878; --obrzadek-unicki: #7fcfd3; --obrzadek-prawoslawny: #c2aef0; --obrzadek-ewangelicki: #b5c4d6; --obrzadek-mojzeszowy: #cfc3ad;
@@ -807,7 +810,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .drzewo.drzewo-pelne .dr-plansza { zoom: calc(var(--font-scale, 1) * var(--dr-skala, 1)); }
 
 /* księgi: rozwijana lista tomów zespołu */
-.ksiega-tomy { margin-top: 2px; }
+.ksiega-tomy { margin-top: 2px; font-size: var(--rozmiar-etykieta); }
 .ksiega-tomy > summary { cursor: pointer; width: fit-content; color: rgb(107 114 128); }
 .ksiega-tomy > summary:hover { color: inherit; }
 .ksiega-tomy > .rozwin-tresc > ul { margin: 6px 0 2px; padding-left: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17em), 1fr)); gap: 3px 1.5rem; }
@@ -931,8 +934,23 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .szukaj-filtr{display:inline-flex;align-items:center;gap:6px;min-height:calc(40px * var(--font-scale,1));padding:0 14px;box-sizing:border-box;border:1px solid var(--krawedz-kontrolki);border-radius:999px;color:var(--tekst);text-decoration:none!important;background:var(--tlo-kontrolki);font:inherit;cursor:pointer;line-height:1.2}
 .szukaj-filtr:hover{border-color:var(--akcent);color:var(--akcent)}
 .szukaj-filtr[aria-current=true],.szukaj-filtr[aria-pressed=true]{background:var(--akcent-tlo);border-color:var(--akcent);color:var(--akcent-na-tle);font-weight:700}
-.szukaj-rodzaj{font-size:calc(12px * var(--font-scale,1));color:#6b665c;letter-spacing:.02em}
-.dark .szukaj-rodzaj{color:#a8a296}
+.szukaj-pole-strony{max-width:560px}
+.szukaj-lista{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;border-top:1px solid var(--linia-podzialu)}
+.szukaj-wynik{display:flex;flex-direction:column;gap:4px;padding:12px 0;border-bottom:1px solid var(--linia-podzialu)}
+.szukaj-wynik-gora{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+.szukaj-tytul{font-weight:700;font-size:var(--rozmiar-tekst)}
+.szukaj-przez{color:var(--tekst-opis);font-size:var(--rozmiar-etykieta)}
+.szukaj-fragment{color:var(--tekst-opis);font-size:var(--rozmiar-maly);margin:0}
+.szukaj-rodzaj{display:inline-flex;align-items:center;gap:6px;font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta);letter-spacing:.02em}
+.szukaj-znak{display:inline-block;width:.65em;height:.65em;border-radius:50%;background:var(--tekst-etykieta);flex:none}
+.szukaj-znak--archiwum{background:var(--rodzaj-archiwum-znak)}
+.szukaj-znak--miejsca{background:var(--rodzaj-miejsca-znak)}
+.szukaj-znak--osoby{background:var(--rodzaj-osoby-znak)}
+.szukaj-znak--biblioteka{background:var(--rodzaj-biblioteka-znak)}
+.szukaj-znak--wpisy{background:var(--rodzaj-wpisy-znak)}
+.szukaj-legenda{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta)}
+.szukaj-legenda-poz{display:inline-flex;align-items:center;gap:6px}
+.szukaj-wskazowki{display:flex;flex-direction:column;gap:4px;margin:0;padding-left:1.1rem;font-size:var(--rozmiar-etykieta)}
 
 
 /* ============================================ */
@@ -2148,6 +2166,34 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .szt-tresc .osoba-tabela.szt-plan>.ot-cala{padding:10px 14px;border-bottom:1px solid var(--linia-podzialu)}
 .szt-plan-pusto{padding:14px}
 
+/* P2 · katalog ksiąg na żywo: układ bez stylów inline (DZL-01, zapadka języka wizualnego) */
+.kk-panel{display:flex;flex-direction:column;align-items:stretch;gap:12px}
+.kk-widok{align-self:flex-start}
+.kk-rzad{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.kk-male{font-size:var(--rozmiar-etykieta);color:var(--tekst-opis);margin:0}
+.kk-wyznania{display:flex;flex-wrap:wrap;gap:7px}
+/* pastylka w ramce panelu leży na tle sekcji (ciemniejsze/jaśniejsze niż strona) – napis aktywnej w kolorze tekstu na akcencie, nie samego akcentu z wyglad.ts (kontrast nocą 3,9:1) */
+.odp .k-filtry-ramka .szukaj-filtr[aria-current=true]{color:var(--akcent-na-tle)}
+.pole-szukania.kk-pole-szukania{width:min(100%,420px)}
+.kk-lista{display:flex;flex-direction:column}
+.kk-grupa-naglowek{cursor:pointer;padding:12px 0;font-size:var(--rozmiar-tekst)}
+.kk-grupa-liczba{margin-left:12px}
+.kk-grupa-tresc{display:flex;flex-direction:column;gap:10px;padding:2px 0 18px 14px}
+
+/* P2 · SLW-01: słownik – siatka jednostronnych fiszek (połowa hasło, połowa wyjaśnienie), fiszka-zaproszenie z przerywaną ramką */
+.siatka-fiszek{grid-template-columns:repeat(auto-fill,minmax(min(100%,24rem),1fr))}
+.sm-fiszka-odn{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:100%}
+.sm-fiszka-haslo{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:14px;background:var(--tlo-sekcji);overflow-wrap:anywhere}
+.sm-fiszka-haslo .sm-tytul{font-size:var(--rozmiar-tresc)}
+.sm-fiszka-tresc{display:flex;flex-direction:column;gap:6px;padding:12px 14px;min-width:0}
+.sm-fiszka-znaczenie{margin:0;font-size:var(--rozmiar-opis);line-height:1.5;color:var(--tekst)}
+.sm-fiszka-zrodlo{text-transform:none}
+.sm-fiszka .zapowiedz-dalej{margin-top:auto;align-self:flex-end;font-weight:700;font-size:var(--rozmiar-maly);color:var(--akcent)}
+.sm-fiszka-odn:hover .zapowiedz-dalej{text-decoration:underline}
+.sm-zaproszenie{border-style:dashed}
+.sm-plus{font-size:calc(72px * var(--font-scale,1));line-height:1;color:var(--akcent);font-weight:300}
+@media (max-width:640px){.sm-fiszka-odn{grid-template-columns:minmax(0,1fr)}}
+
 /* P1 · UX-06 / KIER-03: obszary dotyku 44 px wszędzie tam, gdzie wskaźnik jest palcem – nie tylko do 640 px (tablet, telefon poziomo).
    Odnośniki w biegu zdania wyjęte (WCAG 2.5.8); pojedyncze odnośniki-przyciski i kontrolki mają 44 px. Test: lib/dostepnosc.test.ts. */
 @media (pointer: coarse) {
@@ -2169,6 +2215,8 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
   :root .odp .spis-tresci li a,:root .lista-obiektow a.odn{display:flex;align-items:center;min-height:44px}
   :root .os-linia li>a,:root li>a.odn{display:inline-flex;align-items:center;min-height:44px}
   .glowna-przegladaj a,.glowna-pomoz-siatka a.odn,a.odn.w-fit,a.kl-tytul,a.font-bold{display:inline-flex;align-items:center;min-height:44px}
+  /* P2: strony wyników, tytuły na /szukaj i drogi dalej w pustych stanach – cel dotyku ≥ 44 px */
+  :root nav[aria-label^="strony"] a,:root a.szukaj-tytul,:root .k-kom a,:root .szukaj-wskazowki a,:root a.odn.tekst-opis-maly{display:inline-flex;align-items:center;min-height:44px}
   input[type=range]{min-height:44px}
   label:has(>input[type=checkbox]),label:has(>input[type=radio]){display:inline-flex;align-items:center;gap:8px;min-height:44px}
   a.lista-tytul,a.osoba-link,a.sd-podgrupa-naglowek{display:inline-flex;align-items:center;min-height:44px}

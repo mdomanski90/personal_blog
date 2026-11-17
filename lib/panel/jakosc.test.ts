@@ -107,3 +107,21 @@ test('PH3: objaśnienie podstawy usunięte ze skanu – osobna uwaga (materiał 
     assert.equal(L.length, 1)
     assert.equal(L[0].opis, 'Element „Rynek”: podstawa wskazuje objaśnienie o-zzzz, którego nie ma na skanie „szkic”')
 })
+
+test('CAT-07: lata księgi, których nie da się odczytać (np. „lata 30.”, „ok. 1830 lub 1831”), trafiają do kolejki jakości – przy księdze i przy tomie', async () => {
+    const przed = process.cwd()
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'odniepamieci-cat07-test-'))
+    try {
+        process.chdir(tmp)
+        await fs.mkdir('content/ksiegi', { recursive: true })
+        await fs.writeFile('content/ksiegi/dobra.yaml', `title: Dobra\nrepository: AP\nidentifier: 1/2\nyears: 1826–1875, ok. 1880, 1885-90\nvolumes:\n  - years: 1810\n  - years: 1811–1812\n`)
+        await fs.writeFile('content/ksiegi/zla.yaml', `title: Zła\nrepository: AP\nidentifier: 1/2\nyears: lata 30., 1850–1860\nvolumes:\n  - years: 1810\n  - years: brak danych\n  - years: 1830 lub 1831\n`)
+        const w = (await uwagiJakosci()).filter((x) => x.regula === 'nieodczytane-lata')
+        assert.deepEqual(w.filter((x) => x.rekord === 'dobra'), [], 'poprawne zapisy nie dają uwag')
+        const zla = w.filter((x) => x.rekord === 'zla')
+        assert.equal(zla.length, 3, JSON.stringify(zla.map((x) => x.opis)))
+        assert.ok(zla.some((x) => x.opis.includes('lata 30.')), 'lata księgi')
+        assert.ok(zla.some((x) => x.opis.includes('brak danych')) && zla.some((x) => x.opis.includes('1830 lub 1831')), 'lata tomów')
+        assert.equal(new Set(zla.map((x) => x.id)).size, 3, 'każda uwaga ma własny identyfikator (trwałe ignorowanie osobno)')
+    } finally { process.chdir(przed); await fs.rm(tmp, { recursive: true, force: true }) }
+})

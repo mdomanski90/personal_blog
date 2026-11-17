@@ -22,7 +22,7 @@ test('6C: kontrast w obu motywach co najmniej 4.5:1', () => {
     }
 })
 test('6C: edycja sekcji jest opcjonalna, linki są ograniczone do bezpiecznych adresów', () => {
-    assert.equal(DZIALY.length, 10)
+    assert.equal(DZIALY.length, 13, 'ADM-06: + księgi, słownik, plany')
     assert.equal(bezpiecznyAdres('/archiwum/zbiory'), true)
     assert.equal(bezpiecznyAdres('https://example.org'), true)
     assert.equal(bezpiecznyAdres('//evil.example.org'), false)

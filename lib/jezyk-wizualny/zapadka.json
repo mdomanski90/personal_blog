@@ -1,15 +1,6 @@
 {
   "opis": "JW-1: dozwolona liczba naruszeń języka wizualnego per plik (styl = style inline z rozmiarem/wymiarem/kolorem/odstępem/ramką, hex = kolory poza tokenami). Może tylko maleć – npm run jw:zapadka.",
   "pliki": {
-    "app/biblioteka/ksiegi/page.tsx": {
-      "styl": 1
-    },
-    "app/biblioteka/publikacje/page.tsx": {
-      "styl": 3
-    },
-    "app/biblioteka/slownik/page.tsx": {
-      "styl": 18
-    },
     "app/components/DokumentyWTresci.tsx": {
       "styl": 1
     },
@@ -19,12 +10,6 @@
     },
     "app/components/InfoZMapa.tsx": {
       "styl": 8
-    },
-    "app/components/KatalogKsiegiNaZywo.tsx": {
-      "styl": 23
-    },
-    "app/components/Ksiegi.tsx": {
-      "styl": 2
     },
     "app/components/LegendaMapy.tsx": {
       "styl": 6
@@ -68,13 +53,10 @@
       "styl": 1
     },
     "app/globals.css": {
-      "hex": 255
+      "hex": 253
     },
     "app/parafie/page.tsx": {
       "styl": 1
-    },
-    "app/szukaj/page.tsx": {
-      "styl": 15
     },
     "app/tematy/page.tsx": {
       "styl": 2

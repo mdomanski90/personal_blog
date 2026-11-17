@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { filtrujKatalog, grupujWedlugMiejsc, grupujWedlugParafii, ksiegaMaSkany, widokKatalogu, szukajMiejscowosci, ksiegiDotyczaceMiejsc, czyFiltrowacMiejsca, type KsiegaKatalogu } from './ksiegi-katalog'
+import { filtrujKatalog, grupujWedlugMiejsc, grupujWedlugParafii, ksiegaMaSkany, widokKatalogu, szukajMiejscowosci, ksiegiDotyczaceMiejsc, czyFiltrowacMiejsca, LATA_TOMOW_NIEZNANE, type KsiegaKatalogu } from './ksiegi-katalog'
 
 const miejscowosci = [
     { id: 'osada-a', nazwa: 'Osada A', parafie: [{ parafia: 'urzad-a', od: 1800, do: 1850 }] },
@@ -106,4 +106,36 @@ test('wyszukiwanie miejscowości rozpoczyna się dopiero od dwóch liter', () =>
 test('stare linki ?miejsce=slug nadal działają bez wpisania dwóch liter', () => {
     assert.equal(czyFiltrowacMiejsca('', 'osada-a'), true)
     assert.equal(czyFiltrowacMiejsca('O', 'osada-a'), true)
+})
+
+// KI-13 (P2): filtr „ze skanami” nie zostawia lat całego zespołu, gdy tomy ze skanami nie mają własnych lat
+test('KI-13: po filtrze „ze skanami” lata zespołu znikają, jeśli tomy ze skanami ich nie podają', () => {
+    const k = ksiega('k13', {
+        lata: '1810–1825', zakresy: [[1810, 1825]],
+        jednostki: [
+            { skany: 'https://przyklad.test/a', liczbaSkanow: null, digitalizacja: 'online' },
+            { skany: null, liczbaSkanow: null, digitalizacja: 'brak' },
+        ],
+    })
+    const [w] = filtrujKatalog([k], parafie, undefined, null, true)
+    assert.equal(w.jednostki.length, 1)
+    assert.deepEqual(w.zakresy, [], 'pasek roczników bez lat całego zespołu')
+    assert.equal(w.lata, LATA_TOMOW_NIEZNANE, 'podpis zamiast lat całego zespołu (REL-05)')
+    assert.equal(LATA_TOMOW_NIEZNANE, 'lata tomów ze skanami nieznane')
+})
+test('KI-13: lata tomów ze skanami zastępują lata zespołu', () => {
+    const k = ksiega('k13b', {
+        lata: '1810–1825', zakresy: [[1810, 1825]],
+        jednostki: [
+            { skany: 'https://przyklad.test/a', liczbaSkanow: null, digitalizacja: 'online', zakresy: [[1810, 1812]] },
+            { skany: null, liczbaSkanow: null, digitalizacja: 'brak', zakresy: [[1813, 1825]] },
+        ],
+    })
+    const [w] = filtrujKatalog([k], parafie, undefined, null, true)
+    assert.deepEqual(w.zakresy, [[1810, 1812]])
+    assert.equal(w.lata, '1810–1812')
+})
+test('KI-13: bez filtra skanów księga zostaje nietknięta', () => {
+    const k = ksiega('k13c', { lata: '1810–1825', zakresy: [[1810, 1825]], jednostki: [{ skany: null, liczbaSkanow: null, digitalizacja: 'brak' }] })
+    assert.equal(filtrujKatalog([k], parafie, undefined, null, false)[0], k)
 })

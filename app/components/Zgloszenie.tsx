@@ -14,6 +14,7 @@ const OPISY: Record<RodzajFormularza, { przycisk: string; podpowiedz: string }> 
     odczyt: { przycisk: 'odczytaj', podpowiedz: 'Wpisz odczyt (choćby kilka pierwszych linijek) albo tłumaczenie – zaznacz, czego nie udało się odczytać.' },
     wspomnienie: { przycisk: 'opowiedz', podpowiedz: 'O czym albo o kim chcesz opowiedzieć? Odezwę się i umówimy rozmowę – na piśmie, przez telefon albo z nagraniem.' },
     rozpoznanie: { przycisk: 'podpowiedz', podpowiedz: 'Kogo albo co rozpoznajesz – kto jest na zdjęciu, gdzie albo kiedy je zrobiono?' },
+    haslo: { przycisk: 'zgłoś hasło', podpowiedz: 'Jakie to słowo, powiedzenie albo nazwa? Co znaczy, skąd je znasz (dokument, gwara, rodzina) i w jakiej miejscowości się go używało?' },
 }
 export type { RodzajFormularza } from '@/lib/wspoltworz-reguly'
 

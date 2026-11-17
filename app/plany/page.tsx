@@ -13,6 +13,7 @@ import { PastylkaFiltra, RzadFiltrow } from '../components/Wzorce'
 import SiatkaMiniatur from '../components/SiatkaMiniatur'
 import MiniaturaPlanu from '../components/plan/MiniaturaPlanu'
 import Komunikat from '../components/Komunikat'
+import { WstepDzialu } from '../components/WstepDzialu'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'plany i schematy · odniepamieci.pl' }
@@ -40,7 +41,7 @@ export default async function SpisPlanow({ searchParams }: { searchParams: Promi
             <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(miejsce ? [{ tekst: nazwaMsc.get(miejsce)!, href: `/miejsca/${miejsce}` }] : [])]}>
                 {miejsce ? `plany i schematy – ${nazwaMsc.get(miejsce)}` : 'plany i schematy'}
             </TytulStrony>
-            <p className="tekst-opis wstep-dzialu-tekst">Plany cmentarzy, plany historyczne miejscowości i schematy wsi. Plan odtworzony ze skanu otwiera się na stronie materiału w archiwum – razem z oryginałem.</p>
+            <WstepDzialu dzial="plany" className="tekst-opis wstep-dzialu-tekst" domyslny="Plany cmentarzy, plany historyczne miejscowości i schematy wsi. Plan odtworzony ze skanu otwiera się na stronie materiału w archiwum – razem z oryginałem." />
             {filtry && (
                 <>
                     <RzadFiltrow etykieta="rodzaj planu">

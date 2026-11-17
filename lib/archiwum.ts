@@ -11,14 +11,15 @@ import { naHtml, naTekst, rozdzielZrodla, zajawka, type KontekstTresci, type Mat
 import { RODZAJE_MATERIALOW } from './materialy'
 import { formatujEdtf, zakresIso } from './edtf'
 import { bezNawiasow, fragment, ODNOSNIK, slownikOdnosnikow, wzorzecWzmianek, znajdzWzmianki, type Cel, type Fragment, type PozycjaSieci, type RodzajCelu, type Rozwiaz } from './odnosniki'
-import { normalizuj, porownajPl } from './tekst'
-import { pasuje, pozycjaTrafienia, przygotujZapytanie, type Zapytanie } from './szukanie'
+import { porownajPl } from './tekst'
 import { adresStrony, stronyMaterialu } from './strony-materialow'
-import { JEZYKI, objasnieniaMaterialu, wKolejnosci } from './objasnienia'
+import { JEZYKI, RODZAJE_OBJASNIEN, objasnieniaMaterialu, wKolejnosci } from './objasnienia'
 import type { ObjasnienieWidoku } from './objasnienia-widok'
 import { typPliku } from './pliki'
 
 import { zakresyLat, scalZakresy, zakresyTekst, KOLEJNOSC_KSIAG } from './ksiegi'
+import { adresHasla } from './slownik'
+import { szukajIndeksowo, type DokumentSzukania, type Wynik } from './indeks-szukania'
 import { ksiegaDotyczyMiejsca } from './ksiegi-powiazania'
 
 const reader = createReader(process.cwd(), keystaticConfig)
@@ -904,122 +905,109 @@ export async function powiazania(rodzaj: RodzajCelu, id: string, poziom: Widoczn
 
 // ---------- wyszukiwarka ----------
 
-export type RodzajWyniku = 'osoba' | 'miejsce' | 'obiekt' | 'temat' | 'wpis' | 'materiał' | 'księga' | 'parafia' | 'hasło' | 'publikacja' | 'zbiór' // PACZKA5_2026
-export interface Wynik {
-    rodzaj: RodzajWyniku
-    /** etykieta przy wyniku: osoba, wieś, cerkiew unicka, wpis, dokument… */
-    etykieta: string
-    id: string
-    tytul: string
-    adres: string
-    fragment: string
-    /** wynik dołączony przez powiązanie z miejscowością, nie przez sam tekst */
-    przez?: string
-}
-
-function fragmentWokol(tekst: string, z: Zapytanie): string {
-    const i = pozycjaTrafienia(z, tekst)
-    if (i < 0) return tekst.slice(0, 160)
-    // normalizuj nie zmienia długości liter, ale skleja odstępy – miejsce w oryginale przybliżone
-    const proporcja = tekst.length / Math.max(normalizuj(tekst).length, 1)
-    const start = Math.max(0, Math.floor(i * proporcja) - 60)
-    return (start > 0 ? '…' : '') + tekst.slice(start, start + 180).trim() + '…'
-}
+export type { RodzajWyniku, Wynik } from './indeks-szukania'
 
 /**
- * Wyszukiwarka ogólna: miejscowości, osoby (tylko widoczne dla czytelnika), obiekty, tematy, wpisy, materiały.
- * Słowa z odmianą (lib/szukanie), bez polskich znaków; przy trafieniu w miejscowość – także to, co jest z nią powiązane.
+ * Dokumenty do wyszukania – wszystko, co czytelnik może zobaczyć na danym poziomie (loadery już filtrują widoczność).
+ * Z tego powstaje indeks poziomu (lib/indeks-szukania.ts); tu tylko wyciągamy nazwy, tekst i fragmenty – bez oceny trafień.
+ * Kolejność dokumentów = kolejność źródeł (remisy w wynikach ją zachowują).
  */
-export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wynik[]> {
-    const z = przygotujZapytanie(zapytanie)
-    if (!z) return []
-    const wyniki: (Wynik & { waga: number })[] = []
-    // 3 – nazwa dokładnie taka; 2 – wszystkie słowa w nazwie; 1 – w nazwie i tekście razem
-    const ocen = (nazwy: string[], tekst: string) => {
-        if (nazwy.some((n) => normalizuj(n) === z.fraza)) return 3
-        if (nazwy.some((n) => normalizuj(n).includes(z.fraza)) || pasuje(z, nazwy.join(' '))) return 2
-        if (pasuje(z, `${nazwy.join(' ')} ${tekst}`)) return 1
-        return 0
-    }
+export async function dokumentySzukania(poziom: Widocznosc): Promise<DokumentSzukania[]> {
+    const dok: DokumentSzukania[] = []
     const msc = await miejsca(poziom)
     for (const m of msc) {
         const tekst = bezNawiasow(naTekst(m.opis))
-        const waga = ocen([m.nazwa, ...m.inneNazwy, ...m.formy], tekst)
-        if (waga) wyniki.push({ rodzaj: 'miejsce', etykieta: RODZAJE_MIEJSC[m.rodzaj] ?? 'miejscowość', id: m.id, tytul: m.nazwa, adres: `/miejsca/${m.id}`, fragment: waga === 1 ? fragmentWokol(tekst, z) : m.inneNazwy.join(', '), waga: waga + 0.3 })
+        dok.push({ rodzaj: 'miejsce', etykieta: RODZAJE_MIEJSC[m.rodzaj] ?? 'miejscowość', id: m.id, tytul: m.nazwa, adres: `/miejsca/${m.id}`, nazwy: [m.nazwa, ...m.inneNazwy, ...m.formy], tekst, tekstFragmentu: tekst, fragment: m.inneNazwy.join(', '), bonus: 0.3 })
     }
     // osoby: tylko te, które czytelnik może zobaczyć; imię i nazwisko, inne nazwiska i zapisy, przydomek
     const { stanOsob } = await import('./osoby/dane')
-    const { nazwaOsoby, lataZycia, zdarzenie } = await import('./osoby/model')
+    const { nazwaOsoby, lataZycia, zdarzenie, nazwiskaPoMezu, formaZenskaNazwiska } = await import('./osoby/model')
     const s = await stanOsob()
     const rozwiaz = slownikOdnosnikow(await pozycjeSieci(poziom))
     const bio = new Map((await biogramy(poziom)).map((b) => [b.id, bezNawiasow(b.lead, rozwiaz)]))
     for (const o of s.drzewo.osoby.values()) {
         if (!widoczne(s.widocznosc(o.id), poziom)) continue
-        const nazwy = [nazwaOsoby(o), `${o.imiona} ${o.nazwisko}`, ...(o.inneNazwiska ?? []).map((n) => `${o.imiona} ${n}`), ...(o.inneZapisy ?? []), ...(o.przydomek ? [o.przydomek] : [])]
-        const waga = ocen(nazwy, bio.get(o.id) ?? '')
-        if (!waga) continue
+        // nazwisko po mężu (P2, decyzja 17.11): także gdy mąż jest niewidoczny – ukryta jest jego karta, nie nazwisko żony
+        const poMezu = nazwiskaPoMezu(s.drzewo, o)
+        const nazwy = [nazwaOsoby(o), `${o.imiona} ${o.nazwisko}`, ...(o.inneNazwiska ?? []).map((n) => `${o.imiona} ${n}`), ...poMezu.map((n) => `${o.imiona} ${n}`), ...(o.inneZapisy ?? []), ...(o.przydomek ? [o.przydomek] : [])]
+        const poMezuZenskie = [...new Set(poMezu.map(formaZenskaNazwiska))]
         const miejsce = zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce?.split(',')[0] ?? ''
-        wyniki.push({ rodzaj: 'osoba', etykieta: 'osoba', id: o.id, tytul: nazwaOsoby(o), adres: `/osoby/${o.id}`, fragment: [lataZycia(o), miejsce, o.przydomek && `„${o.przydomek}”`, bio.get(o.id)].filter(Boolean).join(' · '), waga })
+        dok.push({ rodzaj: 'osoba', etykieta: 'osoba', id: o.id, tytul: nazwaOsoby(o), adres: `/osoby/${o.id}`, nazwy, tekst: bio.get(o.id) ?? '', stalyFragment: true,
+            fragment: [lataZycia(o), miejsce, o.przydomek && `„${o.przydomek}”`, poMezuZenskie.length > 0 && `po mężu: ${poMezuZenskie.join(', ')}`, bio.get(o.id)].filter(Boolean).join(' · ') })
     }
     const obj = await obiekty(poziom)
     for (const o of obj) {
         const tekst = bezNawiasow(naTekst(o.opis))
-        const waga = ocen([o.nazwa, ...o.inneNazwy], tekst)
-        if (waga) wyniki.push({ rodzaj: 'obiekt', etykieta: NAZWY_OBIEKTOW[o.rodzaj] ?? 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, z) : '', waga })
+        dok.push({ rodzaj: 'obiekt', etykieta: NAZWY_OBIEKTOW[o.rodzaj] ?? 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, nazwy: [o.nazwa, ...o.inneNazwy], tekst, tekstFragmentu: tekst, fragment: '', miejsca: o.miejsca, fragmentPrzez: '' })
     }
     const tem = await tematy(poziom)
     for (const t of tem) {
         const tekst = bezNawiasow(naTekst(t.opis))
-        const waga = ocen([t.nazwa, ...t.inneNazwy, ...t.formy], tekst)
-        if (waga) wyniki.push({ rodzaj: 'temat', etykieta: 'temat', id: t.id, tytul: t.nazwa, adres: `/tematy/${t.id}`, fragment: waga === 1 ? fragmentWokol(tekst, z) : t.inneNazwy.join(', '), waga })
+        dok.push({ rodzaj: 'temat', etykieta: 'temat', id: t.id, tytul: t.nazwa, adres: `/tematy/${t.id}`, nazwy: [t.nazwa, ...t.inneNazwy, ...t.formy], tekst, tekstFragmentu: tekst, fragment: t.inneNazwy.join(', '), miejsca: t.miejsca, fragmentPrzez: '' })
     }
     const wp = await opowiesci(poziom)
     for (const o of wp) {
         const tekst = bezNawiasow(naTekst(o.tresc))
-        const waga = ocen([o.tytul], tekst)
-        if (waga) wyniki.push({ rodzaj: 'wpis', etykieta: 'wpis', id: o.id, tytul: o.tytul, adres: `/wpisy/${o.id}`, fragment: waga === 1 ? fragmentWokol(tekst, z) : o.zajawka, waga })
+        dok.push({ rodzaj: 'wpis', etykieta: 'wpis', id: o.id, tytul: o.tytul, adres: `/wpisy/${o.id}`, nazwy: [o.tytul], tekst, tekstFragmentu: tekst, fragment: o.zajawka, miejsca: o.miejsca, fragmentPrzez: o.zajawka })
     }
     const mat = await materialy(poziom)
     for (const m of mat) {
         const tekst = bezNawiasow(naTekst(m.opis))
-        const waga = ocen([m.nazwa, m.sygnatura], `${tekst} ${m.pochodzenie} ${m.tworca} ${m.transkrypcja} ${m.miejscePrzechowywania}`)
-        if (waga) wyniki.push({ rodzaj: 'materiał', etykieta: RODZAJE_MATERIALOW[m.rodzaj] ?? 'materiał', id: m.id, tytul: m.nazwa, adres: `/archiwum/${m.id}`, fragment: waga === 1 ? fragmentWokol(tekst, z) : [m.czas && formatujEdtf(m.czas), m.pochodzenie].filter(Boolean).join(' · '), waga })
+        dok.push({ rodzaj: 'materiał', etykieta: RODZAJE_MATERIALOW[m.rodzaj] ?? 'materiał', id: m.id, tytul: m.nazwa, adres: `/archiwum/${m.id}`, nazwy: [m.nazwa, m.sygnatura],
+            tekst: `${tekst} ${m.pochodzenie} ${m.tworca} ${m.transkrypcja} ${m.miejscePrzechowywania}`, tekstFragmentu: tekst,
+            fragment: [m.czas && formatujEdtf(m.czas), m.pochodzenie].filter(Boolean).join(' · '), miejsca: m.miejsca,
+            fragmentPrzez: [m.czas && formatujEdtf(m.czas), m.pochodzenie].filter(Boolean).join(' · ') })
     }
-    // PACZKA5_2026: publikacje i zbiory w tym samym istniejącym indeksie.
-    const { szukajP5 } = await import('./paczka5')
-    wyniki.push(...await szukajP5(zapytanie, poziom))
-    // Biblioteka: księgi (również po sygnaturach tomów), parafie/urzędy i słownik.
-    // Brak osobnego indeksu; respektujemy te same poziomy widoczności co katalogi.
+    // PACZKA5_2026: publikacje i zbiory (wagi i dopasowanie jak dotąd – tryb „p5”)
+    const { publikacje, zbiory } = await import('./paczka5')
+    for (const p of await publikacje(poziom)) {
+        dok.push({ rodzaj: 'publikacja', etykieta: 'publikacja', id: p.id, tytul: p.nazwa, adres: `/biblioteka/publikacje/${p.id}`, tryb: 'p5', nazwy: [p.nazwa],
+            tekst: [p.nazwa, p.autor, p.opis, p.rok, p.wydawca, p.isbn].join(' '), fragment: [p.autor, p.rok].filter(Boolean).join(' · ') })
+    }
+    for (const k of await zbiory(poziom)) {
+        dok.push({ rodzaj: 'zbiór', etykieta: 'zbiór archiwalny', id: k.id, tytul: k.nazwa, adres: `/archiwum/zbiory/${k.id}`, tryb: 'p5', nazwy: [k.nazwa],
+            tekst: [k.nazwa, k.pochodzenie, naTekst(k.opis)].join(' '), fragment: k.pochodzenie })
+    }
+    // Biblioteka: księgi (również po sygnaturach tomów), parafie/urzędy i słownik – te same poziomy widoczności co katalogi.
     const par = await parafie()
     for (const p of par) {
-        const waga = ocen([p.nazwa], `${p.czas} ${p.diecezja} ${p.opis}`)
-        if (waga) wyniki.push({ rodzaj: 'parafia', etykieta: 'parafia / urząd', id: p.id, tytul: p.nazwa, adres: `/parafie/${p.id}`, fragment: [p.czas && formatujEdtf(p.czas), p.diecezja].filter(Boolean).join(' · '), waga })
+        dok.push({ rodzaj: 'parafia', etykieta: 'parafia / urząd', id: p.id, tytul: p.nazwa, adres: `/parafie/${p.id}`, nazwy: [p.nazwa], tekst: `${p.czas} ${p.diecezja} ${p.opis}`, stalyFragment: true,
+            fragment: [p.czas && formatujEdtf(p.czas), p.diecezja].filter(Boolean).join(' · ') })
     }
     const wszystkieKs = await ksiegi(poziom)
     const nazwyParafii = new Map(par.map((p) => [p.id, p.nazwa]))
     for (const k of wszystkieKs) {
         const nazwaParafii = k.instytucje.map((id) => nazwyParafii.get(id) ?? id).join(' · ')
-        const zwiazane = msc.filter((m) => ksiegaDotyczyMiejsca(k, m)).map((m) => m.nazwa)
+        const zwiazaneMsc = msc.filter((m) => ksiegaDotyczyMiejsca(k, m))
         const tomy = k.jednostki.map((j) => `${j.sygnatura} ${j.lata}`)
-        const tekst = [k.lata, k.sygnatura, k.gdzie, k.braki, k.jezyk, nazwaParafii, ...zwiazane, ...tomy].join(' ')
-        const waga = ocen([k.nazwa, k.sygnatura, ...k.jednostki.map((j) => j.sygnatura).filter(Boolean)], tekst)
-        if (waga) wyniki.push({ rodzaj: 'księga', etykieta: 'księga metrykalna', id: k.id, tytul: k.nazwa, adres: `/biblioteka/ksiegi#ksiega-${k.id}`, fragment: [k.lata, k.sygnatura, nazwaParafii].filter(Boolean).join(' · '), waga })
+        dok.push({ rodzaj: 'księga', etykieta: 'księga metrykalna', id: k.id, tytul: k.nazwa, adres: `/biblioteka/ksiegi#ksiega-${k.id}`,
+            nazwy: [k.nazwa, k.sygnatura, ...k.jednostki.map((j) => j.sygnatura).filter(Boolean)],
+            tekst: [k.lata, k.sygnatura, k.gdzie, k.braki, k.jezyk, nazwaParafii, ...zwiazaneMsc.map((m) => m.nazwa), ...tomy].join(' '), stalyFragment: true,
+            fragment: [k.lata, k.sygnatura, nazwaParafii].filter(Boolean).join(' · '), miejsca: zwiazaneMsc.map((m) => m.id), fragmentPrzez: [k.lata, k.sygnatura].filter(Boolean).join(' · ') })
     }
     for (const h of await hasla(poziom)) {
-        const waga = ocen([h.haslo, ...h.formy], `${h.znaczenie} ${h.przyklad} ${h.zrodlo}`)
-        if (waga) wyniki.push({ rodzaj: 'hasło', etykieta: 'słownik', id: h.id, tytul: h.haslo, adres: `/biblioteka/slownik#${h.id}`, fragment: h.znaczenie.slice(0, 160), waga })
+        dok.push({ rodzaj: 'hasło', etykieta: 'słownik', id: h.id, tytul: h.haslo, adres: adresHasla(h.id), nazwy: [h.haslo, ...h.formy], tekst: `${h.znaczenie} ${h.przyklad} ${h.zrodlo}`, stalyFragment: true, fragment: h.znaczenie.slice(0, 160) })
     }
-    // trafienie w miejscowość: dołącz wpisy, materiały, obiekty, tematy i księgi powiązane z miejscem
-    const znalezione = new Set(wyniki.map((w) => `${w.rodzaj}:${w.id}`))
-    for (const m of msc.filter((x) => wyniki.some((w) => w.rodzaj === 'miejsce' && w.id === x.id && w.waga >= 2))) {
-        const dodaj = (w: Wynik) => { const k = `${w.rodzaj}:${w.id}`; if (!znalezione.has(k)) { znalezione.add(k); wyniki.push({ ...w, przez: m.nazwa, waga: 0.5 }) } }
-        for (const o of wp) if (o.miejsca.includes(m.id)) dodaj({ rodzaj: 'wpis', etykieta: 'wpis', id: o.id, tytul: o.tytul, adres: `/wpisy/${o.id}`, fragment: o.zajawka })
-        for (const x of mat) if (x.miejsca.includes(m.id)) dodaj({ rodzaj: 'materiał', etykieta: RODZAJE_MATERIALOW[x.rodzaj] ?? 'materiał', id: x.id, tytul: x.nazwa, adres: `/archiwum/${x.id}`, fragment: [x.czas && formatujEdtf(x.czas), x.pochodzenie].filter(Boolean).join(' · ') })
-        for (const o of obj) if (o.miejsca.includes(m.id)) dodaj({ rodzaj: 'obiekt', etykieta: NAZWY_OBIEKTOW[o.rodzaj] ?? 'obiekt', id: o.id, tytul: o.nazwa, adres: `/obiekty/${o.id}`, fragment: '' })
-        for (const t of tem) if (t.miejsca.includes(m.id)) dodaj({ rodzaj: 'temat', etykieta: 'temat', id: t.id, tytul: t.nazwa, adres: `/tematy/${t.id}`, fragment: '' })
-        for (const k of wszystkieKs) if (ksiegaDotyczyMiejsca(k, m)) dodaj({ rodzaj: 'księga', etykieta: 'księga metrykalna', id: k.id, tytul: k.nazwa, adres: `/biblioteka/ksiegi#ksiega-${k.id}`, fragment: [k.lata, k.sygnatura].filter(Boolean).join(' · ') })
+    // PD-13 (P2): objaśnienia na skanach – tekst odczytu, tłumaczenia, objaśnienia i pieczęci; widoczne, gdy widoczny jest materiał
+    // (loader materiałów) i samo objaśnienie (widoczność każdego prostokąta osobno). Pole „weryfikacja” nie trafia do indeksu.
+    for (const m of mat) {
+        // objasnieniaDoWidoku = dokładnie to, co widzi czytelnik w przeglądarce dokumentu (widoczność prostokąta, strona na liście)
+        for (const o of await objasnieniaDoWidoku(m.id, poziom)) {
+            if (!o.tekst.trim()) continue
+            dok.push({ rodzaj: 'objaśnienie', etykieta: `${RODZAJE_OBJASNIEN[o.rodzaj]?.nazwa ?? 'objaśnienie'} na skanie`, id: `${m.id}/${o.id}`, tytul: m.nazwa, adres: `/archiwum/${m.id}`,
+                nazwy: [], tekst: o.tekst, tekstFragmentu: o.tekst, fragment: '' })
+        }
     }
-    return wyniki.sort((a, b) => b.waga - a.waga || porownajPl(a.tytul, b.tytul))
+    return dok
+}
+
+/**
+ * Wyszukiwarka ogólna (PD-13): indeks SQLite poziomu czytelnika – miejscowości, osoby (tylko widoczne), obiekty, tematy, wpisy, materiały,
+ * objaśnienia skanów, publikacje, zbiory, księgi, parafie i hasła. Słowa z odmianą (lib/szukanie), bez polskich znaków;
+ * przy trafieniu w miejscowość – także to, co jest z nią powiązane.
+ */
+export async function szukaj(zapytanie: string, poziom: Widocznosc): Promise<Wynik[]> {
+    return szukajIndeksowo(zapytanie, poziom, () => dokumentySzukania(poziom))
 }
 
 // ---------- surowe dane dla eksportu i sprawdzania spójności (bez filtra) ----------

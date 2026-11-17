@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { odmiana } from '@/lib/tekst'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import { adresKontaktowy, kontekstTresci, material, nazwy, obiekty, objasnieniaDoWidoku, podpisZrodlaMaterialu, powiazania, poziomCzytelnika } from '@/lib/archiwum'
 import { brakiDoPomocy } from '@/lib/wspoltworz-dane'
@@ -85,7 +86,7 @@ export default async function MaterialStrona({ params }: Parametry) {
     const email = pomoc.size ? await adresKontaktowy() : undefined
 
     const rok = m.czas ? formatujEdtf(m.czas) : null
-    const ileStr = m.strony.length > 1 ? `${m.strony.length} ${m.strony.length % 10 >= 2 && m.strony.length % 10 <= 4 && (m.strony.length % 100 < 12 || m.strony.length % 100 > 14) ? 'strony' : 'stron'}` : null
+    const ileStr = m.strony.length > 1 ? odmiana(m.strony.length, ['strona', 'strony', 'stron']) : null
     const reszta = naHtml(cz.reszta, ktx)
     const wpisyZMat = siec.odnosniki.filter((z) => z.zrodlo.rodzaj === 'wpis')
     const inneOdnosniki = siec.odnosniki.filter((z) => z.zrodlo.rodzaj !== 'wpis')

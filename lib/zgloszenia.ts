@@ -10,6 +10,8 @@ export const RODZAJE_ZGLOSZEN: Record<RodzajZgloszenia, string> = {
     poprawka: 'poprawka lub uzupełnienie', miejsce: 'nowe miejsce w terenie', material: 'propozycja materiału',
     // WSP-03 (etap R)
     odczyt: 'odczyt albo tłumaczenie', wspomnienie: 'wspomnienie', rozpoznanie: 'rozpoznanie osoby, miejsca albo daty',
+    // SLW-01 (P2)
+    haslo: 'hasło do słownika',
 }
 /** WSP-03: rodzaje braków, które zgłoszenie może wskazać (te same identyfikatory co reguły – lib/wspoltworz-reguly.ts). */
 export const BRAKI_ZGLOSZEN: IdBraku[] = ['brak-transkrypcji', 'brak-tlumaczenia', 'zdjecie-do-rozpoznania', 'bez-opisu', 'brak-wspolrzednych', 'brak-zdjecia-obiektu']

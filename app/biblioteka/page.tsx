@@ -5,9 +5,8 @@ import { poziomCzytelnika, ksiegi, parafie, hasla, miejsca } from '@/lib/archiwu
 import { publikacje } from '@/lib/paczka5'
 import { redirect } from 'next/navigation'
 import { pozycjeBiblioteki, filtrujBiblioteke, dzialBiblioteki, DZIALY_BIBLIOTEKI, PRZENIESIONE_DZIALY } from '@/lib/biblioteka'
-import { odmiana } from '@/lib/tekst'
 import { adresFiltrow, wartosc, type Parametry } from '@/lib/adres-filtrow'
-import { Strona, TytulStrony } from '../components/Uklad'
+import StronaDzialu, { LicznikWynikow } from '../components/StronaDzialu'
 import FiltryKatalogu from '../components/FiltryKatalogu'
 import { NawigacjaStron, WybraneFiltry } from '../components/Wzorce'
 import Komunikat from '../components/Komunikat'
@@ -17,9 +16,10 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'biblioteka · odniepamieci.pl' }
 
 /**
- * Odbiór 16.11: biblioteka działa jak archiwum – tytuł, „szukaj i filtruj w bibliotece”, wstęp, spis działów
- * (dział filtruje listę), licznik, lista pozycji, strony. Te same komponenty co archiwum (FiltryKatalogu, SpisDzialow,
- * WybraneFiltry, NawigacjaStron) i ta sama reguła frazy i stronicowania (lib/biblioteka.ts).
+ * Biblioteka działa jak archiwum: kolejność elementów wyznacza StronaDzialu (DZL-01, P2) – tytuł, spis działów
+ * (dział filtruje listę), wstęp, „szukaj i filtruj w bibliotece”, wybrane filtry, licznik, lista pozycji, strony.
+ * Te same komponenty co archiwum (FiltryKatalogu, SpisDzialow, WybraneFiltry, NawigacjaStron) i ta sama reguła frazy
+ * i stronicowania (lib/biblioteka.ts).
  */
 export default async function Biblioteka({ searchParams }: { searchParams: Promise<Parametry> }) {
     const sp = await searchParams
@@ -37,22 +37,20 @@ export default async function Biblioteka({ searchParams }: { searchParams: Promi
     ].filter(Boolean) as { klucz: string; etykieta: string; href: string }[]
     const nazwaPozycji = Object.fromEntries(DZIALY_BIBLIOTEKI.map((d) => [d.klucz, d.pozycja]))
     return (
-        <Strona uklad="pelna">
-            <TytulStrony><TytulDzialu dzial="biblioteka" domyslny="biblioteka" /></TytulStrony>
-            <FiltryKatalogu adresBazowy="/biblioteka" tytul="szukaj i filtruj w bibliotece" etykietaFrazy="szukaj w tytułach, autorach i opisach"
+        <StronaDzialu
+            tytul={<TytulDzialu dzial="biblioteka" domyslny="biblioteka" />}
+            spis={<SpisBiblioteki wybrany={f.dzial} sp={sp} zwiniety={false} />}
+            wstep={<p className="tekst-opis wstep-dzialu-tekst">
+                <WstepTekst dzial="biblioteka" domyslny={"Książki, artykuły i opracowania o historii Łosic, Olszanki, Międzyrzeca i okolicznych wsi – o unitach, kasacie unii, bieżeństwie i ludziach tego terenu – z opisem, gdzie je znaleźć, i odnośnikami do wersji cyfrowych."} />
+            </p>}
+            panel={<FiltryKatalogu adresBazowy="/biblioteka" tytul="szukaj i filtruj w bibliotece" etykietaFrazy="szukaj w tytułach, autorach i opisach"
                 parametrDzialu="dzial" lata={false} sortowanie={false}
                 poczatkowe={{ q: f.q, rodzaj: f.dzial, miejsce: f.miejsce }}
-                miejscowosci={msc.map((m) => ({ id: m.id, nazwa: m.nazwa }))} />
-            <WybraneFiltry wybrane={wybrane} wyczysc={bez(['q', 'miejsce'])} />
-            <p className="tekst-opis wstep-dzialu-tekst">
-                <WstepTekst dzial="biblioteka" domyslny={"Książki, artykuły i opracowania o historii Łosic, Olszanki, Międzyrzeca i okolicznych wsi – o unitach, kasacie unii, bieżeństwie i ludziach tego terenu – z opisem, gdzie je znaleźć, i odnośnikami do wersji cyfrowych."} />
-            </p>
-            <SpisBiblioteki wybrany={f.dzial} sp={sp} zwiniety={false} />
-            <p className="ot-drobne" aria-live="polite">
-                {odmiana(wyn.razem, ['pozycja', 'pozycje', 'pozycji'])} · strona {wyn.strona} z {wyn.stron}
-                {dzial && <> · <Link href={dzial.pelny} className="odn">pełny widok działu „{dzial.nazwa}” →</Link></>}
-            </p>
-            {wyn.razem === 0
+                miejscowosci={msc.map((m) => ({ id: m.id, nazwa: m.nazwa }))} />}
+            wybrane={<WybraneFiltry wybrane={wybrane} wyczysc={bez(['q', 'miejsce'])} />}
+            licznik={<LicznikWynikow liczba={wyn.razem} formy={['pozycja', 'pozycje', 'pozycji']} strona={wyn.strona} stron={wyn.stron}
+                dodatek={dzial && <Link href={dzial.pelny} className="odn">pełny widok działu „{dzial.nazwa}” →</Link>} />}
+            tresc={wyn.razem === 0
                 ? <Komunikat rodzaj="pusto" tytul="nic nie pasuje do wybranych filtrów.">
                     <p>Brak wyniku nie oznacza, że pozycja nie istnieje – biblioteka jest w opracowaniu.</p>
                     <p className="k-kom-akcje">
@@ -69,7 +67,7 @@ export default async function Biblioteka({ searchParams }: { searchParams: Promi
                         </li>
                     ))}
                 </ul>}
-            <NawigacjaStron strona={wyn.strona} stron={wyn.stron} adres={(n) => adresFiltrow('/biblioteka', sp, { ustaw: { strona: String(n) } })} etykieta="strony biblioteki" />
-        </Strona>
+            stronicowanie={<NawigacjaStron strona={wyn.strona} stron={wyn.stron} adres={(n) => adresFiltrow('/biblioteka', sp, { ustaw: { strona: String(n) } })} etykieta="strony biblioteki" />}
+        />
     )
 }

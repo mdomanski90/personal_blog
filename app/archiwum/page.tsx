@@ -5,10 +5,9 @@ import { miejsca, obiekty, tematy, poziomCzytelnika, RODZAJE_OBIEKTOW, type Wido
 import FiltryKatalogu from '../components/FiltryKatalogu'
 import { NawigacjaStron, WybraneFiltry } from '../components/Wzorce'
 import { adresFiltrow, wartosc } from '@/lib/adres-filtrow'
-import { odmiana } from '@/lib/tekst'
 import SpisDzialow, { type Dzial } from './SpisDzialow'
 import { zbiory, katalogP5, type FiltrP5 } from '@/lib/paczka5'
-import { Strona, TytulStrony } from '../components/Uklad'
+import StronaDzialu, { LicznikWynikow } from '../components/StronaDzialu'
 import ListaMaterialow from '../components/ListaMaterialow'
 import Komunikat from '../components/Komunikat'
 
@@ -64,24 +63,24 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
     { klucz: 'zbiory', nazwa: 'zbiory i kolekcje', href: '/archiwum/zbiory', liczba: kol.length },
   ]
   const qs = (n: number) => adresFiltrow('/archiwum', sp, { ustaw: { strona: String(n) } })
-  // JW-2 (decyzja 16.11): panel „szukaj i filtruj” bezpośrednio pod tytułem, potem wstęp i spis działów, licznik nad listą
-  return <Strona uklad="pelna">
-    <TytulStrony><TytulDzialu dzial="archiwum" domyslny="archiwum" /></TytulStrony>
-    <FiltryKatalogu adresBazowy="/archiwum" tytul="szukaj i filtruj w archiwum"
+  // DZL-01 (17.11, zastępuje JW-2 z 16.11): tytuł → spis działów → wstęp → „szukaj i filtruj” → wybrane → licznik → lista → strony
+  return <StronaDzialu
+    tytul={<TytulDzialu dzial="archiwum" domyslny="archiwum" />}
+    spis={<SpisDzialow dzialy={dzialy} wybrany={f.rodzaj || 'wszystkie'} />}
+    wstep={<p className="tekst-opis wstep-dzialu-tekst">
+      <WstepTekst dzial="archiwum" domyslny={"Dokumenty, fotografie, wspomnienia, nagrania i mapy z opisem, pochodzeniem oraz powiązaniami."} />
+    </p>}
+    panel={<FiltryKatalogu adresBazowy="/archiwum" tytul="szukaj i filtruj w archiwum"
       poczatkowe={{ q: f.q ?? '', rodzaj: f.rodzaj ?? '', miejsce: f.miejsce ?? '', temat: f.temat ?? '', obiekt: f.obiekt ?? '', osoba: f.osoba ?? '', zbior: f.zbior ?? '', od: val(sp.od), do: val(sp.do), sort: f.sort ?? '' }}
       miejscowosci={msc.map((m) => ({ id: m.id, nazwa: m.nazwa }))}
       tematy={tem.map((x) => ({ id: x.id, nazwa: x.nazwa }))}
       obiekty={obj.map((o) => ({ id: o.id, nazwa: o.nazwa, szukaj: o.inneNazwy, opis: [RODZAJE_OBIEKTOW[o.rodzaj as keyof typeof RODZAJE_OBIEKTOW] ?? o.rodzaj, o.miejsce ? nazwyMsc.get(o.miejsce) : ''].filter(Boolean).join(' · ') }))}
       osoby={osoby}
       zbiory={kol.map((z) => ({ id: z.id, nazwa: z.nazwa }))}
-    />
-    <WybraneFiltry wybrane={wybrane.map((x) => ({ klucz: x.klucz, etykieta: x.etykieta, href: bez(x.usun) }))} wyczysc={bez(WSZYSTKIE_FILTRY)} />
-    <p className="tekst-opis wstep-dzialu-tekst">
-      <WstepTekst dzial="archiwum" domyslny={"Dokumenty, fotografie, wspomnienia, nagrania i mapy z opisem, pochodzeniem oraz powiązaniami."} />
-    </p>
-    <SpisDzialow dzialy={dzialy} wybrany={f.rodzaj || 'wszystkie'} />
-    <p className="ot-drobne" aria-live="polite">{odmiana(wyn.razem, ['materiał', 'materiały', 'materiałów'])} · strona {wyn.strona} z {wyn.stron}</p>
-    {wyn.razem === 0
+    />}
+    wybrane={<WybraneFiltry wybrane={wybrane.map((x) => ({ klucz: x.klucz, etykieta: x.etykieta, href: bez(x.usun) }))} wyczysc={bez(WSZYSTKIE_FILTRY)} />}
+    licznik={<LicznikWynikow liczba={wyn.razem} formy={['materiał', 'materiały', 'materiałów']} strona={wyn.strona} stron={wyn.stron} />}
+    tresc={wyn.razem === 0
       ? <Komunikat rodzaj="pusto" tytul="nic nie pasuje do wybranych filtrów.">
           <p>Brak wyniku nie oznacza, że materiał nie istnieje – archiwum jest w opracowaniu.</p>
           <p className="k-kom-akcje">
@@ -91,6 +90,6 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
           </p>
         </Komunikat>
       : <ListaMaterialow materialy={wyn.wyniki} />}
-    <NawigacjaStron strona={wyn.strona} stron={wyn.stron} adres={qs} etykieta="strony katalogu archiwum" />
-  </Strona>
+    stronicowanie={<NawigacjaStron strona={wyn.strona} stron={wyn.stron} adres={qs} etykieta="strony katalogu archiwum" />}
+  />
 }

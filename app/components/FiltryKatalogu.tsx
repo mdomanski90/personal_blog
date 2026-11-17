@@ -4,6 +4,7 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import PoleWyboru, { type OpcjaWyboru } from './PoleWyboru'
 import { pojaw } from '@/lib/ruch'
+import { odmiana } from '@/lib/tekst'
 
 export type WartosciFiltrow = { q: string; rodzaj: string; miejsce: string; temat: string; obiekt: string; osoba: string; zbior: string; od: string; do: string; sort: string }
 const KLUCZE: (keyof WartosciFiltrow)[] = ['q', 'rodzaj', 'miejsce', 'temat', 'obiekt', 'osoba', 'zbior', 'od', 'do', 'sort']
@@ -50,6 +51,7 @@ export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'sz
     const adresDla = (w: WartosciFiltrow) => adres(adresBazowy, w, parametrDzialu)
     const poczatkowe = { ...PUSTE, ...poczatkoweCzesc }
     const router = useRouter()
+    const idFrazy = React.useId()
     const [w, ustawW] = React.useState(poczatkowe)
     const [czeka, startTransition] = React.useTransition()
     const zegar = React.useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -104,15 +106,20 @@ export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'sz
         <details ref={ramka} className="k-filtry-ramka" open={otwarte} onToggle={(e) => ustawOtwarte((e.currentTarget as HTMLDetailsElement).open)}>
         <summary className="k-filtry-naglowek">
             <span className="k-filtry-tytul">{tytul}</span>
-            {aktywnych > 0 && <span className="k-filtry-licznik">{aktywnych} {aktywnych === 1 ? 'filtr' : aktywnych < 5 ? 'filtry' : 'filtrów'}</span>}
+            {aktywnych > 0 && <span className="k-filtry-licznik">{odmiana(aktywnych, ['filtr', 'filtry', 'filtrów'])}</span>}
             <span className="k-btn k-filtry-przelacz">{otwarte ? 'zwiń' : 'rozwiń'} <span aria-hidden="true">{otwarte ? '▴' : '▾'}</span></span>
         </summary>
         <div className="rozwin-tresc">
         <form method="get" action={adresBazowy} className="k-filtry" aria-busy={czeka}
             onSubmit={(e) => { e.preventDefault(); if (zegar.current) clearTimeout(zegar.current); zastosuj({ ...w, q: w.q.trim() }) }}>
-            <label className="k-etykieta k-filtry-szeroki">{etykietaFrazy}
-                <input name="q" type="search" value={w.q} onChange={(e) => zmien('q', e.target.value, false)} className="k-pole" placeholder="wpisz frazę (min. 2 litery)…" />
-            </label>
+            {/* PD-03 (P2): „szukaj” jako przycisk w ramce pola – jak PoleSzukania; klik = Enter */}
+            <div className="k-etykieta k-filtry-szeroki">
+                <label htmlFor={idFrazy}>{etykietaFrazy}</label>
+                <span className="pole-szukania">
+                    <button type="submit">szukaj</button>
+                    <input id={idFrazy} name="q" type="search" value={w.q} onChange={(e) => zmien('q', e.target.value, false)} placeholder="wpisz frazę (min. 2 litery)…" />
+                </span>
+            </div>
             {/* dział (rodzaj) wybiera się w spisie działów nad filtrami; tu tylko go zachowujemy */}
             <input type="hidden" name={parametrDzialu} value={w.rodzaj} />
             {miejscowosci && <PoleWyboru name="miejsce" etykieta="miejscowość" opcje={miejscowosci} wartosc={w.miejsce} naZmiane={(v) => zmien('miejsce', v)} />}

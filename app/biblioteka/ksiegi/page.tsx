@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { ksiegi, miejsca, parafie, poziomCzytelnika } from '@/lib/archiwum'
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
-import { Strona, TytulStrony } from '../../components/Uklad'
+import { TytulDzialu, WstepDzialu } from '@/app/components/WstepDzialu'
+import StronaDzialu from '../../components/StronaDzialu'
 import KatalogKsiegiNaZywo from '../../components/KatalogKsiegiNaZywo'
 import SpisBiblioteki from '../SpisBiblioteki'
 
@@ -21,14 +22,13 @@ export default async function KsiegiMetrykalne({ searchParams }: Parametry) {
     ))
     const wyszukiwanie = typeof p.q === 'string' ? p.q.slice(0, 120) : undefined
     return (
-        <Strona uklad="pelna">
-            <TytulStrony sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }]}>księgi metrykalne</TytulStrony>
-            <SpisBiblioteki wybrany="ksiegi" />
-            <p className="leading-relaxed" style={{ fontSize: 'calc(16px * var(--font-scale, 1))' }}>
-                Zachowane księgi metrykalne i jednostki archiwalne – także te bez skanów online.
-                Księgi możesz przeglądać według miejscowości albo parafii i urzędu. Te same materiały występują w obu widokach.
-            </p>
-            <KatalogKsiegiNaZywo
+        <StronaDzialu
+            tytul={<TytulDzialu dzial="ksiegi" domyslny="księgi metrykalne" />}
+            sciezka={[{ tekst: 'biblioteka', href: '/biblioteka' }]}
+            spis={<SpisBiblioteki wybrany="ksiegi" />}
+            wstep={<WstepDzialu dzial="ksiegi" className="tekst-opis wstep-dzialu-tekst"
+                domyslny="Zachowane księgi metrykalne i jednostki archiwalne – także te bez skanów online. Księgi możesz przeglądać według miejscowości albo parafii i urzędu. Te same materiały występują w obu widokach." />}
+            tresc={<KatalogKsiegiNaZywo
                 key={[p.widok, p.wyznanie, p.miejsce, p.skany, p.q].join('|')}
                 ksiegi={wszystkieKsiegi}
                 parafie={wszystkieParafie.map((x) => ({ id: x.id, nazwa: x.nazwa, wyznanie: x.wyznanie, siedziba: x.siedziba, czas: x.czas, diecezja: x.diecezja }))}
@@ -39,7 +39,7 @@ export default async function KsiegiMetrykalne({ searchParams }: Parametry) {
                 skanyPoczatkowe={p.skany === '1'}
                 miejscePoczatkowe={p.miejsce}
                 frazaPoczatkowa={wyszukiwanie}
-            />
-        </Strona>
+            />}
+        />
     )
 }

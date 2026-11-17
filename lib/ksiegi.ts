@@ -30,19 +30,35 @@ export const DOSTEP_KSIAG: Record<string, string> = {
     zaginione: 'zaginione / nieznane',
 }
 
-/** Zakresy lat z zapisu „1826–1875, 1880, 1885-1890”. Pomija to, czego nie da się odczytać. */
-export function zakresyLat(tekst: string | null | undefined): [number, number][] {
-    if (!tekst) return []
-    const wynik: [number, number][] = []
-    for (const kawalek of tekst.split(/[,;]/)) {
-        const m = kawalek.trim().match(/^(\d{4})\s*(?:[–—-]\s*(\d{4}))?/)
-        if (!m) continue
+// KI-12 (P2): przedrostki przybliżenia nie zmieniają odczytu roku; rok końcowy może być skrócony („1828–30”).
+const LATA_KAWALEK = /^(?:ok\.?|ca\.?|circa|około|po|przed)?\s*(\d{4})\s*(?:(?:[–—\-/])\s*(\d{4}|\d{2}))?/i
+
+/** Zakresy lat z zapisu „1826–1875, 1880, 1885-1890, 1828–30, ok. 1850, 1850/1855”
+ * oraz fragmenty, których nie da się odczytać (do zgłoszenia w panelu jakości – nic nie ginie po cichu). */
+export function odczytajLata(tekst: string | null | undefined): { zakresy: [number, number][]; nieodczytane: string[] } {
+    const zakresy: [number, number][] = []
+    const nieodczytane: string[] = []
+    if (!tekst) return { zakresy, nieodczytane }
+    for (const surowy of tekst.split(/[,;]/)) {
+        const kawalek = surowy.trim()
+        if (!kawalek) continue
+        const m = kawalek.match(LATA_KAWALEK)
+        if (!m) { nieodczytane.push(kawalek); continue }
+        // odczytany początek, ale coś jeszcze za nim („1830 lub 1831”, „1850 (uszkodzony)”): zakres zostaje, kawałek trafia też do zgłoszenia
+        if (kawalek.slice(m[0].length).trim()) nieodczytane.push(kawalek)
         const od = Number(m[1])
-        const doRoku = m[2] ? Number(m[2]) : od
-        wynik.push(od <= doRoku ? [od, doRoku] : [doRoku, od])
+        let doRoku = od
+        if (m[2]) {
+            doRoku = m[2].length === 2 ? Math.floor(od / 100) * 100 + Number(m[2]) : Number(m[2])
+            if (m[2].length === 2 && doRoku < od) doRoku += 100
+        }
+        zakresy.push(od <= doRoku ? [od, doRoku] : [doRoku, od])
     }
-    return wynik.sort((a, b) => a[0] - b[0])
+    return { zakresy: zakresy.sort((a, b) => a[0] - b[0]), nieodczytane }
 }
+
+/** Zakresy lat z zapisu „1826–1875, 1880, 1885-1890”. Pomija to, czego nie da się odczytać (zob. odczytajLata). */
+export const zakresyLat = (tekst: string | null | undefined): [number, number][] => odczytajLata(tekst).zakresy
 
 /** Zakresy z kilku źródeł (np. tomy po roku) złączone w ciągłe przedziały: 1810, 1811, 1812 → 1810–1812. */
 export function scalZakresy(zakresy: [number, number][]): [number, number][] {

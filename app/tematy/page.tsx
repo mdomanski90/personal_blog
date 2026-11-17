@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { TytulDzialu, WstepDzialu, WstepTekst } from '@/app/components/WstepDzialu'
+import { TytulDzialu, WstepDzialu } from '@/app/components/WstepDzialu'
 import { Link } from 'next-view-transitions'
 import { materialy, materialyDla, opowiesciDlaTematu, osCzasu, poziomCzytelnika, rozwiazOdnosniki, RODZAJE_TEMATOW, RODZAJE_MATERIALOW, tematy } from '@/lib/archiwum'
 import { kluczSortowania } from '@/lib/edtf'
@@ -8,6 +8,7 @@ import { formatujEdtf } from '@/lib/edtf'
 import { zajawka } from '@/lib/markdoc'
 import { Kreski, Sekcja, Strona, TytulStrony } from '../components/Uklad'
 import Komunikat from '../components/Komunikat'
+import { odmiana } from '@/lib/tekst'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'tematy · odniepamieci.pl' }
@@ -18,7 +19,6 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
     const lista = await tematy(poziom)
     const rozwiaz = await rozwiazOdnosniki(poziom)
     const os = await osCzasu(poziom)
-    const liczba = (n: number, f: [string, string, string]) => (n === 1 ? `1 ${f[0]}` : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? `${n} ${f[1]}` : `${n} ${f[2]}`)
     const pozycje: PozycjaOsi[] = []
     if (widok === 'os') {
         for (const t of os) {
@@ -26,7 +26,7 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
             pozycje.push({
                 id: t.id, nazwa: t.nazwa, href: `/tematy/${t.id}`, rodzaj: t.rodzaj === 'zjawisko' ? 'zjawisko' : 'wydarzenie', klucz: kluczSortowania(t.czas), data: formatujEdtf(t.czas),
                 opis: t.opis ? zajawka(t.opis, 120, rozwiaz) : undefined,
-                meta: [RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj, w ? liczba(w, ['wpis', 'wpisy', 'wpisów']) : '', mat ? liczba(mat, ['materiał', 'materiały', 'materiałów']) : ''].filter(Boolean).join(' · '),
+                meta: [RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj, w ? odmiana(w, ['wpis', 'wpisy', 'wpisów']) : '', mat ? odmiana(mat, ['materiał', 'materiały', 'materiałów']) : ''].filter(Boolean).join(' · '),
             })
         }
         for (const m of await materialy(poziom)) {

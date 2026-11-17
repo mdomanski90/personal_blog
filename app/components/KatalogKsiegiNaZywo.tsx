@@ -9,6 +9,8 @@ import { formatujEdtf } from '@/lib/edtf'
 import { PasekLat, TabelaKsiag } from './Ksiegi'
 import OtworzGrupeKsiegi from './OtworzGrupeKsiegi'
 import PoleSzukania from './PoleSzukania'
+import Komunikat from './Komunikat'
+import { odmiana } from '@/lib/tekst'
 
 type Miejsce = { id: string; nazwa: string; inneNazwy: string[]; formy: string[]; parafie: { parafia: string; od: number | null; do: number | null }[] }
 type Parafia = { id: string; nazwa: string; wyznanie: string; siedziba: string | null; czas: string; diecezja: string }
@@ -17,8 +19,7 @@ type Props = {
     widokPoczatkowy?: string; wyznaniePoczatkowe?: string
     skanyPoczatkowe: boolean; miejscePoczatkowe?: string; frazaPoczatkowa?: string
 }
-const male = { fontSize: 'calc(13px * var(--font-scale, 1))' }
-const liczbaKsieg = (n: number) => `${n} ${n === 1 ? 'księga' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'księgi' : 'ksiąg'}`
+const liczbaKsieg = (n: number) => odmiana(n, ['księga', 'księgi', 'ksiąg'])
 
 /** Lokalny filtr: bez wysyłania zapytań, przeładowywania strony ani drugiego indeksu. */
 export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyznaniaObecne, widokPoczatkowy, wyznaniePoczatkowe, skanyPoczatkowe, miejscePoczatkowe, frazaPoczatkowa }: Props) {
@@ -84,52 +85,62 @@ export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyz
         window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
     }
 
+    const aktywnychFiltrow = [wyznanie, tylkoSkany, fraza.trim()].filter(Boolean).length
     return (
         <div>
-            <nav aria-label="sposób przeglądania ksiąg" className="k-seg" style={{ marginBottom: 4, alignSelf: 'flex-start' }}>
-                <Link href={adres({ widok: undefined })} aria-current={widok === 'miejscowosci' ? 'page' : undefined}>według miejscowości</Link>
-                <Link href={adres({ widok: 'parafie' })} aria-current={widok === 'parafie' ? 'page' : undefined}>według parafii / urzędu</Link>
-            </nav>
-            <div className="flex flex-col" style={{ gap: 10 }}>
-                {wyznaniaObecne.length > 1 && (
-                    <div className="flex flex-wrap items-center" style={{ gap: 10 }}>
-                        <span className="text-[var(--tekst-opis)]" style={male}>wyznanie:</span>
-                        <div className="flex flex-wrap kk-wyznania" style={{ gap: 7 }}>
-                            <Link href={adres({ wyznanie: undefined })} className="szukaj-filtr" aria-current={!wyznanie ? 'true' : undefined}>{!wyznanie ? <b>wszystkie</b> : 'wszystkie'}</Link>
-                            {wyznaniaObecne.map((w) => <Link key={w} href={adres({ wyznanie: w })} className="szukaj-filtr" aria-current={wyznanie === w ? 'true' : undefined}>{wyznanie === w ? <b>{WYZNANIA_PARAFII[w]}</b> : WYZNANIA_PARAFII[w]}</Link>)}
+            {/* DZL-01 (P2): panel „szukaj i filtruj w księgach” w tej samej ramce co w pozostałych katalogach; filtrowanie nadal lokalne */}
+            <details className="k-filtry-ramka" open>
+                <summary className="k-filtry-naglowek">
+                    <span className="k-filtry-tytul">szukaj i filtruj w księgach</span>
+                    {aktywnychFiltrow > 0 && <span className="k-filtry-licznik">{odmiana(aktywnychFiltrow, ['filtr', 'filtry', 'filtrów'])}</span>}
+                </summary>
+                <div className="rozwin-tresc">
+                    <div className="k-filtry kk-panel">
+                        <nav aria-label="sposób przeglądania ksiąg" className="k-seg kk-widok">
+                            <Link href={adres({ widok: undefined })} aria-current={widok === 'miejscowosci' ? 'page' : undefined}>według miejscowości</Link>
+                            <Link href={adres({ widok: 'parafie' })} aria-current={widok === 'parafie' ? 'page' : undefined}>według parafii / urzędu</Link>
+                        </nav>
+                        {wyznaniaObecne.length > 1 && (
+                            <div className="kk-rzad">
+                                <span className="kk-male">wyznanie:</span>
+                                <div className="kk-wyznania">
+                                    <Link href={adres({ wyznanie: undefined })} className="szukaj-filtr" aria-current={!wyznanie ? 'true' : undefined}>wszystkie</Link>
+                                    {wyznaniaObecne.map((w) => <Link key={w} href={adres({ wyznanie: w })} className="szukaj-filtr" aria-current={wyznanie === w ? 'true' : undefined}>{WYZNANIA_PARAFII[w]}</Link>)}
+                                </div>
+                            </div>
+                        )}
+                        {miejscowosci.length > 0 && (
+                            <div className="kk-rzad">
+                                <PoleSzukania
+                                    id="ks-miejsce-szukaj" etykieta="szukaj" obszar="szukaj miejscowości w księgach"
+                                    value={fraza} onChange={zmienFraze} onSubmit={zmienFraze}
+                                    placeholder="miejscowość – min. 2 litery…"
+                                    className="kk-pole-szukania"
+                                />
+                                {fraza && <button type="button" onClick={() => zmienFraze('')} className="szukaj-filtr" aria-label="wyczyść wyszukiwanie miejscowości">wyczyść</button>}
+                                {aktywneSzukanie && <span className="kk-male">{znalezioneMiejsca.length === 1 ? '1 miejscowość' : odmiana(znalezioneMiejsca.length, ['miejscowość', 'pasujące miejscowości', 'pasujących miejscowości'])}</span>}
+                                {fraza.trim() && !aktywneSzukanie && <span className="kk-male">wpisz co najmniej 2 litery</span>}
+                            </div>
+                        )}
+                        <div className="kk-rzad">
+                            <span className="kk-male">digitalizacja:</span>
+                            <Link href={adres({ skany: tylkoSkany ? undefined : '1' })} className="szukaj-filtr" aria-current={tylkoSkany ? 'true' : undefined}>{tylkoSkany ? '✓ ' : ''}tylko ze skanami online</Link>
                         </div>
                     </div>
-                )}
-                {miejscowosci.length > 0 && (
-                    <div className="flex flex-wrap items-center" style={{ gap: 10, fontSize: 'calc(14px * var(--font-scale, 1))' }}>
-                        <PoleSzukania
-                            id="ks-miejsce-szukaj" etykieta="miejscowość"
-                            value={fraza} onChange={zmienFraze} onSubmit={zmienFraze}
-                            placeholder="min. 2 litery…"
-                            style={{ width: 'min(100%, 420px)' }}
-                        />
-                        {fraza && <button type="button" onClick={() => zmienFraze('')} className="szukaj-filtr" aria-label="wyczyść wyszukiwanie miejscowości">wyczyść</button>}
-                        {aktywneSzukanie && <span className="text-[var(--tekst-opis)]" style={male}>{znalezioneMiejsca.length} {znalezioneMiejsca.length === 1 ? 'miejscowość' : 'pasujących miejscowości'}</span>}
-                        {fraza.trim() && !aktywneSzukanie && <span className="text-[var(--tekst-opis)]" style={male}>wpisz co najmniej 2 litery</span>}
-                    </div>
-                )}
-                <div className="flex flex-wrap items-center" style={{ gap: 10, ...male }}>
-                    <span className="text-[var(--tekst-opis)]">digitalizacja:</span>
-                    <Link href={adres({ skany: tylkoSkany ? undefined : '1' })} className="szukaj-filtr" aria-current={tylkoSkany ? 'true' : undefined}>{tylkoSkany ? '✓ ' : ''}tylko ze skanami online</Link>
                 </div>
-            </div>
-            <p className="text-[var(--tekst-opis)]" aria-live="polite" style={{ ...male, margin: '10px 0 4px' }}>
-                {liczbaKsieg(ksiegiFiltrowane.length)} · {bloki.length} {bloki.length === 1 ? 'grupa' : 'grup'}
+            </details>
+            <p className="ot-drobne" aria-live="polite">
+                {liczbaKsieg(ksiegiFiltrowane.length)} · {odmiana(bloki.length, ['grupa', 'grupy', 'grup'])}
                 {widok === 'miejscowosci' && ksiegiFiltrowane.length > 0 && ' · jedna księga może dotyczyć kilku miejscowości'}
             </p>
             {!ksiegiFiltrowane.length && (
-                <p className="k-kom k-kom--pusto k-kom--prosty" role="status">
-                    {aktywneSzukanie ? 'Nie znaleziono ksiąg przypisanych do wpisanej miejscowości. Spróbuj krótszej nazwy lub innej pisowni.' : 'Dla wybranych filtrów nie ma jeszcze opisanych ksiąg. Brak wpisu nie oznacza, że księga się nie zachowała.'}
-                    {' '}<Link href="/biblioteka/ksiegi">wyczyść filtry</Link>
-                </p>
+                <Komunikat rodzaj="pusto" tytul={aktywneSzukanie ? 'nie znaleziono ksiąg przypisanych do wpisanej miejscowości.' : 'dla wybranych filtrów nie ma jeszcze opisanych ksiąg.'}>
+                    <p>{aktywneSzukanie ? 'Spróbuj krótszej nazwy lub innej pisowni.' : 'Brak wpisu nie oznacza, że księga się nie zachowała.'}</p>
+                    <p className="k-kom-akcje"><Link href="/biblioteka/ksiegi">wyczyść filtry</Link><Link href="/szukaj">szukaj w całym serwisie</Link></p>
+                </Komunikat>
             )}
             <OtworzGrupeKsiegi idParafii={idParafii} />
-            <div className="flex flex-col" style={{ gap: 0 }}>
+            <div className="kk-lista">
                 {bloki.map((g, i) => {
                     const par = widok === 'parafie' && !g.nieprzypisane ? parafiePoId.get(g.id) : null
                     const nazwa = g.nieprzypisane
@@ -139,15 +150,15 @@ export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyz
                         <details key={`${widok}-${g.id}`} id={widok === 'parafie' && par ? par.id : `grupa-${g.id}`}
                             open={aktywneSzukanie || (bloki.length === 1 && i === 0)}
                             className="border-b border-[var(--linia-podzialu)]">
-                            <summary className="cursor-pointer py-3" style={{ fontSize: 'calc(16px * var(--font-scale, 1))' }}>
+                            <summary className="kk-grupa-naglowek">
                                 <strong>{nazwa}</strong>
-                                <span className="text-[var(--tekst-opis)]" style={{ ...male, marginLeft: 12 }}>{liczbaKsieg(g.ksiegi.length)}</span>
+                                <span className="kk-male kk-grupa-liczba">{liczbaKsieg(g.ksiegi.length)}</span>
                             </summary>
                             <div className="rozwin-tresc">
-                            <div className="flex flex-col" style={{ gap: 10, padding: '2px 0 18px 14px' }}>
-                                {g.nieprzypisane && <p className="text-[var(--tekst-opis)]" style={male}>Brak potwierdzonego powiązania w danych. Księgi pozostają dostępne w katalogu, zamiast znikać z wyników.</p>}
+                            <div className="kk-grupa-tresc">
+                                {g.nieprzypisane && <p className="kk-male">Brak potwierdzonego powiązania w danych. Księgi pozostają dostępne w katalogu, zamiast znikać z wyników.</p>}
                                 {par && (
-                                    <p className="text-[var(--tekst-opis)]" style={{ ...male, margin: 0 }}>
+                                    <p className="kk-male">
                                         {[WYZNANIA_PARAFII[par.wyznanie] ?? par.wyznanie, par.czas && `okres: ${formatujEdtf(par.czas)}`, par.diecezja].filter(Boolean).join(' · ')}
                                         {par.siedziba && nazwyMiejsc[par.siedziba] && <> · siedziba: <Link href={`/miejsca/${par.siedziba}`} className="odn">{nazwyMiejsc[par.siedziba]}</Link></>}
                                         {' · '}<Link href={`/parafie/${par.id}`} className="odn">karta parafii / urzędu →</Link>

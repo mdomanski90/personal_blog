@@ -74,14 +74,14 @@ export default function Wyszukiwarka({ wariant = 'maly' }: { wariant?: 'duzy' | 
 
     return (
         <div ref={pudelko} className={`wysz wysz-${wariant}`}>
-            <form action="/szukaj" method="get" role="search" aria-label="szukaj w serwisie" className="wysz-pole" onSubmit={() => ustawOtwarta(false)}>
+            <form action="/szukaj" method="get" role="search" aria-label="szukaj w całym serwisie" className="wysz-pole" onSubmit={() => ustawOtwarta(false)}>
                 <svg className="wysz-lupa" width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6" /><path d="M13 13l5 5" /></svg>
                 <input
                     id="szukaj-q"
                     name="q"
                     type="search"
                     role="combobox"
-                    aria-label="szukaj w serwisie"
+                    aria-label="szukaj w całym serwisie"
                     aria-autocomplete="list"
                     aria-expanded={widac}
                     aria-controls={`${id}-lista`}
@@ -91,7 +91,7 @@ export default function Wyszukiwarka({ wariant = 'maly' }: { wariant?: 'duzy' | 
                     onChange={(e) => { ustawQ(e.target.value); ustawOtwarta(true) }}
                     onFocus={() => ustawOtwarta(true)}
                     onKeyDown={klawisz}
-                    placeholder={wariant === 'duzy' ? 'wieś, nazwisko, temat…' : 'np. Olszanka, bieżeństwo'}
+                    placeholder={wariant === 'duzy' ? 'wieś, nazwisko, temat…' : 'szukaj w całym serwisie'}
                 />
                 <button type="submit">szukaj</button>
             </form>

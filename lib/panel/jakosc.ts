@@ -8,6 +8,7 @@ import { randomBytes } from 'node:crypto'
 import matter from 'gray-matter'
 import { wczytajPrzekierowania, celPrzekierowania, RODZAJE_PRZEKIEROWAN, type Przekierowanie } from '../przekierowania'
 import { normalizuj } from '../tekst'
+import { odczytajLata } from '../ksiegi'
 import { objasnieniaMaterialu } from '../objasnienia'
 import { stronyMaterialu } from '../strony-materialow'
 import { typPliku } from '../pliki'
@@ -26,6 +27,8 @@ const REGULY = [
     'brak-lat', 'brak-archiwum', 'brak-sygnatury', 'brak-autora',
     'brak-roku', 'brak-linku', 'brak-definicji', 'brak-instytucji',
     'relacja-do-nieistniejacego', 'przekierowanie-bledne',
+    // CAT-07: lata księgi lub tomu zapisane tak, że katalog ich nie odczyta (np. „lata 30.”) – księga wypada z filtra lat
+    'nieodczytane-lata',
     // WSP-02 (etap R): braki pokazywane publicznie w „współtwórz” – jedna definicja w lib/wspoltworz-reguly.ts
     'brak-transkrypcji', 'brak-tlumaczenia', 'zdjecie-do-rozpoznania', 'brak-zdjecia-obiektu'
 ] as const
@@ -177,6 +180,14 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
                 if (!pole(d,'years') && !pole(d,'volumes')) dodaj('brak-lat','Brak zakresu lat i tomów','Sprawdź czy znane są lata jednostek.')
                 if (!pole(d,'repository')) dodaj('brak-archiwum','Brak miejsca przechowywania','Uzupełnij archiwum lub inną instytucję przechowującą.')
                 if (!pole(d,'identifier','fonds') && !pole(d,'volumes')) dodaj('brak-sygnatury','Brak identyfikatora księgi','Ustal sygnaturę lub powiąż z zespołem.')
+                // CAT-07: to, czego odczytajLata nie rozumie, nie wchodzi do filtra lat ani paska lat – redakcja ma o tym wiedzieć
+                const wskazowkaLat = 'Zapisz lata jako „1826–1875, 1880” (rok albo zakres, po przecinku) albo zignoruj, jeśli lat nie da się ustalić.'
+                const zle = odczytajLata(typeof d.years === 'string' ? d.years : '').nieodczytane
+                if (zle.length) dodaj('nieodczytane-lata', `Lata księgi nieodczytane przez katalog: ${zle.map((x) => `„${x}”`).join(', ')}`, wskazowkaLat, 1000)
+                if (Array.isArray(d.volumes)) d.volumes.forEach((t, i) => {
+                    const zleTomu = t && typeof t === 'object' && typeof (t as Record<string, unknown>).years === 'string' ? odczytajLata((t as Record<string, string>).years).nieodczytane : []
+                    if (zleTomu.length) dodaj('nieodczytane-lata', `Lata tomu ${i + 1} nieodczytane przez katalog: ${zleTomu.map((x) => `„${x}”`).join(', ')}`, wskazowkaLat, 1001 + i)
+                })
             }
             for (const [sciezka, cel] of POWIAZANIA[kolekcja] ?? []) {
                 const zbior = istnieje.get(cel)

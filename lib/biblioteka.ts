@@ -4,6 +4,7 @@ import { przygotujZapytanie, pasuje } from './szukanie'
 import { ksiegaDotyczyMiejsca, type KsiegaPowiazania, type MiejscePowiazania } from './ksiegi-powiazania'
 import { RODZAJE_KSIAG } from './ksiegi'
 import { stronicuj } from './stronicowanie'
+import { adresHasla } from './slownik'
 
 export const DZIALY_BIBLIOTEKI = [
     { klucz: 'publikacje', nazwa: 'publikacje i opracowania', pozycja: 'publikacja', pelny: '/biblioteka/publikacje' },
@@ -58,7 +59,7 @@ export function pozycjeBiblioteki(d: { publikacje: Pub[]; ksiegi: Ks[]; parafie:
             miejsca: d.miejsca.filter((m) => ksiegaDotyczyMiejsca(k, m)).map((m) => m.id),
         })),
         ...d.hasla.map((h): PozycjaBiblioteki => ({
-            dzial: 'slownik', id: h.id, tytul: h.haslo, href: `/biblioteka/slownik#${encodeURIComponent(h.id)}`,
+            dzial: 'slownik', id: h.id, tytul: h.haslo, href: adresHasla(h.id),
             linia: RODZAJE_HASEL[h.rodzaj] ?? h.rodzaj,
             tekst: [h.haslo, ...h.formy, h.znaczenie].join(' '), miejsca: [],
         })),
