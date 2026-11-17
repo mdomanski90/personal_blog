@@ -1686,9 +1686,10 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 .strona-tresc.uklad-pelna>p,.strona-tresc.uklad-pelna>.wstep-dzialu-tekst{max-width:var(--szer-tekstu)}
 .tresc-czytana{font-size:var(--rozmiar-tresc)}
 
-/* Strona uklad="karta": kolumna tekstu + pasek boczny (obraz nagłówka, spis treści).
+/* Strona uklad="karta": nagłówek, pasek części (spis treści), kolumna tekstu + pasek boczny (obraz, mapa).
    Wariant B (decyzja 17.11): nagłówek karty (okruszki, tytuł, linia, wstęp) nad siatką, w szerokości kolumny tekstu;
-   pasek boczny zaczyna się na wysokości pierwszej tabeli. Element <PelnaSzerokosc> przerywa kolumnę; w następnym odcinku spis wraca. */
+   pasek boczny zaczyna się na wysokości pierwszej tabeli. Spis treści – przyklejony pasek części pod nagłówkiem
+   (decyzja 17.11 po odbiorze: od góry i widoczny cały czas, także obok elementów <PelnaSzerokosc>). */
 .karta-odcinek{display:grid;grid-template-columns:minmax(0,var(--szer-tekstu)) minmax(0,1fr);column-gap:var(--odstep-kolumn);row-gap:var(--odstep-sekcji);align-items:start}
 .karta-naglowek{min-width:0;max-width:var(--szer-tekstu);display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
 .karta-odcinek-pierwszy>.karta-bok{grid-column:2;grid-row:1}
@@ -1699,13 +1700,14 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 .karta-bok>figure,.karta-bok>.osoba-portret{margin:0}
 /* okruszki nad siatką: odstęp jak między okruszkami a tytułem w TytulStrony */
 .strona-tresc>.okruszki+.karta-naglowek,.strona-tresc>.okruszki+.karta-odcinek{margin-top:.4rem}
-.karta-spis{position:sticky;top:24px;max-height:calc(100vh - 48px);overflow-y:auto}
 .pelna-szerokosc{min-width:0}
+.uklad-karta{--wys-paska-czesci:calc(44px * var(--font-scale,1))}
+.karta-pasek-czesci{position:sticky;top:0;z-index:20;min-width:0;background:var(--tlo-strony);border-bottom:1px solid var(--linia-podzialu)}
+/* cel odnośnika ze spisu i z adresu #część – pod paskiem, nie za nim */
+.uklad-karta [id]{scroll-margin-top:calc(var(--wys-paska-czesci) + 16px)}
 @media (max-width:900px){
   .karta-odcinek{grid-template-columns:minmax(0,1fr)}
   .karta-bok,.karta-odcinek-pierwszy>.karta-bok,.karta-odcinek-pierwszy>.karta-kolumna{grid-column:1;grid-row:auto}
-  .karta-spis{position:static;max-height:none;overflow:visible}
-  .karta-bok-dalej{display:none}
 }
 
 /* TytulStrony – h1 w kolorze akcentu z kreską 40 × 3 px (decyzja 16.11, wszystkie strony) */
@@ -1719,22 +1721,17 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 .odp .tytul-sekcji{margin:0;font-size:var(--rozmiar-tytul-sekcji);font-weight:700;line-height:1.3;text-transform:lowercase;color:var(--akcent);letter-spacing:0}
 .odp .tytul-sekcji::after{content:"";display:block;width:32px;height:var(--kreska-tytulu);border-radius:2px;background:var(--akcent);margin-top:8px}
 
-/* SpisTresci – pozycje 14 px, min. 32 px, linia z lewej; aktywna w akcencie z kreską 3 px */
-.spis-tresci details>summary{list-style:none}
-.spis-tresci details>summary::-webkit-details-marker{display:none}
-.spis-tresci-tytul{margin:0 0 8px;font-size:var(--rozmiar-etykieta);color:var(--tekst-etykieta);text-transform:lowercase}
-.spis-tresci ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-left:1px solid var(--linia-podzialu)}
-.odp .spis-tresci li a{display:flex;align-items:center;min-height:calc(32px * var(--font-scale,1));padding:0 14px;margin-left:-1px;border-left:3px solid transparent;color:var(--tekst-opis);text-decoration:none;font-size:var(--rozmiar-opis)}
+/* SpisTresci – pasek części: „na tej stronie” + pozycje w jednym wierszu (14 px, min. 44 px × A±);
+   aktywna w akcencie z kreską 3 px u dołu; za wąsko – przewijanie w poziomie */
+.spis-tresci{display:flex;align-items:stretch;gap:14px;min-height:var(--wys-paska-czesci,44px)}
+.spis-tresci-tytul{display:flex;align-items:center;flex:0 0 auto;font-size:var(--rozmiar-etykieta);color:var(--tekst-etykieta);text-transform:lowercase;white-space:nowrap}
+.spis-tresci ol{list-style:none;margin:0;padding:0;display:flex;align-items:stretch;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.spis-tresci ol::-webkit-scrollbar{display:none}
+.spis-tresci li{display:flex;flex:0 0 auto}
+.odp .spis-tresci li a{display:flex;align-items:center;padding:0 12px;border-bottom:3px solid transparent;margin-bottom:-1px;color:var(--tekst-opis);text-decoration:none;font-size:var(--rozmiar-opis);white-space:nowrap}
 .odp .spis-tresci li a:hover{color:var(--akcent)}
-.odp .spis-tresci li a[aria-current]{border-left-color:var(--akcent);color:var(--akcent);font-weight:700}
-@media (min-width:901px){.spis-tresci summary{pointer-events:none}}
-@media (max-width:900px){
-  .spis-tresci{border:1px solid var(--linia-podzialu);border-radius:var(--promien);padding:0 14px}
-  .spis-tresci-tytul{display:flex;align-items:center;min-height:calc(40px * var(--font-scale,1));margin:0;cursor:pointer;font-size:var(--rozmiar-opis);color:var(--tekst)}
-  .spis-tresci-tytul::after{content:"▾";margin-left:auto;color:var(--tekst-etykieta)}
-  .spis-tresci details[open]>.spis-tresci-tytul::after{content:"▴"}
-  .spis-tresci ol{margin-bottom:10px}
-}
+.odp .spis-tresci li a[aria-current]{border-bottom-color:var(--akcent);color:var(--akcent);font-weight:700}
+@media (max-width:640px){.spis-tresci-tytul{display:none}.odp .spis-tresci li:first-child a{padding-left:0}}
 
 /* PastylkaFiltra / RzadFiltrow – pastylki .szukaj-filtr (wyżej); drugi rząd z podpisem */
 .filtry-rzad{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -1844,7 +1841,7 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
   .karta-odcinek{display:flex;flex-direction:column;gap:4mm}
   /* bez menu, stopki strony, filtrów, przycisków, formularzy, prośby o zdjęcie, spisu treści i paska bocznego */
   .odp>.strona-pion>header,.odp>.strona-pion>footer,nav.okruszki,.pasek-akcji,.karta-zglos,.k-btn,.odp button,.szukaj-filtr,.filtry-rzad,.odp form,
-  .osoba-bez-zdjecia,.osoba-bez-zdjecia-krotko,.ot-seg,.ot-przycisk,.ot-drzewo,#drzewo,.spis-tresci,.karta-bok,.karta-bok-dalej,.szt-skan,.szt-tekst,.karta-mapa,.widok-przelacznik,.material-wstawka-podpis .k-btn{display:none!important}
+  .osoba-bez-zdjecia,.osoba-bez-zdjecia-krotko,.ot-seg,.ot-przycisk,.ot-drzewo,#drzewo,.spis-tresci,.karta-pasek-czesci,.karta-bok,.szt-skan,.szt-tekst,.karta-mapa,.widok-przelacznik,.material-wstawka-podpis .k-btn{display:none!important}
   /* materiał: skan na szerokość kartki (do 190 mm), pod nim transkrypcja i tłumaczenie */
   .skan-z-tekstem{display:block;border:0;background:none;border-radius:0}
   .szt-druk-skan{display:block;max-width:100%;max-height:190mm;margin:0 auto 4mm;break-inside:avoid}

@@ -53,3 +53,17 @@ test('każda karta z tekstem nad tabelą (lead=) ma „wstęp” w spisie (opcja
     }
     assert.deepEqual(bez, [], `karty z lead bez „wstępu” w spisie: ${bez.join(', ')}`)
 })
+
+// decyzja 17.11 po odbiorze etapu 3: spis treści od góry i widoczny cały czas – pasek części pod nagłówkiem karty,
+// przyklejony na całej wysokości karty (nie w pasku bocznym, który zaczyna się dopiero przy pierwszej tabeli
+// i znikał obok elementów pełnej szerokości – skan materiału, wstawki we wpisie)
+test('spis treści karty to przyklejony pasek części pod nagłówkiem, poza paskiem bocznym', () => {
+    const uklad = fs.readFileSync(path.join(ROOT, 'app/components/Uklad.tsx'), 'utf8')
+    const karta = uklad.slice(uklad.indexOf('function UkladKarty('), uklad.indexOf('export function Strona('))
+    assert.match(karta, /\{spis && <div className="karta-pasek-czesci">\{spis\}<\/div>\}/)
+    assert.ok(karta.indexOf('karta-pasek-czesci') < karta.indexOf('odcinki.map'), 'pasek części przed pierwszym odcinkiem karty')
+    assert.doesNotMatch(karta, /<aside[^>]*>[^\n]*\{spis/, 'spis nie w pasku bocznym')
+    const css = fs.readFileSync(path.join(ROOT, 'app/globals.css'), 'utf8')
+    assert.match(css, /\.karta-pasek-czesci\{position:sticky;top:0;/)
+    assert.doesNotMatch(css.match(/@media \(max-width:900px\)\{[^}]*\.karta-pasek-czesci[^}]*\}/)?.[0] ?? '', /position:static/, 'przyklejony także na telefonie')
+})

@@ -5,35 +5,57 @@ import { przewinDo } from '@/lib/ruch'
 export interface PozycjaSpisu { id: string; tekst: string }
 
 /**
- * JW-1 · spis treści karty / materiału / wpisu (makiety v2, 16.11).
- * Na komputerze w pasku bocznym, przyklejony 24 px od góry (Strona uklad="karta"); aktywna część podświetlana
- * przy przewijaniu (IntersectionObserver), kliknięcie przewija do części i przenosi na nią fokus.
- * Na telefonie zwijany wiersz „na tej stronie” pod tytułem (domyślnie zwinięty).
+ * Spis treści karty / materiału / wpisu – pasek części pod nagłówkiem karty (decyzja 17.11 po odbiorze etapu 3:
+ * „od góry i widoczny cały czas”; zastępuje spis w pasku bocznym). Przyklejony do górnej krawędzi okna na całej
+ * wysokości karty, także obok elementów pełnej szerokości (skan, wstawki). Aktywna część podświetlana przy przewijaniu,
+ * kliknięcie przewija do części (pod paskiem – scroll-margin w CSS) i przenosi na nią fokus. Na wąskim ekranie
+ * pozycje przewijają się w poziomie, aktywna zawsze widoczna.
  */
 export default function SpisTresci({ pozycje, tytul = 'na tej stronie' }: { pozycje: PozycjaSpisu[]; tytul?: string }) {
     const [aktywna, ustawAktywna] = React.useState(pozycje[0]?.id)
-    const details = React.useRef<HTMLDetailsElement>(null)
+    const lista = React.useRef<HTMLOListElement>(null)
+    const pasek = React.useRef<HTMLElement>(null)
     const klucz = pozycje.map((p) => p.id).join('|')
-
-    React.useEffect(() => {
-        if (details.current && window.matchMedia('(max-width: 900px)').matches) details.current.open = false
-    }, [])
+    const wybrana = React.useRef<string | null>(null)   // część wybrana w spisie – ważna do następnego ruchu czytelnika
 
     React.useEffect(() => {
         const cele = klucz.split('|').map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e)
-        if (!cele.length || typeof IntersectionObserver === 'undefined') return
-        // aktywna = ostatnia część, której początek minął górną 1/3 okna (pierwsza, gdy żadna)
+        if (!cele.length) return
+        // aktywna = ostatnia część, której początek minął dolną krawędź paska + 1/4 okna (pierwsza, gdy żadna)
+        let rama = 0
         const przelicz = () => {
-            const granica = window.innerHeight / 3
+            rama = 0
+            const granica = (pasek.current?.getBoundingClientRect().bottom ?? 0) + window.innerHeight / 4
             let akt = cele[0].id
             for (const c of cele) if (c.getBoundingClientRect().top <= granica) akt = c.id
+            // koniec strony: ostatnie części nie dojdą do granicy – aktywna ostatnia widoczna w oknie
+            if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2)
+                for (const c of cele) if (c.getBoundingClientRect().top < window.innerHeight) akt = c.id
+            const w = wybrana.current && document.getElementById(wybrana.current)
+            if (w) { const t = w.getBoundingClientRect().top; if (t >= 0 && t < window.innerHeight) akt = w.id }
             ustawAktywna(akt)
         }
-        const obs = new IntersectionObserver(przelicz, { rootMargin: '0px 0px -66% 0px', threshold: [0, 1] })
-        cele.forEach((c) => obs.observe(c))
+        const zaplanuj = () => { if (!rama) rama = requestAnimationFrame(przelicz) }
+        const ruch = () => { wybrana.current = null }
+        window.addEventListener('scroll', zaplanuj, { passive: true })
+        window.addEventListener('resize', zaplanuj)
+        for (const z of ['wheel', 'touchstart', 'keydown'] as const) window.addEventListener(z, ruch, { passive: true })
         przelicz()
-        return () => obs.disconnect()
+        return () => {
+            window.removeEventListener('scroll', zaplanuj); window.removeEventListener('resize', zaplanuj)
+            for (const z of ['wheel', 'touchstart', 'keydown'] as const) window.removeEventListener(z, ruch)
+            if (rama) cancelAnimationFrame(rama)
+        }
     }, [klucz])
+
+    // aktywna pozycja widoczna w przewijanym poziomo pasku (bez przewijania strony w pionie)
+    React.useEffect(() => {
+        const ol = lista.current
+        const a = ol?.querySelector<HTMLElement>('a[aria-current]')
+        if (!ol || !a || ol.scrollWidth <= ol.clientWidth) return
+        const l = a.offsetLeft - ol.offsetLeft
+        if (l < ol.scrollLeft || l + a.offsetWidth > ol.scrollLeft + ol.clientWidth) ol.scrollLeft = Math.max(0, l - 16)
+    }, [aktywna])
 
     if (!pozycje.length) return null
 
@@ -45,23 +67,20 @@ export default function SpisTresci({ pozycje, tytul = 'na tej stronie' }: { pozy
         if (!cel.hasAttribute('tabindex')) cel.setAttribute('tabindex', '-1')
         cel.focus({ preventScroll: true })
         history.replaceState(null, '', `#${id}`)
+        wybrana.current = id
         ustawAktywna(id)
     }
 
     return (
-        <nav className="spis-tresci" aria-label="spis treści">
-            <details ref={details} open>
-                <summary className="spis-tresci-tytul">{tytul}</summary>
-                <div className="rozwin-tresc">
-                <ol>
-                    {pozycje.map((p) => (
-                        <li key={p.id}>
-                            <a href={`#${p.id}`} aria-current={p.id === aktywna ? 'location' : undefined} onClick={(e) => przejdz(e, p.id)}>{p.tekst}</a>
-                        </li>
-                    ))}
-                </ol>
-                </div>
-            </details>
+        <nav ref={pasek} className="spis-tresci" aria-label="spis treści">
+            <span className="spis-tresci-tytul" aria-hidden="true">{tytul}</span>
+            <ol ref={lista}>
+                {pozycje.map((p) => (
+                    <li key={p.id}>
+                        <a href={`#${p.id}`} aria-current={p.id === aktywna ? 'location' : undefined} onClick={(e) => przejdz(e, p.id)}>{p.tekst}</a>
+                    </li>
+                ))}
+            </ol>
         </nav>
     )
 }

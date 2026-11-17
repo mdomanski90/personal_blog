@@ -16,8 +16,8 @@ export const RAMKA = 'border border-[var(--linia-podzialu)]'
  * Układ treści strony (szerokość B, decyzja 16.11):
  * – „kolumna” – kolumna tekstu 66 znaków (wpisy, opisy, karty bez paska bocznego);
  * – „pelna” – pełna szerokość 1160 px (plany, skany, mapy, katalogi, siatki);
- * – „karta” – nagłówek karty nad siatką, pod nim kolumna tekstu + pasek boczny (obraz i spis treści, przyklejony) od pierwszej
- *   tabeli (wariant B, 17.11); element <PelnaSzerokosc> przerywa kolumnę, a spis treści wraca po nim;
+ * – „karta” – nagłówek karty nad siatką, pod nim przyklejony pasek części (spis treści), kolumna tekstu + pasek boczny (obraz, mapa) od pierwszej
+ *   tabeli (wariant B, 17.11); element <PelnaSzerokosc> przerywa kolumnę (pasek części zostaje widoczny);
  * – „przegladarka” – nagłówek i stopka 1200 px, aplet planu (.przegladarka-aplet) do 1600 px (decyzja 3, 17.11; tylko /plany/[slug]).
  */
 export type UkladStrony = 'kolumna' | 'pelna' | 'karta' | 'przegladarka'
@@ -28,7 +28,7 @@ export function PelnaSzerokosc({ children }: { children: React.ReactNode }) {
 }
 
 function UkladKarty({ children, naglowek, bok, spis, sciezka }: { children: React.ReactNode; naglowek?: React.ReactNode; bok?: React.ReactNode; spis?: React.ReactNode; sciezka?: Sciezka }) {
-    // podział na odcinki: kolumna z paskiem bocznym | element pełnej szerokości | kolumna z paskiem (spis wraca) …
+    // podział na odcinki: kolumna z paskiem bocznym | element pełnej szerokości | kolumna …
     const odcinki: { pelny: boolean; el: React.ReactNode[] }[] = []
     for (const el of React.Children.toArray(children)) {
         const pelny = React.isValidElement(el) && el.type === PelnaSzerokosc
@@ -36,34 +36,25 @@ function UkladKarty({ children, naglowek, bok, spis, sciezka }: { children: Reac
         if (!pelny && ost && !ost.pelny) ost.el.push(el)
         else odcinki.push({ pelny, el: [el] })
     }
-    // wariant B: pasek boczny (obraz, spis) zaczyna się przy pierwszej tabeli – w pierwszym odcinku kolumny z treścią;
+    // wariant B: pasek boczny (obraz, mapa) zaczyna się przy pierwszej tabeli – w pierwszym odcinku kolumny z treścią;
     // gdy karta zaczyna się od elementu pełnej szerokości (skan materiału), pasek stoi obok pierwszej kolumny po nim
     const pierwszy = odcinki.findIndex((o) => !o.pelny && o.el.length > 0)
-    const glowa = (
-        <React.Fragment key="glowa">
-            {/* wariant B (decyzja 17.11, zmienia 16.11): okruszki i nagłówek karty nad siatką; na wąskim ekranie kolejność:
-                nagłówek → pasek (obraz, spis) → treść */}
-            {sciezka && <Okruszki sciezka={sciezka} />}
-            {naglowek && <div className="karta-naglowek">{naglowek}</div>}
-        </React.Fragment>
-    )
+    const aside = bok ? <aside className="karta-bok" aria-label="obok treści">{bok}</aside> : null
     return (
         <>
-            {glowa}
-            {pierwszy < 0 && (bok || spis) && <div className="karta-odcinek karta-odcinek-pierwszy"><aside className="karta-bok" aria-label="obok treści">{bok}{spis && <div className="karta-spis">{spis}</div>}</aside></div>}
+            {/* wariant B (decyzja 17.11, zmienia 16.11): okruszki i nagłówek karty nad siatką */}
+            {sciezka && <Okruszki sciezka={sciezka} />}
+            {naglowek && <div className="karta-naglowek">{naglowek}</div>}
+            {/* spis treści – pasek części pod nagłówkiem, przyklejony na całej wysokości karty (decyzja 17.11 po odbiorze:
+                „od góry i widoczny cały czas”; elementy pełnej szerokości zostają szerokie) */}
+            {spis && <div className="karta-pasek-czesci">{spis}</div>}
+            {pierwszy < 0 && aside && <div className="karta-odcinek karta-odcinek-pierwszy">{aside}</div>}
             {odcinki.map((o, i) => {
                 if (o.pelny) return <React.Fragment key={i}>{o.el}</React.Fragment>
-                if (i === pierwszy) return (
-                    <div key={i} className="karta-odcinek karta-odcinek-pierwszy">
-                        {(bok || spis) && <aside className="karta-bok" aria-label="obok treści">{bok}{spis && <div className="karta-spis">{spis}</div>}</aside>}
-                        <div className="karta-kolumna">{o.el}</div>
-                    </div>
-                )
                 return (
-                    <div key={i} className="karta-odcinek">
+                    <div key={i} className={i === pierwszy ? 'karta-odcinek karta-odcinek-pierwszy' : 'karta-odcinek'}>
+                        {i === pierwszy && aside}
                         <div className="karta-kolumna">{o.el}</div>
-                        {/* ten sam spis wraca po elemencie pełnej szerokości; kopia bez fokusu i bez czytnika (inert) – pierwszy spis pozostaje jedynym w drzewie dostępności */}
-                        {spis && i > pierwszy && <div className="karta-bok karta-bok-dalej" {...({ inert: true } as object)}><div className="karta-spis">{spis}</div></div>}
                     </div>
                 )
             })}
@@ -71,7 +62,6 @@ function UkladKarty({ children, naglowek, bok, spis, sciezka }: { children: Reac
     )
 }
 
-/** Strona z nagłówkiem, stopką i powiększaniem obrazków. Jedna szerokość układu (1200 px) – nagłówek, treść i stopka mają tę samą krawędź. */
 export function Strona({ children, szeroka = false, uklad, akcje, naglowek, bok, spis, sciezka, nrKat }: {
     children: React.ReactNode
     /** dawny przełącznik „szeroka” = uklad="pelna" */
