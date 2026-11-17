@@ -128,13 +128,16 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, osoby =
         if (gladko) plynnie(cel)
         else { przerwij.current(); ustawVb(cel) }
     }, [pelny, u, plynnie])
-    const ruch = React.useRef<{ wsk: Map<number, [number, number]>; start?: { x: number; y: number; vb: VB }; pinch?: { d: number; vb: VB; c: [number, number] }; przesuniety: boolean }>({ wsk: new Map(), przesuniety: false })
+    const ruch = React.useRef<{ wsk: Map<number, [number, number]>; start?: { x: number; y: number; vb: VB }; pinch?: { d: number; vb: VB; c: [number, number] }; przesuniety: boolean; cel?: string | null }>({ wsk: new Map(), przesuniety: false })
 
     const opis = (e: Element) => opisElementu(e, typy.get(e.typ), numery.get(e.id))
     const pointerDown = (e: React.PointerEvent) => {
         przerwij.current()
         const r = ruch.current
         r.wsk.set(e.pointerId, [e.clientX, e.clientY])
+        // element pod kursorem zapamiętany przy naciśnięciu: po setPointerCapture zdarzenie pointerup ma za cel cały SVG,
+        // nie kliknięty grób (odbiór 17.11: kliknięcie w grób nic nie robiło)
+        r.cel = (e.target as globalThis.Element).closest('[data-id]')?.getAttribute('data-id') ?? null
         ;(e.currentTarget as globalThis.Element).setPointerCapture(e.pointerId)
         ustawNad(null)
         if (r.wsk.size === 2) {
@@ -180,10 +183,12 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, osoby =
         r.wsk.delete(e.pointerId)
         if (r.wsk.size < 2) r.pinch = undefined
         if (r.start && !r.przesuniety) {
-            const id = (e.target as globalThis.Element).closest('[data-id]')?.getAttribute('data-id')
-            wybierz(id ?? null)
-            if (!id) ustawRodzinaDla(null)
+            const x = r.cel ? elementy.get(r.cel) : undefined
+            // kliknięty element: karta w panelu i przybliżenie (jak wybór z listy / wyników); puste miejsce – zamyka kartę
+            if (x) pokazElement(x)
+            else { wybierz(null); ustawRodzinaDla(null) }
         }
+        r.cel = null
         r.start = undefined
     }
     React.useEffect(() => {

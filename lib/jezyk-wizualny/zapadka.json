@@ -73,9 +73,6 @@
     "app/parafie/page.tsx": {
       "styl": 1
     },
-    "app/plany/[slug]/mapa.png/route.ts": {
-      "hex": 1
-    },
     "app/szukaj/page.tsx": {
       "styl": 15
     },

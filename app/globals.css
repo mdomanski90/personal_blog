@@ -2043,6 +2043,8 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 
 /* PanelPlanu – tabela karty na wysokość mapy, przewijana wewnątrz */
 .plan-panel{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;background:var(--tlo-strony)}
+/* części panelu nie kurczą się do wysokości mapy (tabela karty ma overflow:hidden – ucinała długi napis i osoby); przewija się panel (odbiór 17.11) */
+.plan-panel>*{flex-shrink:0}
 .plan-panel-glowa-tel{display:none;align-items:center;justify-content:space-between;gap:8px;min-height:calc(46px * var(--font-scale,1));padding:0 14px;background:var(--tlo-sekcji);border-bottom:1px solid var(--linia-podzialu);font-size:var(--rozmiar-opis)}
 .plan-panel-szukaj{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-bottom:1px solid var(--linia-podzialu)}
 .plan-panel-podpowiedz{margin:0;font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta);line-height:1.45}

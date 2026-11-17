@@ -7,6 +7,7 @@ import { jednostka } from '@/lib/plany/model'
 import { wczytajUstawienia } from '@/lib/plany/dane'
 import { nieMa, planDlaCzytelnika } from '@/lib/plany/serwer'
 import { kadr, RysunekPlanu, Wzory } from '@/app/components/plan/Rysunek'
+import { regulyPlanu } from '@/lib/plany/styl-svg'
 
 // Podgląd planu jako obraz SVG (np. w panelu po kliknięciu plakietki na mapie). Kolory z globals.css wstawione do pliku,
 // żeby obraz wyglądał tak samo poza stroną (tryb ciemny według ustawień systemu).
@@ -21,9 +22,10 @@ function kolory(motyw: string): string {
         const re = new RegExp(`${sel.replace('.', '\\.')}\\s*\\{([^}]*--pl-papier[^}]*)\\}`)
         return css.match(re)?.[1] ?? ''
     }
-    zmienne[motyw] = motyw === 'jasny' ? `:root{${blok(':root')}}`
+    // + reguły klas .pl-* rysunku (bez nich np. obszar trafienia .pl-traf jest czarny – odbiór 17.11)
+    zmienne[motyw] = (motyw === 'jasny' ? `:root{${blok(':root')}}`
         : motyw === 'ciemny' ? `:root{${blok(':root')}}:root{${blok('.dark')}}`
-        : `:root{${blok(':root')}}@media (prefers-color-scheme: dark){:root{${blok('.dark')}}}`
+        : `:root{${blok(':root')}}@media (prefers-color-scheme: dark){:root{${blok('.dark')}}}`) + '\n' + regulyPlanu(css)
     return zmienne[motyw]
 }
 
