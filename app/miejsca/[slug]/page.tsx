@@ -3,7 +3,11 @@ import type { Metadata } from 'next'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import OtworzWMapach from '../../components/OtworzWMapach'
 import { Link } from 'next-view-transitions'
-import { licznikiMiejsc, materialy, miejsca, miejsce, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, opisWyznan, materialyDla, powiazania, kontekstTresci, ksiegiDlaMiejsca, parafie } from '@/lib/archiwum'
+import { licznikiMiejsc, materialy, miejsca, miejsce, obiekty, obiektyDlaMiejsca, OBSZARY, opowiesciDlaMiejsca, poziomCzytelnika, RODZAJE_MIEJSC, RODZAJE_OBIEKTOW, tematyDlaMiejsca, opisWyznan, materialyDla, powiazania, kontekstTresci, ksiegiDlaMiejsca, parafie, hasla } from '@/lib/archiwum'
+import { adresHasla, skrocZnaczenie } from '@/lib/slownik'
+import { PastylkaFiltra } from '../../components/Wzorce'
+import { WYZNANIA } from '@/lib/tarcze'
+import { zapiszOkres } from '@/lib/parafie-powiazania'
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
@@ -65,6 +69,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const ksiegiWsi = await ksiegiDlaMiejsca(m, poziom)
     const planyWsi = await planyDlaCzytelnika('miejsce', m.id)
     const wszystkieParafie = await parafie()
+    const slowaMiejsca = (await hasla(poziom)).filter((h) => h.wystepowanie?.includes(m.id))
     // gmina: najbliższy nadrzędny obszar typu „gmina”
     let gmina = nadrzedne
     while (gmina && gmina.rodzaj !== 'gmina') gmina = gmina.nalezyDo ? wszystkie.find((x) => x.id === gmina!.nalezyDo) ?? null : null
@@ -142,7 +147,21 @@ export default async function MiejsceStrona({ params }: Parametry) {
                     </W>
                 )}
                 {!obszar && <W e={m.wyznania.length > 1 ? 'wyznania przed 1875' : 'wyznanie przed 1875'}>{m.wyznania.length ? opisWyznan(m.wyznania, m.wyznaniaRowne) : <span className="text-[var(--tekst-opis)]">w opracowaniu</span>}</W>}
+                {/* okresy przy wyznaniach (P3): osobne pole – „przed 1875” (znak na mapie) bez zmian */}
+                {!obszar && (m.wyznaniaWCzasie?.length ?? 0) > 0 && (
+                    <W e="wyznania w czasie">
+                        {m.wyznaniaWCzasie!.map((w, i) => (
+                            <span key={i} className="block">
+                                {WYZNANIA[w.wyznanie as keyof typeof WYZNANIA]?.nazwa ?? w.wyznanie}
+                                {(w.od != null || w.do != null) && <span className="ot-drobne"> · {zapiszOkres(w.od, w.do)}</span>}
+                                {w.zrodlo && <span className="ot-drobne"> · źródło: <ZAdresami tekst={w.zrodlo} /></span>}
+                            </span>
+                        ))}
+                    </W>
+                )}
                 <W e="formy zapisu nazwy">{formyZapisu.length > 0 ? formyZapisu.join(' · ') : null}</W>
+                {/* KRT-02 (P3): pochodzenie nazwy ze źródłem */}
+                <W e="pochodzenie nazwy">{m.pochodzenieNazwy && <span className="flex flex-col gap-0.5"><span className="whitespace-pre-line">{m.pochodzenieNazwy}</span>{m.pochodzenieNazwyZrodlo && <span className="ot-drobne">źródło: <ZAdresami tekst={m.pochodzenieNazwyZrodlo} /></span>}</span>}</W>
                 <W e="wsie">{m.rodzaj === 'gmina' && potomkowie.length > 0 ? potomkowie.length : null}</W>
                 <W e="obejmuje">{podrzedne.length > 0 && m.rodzaj !== 'gmina' && <LiniaKarty className="karta-linia-w" elementy={[podrzedne.map((p) => ({ tekst: p.nazwa, href: `/miejsca/${p.id}` }))]} />}</W>
                 <W e="położenie">{m.wspolrzedne && !obszar && <OtworzWMapach wspolrzedne={m.wspolrzedne} />}</W>
@@ -178,7 +197,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                         <Czesc tytul="w terenie">{swiatynie.length ? `${swiatynie.length} ${swiatynie.length === 1 ? 'obiekt' : swiatynie.length < 5 ? 'obiekty' : 'obiektów'}` : 'kapliczki, krzyże, cmentarze, szkoły, młyny…'}</Czesc>
                         <WCaly>
                             {swiatynie.length > 0 && (
-                                <ListaObiektow pozycje={swiatynie.map((o) => ({ id: o.id, nazwa: o.nazwa, rodzaj: o.rodzaj, nazwaRodzaju: RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, istnieje: o.istnieje }))} />
+                                <ListaObiektow zwijajPo={8} pozycje={swiatynie.map((o) => ({ id: o.id, nazwa: o.nazwa, rodzaj: o.rodzaj, nazwaRodzaju: RODZAJE_OBIEKTOW[o.rodzaj] ?? o.rodzaj, istnieje: o.istnieje }))} />
                             )}
                             <span className="ot-drobne">{swiatynie.length ? 'Brakuje miejsca pamięci, kapliczki albo zabytku? ' : 'Nie ma tu jeszcze żadnych obiektów. Znasz miejsce pamięci, kapliczkę albo zabytek? '}<Zgloszenie rodzaj="miejsce" adres={`/miejsca/${m.id}`} tytul={m.nazwa} wariant="link" etykieta="zgłoś brakujące miejsce" /></span>
                         </WCaly>
@@ -218,6 +237,8 @@ export default async function MiejsceStrona({ params }: Parametry) {
                 <W e="wpisy">{opow.length > 0 && <KrotkieWpisy wpisy={opow} />}</W>
                 <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
                 <WierszeWystapien w={await wystapieniaKarty('miejsce', m.id)} />
+                {/* SLW-02 (P3): hasła słownika z „występowaniem” w tej miejscowości */}
+                <W e="słowa z tej miejscowości">{slowaMiejsca.length > 0 && <span className="karta-pastylki">{slowaMiejsca.map((h) => <PastylkaFiltra key={h.id} href={adresHasla(h.id)} title={skrocZnaczenie(h.znaczenie, 160)}>{h.haslo}</PastylkaFiltra>)}</span>}</W>
                 <W e="tematy">{bezDaty.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[bezDaty.map((t) => ({ tekst: t.nazwa, href: `/tematy/${t.id}` }))]} />}</W>
                 <W e="oś czasu">{zData.length > 0 && (
                     <ol className="karta-os">
@@ -228,7 +249,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                     <span className="ot-drobne">{opow.length === 0 && mat.length === 0 ? `Nie ma jeszcze wpisów ani materiałów o ${obszar ? 'tym obszarze' : 'tej miejscowości'}. ` : ''}Masz zdjęcie, dokument albo wspomnienie? <Zgloszenie rodzaj="material" adres={`/miejsca/${m.id}`} tytul={m.nazwa} wariant="link" etykieta="przyślij materiał" /></span>
                 </WCaly>
                 <Powiazania dane={daneSieci} />
-                <CzescJakCytowac plik={m.id} dane={daneCytatu({ tytul: m.nazwa, sciezka: `/miejsca/${m.id}`, nrKat, rodzaj: 'miejsce' })} />
+                <CzescJakCytowac plik={m.id} zglosil={m.zglosil} dane={daneCytatu({ tytul: m.nazwa, sciezka: `/miejsca/${m.id}`, nrKat, rodzaj: 'miejsce' })} />
                 <Zrodla pozycje={[
                     ...m.zrodla.map((z, i) => <ZAdresami key={`z${i}`} tekst={z} />),
                     zrodlo && <ZAdresami key="opis" tekst={zrodlo} />,

@@ -9,6 +9,7 @@ import StronaDzialu, { LicznikWynikow } from '../../components/StronaDzialu'
 import FiltryKatalogu from '../../components/FiltryKatalogu'
 import { NawigacjaStron, PastylkaFiltra, RzadFiltrow, WybraneFiltry } from '../../components/Wzorce'
 import SiatkaMiniatur from '../../components/SiatkaMiniatur'
+import KotwicaHasla from '../../components/KotwicaHasla'
 import Komunikat from '../../components/Komunikat'
 import SpisBiblioteki from '../SpisBiblioteki'
 
@@ -60,7 +61,7 @@ export default async function Slownik({ searchParams }: { searchParams: Promise<
                 {litery(poRodzaju).map((l) => <PastylkaFiltra key={l.litera} href={adresFiltrow(BAZA, sp, { ustaw: { litera: l.litera } })} aktywny={litera === l.litera} liczba={l.ile}>{l.litera}</PastylkaFiltra>)}
             </RzadFiltrow>}
         </>}
-        tresc={wszystkie.length === 0
+        tresc={<><KotwicaHasla ids={wszystkie.map((h) => h.id)} />{wszystkie.length === 0
             ? <>
                 <Komunikat rodzaj="pusto" tytul="słownik jest w przygotowaniu – hasła pojawią się po dodaniu w panelu." />
                 <SiatkaMiniatur wariant="fiszka" pozycje={[]} zaproszenie={zaproszenie} />
@@ -75,7 +76,7 @@ export default async function Slownik({ searchParams }: { searchParams: Promise<
                     </p>
                 </Komunikat>
                 : <SiatkaMiniatur wariant="fiszka" zaproszenie={wyn.strona === 1 ? zaproszenie : undefined}
-                    pozycje={wyn.wyniki.map((h) => ({ klucz: h.id, href: adresHasla(h.id), tytul: h.haslo, linia: RODZAJE_HASEL[h.rodzaj] ?? h.rodzaj, opis: skrocZnaczenie(h.znaczenie), zrodlo: h.zrodlo }))} />}
+                    pozycje={wyn.wyniki.map((h) => ({ klucz: h.id, href: adresHasla(h.id), tytul: h.haslo, linia: RODZAJE_HASEL[h.rodzaj] ?? h.rodzaj, opis: skrocZnaczenie(h.znaczenie), zrodlo: h.zrodlo }))} />}</>}
         stronicowanie={<NawigacjaStron strona={wyn.strona} stron={wyn.stron} adres={(n) => adresFiltrow(BAZA, sp, { ustaw: { strona: String(n) } })} etykieta="strony słownika" />}
     />
 }

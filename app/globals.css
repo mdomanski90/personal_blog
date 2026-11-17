@@ -616,7 +616,7 @@ body {
 .obrzadek { display: inline-block; font-size: 0.82em; padding: 0 6px; border-radius: 5px; color: var(--kolor); box-shadow: inset 0 0 0 1px var(--kolor); white-space: nowrap; }
 .obrzadek-rzymskokatolicki { --kolor: var(--obrzadek-rzymskokatolicki); } .obrzadek-unicki { --kolor: var(--obrzadek-unicki); } .obrzadek-prawoslawny { --kolor: var(--obrzadek-prawoslawny); }
 .obrzadek-ewangelicki { --kolor: var(--obrzadek-ewangelicki); } .obrzadek-mojzeszowy { --kolor: var(--obrzadek-mojzeszowy); }
-.obrzadek--wywnioskowany { opacity: .75; }
+.obrzadek--wywnioskowany { box-shadow: none; border: 1px dashed var(--kolor); } /* P3: bez przezroczystości – kontrast tekstu jak w pastylce pewnej (axe) */
 
 .drzewo { margin: 0.5rem 0; font-size: calc(13px * var(--font-scale, 1)); border: 1px solid var(--linia-podzialu); border-radius: 8px; overflow: hidden; background: #fdfcf9; }
 .drzewo.dr-w-tabeli { margin: 0; border: 0; border-radius: 0; background: transparent; }
@@ -671,6 +671,7 @@ body {
 .drzewo .dr-t-ukryta { color: var(--tekst-etykieta); font-style: italic; }
 .drzewo .dr-t-K { background: var(--osoba-k-tlo); padding: 0 3px; border-radius: 3px; }
 .drzewo .dr-t-M { background: var(--osoba-m-tlo); padding: 0 3px; border-radius: 3px; }
+.drzewo a.dr-t-K, .drzewo a.dr-t-M { text-decoration: underline; text-underline-offset: 2px; } /* P3: odnośnik w tekście drzewa rozpoznawalny nie tylko kolorem (axe link-in-text-block) */
 @media (max-width: 640px) {
   .drzewo .dr-przewijanie, .drzewo .dr-narzedzia { display: none; }
   .drzewo .dr-tekst { display: block; padding: 10px 14px; white-space: normal; overflow-wrap: anywhere; }
@@ -903,7 +904,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .ot-e{color:#6b665c;font-size:calc(13px * var(--font-scale,1));padding-top:2px}
 .ot-t{min-width:0;overflow-wrap:anywhere}
 .ot-drobne{font-size:.88em;color:#6b665c}
-.ot-osoby{display:flex;flex-wrap:wrap;gap:4px 16px}
+.ot-osoby{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px}
 .ot-grob{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}
 .ot-grob img{height:90px;border-radius:6px;display:block;border:1px solid var(--linia-podzialu)}
 .osoba-tabela>.ot-drzewo{border-bottom:1px solid var(--linia-podzialu)}
@@ -998,9 +999,9 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .wysz-maly .wysz-lupa{width:15px;height:15px;margin-left:9px}
 .wysz-lista{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:40;border:1px solid #b9b2a5;border-radius:8px;background:#fdfcf9;box-shadow:0 8px 24px rgba(28,27,24,.12);padding:6px 0;min-width:min(22rem,90vw)}
 .wysz-lista ul{list-style:none;margin:0;padding:0}
-.wysz-lista li a{display:grid;grid-template-columns:7.5rem minmax(0,1fr);gap:12px;align-items:baseline;padding:7px 14px;color:inherit;text-decoration:none!important;font-size:calc(14px * var(--font-scale,1))}
-.wysz-lista li[aria-selected=true] a{background:var(--muted)}
-.wysz-rodzaj{font-size:calc(12px * var(--font-scale,1));color:#6b665c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wysz-lista li a{display:flex;flex-wrap:wrap;column-gap:10px;row-gap:0;align-items:baseline;padding:7px 14px;color:inherit;text-decoration:none!important;font-size:calc(14px * var(--font-scale,1))}
+.wysz-lista li a[aria-selected=true]{background:var(--muted)}
+.wysz-rodzaj{display:inline-flex;align-items:center;gap:6px;font-size:calc(12px * var(--font-scale,1));color:#6b665c;white-space:nowrap} /* SRCH-D-22: za tytułem */
 .wysz-tytul{min-width:0;overflow-wrap:anywhere}
 .wysz-traf{color:var(--link)}
 .wysz-dopisek{color:#6b665c;font-size:.9em}
@@ -1011,7 +1012,7 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dark .wysz-lista{background:#232220;border-color:#7d776c}
 .dark .wysz-rodzaj,.dark .wysz-dopisek,.dark .wysz-stopka span{color:#a8a296}
 .dark .wysz-stopka{border-color:#3b3833}
-@media (max-width:640px){.wysz-maly{max-width:none;flex-basis:100%}.wysz-lista li a{grid-template-columns:1fr;gap:0}}
+@media (max-width:640px){.wysz-maly{max-width:none;flex-basis:100%}}
 
 /* spokojna linia nad wpisem i przycisk „kopiuj link” */
 .metki-wpisu{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px}
@@ -1068,6 +1069,8 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .karta-zrodla li{list-style:decimal}
 .karta-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .karta-lista li{display:flex;flex-direction:column;gap:1px}
+.karta-lista li>.osoba-link{align-self:flex-start} /* PAR-06 (P3): pastylka osoby szerokości tekstu, nie całej kolumny */
+.karta-pastylki{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px} /* SLW-03 (P3): „słowa ze słownika” na karcie materiału */
 .karta-lista li>span{font-size:calc(13px * var(--font-scale,1));color:#6b665c}
 .karta-os{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
 .karta-os b{display:inline-block;min-width:6.5rem}
@@ -1599,6 +1602,9 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 /* P7F-2 · lista obiektów (tarcza + nazwa) – karty miejscowości i instytucji */
 .lista-obiektow{display:flex;flex-direction:column;gap:8px;margin:0 0 8px;padding:0;list-style:none}
 .lista-obiektow li{display:flex;align-items:flex-start;gap:10px;min-height:28px}
+.lo-reszta{margin:0 0 8px}
+.lo-reszta>summary{cursor:pointer;font-size:var(--rozmiar-opis);color:var(--link);margin-bottom:8px}
+.lo-reszta[open]>summary{color:var(--tekst-opis)}
 .lo-tarcza{display:inline-flex;flex:none;margin-top:1px}
 .lo-tresc{display:flex;flex-direction:column;gap:1px;min-width:0}
 .lo-dopisek{font-size:calc(13px * var(--font-scale,1));color:var(--tekst-etykieta)}
@@ -2115,6 +2121,17 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .plan-lista-litery{display:flex;flex-wrap:wrap;gap:2px}
 .lista-pochowanych{position:relative;overflow-x:auto;border:1px solid var(--linia-podzialu);border-radius:var(--promien)}
 .lista-pochowanych table{width:100%;border-collapse:collapse;min-width:760px}
+/* KRT-03 (P3): na wąskim ekranie wiersze jako bloki – bez tabeli 760 px rozpychającej stronę; etykiety z data-e, puste pola ukryte */
+@media (max-width:640px){
+  .lista-pochowanych{overflow-x:visible}
+  .lista-pochowanych table{min-width:0}
+  .lista-pochowanych thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .lista-pochowanych tbody,.lista-pochowanych tr,.lista-pochowanych td{display:block}
+  .lista-pochowanych tr{padding:10px 12px;border-bottom:1px solid var(--linia-podzialu)}
+  .lista-pochowanych td{border:0;padding:2px 0}
+  .lista-pochowanych td[data-e]:not([data-e="nazwisko i imię"])::before{content:attr(data-e) ": ";color:var(--tekst-etykieta);font-size:var(--rozmiar-drobny)}
+  .lista-pochowanych td:empty{display:none}
+}
 .lista-cichy{color:var(--tekst-opis)}
 .lista-drobne{font-size:var(--rozmiar-drobny)}
 .lista-nowrap{white-space:nowrap}
@@ -2182,16 +2199,18 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 
 /* P2 · SLW-01: słownik – siatka jednostronnych fiszek (połowa hasło, połowa wyjaśnienie), fiszka-zaproszenie z przerywaną ramką */
 .siatka-fiszek{grid-template-columns:repeat(auto-fill,minmax(min(100%,24rem),1fr))}
-.sm-fiszka-odn{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:100%}
+/* SLW-05 (P3, wg opisu makiety 17.11): lewa część 42% – hasło w akcencie z kreską 32 × 3 i rodzaj na tle sekcji; prawa – znaczenie (4 wiersze), źródło, „czytaj dalej →” */
+.sm-fiszka-odn{display:grid;grid-template-columns:minmax(0,42fr) minmax(0,58fr);height:100%}
 .sm-fiszka-haslo{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:14px;background:var(--tlo-sekcji);overflow-wrap:anywhere}
-.sm-fiszka-haslo .sm-tytul{font-size:var(--rozmiar-tresc)}
+.sm-fiszka-haslo .sm-tytul{font-size:var(--rozmiar-tresc);font-weight:700;color:var(--akcent)}
+.sm-fiszka-haslo .sm-tytul::after{content:"";display:block;width:32px;height:var(--kreska-tytulu);border-radius:2px;background:var(--akcent);margin-top:8px}
 .sm-fiszka-tresc{display:flex;flex-direction:column;gap:6px;padding:12px 14px;min-width:0}
-.sm-fiszka-znaczenie{margin:0;font-size:var(--rozmiar-opis);line-height:1.5;color:var(--tekst)}
+.sm-fiszka-znaczenie{margin:0;font-size:var(--rozmiar-opis);line-height:1.5;color:var(--tekst);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .sm-fiszka-zrodlo{text-transform:none}
 .sm-fiszka .zapowiedz-dalej{margin-top:auto;align-self:flex-end;font-weight:700;font-size:var(--rozmiar-maly);color:var(--akcent)}
 .sm-fiszka-odn:hover .zapowiedz-dalej{text-decoration:underline}
 .sm-zaproszenie{border-style:dashed}
-.sm-plus{font-size:calc(72px * var(--font-scale,1));line-height:1;color:var(--akcent);font-weight:300}
+.sm-plus{font-size:calc(72px * var(--font-scale,1));line-height:1;color:var(--akcent);font-weight:400}
 @media (max-width:640px){.sm-fiszka-odn{grid-template-columns:minmax(0,1fr)}}
 
 /* P1 · UX-06 / KIER-03: obszary dotyku 44 px wszędzie tam, gdzie wskaźnik jest palcem – nie tylko do 640 px (tablet, telefon poziomo).
@@ -2212,6 +2231,10 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
   .k-btn,.k-btn--s,.k-pole,.k-seg>a,.k-seg>button,.kopiuj-link,.pole-szukania,.wysz-maly .wysz-pole{min-height:44px}
   a.k-btn{min-width:44px}
   :root .osoby-lista a.osoba-link,:root .odp .spis-dzialow a,:root a.sd-pusty{min-height:44px}
+  /* P3: pastylki osób na kartach (rodzina, chrzestni, osoby instytucji) i podpowiedzi wyszukiwarki */
+  :root a.osoba-link,.wysz-lista li a{min-height:44px}
+  .wysz-stopka a{display:inline-flex;align-items:center;min-height:44px}
+  .drzewo .dr-narzedzia button{min-height:44px;min-width:44px} /* P3: pasek drzewa na pełnym ekranie (DRZ-01); przebudowa paska – P4 */
   :root .odp .spis-tresci li a,:root .lista-obiektow a.odn{display:flex;align-items:center;min-height:44px}
   :root .os-linia li>a,:root li>a.odn{display:inline-flex;align-items:center;min-height:44px}
   .glowna-przegladaj a,.glowna-pomoz-siatka a.odn,a.odn.w-fit,a.kl-tytul,a.font-bold{display:inline-flex;align-items:center;min-height:44px}

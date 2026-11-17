@@ -41,6 +41,8 @@ export interface MetadanePlanu {
     zrodloNumeracji?: string
     /** PH-17: styl rysunku na stronie */
     styl?: StylPlanu
+    /** KRT-01 (P3): „zgłosił(a)” – podpis za zgodą, bez e-maila */
+    zglosil?: string
 }
 
 /** Podkład wskazujący stronę materiału archiwum (jedno przechowywanie skanu i praw, K6). */
@@ -74,6 +76,7 @@ export function poprawMetadane(p: Record<string, unknown>): MetadanePlanu {
         kadr: dobryKadr(p.kadr) ? (p.kadr as [number, number, number, number]) : undefined,
         zrodloNumeracji: tekst(p.zrodloNumeracji, 500),
         styl: zListy(p.styl, STYLE_PLANU),
+        zglosil: typeof p.zglosil === 'string' && !p.zglosil.includes('@') ? tekst(p.zglosil, 200) : undefined,
     })
 }
 

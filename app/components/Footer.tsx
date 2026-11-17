@@ -2,18 +2,17 @@ import * as React from "react"
 import { Link } from 'next-view-transitions'
 import { connection } from 'next/server'
 import { miejsca } from '@/lib/archiwum'
-import { WIERSZE_STOPKI, kluczMiejsca } from '@/lib/kregi'
+import { wczytajKregi, kluczMiejsca } from '@/lib/kregi'
 
-// Miejscowości w stopce – kolejność i grupy ustalone ręcznie (lib/kregi.ts).
+// Miejscowości w stopce – kolejność i wiersze z ustawienia „Kręgi i stopka” w panelu (OPS-07, P3; domyślne w lib/kregi.ts).
 // Nazwa z własną publiczną stroną staje się linkiem (dopasowanie po nazwie, bez względu na łącznik i wielkość liter);
 // pozostałe są zwykłym tekstem, dopóki nie powstanie ich strona.
-const GRUPY = WIERSZE_STOPKI
 const klucz = kluczMiejsca
 
 async function MiejscaStopki() {
     // treści czytane przy każdym wyświetleniu, nie przy budowaniu (strony statyczne też mają stopkę)
     await connection()
-    const lista = await miejsca('publiczne')
+    const [lista, { wiersze: GRUPY }] = await Promise.all([miejsca('publiczne'), wczytajKregi()])
     const wgNazwy = new Map<string, { id: string; rodzaj: string }>()
     for (const m of lista) if (m.rodzaj !== 'gmina' && m.rodzaj !== 'kraina') wgNazwy.set(klucz(m.nazwa), { id: m.id, rodzaj: m.rodzaj })
     return (

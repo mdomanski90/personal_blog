@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { odmiana } from '@/lib/tekst'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
-import { adresKontaktowy, kontekstTresci, material, nazwy, obiekty, objasnieniaDoWidoku, podpisZrodlaMaterialu, powiazania, poziomCzytelnika } from '@/lib/archiwum'
+import { adresKontaktowy, haslaWTekscie, kontekstTresci, material, nazwy, obiekty, objasnieniaDoWidoku, podpisZrodlaMaterialu, powiazania, poziomCzytelnika } from '@/lib/archiwum'
+import { adresHasla, skrocZnaczenie } from '@/lib/slownik'
 import { brakiDoPomocy } from '@/lib/wspoltworz-dane'
 import { zadaniaMaterialu } from '@/lib/wspoltworz'
 import Zgloszenie from '../../components/Zgloszenie'
@@ -16,7 +17,7 @@ import { daneCytatu } from '@/lib/cytowanie'
 import { RAMKA, PelnaSzerokosc, Strona, Tresc, maTekst } from '../../components/Uklad'
 import { Czesc, CzescJakCytowac, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, spisCzesci } from '../../components/Karta'
 import SpisTresci from '../../components/SpisTresci'
-import { PastylkaOsoby } from '../../components/Wzorce'
+import { PastylkaFiltra, PastylkaOsoby } from '../../components/Wzorce'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import { odnosnikiInstytucji, odnosnikiOsob } from '@/lib/powiazania-karty'
 import { parafie } from '@/lib/archiwum'
@@ -92,7 +93,9 @@ export default async function MaterialStrona({ params }: Parametry) {
     const inneOdnosniki = siec.odnosniki.filter((z) => z.zrodlo.rodzaj !== 'wpis')
     const nrKat = numerKat('material', m.id)
     const jestOpis = !!nrKat || !!(m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal || m.miejscePrzechowywania || m.transkrypcja || m.zbiory.length || osobyM.length || instytucjeM.length)
-    const jestDotyczy = miejscaM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0
+    // SLW-03 (P3, decyzja 17.11): hasła słownika wykryte w opisie i transkrypcji – liczone z sieci powiązań, bez nowych pól
+    const slowa = await haslaWTekscie('material', m.id, poziom)
+    const jestDotyczy = miejscaM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0 || slowa.length > 0
     const jestWstep = maTekst(reszta)
     const spis = spisCzesci([jestOpis && 'opis archiwalny', jestDotyczy && 'dotyczy', rek && 'rekonstrukcja', ...czesciPowiazan({ odnosniki: inneOdnosniki, wzmianki: [] }), 'jak cytować', (oryginal || m.zrodla.length > 0) && 'źródła'], { wstep: jestWstep })
     const naglowek = (
@@ -157,6 +160,12 @@ export default async function MaterialStrona({ params }: Parametry) {
                 <W e={tematyM.length > 1 ? 'tematy' : 'temat'}>{tematyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyM.map((id) => ({ tekst: n.tematy.get(id), href: `/tematy/${id}` }))]} />}</W>
                 <W e="przedstawia">{obiektyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[obiektyM.map((id) => ({ tekst: nazwyObiektow.get(id), href: `/obiekty/${id}` }))]} />}</W>
                 <W e="we wpisach">{wpisyZMat.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[wpisyZMat.map((z) => ({ tekst: z.zrodlo.nazwa, href: z.zrodlo.adres }))]} />}</W>
+                <W e="słowa ze słownika">{slowa.length > 0 && (
+                    <span className="karta-pastylki">
+                        {slowa.map((h) => <PastylkaFiltra key={h.id} href={adresHasla(h.id)} title={skrocZnaczenie(h.znaczenie, 160)}>{h.haslo}</PastylkaFiltra>)}
+                        <Link href="/biblioteka/slownik" className="odn tekst-opis-maly">słownik →</Link>
+                    </span>
+                )}</W>
 
                 {rek && opisRek && (
                     <>
@@ -185,7 +194,7 @@ export default async function MaterialStrona({ params }: Parametry) {
                 )}
 
                 <Powiazania dane={{ odnosniki: inneOdnosniki, wzmianki: [] }} />
-                <CzescJakCytowac plik={m.id} dane={daneCytatu({ tytul: m.czas && !m.nazwa.includes(formatujEdtf(m.czas)) ? `${m.nazwa}, ${formatujEdtf(m.czas)}` : m.nazwa, sciezka: `/archiwum/${m.id}`, nrKat, rodzaj: 'material', opracowal: m.opracowal || undefined, autor: m.tworca || undefined, rok: m.czas?.slice(0, 4), oryginal: oryginal || undefined })} />
+                <CzescJakCytowac plik={m.id} zglosil={m.zglosil} dane={daneCytatu({ tytul: m.czas && !m.nazwa.includes(formatujEdtf(m.czas)) ? `${m.nazwa}, ${formatujEdtf(m.czas)}` : m.nazwa, sciezka: `/archiwum/${m.id}`, nrKat, rodzaj: 'material', opracowal: m.opracowal || undefined, autor: m.tworca || undefined, rok: m.czas?.slice(0, 4), oryginal: oryginal || undefined })} />
                 <Zrodla pozycje={[
                     oryginal && <>oryginał: {oryginal}</>,
                     ...m.zrodla.map((z, i) => <ZAdresami key={i} tekst={z} />),

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { TytulDzialu, WstepTekst } from '@/app/components/WstepDzialu'
 import { Link } from 'next-view-transitions'
-import { miejsca, obiekty, tematy, poziomCzytelnika, RODZAJE_OBIEKTOW, type Widocznosc } from '@/lib/archiwum'
+import { miejsca, obiekty, tematy, parafie, poziomCzytelnika, RODZAJE_OBIEKTOW, type Widocznosc } from '@/lib/archiwum'
 import FiltryKatalogu from '../components/FiltryKatalogu'
 import { NawigacjaStron, WybraneFiltry } from '../components/Wzorce'
 import { adresFiltrow, wartosc } from '@/lib/adres-filtrow'
@@ -22,13 +22,13 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
   const poziom: Widocznosc = await poziomCzytelnika()
   const f: FiltrP5 = {
     q: val(sp.q), rodzaj: val(sp.rodzaj), miejsce: val(sp.miejsce), temat: val(sp.temat),
-    obiekt: val(sp.obiekt), osoba: val(sp.osoba), zbior: val(sp.zbior),
+    obiekt: val(sp.obiekt), osoba: val(sp.osoba), zbior: val(sp.zbior), instytucja: val(sp.instytucja),
     od: rok(val(sp.od)), do: rok(val(sp.do)),
     sort: ['data_rosnaco', 'data_malejaco', 'tytul', 'dodano'].includes(val(sp.sort)) ? val(sp.sort) as FiltrP5['sort'] : undefined,
     strona: /^\d{1,5}$/.test(val(sp.strona)) ? Number(val(sp.strona)) : 1,
   }
-  const [wyn, msc, tem, obj, kol] = await Promise.all([
-    katalogP5(poziom, f), miejsca(poziom), tematy(poziom), obiekty(poziom), zbiory(poziom),
+  const [wyn, msc, tem, obj, kol, inst] = await Promise.all([
+    katalogP5(poziom, f), miejsca(poziom), tematy(poziom), obiekty(poziom), zbiory(poziom), parafie(),
   ])
   const { stanOsob } = await import('@/lib/osoby/dane')
   const { nazwaOsoby } = await import('@/lib/osoby/model')
@@ -52,9 +52,10 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
     f.osoba && { klucz: 'osoba', etykieta: nazwa(osoby, f.osoba), usun: ['osoba'] },
     f.temat && { klucz: 'temat', etykieta: nazwa(tem, f.temat), usun: ['temat'] },
     f.zbior && { klucz: 'zbior', etykieta: `zbiór: ${nazwa(kol, f.zbior)}`, usun: ['zbior'] },
+    f.instytucja && { klucz: 'instytucja', etykieta: nazwa(inst, f.instytucja), usun: ['instytucja'] },
     (f.od !== undefined || f.do !== undefined) && { klucz: 'lata', etykieta: `${f.od ?? '…'}–${f.do ?? '…'}`, usun: ['od', 'do'] },
   ].filter(Boolean) as { klucz: string; etykieta: string; usun: string[] }[]
-  const WSZYSTKIE_FILTRY = ['q', 'miejsce', 'temat', 'obiekt', 'osoba', 'zbior', 'od', 'do']
+  const WSZYSTKIE_FILTRY = ['q', 'miejsce', 'temat', 'obiekt', 'osoba', 'zbior', 'instytucja', 'od', 'do']
   const liczby = await Promise.all(DZIALY.map(([k]) => katalogP5(poziom, { rodzaj: k })))
   const wszystkich = (await katalogP5(poziom, {})).razem
   const dzialy: Dzial[] = [
@@ -69,6 +70,8 @@ export default async function Archiwum({ searchParams }: { searchParams: Promise
     spis={<SpisDzialow dzialy={dzialy} wybrany={f.rodzaj || 'wszystkie'} />}
     wstep={<p className="tekst-opis wstep-dzialu-tekst">
       <WstepTekst dzial="archiwum" domyslny={"Dokumenty, fotografie, wspomnienia, nagrania i mapy z opisem, pochodzeniem oraz powiązaniami."} />
+      {/* SLW-03 (P3, decyzja 17.11): słownik zostaje w bibliotece – z archiwum prowadzi do niego zdanie we wstępie */}
+      <span>Niezrozumiałe słowo w dokumencie? <Link href="/biblioteka/slownik" className="odn">Sprawdź w słowniku.</Link></span>
     </p>}
     panel={<FiltryKatalogu adresBazowy="/archiwum" tytul="szukaj i filtruj w archiwum"
       poczatkowe={{ q: f.q ?? '', rodzaj: f.rodzaj ?? '', miejsce: f.miejsce ?? '', temat: f.temat ?? '', obiekt: f.obiekt ?? '', osoba: f.osoba ?? '', zbior: f.zbior ?? '', od: val(sp.od), do: val(sp.do), sort: f.sort ?? '' }}

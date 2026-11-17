@@ -26,3 +26,13 @@ test('podpowiedź krótszego zapytania', () => {
     assert.equal(krotszeZapytanie('cmentarz unicki'), 'cmentarz')
     assert.equal(krotszeZapytanie('bieżeństwo'), 'bieżeństw')
 })
+
+// SRCH-D-20 (P3): nazwisko przymiotnikowe kobiety w dopełniaczu/celowniku/narzędniku
+test('SRCH-D-20: „kowalskiej”, „kowalską” znajdują „Kowalska”; „nowakowej” znajduje „Nowakowa”', () => {
+    assert.ok(p('kowalskiej', 'Anna Kowalska'))
+    assert.ok(p('kowalską', 'Anna Kowalska'))
+    assert.ok(p('kowalskiej', 'Jan Kowalski'))
+    assert.ok(p('nowakowej', 'Anna Nowakowa'))
+    assert.ok(p('kowalska', 'Anna Kowalska'))
+    assert.ok(!p('kowalskiej', 'Anna Kowalewska'), 'bez fałszywych trafień na inne nazwisko')
+})

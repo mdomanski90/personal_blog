@@ -85,7 +85,7 @@ export default async function TematStrona({ params }: Parametry) {
                     <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
                     <WierszeWystapien w={wyst} />
                     <Powiazania dane={{ odnosniki: wpisyWTekstach, wzmianki: siec.wzmianki }} />
-                    <CzescJakCytowac plik={t.id} dane={daneCytatu({ tytul: t.nazwa, sciezka: `/tematy/${t.id}`, nrKat, rodzaj: 'temat' })} />
+                    <CzescJakCytowac plik={t.id} zglosil={t.zglosil} dane={daneCytatu({ tytul: t.nazwa, sciezka: `/tematy/${t.id}`, nrKat, rodzaj: 'temat' })} />
                     <Zrodla pozycje={t.zrodla.map((z, i) => <ZAdresami key={i} tekst={z} />)} />
                 </Tabela>
             )}

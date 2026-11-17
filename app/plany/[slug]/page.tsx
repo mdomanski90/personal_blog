@@ -82,7 +82,7 @@ export default async function PlanStrona({ params }: Parametry) {
             <PrzegladarkaPlanu plan={plan} ustawienia={ustawienia} zalogowany={poziom === 'bliscy'} osoby={osoby} oPlanie={oPlanie} />
             {/* uwaga 16.11: „jak cytować” na każdej karcie, także planu */}
             <Tabela etykieta={`${plan.tytul} – jak cytować`}>
-                <CzescJakCytowac plik={plan.slug} dane={daneCytatu({ tytul: plan.tytul, sciezka: `/plany/${plan.slug}`, nrKat, rodzaj: 'plan' })} />
+                <CzescJakCytowac plik={plan.slug} zglosil={plan.zglosil} dane={daneCytatu({ tytul: plan.tytul, sciezka: `/plany/${plan.slug}`, nrKat, rodzaj: 'plan' })} />
             </Tabela>
         </Strona>
     )

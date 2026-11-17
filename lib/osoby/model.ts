@@ -102,6 +102,8 @@ export interface Osoba {
     zyje: 'auto' | 'tak' | 'nie'
     widocznosc: WidocznoscOsoby
     notatki?: string
+    /** KRT-01 (P3): „zgłosił(a)” – podpis za zgodą, bez e-maila (wartość z „@” odrzucana przy zapisie) */
+    zglosil?: string
     cytaty?: Cytat[]
     multimedia?: Multimedium[]
     znaczniki?: string[]
@@ -357,24 +359,53 @@ export function rdzenNazwiska(n: string): string {
 /** Forma żeńska nazwiska przymiotnikowego męża: Kowalski → Kowalska, Zawadzki → Zawadzka; inne nazwiska bez zmian. */
 export const formaZenskaNazwiska = (n: string): string => n.replace(/(sk|ck|dzk|zk)i$/i, (k) => k.slice(0, -1) + 'a')
 
+/** SRCH-D-20 (P3): dawna forma nazwiska żony na „-owa” – nazwiska nieprzymiotnikowe zakończone spółgłoską (Nowak → Nowakowa)
+ *  albo na „-o” (Moniuszko → Moniuszkowa). Przymiotnikowe (-ski, -cki…), zakończone na -a/-e/-i/-y/-u i już „-owa” – bez formy (null). */
+export function formaOwaNazwiska(n: string): string | null {
+    const t = n.trim()
+    if (!t || /(sk|ck|dzk|zk)i$/i.test(t) || /owa$/i.test(t)) return null
+    if (/o$/i.test(t)) return t.slice(0, -1) + 'owa'
+    if (/[aeiouyąęó]$/i.test(t)) return null
+    return t + 'owa'
+}
+
+/** Nazwiska mężów kobiety (z rodzin, w których jest żoną) – zapis męża i formy żony: żeńska przymiotnikowa albo „-owa”. */
+function mezowie(d: Drzewo, o: Pick<Osoba, 'id'>): { maz: string; formy: string[] }[] {
+    const wyn: { maz: string; formy: string[] }[] = []
+    for (const f of d.rodziny.values()) {
+        if (f.zona !== o.id || !f.maz) continue
+        const maz = d.osoby.get(f.maz)?.nazwisko?.trim()
+        if (!maz || wyn.some((x) => normalizuj(x.maz) === normalizuj(maz))) continue
+        const zenska = formaZenskaNazwiska(maz)
+        wyn.push({ maz, formy: zenska !== maz ? [zenska] : [formaOwaNazwiska(maz)].filter((x): x is string => !!x) })
+    }
+    return wyn
+}
+
 /**
  * Nazwiska kobiety po mężu, do wyszukiwarki (P2, decyzja właściciela 17.11): z każdej rodziny, w której jest żoną, nazwisko męża –
  * także gdy mąż sam jest niewidoczny dla czytelnika (widoczność dotyczy karty męża, nie nazwiska w karcie żony).
- * Pomija nazwiska już znane osobie (podstawowe i „inne nazwiska”). Zwraca zapis męża i jego formę żeńską.
+ * Pomija nazwiska już znane osobie (podstawowe i „inne nazwiska”). Zwraca formy żony (żeńską albo „-owa”, SRCH-D-20) i zapis męża.
  */
 export function nazwiskaPoMezu(d: Drzewo, o: Pick<Osoba, 'id' | 'nazwisko' | 'inneNazwiska'>): string[] {
     const znane = new Set([o.nazwisko, ...(o.inneNazwiska ?? [])].map((n) => normalizuj(n)))
     const wyn: string[] = []
-    for (const f of d.rodziny.values()) {
-        if (f.zona !== o.id || !f.maz) continue
-        const nazwisko = d.osoby.get(f.maz)?.nazwisko?.trim()
-        if (!nazwisko) continue
-        for (const n of [formaZenskaNazwiska(nazwisko), nazwisko]) {
+    for (const { maz, formy } of mezowie(d, o)) {
+        for (const n of [...formy, maz]) {
             const k = normalizuj(n)
             if (!znane.has(k)) { znane.add(k); wyn.push(n) }
         }
     }
     return wyn
+}
+
+/** SRCH-D-20: dopisek „po mężu” w wynikach – forma żony i zapis męża dosłownie, gdy się różnią: „Kowalska (Kowalski)”, „Nowakowa (Nowak)”.
+ *  Pomija męża, którego nazwisko i formy osoba już nosi (bez „po mężu: Kowalska” przy Kowalskiej z domu). */
+export function dopiskiPoMezu(d: Drzewo, o: Pick<Osoba, 'id' | 'nazwisko' | 'inneNazwiska'>): string[] {
+    const znane = new Set([o.nazwisko, ...(o.inneNazwiska ?? [])].map((n) => normalizuj(n)))
+    return mezowie(d, o)
+        .filter(({ maz, formy }) => [...formy, maz].some((n) => !znane.has(normalizuj(n))))
+        .map(({ maz, formy }) => (formy.length ? `${formy[0]} (${maz})` : maz))
 }
 
 export function nazwiskaOsoby(o: Osoba): string[] {
@@ -442,6 +473,7 @@ export function poprawOsobe(o: Partial<Osoba> & { id: string }): Osoba {
         zyje: o.zyje === 'tak' || o.zyje === 'nie' ? o.zyje : 'auto',
         widocznosc: (['publiczne', 'bliscy', 'ja'] as const).includes(o.widocznosc as never) ? (o.widocznosc as WidocznoscOsoby) : 'auto',
         ...(o.notatki ? { notatki: String(o.notatki) } : {}),
+        ...(o.zglosil && String(o.zglosil).trim() && !String(o.zglosil).includes('@') ? { zglosil: String(o.zglosil).trim().slice(0, 200) } : {}),
         ...(o.cytaty?.length ? { cytaty: o.cytaty } : {}),
         ...(o.multimedia?.length ? { multimedia: o.multimedia } : {}),
         ...(o.znaczniki?.length ? { znaczniki: o.znaczniki.map(String) } : {}),

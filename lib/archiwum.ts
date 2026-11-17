@@ -10,6 +10,7 @@ import { kluczSortowania } from './edtf'
 import { naHtml, naTekst, rozdzielZrodla, zajawka, type KontekstTresci, type MaterialWstawki } from './markdoc'
 import { RODZAJE_MATERIALOW } from './materialy'
 import { formatujEdtf, zakresIso } from './edtf'
+import { wczytajOdpornie, type BladWpisu } from './kolekcja-odporna'
 import { bezNawiasow, fragment, ODNOSNIK, slownikOdnosnikow, wzorzecWzmianek, znajdzWzmianki, type Cel, type Fragment, type PozycjaSieci, type RodzajCelu, type Rozwiaz } from './odnosniki'
 import { porownajPl } from './tekst'
 import { adresStrony, stronyMaterialu } from './strony-materialow'
@@ -79,6 +80,13 @@ export interface Miejsce {
     opis: Node | null
     /** WSP-02: pole „nie pokazuj w współtwórz” */
     bezWspoltworz: boolean
+    /** KRT-02 (P3): pochodzenie nazwy i jego źródło */
+    pochodzenieNazwy?: string
+    pochodzenieNazwyZrodlo?: string
+    /** okresy przy wyznaniach (P3): wyznania mieszkańców w kolejnych okresach – osobno od „przed 1875” */
+    wyznaniaWCzasie?: { wyznanie: string; od: number | null; do: number | null; zrodlo: string }[]
+    /** KRT-01 (P3): „zgłosił(a)” – podpis za zgodą, bez e-maila */
+    zglosil?: string
 }
 
 export interface Parafia {
@@ -91,7 +99,8 @@ export interface Parafia {
     sameAs: string | null
     opis: string
     zrodla?: string[]
-    osoby?: { nazwa: string; rola: string; okres: string; idOsoby: string }[]
+    osoby?: { nazwa: string; rola: string; okres: string; idOsoby: string; zrodlo: string }[]
+    zglosil?: string
 }
 
 /** Jedno źródło prawdy o powiązaniu obiektu z parafią/urzędem: karta obiektu. */
@@ -149,6 +158,8 @@ export interface Temat {
     dodano: string | null
     zrodla: string[]
     opis: Node | null
+    /** KRT-01 (P3): „zgłosił(a)” */
+    zglosil?: string
 }
 
 export interface Opowiesc {
@@ -201,6 +212,8 @@ export interface Obiekt {
     bezWspoltworz: boolean
     zdjecia: ZdjecieObiektu[]
     zrodla: string[]
+    /** KRT-01 (P3): „zgłosił(a)” */
+    zglosil?: string
 }
 export interface ZdjecieObiektu { plik: string; podpis: string; data: string; autor: string; prawa: string; kadr?: string }
 export { RODZAJE_MATERIALOW }
@@ -241,6 +254,8 @@ export interface Material {
     opis: Node | null
     /** WSP-02: pole „nie pokazuj w współtwórz” */
     bezWspoltworz: boolean
+    /** KRT-01 (P3): „zgłosił(a)” */
+    zglosil?: string
 }
 
 /** SRC-01: jeden kanoniczny podpis źródła materiału (pole „credit”, a gdy puste – miejsce przechowywania · sygnatura · prawa) – karta i wstawki we wpisach. */
@@ -288,6 +303,10 @@ const wszystkieMiejscaSurowe = cache(async (): Promise<Miejsce[]> => {
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             opis: entry.description?.node ?? null,
             bezWspoltworz: !!(entry as { contributeHide?: boolean }).contributeHide,
+            pochodzenieNazwy: (entry.nameOrigin ?? '').trim(),
+            pochodzenieNazwyZrodlo: (entry.nameOriginSource ?? '').trim(),
+            wyznaniaWCzasie: (entry.religionsOverTime ?? []).filter((w) => w.religion).map((w) => ({ wyznanie: w.religion, od: w.from ?? null, do: w.to ?? null, zrodlo: (w.source ?? '').trim() })),
+            zglosil: (entry.reportedBy ?? '').trim(),
         }))
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
@@ -306,8 +325,9 @@ const wszystkieParafie = cache(async (): Promise<Parafia[]> => {
             opis: entry.description ?? '',
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             osoby: (entry.people ?? []).filter((x) => x.name).map((x) => ({
-                nazwa: x.name, rola: x.role ?? '', okres: x.period ?? '', idOsoby: x.personId ?? '',
+                nazwa: x.name, rola: x.role ?? '', okres: x.period ?? '', idOsoby: x.personId ?? '', zrodlo: (x.source ?? '').trim(),
             })),
+            zglosil: (entry.reportedBy ?? '').trim(),
         }))
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
@@ -415,6 +435,7 @@ const wszystkieTematySurowe = cache(async (): Promise<Temat[]> => {
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
+            zglosil: String((entry as { reportedBy?: string }).reportedBy ?? '').trim(),
             opis: entry.description?.node ?? null,
         }))
         .sort((a, b) => porownajPl(a.nazwa, b.nazwa))
@@ -440,6 +461,7 @@ const wszystkieObiektySurowe = cache(async (): Promise<Obiekt[]> => {
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
+            zglosil: String((entry as { reportedBy?: string }).reportedBy ?? '').trim(),
             opis: entry.description?.node ?? null,
             bezWspoltworz: !!(entry as { contributeHide?: boolean }).contributeHide,
             zdjecia: (entry.photos ?? []).filter((z) => z.image).map((z) => ({ plik: String(z.image), podpis: z.caption, data: z.date, autor: z.creator, prawa: z.rights, kadr: z.focus })),
@@ -483,6 +505,7 @@ const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
+            zglosil: String((entry as { reportedBy?: string }).reportedBy ?? '').trim(),
             opis: entry.description?.node ?? null,
             bezWspoltworz: !!(entry as { contributeHide?: boolean }).contributeHide,
         }))
@@ -750,6 +773,8 @@ const pozycjeSieci = cache(async (poziom: Widocznosc): Promise<PozycjaSieci[]> =
     ...(await opowiesci(poziom)).map((o) => ({ cel: { rodzaj: 'wpis' as const, id: o.id, nazwa: o.tytul, adres: `/wpisy/${o.id}` }, nazwy: [o.tytul] })),
     ...(await materialy(poziom)).map((m) => ({ cel: { rodzaj: 'material' as const, id: m.id, nazwa: m.nazwa, adres: `/archiwum/${m.id}` }, nazwy: [m.nazwa] })),
     ...(await osobyWSieci(poziom)),
+    // SLW-03 (P3): hasła słownika – ostatnie, żeby nazwa hasła nie zasłoniła miejsca, tematu ani osoby o tej samej nazwie
+    ...(await hasla(poziom)).map((h) => ({ cel: { rodzaj: 'haslo' as const, id: h.id, nazwa: h.haslo, adres: adresHasla(h.id) }, nazwy: [h.haslo, ...h.formy] })),
 ])
 
 /** Osoby w sieci powiązań: z biogramem – z wzmiankami (pełne imię i nazwisko); pozostałe widoczne – tylko odnośnik [[identyfikator]]. */
@@ -859,7 +884,7 @@ const indeksPowiazan = cache(async (poziom: Widocznosc): Promise<Map<string, Pow
         z.ile++
         if (z.fragmenty.length < MAKS_FRAGMENTOW) z.fragmenty.push(f)
     }
-    const wzorce = pozycje.filter((p) => p.cel.rodzaj !== 'wpis' && p.cel.rodzaj !== 'material' && p.nazwy.length > 0).map((p) => ({ klucz: kluczCelu(p.cel), wzorzec: wzorzecWzmianek(p.nazwy, p.cel.rodzaj === 'temat') }))
+    const wzorce = pozycje.filter((p) => p.cel.rodzaj !== 'wpis' && p.cel.rodzaj !== 'material' && p.nazwy.length > 0).map((p) => ({ klucz: kluczCelu(p.cel), wzorzec: wzorzecWzmianek(p.nazwy, p.cel.rodzaj === 'temat' || p.cel.rodzaj === 'haslo') }))
     for (const t of teksty) {
         const wlasny = kluczCelu(t.zrodlo)
         const linie = t.tekst.split('\n')
@@ -898,6 +923,18 @@ const indeksPowiazan = cache(async (poziom: Widocznosc): Promise<Map<string, Pow
     return indeks
 })
 
+/** SLW-03 (P3): hasła słownika obecne w tekście pozycji (odnośnik [[hasło]] albo samo słowo) – wiersz „słowa ze słownika” na karcie materiału. */
+export async function haslaWTekscie(rodzaj: RodzajCelu, id: string, poziom: Widocznosc): Promise<Haslo[]> {
+    const indeks = await indeksPowiazan(poziom)
+    const klucz = `${rodzaj}:${id}`
+    const ids = new Set<string>()
+    for (const [cel, p] of indeks) {
+        if (!cel.startsWith('haslo:')) continue
+        if ([...p.odnosniki, ...p.wzmianki].some((z) => kluczCelu(z.zrodlo) === klucz)) ids.add(cel.slice('haslo:'.length))
+    }
+    return (await hasla(poziom)).filter((h) => ids.has(h.id))
+}
+
 /** Odnośniki zwrotne i wzmianki dla strony miejsca, tematu, obiektu albo wpisu. */
 export async function powiazania(rodzaj: RodzajCelu, id: string, poziom: Widocznosc): Promise<Powiazania> {
     return (await indeksPowiazan(poziom)).get(`${rodzaj}:${id}`) ?? { odnosniki: [], wzmianki: [] }
@@ -921,7 +958,7 @@ export async function dokumentySzukania(poziom: Widocznosc): Promise<DokumentSzu
     }
     // osoby: tylko te, które czytelnik może zobaczyć; imię i nazwisko, inne nazwiska i zapisy, przydomek
     const { stanOsob } = await import('./osoby/dane')
-    const { nazwaOsoby, lataZycia, zdarzenie, nazwiskaPoMezu, formaZenskaNazwiska } = await import('./osoby/model')
+    const { nazwaOsoby, lataZycia, zdarzenie, nazwiskaPoMezu, dopiskiPoMezu } = await import('./osoby/model')
     const s = await stanOsob()
     const rozwiaz = slownikOdnosnikow(await pozycjeSieci(poziom))
     const bio = new Map((await biogramy(poziom)).map((b) => [b.id, bezNawiasow(b.lead, rozwiaz)]))
@@ -930,10 +967,10 @@ export async function dokumentySzukania(poziom: Widocznosc): Promise<DokumentSzu
         // nazwisko po mężu (P2, decyzja 17.11): także gdy mąż jest niewidoczny – ukryta jest jego karta, nie nazwisko żony
         const poMezu = nazwiskaPoMezu(s.drzewo, o)
         const nazwy = [nazwaOsoby(o), `${o.imiona} ${o.nazwisko}`, ...(o.inneNazwiska ?? []).map((n) => `${o.imiona} ${n}`), ...poMezu.map((n) => `${o.imiona} ${n}`), ...(o.inneZapisy ?? []), ...(o.przydomek ? [o.przydomek] : [])]
-        const poMezuZenskie = [...new Set(poMezu.map(formaZenskaNazwiska))]
+        const poMezuDopisek = dopiskiPoMezu(s.drzewo, o) // SRCH-D-20: „Kowalska (Kowalski)”, „Nowakowa (Nowak)”
         const miejsce = zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce?.split(',')[0] ?? ''
         dok.push({ rodzaj: 'osoba', etykieta: 'osoba', id: o.id, tytul: nazwaOsoby(o), adres: `/osoby/${o.id}`, nazwy, tekst: bio.get(o.id) ?? '', stalyFragment: true,
-            fragment: [lataZycia(o), miejsce, o.przydomek && `„${o.przydomek}”`, poMezuZenskie.length > 0 && `po mężu: ${poMezuZenskie.join(', ')}`, bio.get(o.id)].filter(Boolean).join(' · ') })
+            fragment: [lataZycia(o), miejsce, o.przydomek && `„${o.przydomek}”`, poMezuDopisek.length > 0 && `po mężu: ${poMezuDopisek.join(', ')}`, bio.get(o.id)].filter(Boolean).join(' · ') })
     }
     const obj = await obiekty(poziom)
     for (const o of obj) {
@@ -1044,19 +1081,36 @@ export async function tenDzien(poziom: Widocznosc, miesiac: number, dzien: numbe
 
 // ---------- słownik ----------
 export { RODZAJE_HASEL } from './biblioteka'
-export interface Haslo { id: string; haslo: string; rodzaj: string; znaczenie: string; przyklad: string; zrodlo: string; formy: string[]; widocznosc: Widocznosc }
+export interface Haslo {
+    id: string; haslo: string; rodzaj: string; znaczenie: string; przyklad: string; zrodlo: string; formy: string[]; widocznosc: Widocznosc
+    /** SLW-02 (P3) */
+    etymologia?: string; wystepowanie?: string[]; zobaczTez?: string[]; opracowal?: string; dataOpracowania?: string | null; zglosil?: string
+}
+
+type WpisHasla = Record<string, unknown>
+/** SLW-04 (P3): kolekcja haseł czytana wpis po wpisie – błędny wpis pomijany (i zgłaszany w panelu jakości), reszta słownika działa. */
+const odczytHasel = cache(async () => {
+    const r = reader as unknown as { collections: { hasla?: { list: () => Promise<string[]>; read: (s: string) => Promise<WpisHasla | null> } } }
+    if (!r.collections.hasla) return { wpisy: [] as { slug: string; entry: WpisHasla }[], bledy: [] as BladWpisu[] }
+    return wczytajOdpornie(r.collections.hasla)
+})
 
 const wszystkieHasla = cache(async (): Promise<Haslo[]> => {
-    const r = reader as unknown as { collections: { hasla?: { all: () => Promise<{ slug: string; entry: Record<string, unknown> }[]> } } }
-    if (!r.collections.hasla) return []
-    const wpisy = await r.collections.hasla.all().catch(() => [])
-    return wpisy
+    const lista = (v: unknown) => (Array.isArray(v) ? (v as unknown[]).map(String).filter(Boolean) : [])
+    return (await odczytHasel()).wpisy
         .map(({ slug, entry }) => ({
             id: slug, haslo: String(entry.title ?? slug), rodzaj: String(entry.kind ?? 'pojecie'), znaczenie: String(entry.meaning ?? ''), przyklad: String(entry.example ?? ''),
-            zrodlo: String(entry.source ?? ''), formy: Array.isArray(entry.variants) ? (entry.variants as string[]) : [], widocznosc: (entry.visibility as Widocznosc) ?? 'publiczne',
+            zrodlo: String(entry.source ?? ''), formy: lista(entry.variants), widocznosc: (entry.visibility as Widocznosc) ?? 'publiczne',
+            etymologia: String(entry.etymology ?? '').trim(), wystepowanie: lista(entry.occurrence), zobaczTez: lista(entry.seeAlso),
+            opracowal: String(entry.contributor ?? '').trim(), dataOpracowania: typeof entry.contributed === 'string' ? entry.contributed : null, zglosil: String(entry.reportedBy ?? '').trim(),
         }))
         .sort((a, b) => porownajPl(a.haslo, b.haslo))
 })
+
+/** SLW-04: wpisy słownika, których nie da się odczytać (do panelu jakości). */
+export async function bledyHasel(): Promise<BladWpisu[]> {
+    return (await odczytHasel()).bledy
+}
 
 export async function hasla(poziom: Widocznosc): Promise<Haslo[]> {
     return (await wszystkieHasla()).filter((h) => widoczne(h.widocznosc, poziom))

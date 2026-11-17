@@ -4,7 +4,8 @@
 
 import { normalizuj } from './tekst'
 
-const KONCOWKI = ['owie', 'ami', 'ach', 'ami', 'owi', 'ego', 'emu', 'ich', 'ych', 'imi', 'ymi', 'iem', 'om', 'ow', 'ie', 'em', 'ej', 'im', 'ym', 'a', 'e', 'i', 'o', 'u', 'y']
+// 'iej' (P3, SRCH-D-20): dopełniacz/celownik przymiotnikowych nazwisk kobiet – „kowalskiej” → „kowalsk-” (Kowalska, Kowalski)
+const KONCOWKI = ['owie', 'iej', 'ami', 'ach', 'ami', 'owi', 'ego', 'emu', 'ich', 'ych', 'imi', 'ymi', 'iem', 'om', 'ow', 'ie', 'em', 'ej', 'im', 'ym', 'a', 'e', 'i', 'o', 'u', 'y']
 // oboczności spółgłosek na końcu rdzenia (po normalizacji: bez polskich znaków)
 const OBOCZNOSCI: [string, string[]][] = [['ch', ['sz']], ['k', ['c', 'cz']], ['g', ['dz', 'z']], ['r', ['rz']], ['t', ['ci', 'c']], ['d', ['dzi', 'dz']], ['l', ['l']], ['s', ['si', 's']], ['z', ['zi']], ['n', ['ni']], ['w', ['wi']], ['m', ['mi']], ['p', ['pi']], ['b', ['bi']]]
 

@@ -125,3 +125,18 @@ test('CAT-07: lata księgi, których nie da się odczytać (np. „lata 30.”, 
         assert.equal(new Set(zla.map((x) => x.id)).size, 3, 'każda uwaga ma własny identyfikator (trwałe ignorowanie osobno)')
     } finally { process.chdir(przed); await fs.rm(tmp, { recursive: true, force: true }) }
 })
+
+test('SLW-04 (P3): błędny wpis słownika widoczny w panelu jakości (dawniej pomijany po cichu)', async () => {
+    const przed = process.cwd()
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'odniepamieci-slw04-'))
+    try {
+        process.chdir(tmp)
+        await fs.mkdir('content/hasla', { recursive: true })
+        await fs.writeFile('content/hasla/arenda.yaml', 'title: arenda\nkind: pojecie\nmeaning: Dzierżawa.\n')
+        await fs.writeFile('content/hasla/żarna.yaml', 'title: żarna\nkind: pojecie\nmeaning: Młynek.\n')
+        await fs.writeFile('content/hasla/zly.yaml', 'title: zly\nkind: nieznany\nmeaning: x\n')
+        const w = (await uwagiJakosci()).filter((u) => u.regula === 'wpis-nieczytelny')
+        assert.deepEqual(w.map((u) => u.rekord).sort(), ['zly', 'żarna.yaml'])
+        assert.ok(w.every((u) => u.kolekcja === 'hasla'))
+    } finally { process.chdir(przed); await fs.rm(tmp, { recursive: true, force: true }) }
+})

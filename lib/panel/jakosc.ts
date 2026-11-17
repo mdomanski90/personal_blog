@@ -30,7 +30,9 @@ const REGULY = [
     // CAT-07: lata księgi lub tomu zapisane tak, że katalog ich nie odczyta (np. „lata 30.”) – księga wypada z filtra lat
     'nieodczytane-lata',
     // WSP-02 (etap R): braki pokazywane publicznie w „współtwórz” – jedna definicja w lib/wspoltworz-reguly.ts
-    'brak-transkrypcji', 'brak-tlumaczenia', 'zdjecie-do-rozpoznania', 'brak-zdjecia-obiektu'
+    'brak-transkrypcji', 'brak-tlumaczenia', 'zdjecie-do-rozpoznania', 'brak-zdjecia-obiektu',
+    // SLW-04 (P3): wpis, którego strona nie odczyta (zły identyfikator pliku, błąd składni, wartość spoza listy) – dawniej pomijany po cichu
+    'wpis-nieczytelny'
 ] as const
 const KOLEKCJE = ['posts', 'miejsca', 'tematy', 'obiekty', 'materialy', 'zbiory', 'publikacje', 'parafie', 'hasla', 'biogramy', 'zespoly', 'ksiegi'] as const
 const DB = () => path.join(process.cwd(), 'content', '_panel', 'jakosc.json')
@@ -59,7 +61,7 @@ async function pamiec(): Promise<Pamiec> {
     return { wersja: 1, decyzje: {} }
 }
 
-async function rekordy(kolekcja: typeof KOLEKCJE[number]): Promise<{ slug: string; d: Record<string, unknown>; tekst: string }[]> {
+async function rekordy(kolekcja: typeof KOLEKCJE[number], pominiete: { plik: string; powod: string }[] = []): Promise<{ slug: string; d: Record<string, unknown>; tekst: string }[]> {
     const folder = path.join(base(), kolekcja)
     let files: string[]
     try { files = await fs.readdir(folder) } catch (e) {
@@ -70,7 +72,7 @@ async function rekordy(kolekcja: typeof KOLEKCJE[number]): Promise<{ slug: strin
     for (const file of files.slice(0, 30000)) {
         if (!/\.(mdoc|yaml|yml|json)$/.test(file)) continue
         const slug = file.replace(/\.(mdoc|yaml|yml|json)$/, '')
-        if (!prawidloweId(slug)) continue
+        if (!prawidloweId(slug)) { pominiete.push({ plik: file, powod: 'identyfikator (nazwa pliku) z polskimi znakami, wielkimi literami lub spacją' }); continue }
         const f = path.join(/*turbopackIgnore: true*/ folder, file)
         const st = await fs.stat(f)
         if (!st.isFile() || st.size > 2_000_000) continue
@@ -80,7 +82,7 @@ async function rekordy(kolekcja: typeof KOLEKCJE[number]): Promise<{ slug: strin
             if (file.endsWith('.json')) d = JSON.parse(content) as Record<string, unknown>
             else if (file.endsWith('.mdoc')) { const m = matter(content); d = m.data as Record<string, unknown>; tekst = m.content.trim() }
             else d = matter(`---\n${content}\n---\n`).data as Record<string, unknown>
-        } catch { continue /* nie zmieniaj ani nie zgaduj błędnych danych */ }
+        } catch { pominiete.push({ plik: file, powod: 'błąd zapisu pliku (składnia)' }); continue /* nie zmieniaj ani nie zgaduj błędnych danych */ }
         result.push({ slug, d, tekst })
     }
     return result
@@ -98,9 +100,11 @@ export const POWIAZANIA: Record<string, [string, string][]> = {
     materialy: [['spatial[]', 'miejsca'], ['subject[]', 'tematy'], ['relation[]', 'obiekty'], ['collections[]', 'zbiory'], ['institutions[]', 'parafie']],
     publikacje: [['spatial[]', 'miejsca'], ['subject[]', 'tematy']],
     parafie: [['seat', 'miejsca']],
+    // SLW-02 (P3)
+    hasla: [['occurrence[]', 'miejsca'], ['seeAlso[]', 'hasla']],
     ksiegi: [['fonds', 'zespoly'], ['parish', 'parafie'], ['relatedParishes[]', 'parafie'], ['spatial[]', 'miejsca']],
 }
-const NAZWY_POL: Record<string, string> = { spatial: 'miejsca', spatialAlso: 'także w miejscowościach', subject: 'tematy', cover: 'miniatura', isPartOf: 'należy do', parishes: 'parafie', institutions: 'instytucje', relation: 'przedstawia obiekty', collections: 'zbiory', seat: 'siedziba', fonds: 'zespół', parish: 'instytucja główna', relatedParishes: 'pozostałe instytucje' }
+const NAZWY_POL: Record<string, string> = { spatial: 'miejsca', spatialAlso: 'także w miejscowościach', subject: 'tematy', cover: 'miniatura', isPartOf: 'należy do', parishes: 'parafie', institutions: 'instytucje', relation: 'przedstawia obiekty', collections: 'zbiory', seat: 'siedziba', occurrence: 'występowanie', seeAlso: 'zobacz też', fonds: 'zespół', parish: 'instytucja główna', relatedParishes: 'pozostałe instytucje' }
 const KOLEKCJA_RODZAJU: Record<string, string> = { miejsca: 'miejsca', parafie: 'parafie', obiekty: 'obiekty', tematy: 'tematy', wpisy: 'posts', archiwum: 'materialy' }
 const RODZAJ_KOLEKCJI: Record<string, string> = Object.fromEntries(Object.entries(KOLEKCJA_RODZAJU).map(([r, k]) => [k, r]))
 
@@ -117,7 +121,23 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
     const stany = await pamiec()
     const wynik: UwagaJakosci[] = []
     const wszystkie = new Map<string, Awaited<ReturnType<typeof rekordy>>>()
-    for (const k of KOLEKCJE) wszystkie.set(k, await rekordy(k))
+    const nieczytelne = new Map<string, { plik: string; powod: string }[]>()
+    for (const k of KOLEKCJE) { const pom: { plik: string; powod: string }[] = []; wszystkie.set(k, await rekordy(k, pom)); nieczytelne.set(k, pom) }
+    // SLW-04 (P3): słownik – także walidacja pól tak jak przy czytaniu strony (np. rodzaj spoza listy)
+    try {
+        const { createReader } = await import('@keystatic/core/reader')
+        const { wczytajOdpornie } = await import('../kolekcja-odporna')
+        const cfg = (await import('../../keystatic.config')).default
+        const r = createReader(process.cwd(), cfg) as unknown as { collections: { hasla: { list: () => Promise<string[]>; read: (s: string) => Promise<unknown> } } }
+        for (const b of (await wczytajOdpornie(r.collections.hasla)).bledy) if (prawidloweId(b.slug)) nieczytelne.get('hasla')!.push({ plik: b.slug, powod: b.blad.replace(/^Error:\s*/, '').slice(0, 200) })
+    } catch { /* brak kolekcji albo konfiguracji – bez dodatkowej kontroli */ }
+    for (const [kolekcja, lista] of nieczytelne) lista.forEach((x, i) => {
+        const id = key(kolekcja, x.plik, 'wpis-nieczytelny', i)
+        const dec = stany.decyzje[id]
+        wynik.push({ id, kolekcja, rekord: x.plik, tytul: x.plik, regula: 'wpis-nieczytelny', opis: `Wpis pominięty na stronie: ${x.powod}`,
+            wskazowka: kolekcja === 'hasla' ? 'Popraw wpis (identyfikator tylko małe litery bez polskich znaków, cyfry i łącznik; pola z listy). Pozostałe hasła słownika działają normalnie.' : 'Popraw nazwę pliku albo zawartość wpisu – do tego czasu strona go nie pokazuje.',
+            edytuj: `/keystatic/collection/${kolekcja}`, stan: dec?.stan ?? 'aktywne', notatka: dec?.notatka ?? '' })
+    })
     const istnieje = new Map([...wszystkie].map(([k, l]) => [k, new Set(l.map((r) => r.slug))]))
     const przekierowania = await wczytajPrzekierowania()
     for (const kolekcja of KOLEKCJE) {
@@ -271,9 +291,9 @@ export const kluczCelu = (t: string) => normalizuj(t.replace(PRZYIMEK, '').trim(
 function kluczeCelow(wszystkie: Map<string, { slug: string; d: Record<string, unknown> }[]>, osoby: { id: string; nazwa: string }[]): Set<string> {
     const k = new Set<string>()
     const dodaj = (t: unknown) => { if (typeof t === 'string' && t.trim()) k.add(kluczCelu(t)) }
-    for (const kol of ['miejsca', 'tematy', 'obiekty', 'posts', 'materialy']) for (const r of wszystkie.get(kol) ?? []) {
+    for (const kol of ['miejsca', 'tematy', 'obiekty', 'posts', 'materialy', 'hasla' /* SLW-03 (P3) */]) for (const r of wszystkie.get(kol) ?? []) {
         dodaj(r.slug); dodaj(nazwa(r.d.title)); dodaj(nazwa(r.d.name))
-        for (const pole of ['alternative', 'inflections']) if (Array.isArray(r.d[pole])) (r.d[pole] as unknown[]).forEach(dodaj)
+        for (const pole of ['alternative', 'inflections', 'variants']) if (Array.isArray(r.d[pole])) (r.d[pole] as unknown[]).forEach(dodaj)
     }
     for (const o of osoby) { dodaj(o.id); dodaj(o.nazwa) }
     return k

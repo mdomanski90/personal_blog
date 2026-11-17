@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { miejscowosciInstytucji, obiektyInstytucji, ksiegiInstytucji, zapiszOkres } from './parafie-powiazania'
+import { miejscowosciInstytucji, obiektyInstytucji, ksiegiInstytucji, zapiszOkres, osobyInstytucjiDlaCzytelnika, funkcjeOsoby } from './parafie-powiazania'
 
 test('własne okresy przynależności miejscowości nie pochodzą z lat ksiąg ani istnienia instytucji', () => {
     const miejscowosci = miejscowosciInstytucji('p', [
@@ -43,4 +43,22 @@ test('księga z wieloma instytucjami jest liczona raz i respektuje starsze pole 
     const k = [{ id: 'tom', instytucje: ['p', 'q'], parafia: 'p' }, { id: 'stary', instytucje: [], parafia: 'p' }]
     assert.deepEqual(ksiegiInstytucji('p', k).map((v) => v.id), ['tom', 'stary'])
     assert.deepEqual(ksiegiInstytucji('q', k).map((v) => v.id), ['tom'])
+})
+
+// PAR-06 / PPL-04 / PPL-05 (P3): osoby instytucji – odnośnik tylko do karty widocznej dla czytelnika, źródło związku; „funkcje” na karcie osoby
+test('PAR-06: osoba instytucji – odnośnik tylko do karty widocznej dla czytelnika; źródło związku zostaje', () => {
+    const lista = osobyInstytucjiDlaCzytelnika([
+        { nazwa: 'Jan', rola: 'organista', okres: '1880–1910', idOsoby: 'os-jan', zrodlo: 'Schematyzm 1900' },
+        { nazwa: 'Karol', rola: 'proboszcz', okres: '', idOsoby: 'os-ukryty', zrodlo: '' },
+        { nazwa: 'Bez karty', rola: '', okres: '', idOsoby: '', zrodlo: '' },
+    ], (id) => id === 'os-jan')
+    assert.deepEqual(lista.map((o) => o.href ?? null), ['/osoby/os-jan', null, null])
+    assert.equal(lista[0].zrodlo, 'Schematyzm 1900')
+})
+test('PPL-04/05: funkcje osoby z wielu instytucji – rola, okres, źródło; wyznanie z instytucji (nie osobiste)', () => {
+    const f = funkcjeOsoby('os-jan', [
+        { id: 'p1', nazwa: 'parafia Testowo', wyznanie: 'rzymskokatolicka', osoby: [{ nazwa: 'Jan', rola: 'organista', okres: '1880–1910', idOsoby: 'os-jan', zrodlo: 'S1' }] },
+        { id: 'p2', nazwa: 'urząd gminy', wyznanie: 'urzad', osoby: [{ nazwa: 'Jan', rola: 'wójt', okres: '1912', idOsoby: 'os-jan', zrodlo: '' }, { nazwa: 'Inny', rola: 'pisarz', okres: '', idOsoby: 'os-inny', zrodlo: '' }] },
+    ])
+    assert.deepEqual(f.map((x) => [x.rola, x.instytucja.id, x.okres, x.zrodlo, x.instytucja.wyznanie]), [['organista', 'p1', '1880–1910', 'S1', 'rzymskokatolicka'], ['wójt', 'p2', '1912', '', 'urzad']])
 })

@@ -60,3 +60,18 @@ export default function Powiazania({ dane }: { dane: DanePowiazan }) {
         </>
     )
 }
+
+export const TYTUL_WYSTEPUJE = 'występuje w'
+
+/** SLW-02/03 (P3): strona hasła – „występuje w”: teksty z odnośnikiem [[hasło]] i teksty, w których słowo pada (oba rodzaje razem –
+ *  dla słownika każde użycie słowa jest istotne), każdy z fragmentem. Część tabeli karty, przed „jak cytować”. */
+export function WystepujeW({ dane }: { dane: DanePowiazan }) {
+    const zrodla = [...dane.odnosniki, ...dane.wzmianki.filter((w) => !dane.odnosniki.some((o) => o.zrodlo.rodzaj === w.zrodlo.rodzaj && o.zrodlo.id === w.zrodlo.id))]
+    if (!zrodla.length) return null
+    return (
+        <>
+            <Czesc tytul={TYTUL_WYSTEPUJE}>{odmiana(zrodla.length, ['tekst', 'teksty', 'tekstów'])}</Czesc>
+            <WCaly><Pozycje zrodla={zrodla} wyroznienie="wzmianka" /></WCaly>
+        </>
+    )
+}

@@ -39,7 +39,8 @@ async function main() {
     const klucz = (c: Cel) => `${c.rodzaj}:${c.id}`
     // jak zapisać cel w odnośniku: nazwa, a gdy nazwa prowadzi gdzie indziej – identyfikator
     const zapis = (c: Cel) => (rozwiaz(c.nazwa) === c ? c.nazwa : c.id)
-    const wzorce = pozycje.filter((p) => p.cel.rodzaj !== 'wpis').map((p) => ({ cel: p.cel, wzorzec: wzorzecWzmianek(p.nazwy, p.cel.rodzaj === 'temat') }))
+    // hasła słownika (P3) pomijamy: zwykłe słowa w tekstach rozpoznaje sieć powiązań bez [[…]] – „połącz” zamieniałby je masowo
+    const wzorce = pozycje.filter((p) => p.cel.rodzaj !== 'wpis' && p.cel.rodzaj !== 'haslo').map((p) => ({ cel: p.cel, wzorzec: wzorzecWzmianek(p.nazwy, p.cel.rodzaj === 'temat') }))
 
     let ileWzmianek = 0
     let ilePolaczonych = 0

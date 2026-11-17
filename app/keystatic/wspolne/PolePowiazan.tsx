@@ -4,7 +4,7 @@
 import * as React from 'react'
 
 export type CelPowiazania = { id: string; nazwa: string; rodzaj: string }
-export const RODZAJE_CELU: Record<string, string> = { miejsce: 'miejsce', temat: 'temat', obiekt: 'obiekt', wpis: 'wpis', material: 'materiał', osoba: 'osoba' }
+export const RODZAJE_CELU: Record<string, string> = { miejsce: 'miejsce', temat: 'temat', obiekt: 'obiekt', wpis: 'wpis', material: 'materiał', osoba: 'osoba', haslo: 'hasło słownika' }
 
 export default function PolePowiazan({ wartosc, cele, zmien, etykieta = 'powiązania – osoby, miejsca, tematy, obiekty', idListy, klasaPola = 'pn-in', klasaZnacznika = 'pn-tag', klasaOpisu = 'pn-maly' }: {
     wartosc: string[]; cele: CelPowiazania[]; zmien: (v: string[]) => void; etykieta?: string; idListy: string

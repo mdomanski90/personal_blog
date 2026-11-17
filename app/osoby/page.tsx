@@ -3,7 +3,7 @@ import { TytulDzialu, WstepDzialu, WstepTekst } from '@/app/components/WstepDzia
 import ListaOsob, { type KragNaLiscie, type OsobaNaLiscie } from './ListaOsob'
 import { Link } from 'next-view-transitions'
 import { biogramy, miejsca, poziomCzytelnika, rozwiazOdnosniki, widoczne } from '@/lib/archiwum'
-import { KREGI, kluczMiejsca } from '@/lib/kregi'
+import { wczytajKregi, kluczMiejsca } from '@/lib/kregi'
 import { bezNawiasow } from '@/lib/odnosniki'
 import { stanOsob } from '@/lib/osoby/dane'
 import { lataZycia, nazwaOsobyKatalog, zdarzenie, type Osoba } from '@/lib/osoby/model'
@@ -26,7 +26,7 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
     const ukryte = s.drzewo.osoby.size - wszystkie.length
     // kręgi: osoba należy do kręgu, gdy którekolwiek jej zdarzenie (także ślub) miało miejsce w jednej z jego wsi
     const msc = await miejsca('ja')
-    const kregi = KREGI.map((k) => {
+    const kregi = (await wczytajKregi()).kregi.map((k) => {
         const nazwy = new Set(k.miejsca.map(kluczMiejsca))
         return { ...k, nazwy, ids: new Set(msc.filter((m) => nazwy.has(kluczMiejsca(m.nazwa))).map((m) => m.id)) }
     })

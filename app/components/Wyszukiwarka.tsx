@@ -8,8 +8,11 @@
 import * as React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Link } from 'next-view-transitions'
+import { rodzinaRodzaju } from '@/lib/rodziny-wynikow'
+import { MAKS_PODPOWIEDZI, PODPOWIEDZI_WASKI } from '@/lib/podpowiedzi'
+import type { RodzajWyniku } from '@/lib/indeks-szukania'
 
-interface Podpowiedz { rodzaj: string; etykieta: string; tytul: string; adres: string; dopisek?: string }
+interface Podpowiedz { rodzaj: RodzajWyniku; etykieta: string; tytul: string; adres: string; dopisek?: string }
 
 // litera po literze bez znaków diakrytycznych (ł → l), żeby pozycje w tekście się zgadzały
 const zwykla = (c: string) => (c === 'ł' || c === 'Ł' ? 'l' : c.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().charAt(0) || c)
@@ -45,7 +48,9 @@ export default function Wyszukiwarka({ wariant = 'maly' }: { wariant?: 'duzy' | 
         if (z.length < 2) { ustawListe(null); return }
         const ac = new AbortController()
         const t = window.setTimeout(() => {
-            fetch(`/api/podpowiedzi?q=${encodeURIComponent(z)}`, { signal: ac.signal })
+            // SRCH-D-21 (P3): do 8 podpowiedzi, na wąskim ekranie (≤640 px) do 5
+            const limit = window.matchMedia('(max-width: 640px)').matches ? PODPOWIEDZI_WASKI : MAKS_PODPOWIEDZI
+            fetch(`/api/podpowiedzi?q=${encodeURIComponent(z)}&limit=${limit}`, { signal: ac.signal })
                 .then((r) => (r.ok ? r.json() : null))
                 .then((d) => { if (d) { ustawListe(d); ustawWybrana(-1) } })
                 .catch(() => { /* przerwane albo brak sieci – bez podpowiedzi */ })
@@ -100,10 +105,12 @@ export default function Wyszukiwarka({ wariant = 'maly' }: { wariant?: 'duzy' | 
                     {wyniki.length > 0 ? (
                         <ul id={`${id}-lista`} role="listbox" aria-label="podpowiedzi">
                             {wyniki.map((w, i) => (
-                                <li key={`${w.rodzaj}:${w.adres}`} id={`${id}-${i}`} role="option" aria-selected={i === wybrana} onMouseEnter={() => ustawWybrana(i)}>
-                                    <Link href={w.adres} tabIndex={-1} onClick={() => ustawOtwarta(false)}>
-                                        <span className="wysz-rodzaj">{w.etykieta}</span>
+                                // P3 (axe nested-interactive): opcją listy jest sam odnośnik (role=option), element listy bez roli
+                                <li key={`${w.rodzaj}:${w.adres}`} role="none">
+                                    <Link href={w.adres} id={`${id}-${i}`} role="option" aria-selected={i === wybrana} tabIndex={-1} onMouseEnter={() => ustawWybrana(i)} onClick={() => ustawOtwarta(false)}>
+                                        {/* SRCH-D-22: rodzaj za tytułem, jak na /szukaj */}
                                         <span className="wysz-tytul"><Wyrozniony tekst={w.tytul} q={q} />{w.dopisek && <span className="wysz-dopisek"> · {w.dopisek}</span>}</span>
+                                        <span className="wysz-rodzaj"><span className={`szukaj-znak szukaj-znak--${rodzinaRodzaju(w.rodzaj)}`} aria-hidden="true" />{w.etykieta}</span>
                                     </Link>
                                 </li>
                             ))}

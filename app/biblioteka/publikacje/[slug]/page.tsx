@@ -43,7 +43,7 @@ export default async function Publikacja({ params }: P) {
         {(miejscaP.length > 0 || tematyP.length > 0) && <Czesc tytul="powiązane" />}
         <W e="miejsca">{miejscaP.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaP.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
         <W e="tematy">{tematyP.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyP.map((id) => ({ tekst: n.tematy.get(id), href: `/tematy/${id}` }))]} />}</W>
-        <CzescJakCytowac plik={p.id} dane={daneCytatu({ tytul: p.nazwa, sciezka: `/biblioteka/publikacje/${p.id}`, nrKat, rodzaj: 'publikacja', autor: p.autor || undefined, rok: p.rok ? String(p.rok) : undefined })} />
+        <CzescJakCytowac plik={p.id} zglosil={p.zglosil} dane={daneCytatu({ tytul: p.nazwa, sciezka: `/biblioteka/publikacje/${p.id}`, nrKat, rodzaj: 'publikacja', autor: p.autor || undefined, rok: p.rok ? String(p.rok) : undefined })} />
       </Tabela>
       <ZglosPoprawke adres={`/biblioteka/publikacje/${p.id}`} tytul={p.nazwa} pytanie="Znasz inne wydanie, egzemplarz albo wersję cyfrową?" />
     </Strona>

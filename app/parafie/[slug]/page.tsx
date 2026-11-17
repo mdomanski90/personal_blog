@@ -4,10 +4,13 @@ import type { Metadata } from 'next'
 import { Link } from 'next-view-transitions'
 import { ksiegi, miejsca, obiekty, parafie, poziomCzytelnika, RODZAJE_OBIEKTOW, materialy } from '@/lib/archiwum' // PACZKA5_2026
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
-import { miejscowosciInstytucji, obiektyInstytucji, ksiegiInstytucji, zapiszOkres } from '@/lib/parafie-powiazania'
+import { miejscowosciInstytucji, obiektyInstytucji, ksiegiInstytucji, zapiszOkres, osobyInstytucjiDlaCzytelnika } from '@/lib/parafie-powiazania'
+import { stanOsob } from '@/lib/osoby/dane'
+import { widoczne } from '@/lib/archiwum'
+import { PastylkaOsoby } from '@/app/components/Wzorce'
 import { formatujEdtf } from '@/lib/edtf'
 import { Sekcja, Strona } from '../../components/Uklad'
-import { Czesc, CzescJakCytowac, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
@@ -41,7 +44,10 @@ export default async function ParafiaStrona({ params }: Parametry) {
     const spisKsieg = ksiegiInstytucji(p.id, wszystkieKsiegi)
     const nazwyMiejsc = Object.fromEntries(wszystkieMiejsca.map((m) => [m.id, m.nazwa]))
     const wyznanie = WYZNANIA_PARAFII[p.wyznanie] ?? p.wyznanie
-    const osobyInstytucji = p.osoby ?? []
+    // PAR-06 (P3, zasada 1.5): odnośnik tylko do karty widocznej dla czytelnika
+    const stan = await stanOsob()
+    const osobyInstytucji = osobyInstytucjiDlaCzytelnika(p.osoby ?? [], (id) => stan.drzewo.osoby.has(id) && widoczne(stan.widocznosc(id), poziom))
+    const plecOsoby = (id: string) => stan.drzewo.osoby.get(id)?.plec
     const zrodlaInstytucji = p.zrodla ?? []
     const nrKat = numerKat('instytucja', p.id)
     const lead = p.opis ? `${p.opis.replace(/\s+/g, ' ').slice(0, 240)}${p.opis.length > 240 ? '…' : ''}` : ''
@@ -92,14 +98,21 @@ export default async function ParafiaStrona({ params }: Parametry) {
                 {osobyInstytucji.length > 0 && <WCaly>
                     <ul className="karta-lista">
                         {osobyInstytucji.map((o, i) => <li key={`${o.nazwa}-${i}`}>
-                            {o.idOsoby ? <Link href={`/osoby/${encodeURIComponent(o.idOsoby)}`} className="odn">{o.nazwa}</Link> : <span>{o.nazwa}</span>}
+                            {o.href ? <PastylkaOsoby href={o.href} plec={plecOsoby(o.idOsoby)}>{o.nazwa}</PastylkaOsoby> : <span>{o.nazwa}</span>}
                             {(o.rola || o.okres) && <span>{[o.rola, o.okres].filter(Boolean).join(' · ')}</span>}
+                            {o.zrodlo && <span className="ot-drobne">źródło: <ZAdresami tekst={o.zrodlo} /></span>}
                         </li>)}
                     </ul>
                 </WCaly>}
 
                 {matInstytucji.length > 0 && <Czesc tytul="materiały archiwalne">{matInstytucji.length}</Czesc>}
-                {matInstytucji.length > 0 && <WCaly><ul className="karta-lista">{matInstytucji.map(m => <li key={m.id}><Link href={`/archiwum/${m.id}`} className="odn">{m.nazwa}</Link></li>)}</ul></WCaly>}
+                {/* KRT-03 (P3): jak na karcie osoby – 5 pozycji (tytuł, rodzaj · data) i „wszystkie (N) w archiwum →” */}
+                {matInstytucji.length > 0 && <WCaly>
+                    <div className="flex flex-col gap-3">
+                        <KrotkieMaterialy materialy={matInstytucji.slice(0, 5)} />
+                        {matInstytucji.length > 5 && <Link href={`/archiwum?instytucja=${encodeURIComponent(p.id)}`} className="odn tekst-opis-maly">wszystkie ({matInstytucji.length}) w archiwum →</Link>}
+                    </div>
+                </WCaly>}
                 {spisKsieg.length > 0 && <Czesc tytul="księgi metrykalne">{spisKsieg.length}</Czesc>}
                 {spisKsieg.length > 0 && <WCaly>
                     <div className="flex flex-col gap-3">
@@ -117,7 +130,7 @@ export default async function ParafiaStrona({ params }: Parametry) {
             {/* uwaga 16.11: „jak cytować” na każdej karcie – tabela zawsze, źródła gdy są */}
             {(
                 <Tabela etykieta={`${p.nazwa} – jak cytować i źródła`}>
-                    <CzescJakCytowac plik={p.id} dane={daneCytatu({ tytul: p.nazwa, sciezka: `/parafie/${p.id}`, nrKat, rodzaj: 'instytucja' })} />
+                    <CzescJakCytowac plik={p.id} zglosil={p.zglosil} dane={daneCytatu({ tytul: p.nazwa, sciezka: `/parafie/${p.id}`, nrKat, rodzaj: 'instytucja' })} />
                     <Zrodla pozycje={zrodlaInstytucji.map((z, i) => <ZAdresami key={i} tekst={z} />)} />
                 </Tabela>
             )}

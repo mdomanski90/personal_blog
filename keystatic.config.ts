@@ -78,6 +78,16 @@ const notatka = () =>
 
 const dodano = () => fields.date({ label: 'Dodano', defaultValue: { kind: 'today' } });
 
+// KRT-01 (P3, ankieta 2 z 17.11): „zgłosił(a)” na kartach – podpis osoby, która zgłosiła informację lub materiał, tylko za jej zgodą.
+// Bez adresu e-mail (zasada 8.2) – walidacja przy zapisie odrzuca „@”.
+export const ZGLOSIL_WZOR = /^[^@]*$/;
+const zglosil = () =>
+  fields.text({
+    label: 'Zgłosił(a)',
+    description: 'Podpis osoby, która zgłosiła tę informację (np. „Anna Nowak, Olszanka”) – tylko za jej zgodą. Bez adresu e-mail. Puste – nie pokazuje się.',
+    validation: { pattern: { regex: ZGLOSIL_WZOR, message: 'Bez adresu e-mail – sam podpis.' } },
+  });
+
 // Wyróżnione fragmenty w treści: transkrypcja, tłumaczenie, cytat, oryginał –
 // w ramce z etykietą i źródłem; „oryginał i tłumaczenie” w dwóch kolumnach.
 // Wygląd: lib/markdoc.ts (znaczniki zrodlo, dwujezyczne, kolumna) i app/globals.css (.zrodlo).
@@ -170,7 +180,7 @@ export default config({
       'Biblioteka': ['publikacje'],
       'Księgi metrykalne': ['parafie', 'ksiegi'],
       'Słownik': ['hasla'],
-      'Strony': ['stronaGlowna', 'wstepyDzialow', 'oProjekcie', 'przekierowania'],
+      'Strony': ['stronaGlowna', 'wstepyDzialow', 'oProjekcie', 'przekierowania', 'kregiStopka'],
     },
   },
   collections: {
@@ -272,6 +282,24 @@ export default config({
           label: 'Wyznania równorzędne',
           description: 'Zaznacz, gdy żadne nie przeważało (np. miasteczko z parafią, cerkwią i bóżnicą). Na mapie pasy tej samej szerokości.',
         }),
+        // okresy przy wyznaniach (P3, decyzja 17.11): osobne pole – „przed 1875” i znak na mapie bez zmian
+        religionsOverTime: fields.array(
+          fields.object({
+            religion: fields.select({
+              label: 'Wyznanie',
+              options: Object.entries(WYZNANIA).map(([value, w]) => ({ label: w.nazwa, value })),
+              defaultValue: 'unickie',
+            }),
+            from: fields.integer({ label: 'Od roku', description: 'Puste – nie wiadomo.' }),
+            to: fields.integer({ label: 'Do roku', description: 'Puste – do dziś albo nie wiadomo.' }),
+            source: fields.text({ label: 'Źródło', description: 'Skąd wiadomo (spis, schematyzm, opracowanie).' }),
+          }),
+          {
+            label: 'Wyznania w czasie',
+            description: 'Wyznania mieszkańców w kolejnych okresach (np. unickie do 1875, prawosławne 1875–1905, rzymskokatolickie od 1905). Nie zmienia pola „przed 1875” ani znaku na mapie. Puste – wiersz się nie pokazuje.',
+            itemLabel: (p) => [WYZNANIA[p.fields.religion.value as keyof typeof WYZNANIA]?.nazwa ?? p.fields.religion.value, [p.fields.from.value, p.fields.to.value].map((x) => x ?? '…').join('–')].join(' '),
+          },
+        ),
         isPartOf: fields.relationship({
           label: 'Należy do',
           description: 'Wieś → gmina albo kraina, gmina → kraina (np. Olszanka → gmina Olszanka → ziemia łosicka). Na tej podstawie dzieli się spis miejscowości.',
@@ -295,6 +323,10 @@ export default config({
         dateSubmitted: dodano(),
         sources: zrodlaKarty(),
         descriptionSource: fields.text({ label: 'Źródło opisu', description: 'Np. „na podstawie: Wikipedia, hasło Olszanka (powiat łosicki), CC BY-SA 4.0 – https://pl.wikipedia.org/wiki/…”. Adresy zamieniają się w odnośniki.', multiline: true }),
+        // KRT-02 (P3): pochodzenie nazwy w części „podstawowe” karty, ze źródłem
+        nameOrigin: fields.text({ label: 'Pochodzenie nazwy', description: 'Etymologia nazwy miejscowości – krótko (1–3 zdania). Puste – wiersz się nie pokazuje.', multiline: true }),
+        nameOriginSource: fields.text({ label: 'Pochodzenie nazwy – źródło', description: 'Np. „K. Rymut, Nazwy miejscowe Polski, t. 7, s. 123”. Adresy zamieniają się w odnośniki.' }),
+        reportedBy: zglosil(),
         intro: fields.text({ label: 'Wstęp', description: 'Krótki tekst nad tabelą karty (2–3 zdania, pisany ręcznie). Puste – nad tabelą nic się nie pokazuje (karta nie skraca już historii).', multiline: true, validation: { length: { max: 600 } } }),
         description: opisMarkdoc('Historia i opis', 'miejsca'),
       },
@@ -320,6 +352,7 @@ export default config({
         }),
         temporal: dataEdtf('Czas'),
         spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
+        reportedBy: zglosil(),
         visibility: widocznosc(),
         note: notatka(),
         dateSubmitted: dodano(),
@@ -386,6 +419,7 @@ export default config({
           }),
           { label: 'Fotografie', itemLabel: (p) => p.fields.caption.value || 'zdjęcie' },
         ),
+        reportedBy: zglosil(),
         visibility: widocznosc(),
         note: notatka(), contributeHide: bezWspoltworz(),
         dateSubmitted: dodano(),
@@ -435,6 +469,7 @@ export default config({
         peopleIds: fields.array(fields.text({ label: 'Identyfikator osoby' }), { label: 'Powiązane osoby', description: 'Identyfikatory osób z drzewa; bez kopiowania ich kart.', itemLabel: (p) => p.value }),
         repository: fields.text({ label: 'Miejsce przechowywania', description: 'Archiwum, instytucja lub prywatny depozyt.' }),
         transcription: fields.text({ label: 'Transkrypcja do wyszukiwania', multiline: true, description: 'Opcjonalnie tekst odczytu. Nie wklejaj materiałów prywatnych do publicznego rekordu.' }),
+        reportedBy: zglosil(),
         visibility: fields.select({
           label: 'Widoczność',
           description: 'Nagranie bez zgody osoby nagranej – „tylko ja”.',
@@ -459,6 +494,7 @@ export default config({
         title: nazwaIIdentyfikator('Nazwa zbioru'),
         provenance: fields.text({ label: 'Pochodzenie / przekazał(a)', multiline: true }),
         rights: fields.text({ label: 'Prawa do zbioru' }),
+        reportedBy: zglosil(),
         visibility: widocznosc(), sources: zrodlaKarty(), note: notatka(),
         description: opisMarkdoc('Opis zbioru', 'zbiory'),
       },
@@ -480,6 +516,7 @@ export default config({
         url: fields.url({ label: 'Adres publikacji lub katalogu' }),
         spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
         subject: fields.multiRelationship({ label: 'Tematy', collection: 'tematy' }),
+        reportedBy: zglosil(),
         visibility: widocznosc(), note: notatka(),
         description: fields.text({ label: 'Opis bibliograficzny', multiline: true }),
       },
@@ -506,11 +543,13 @@ export default config({
             name: fields.text({ label: 'Imię i nazwisko', validation: { isRequired: true } }),
             role: fields.text({ label: 'Funkcja / rola', description: 'Np. proboszcz, duchowny, urzędnik, kantor.' }),
             period: fields.text({ label: 'Okres pełnienia funkcji', description: 'Np. 1865–1873 albo ok. 1900.' }),
-            personId: fields.text({ label: 'ID osoby w drzewie (opcjonalnie)', description: 'Tylko jeśli istnieje odpowiadająca karta /osoby/[id].' }),
+            personId: fields.text({ label: 'ID osoby w drzewie (opcjonalnie)', description: 'Tylko jeśli istnieje odpowiadająca karta /osoby/[id]. Odnośnik pokazuje się tylko czytelnikom, którzy widzą tę kartę.' }),
+            source: fields.text({ label: 'Źródło związku', description: 'PAR-06: skąd wiadomo o tej funkcji (schematyzm, akt, opracowanie). Pokazywane na karcie instytucji i w „funkcjach” na karcie osoby.' }),
           }),
           { label: 'Osoby związane z instytucją', itemLabel: (p) => p.fields.name.value || 'osoba' },
         ),
         sources: zrodlaKarty(),
+        reportedBy: zglosil(),
         note: notatka(),
       },
     }),
@@ -535,7 +574,14 @@ export default config({
         meaning: fields.text({ label: 'Znaczenie', multiline: true, validation: { length: { min: 1 } } }),
         example: fields.text({ label: 'Przykład użycia', description: 'Np. cytat z dokumentu albo zdanie z rozmowy – w cudzysłowie, ze źródłem.', multiline: true }),
         source: fields.text({ label: 'Źródło', description: 'Skąd znaczenie: słownik, opracowanie, rozmowa (kto, kiedy). Zawsze warto podać.' }),
-        variants: fields.array(fields.text({ label: 'Forma' }), { label: 'Inne formy i odmiana', description: 'Do wyszukiwania, np. „rubla”, „rublach”.', itemLabel: (p) => p.value }),
+        variants: fields.array(fields.text({ label: 'Forma' }), { label: 'Inne formy i odmiana', description: 'Do wyszukiwania i rozpoznawania słowa w tekstach archiwum, np. „rubla”, „rublach”.', itemLabel: (p) => p.value }),
+        // SLW-02 (P3): strona hasła – etymologia, występowanie, opracowanie, „zobacz też”, „zgłosił(a)”
+        etymology: fields.text({ label: 'Pochodzenie słowa (etymologia)', multiline: true }),
+        occurrence: fields.multiRelationship({ label: 'Występowanie (miejscowości)', collection: 'miejsca', description: 'Gdzie słowo było używane – na karcie miejscowości pojawi się w „słowach z tej miejscowości”.' }),
+        seeAlso: fields.multiRelationship({ label: 'Zobacz też', collection: 'hasla' }),
+        contributor: fields.text({ label: 'Opracował(a)' }),
+        contributed: fields.date({ label: 'Data opracowania' }),
+        reportedBy: zglosil(),
         visibility: widocznosc(),
         note: notatka(),
       },
@@ -665,6 +711,28 @@ export default config({
             uwaga: fields.text({ label: 'Uwaga (dla Ciebie)' }),
           }),
           { label: 'Przekierowania', description: 'Stary adres po zmianie identyfikatora prowadzi do nowego (zamiast „nie znaleziono”). Panel jakości sprawdza, czy nowy istnieje.', itemLabel: (p) => `${p.fields.stary.value || '…'} → ${p.fields.nowy.value || '…'}` },
+        ),
+      },
+    }),
+    // OPS-07 (P3, decyzja 17.11): kręgi osób i wiersze stopki w danych, nie w kodzie. Bez zapisu – lista domyślna (stan sprzed P3).
+    kregiStopka: singleton({
+      label: 'Kręgi i stopka',
+      path: 'content/_panel/kregi-stopka',
+      format: { data: 'json' },
+      schema: {
+        kregi: fields.array(
+          fields.object({
+            nazwa: fields.text({ label: 'Nazwa', validation: { isRequired: true } }),
+            opis: fields.text({ label: 'Opis', description: 'Np. „okolice Olszanki i Łosic” – pod pastylką na stronie osób.' }),
+          }),
+          { label: 'Kręgi (filtr na stronie osób)', description: 'Puste – kręgi domyślne (krąg 1: okolice Olszanki i Łosic, krąg 2: okolice Międzyrzeca i Krzesk). Pierwsze wypełnienie obecną listą: npm run kregi:domyslne -- --zapisz. Kolejność = numer kręgu (1, 2…). Osoba należy do kręgu, gdy któreś jej zdarzenie miało miejsce w miejscowości z wierszy tego kręgu.', itemLabel: (p) => p.fields.nazwa.value || 'krąg' },
+        ),
+        wiersze: fields.array(
+          fields.object({
+            krag: fields.integer({ label: 'Numer kręgu', description: '1, 2… według kolejności kręgów wyżej; puste – wiersz tylko w stopce.' }),
+            miejsca: fields.array(fields.text({ label: 'Miejscowość' }), { label: 'Miejscowości (w kolejności stopki)', itemLabel: (p) => p.value || 'miejscowość' }),
+          }),
+          { label: 'Wiersze stopki', description: 'Puste – trzy wiersze domyślne (stan sprzed P3). Każdy wiersz to osobna linia stopki. Nazwa z własną publiczną stroną staje się odnośnikiem (dopasowanie po nazwie).', itemLabel: (p) => `krąg ${p.fields.krag.value ?? '–'}: ${p.fields.miejsca.elements.length} miejscowości` },
         ),
       },
     }),

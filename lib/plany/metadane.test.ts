@@ -86,3 +86,9 @@ test('CEM-07, CEM-14, PH-17: nowe pola planu – odczyt zostawia tylko dobry ksz
     assert.match(bladMetadanych({ styl: 'sepia' as never }) ?? '', /styl/)
     assert.equal(bladMetadanych({ kadr: [0, 0, 5, 5], styl: 'atrament' }), null)
 })
+
+test('KRT-01 (P3): „zgłosił(a)” w planie – podpis zostaje, adres e-mail odrzucony', async () => {
+    const { poprawMetadane } = await import('./metadane')
+    assert.equal(poprawMetadane({ zglosil: ' Anna Nowak, Olszanka ' }).zglosil, 'Anna Nowak, Olszanka')
+    assert.equal(poprawMetadane({ zglosil: 'anna@example.org' }).zglosil, undefined)
+})

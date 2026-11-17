@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { nazwaOsoby, nazwaOsobyKatalog, nazwiskaPoMezu, formaZenskaNazwiska, type Drzewo, type Osoba } from './model'
+import { nazwaOsoby, nazwaOsobyKatalog, nazwiskaPoMezu, formaZenskaNazwiska, formaOwaNazwiska, dopiskiPoMezu, type Drzewo, type Osoba } from './model'
 
 // uwaga właściciela 16.11: w katalogu osób (alfabet po nazwisku) najpierw nazwisko, potem imiona; gdzie indziej „Imię Nazwisko”
 test('nazwa w katalogu osób: nazwisko przed imionami; braki bez podwójnych spacji', () => {
@@ -27,7 +27,7 @@ const drzewo = (): Drzewo => ({
 
 test('nazwisko po mężu: forma żeńska i zapis męża, kilka małżeństw, bez nazwisk już znanych', () => {
     const d = drzewo()
-    assert.deepEqual(nazwiskaPoMezu(d, d.osoby.get('k1')!), ['Kowalska', 'Kowalski', 'Zawadzka', 'Zawadzki'], 'Nowak (mąż m3) to nazwisko podstawowe – pomijane')
+    assert.deepEqual(nazwiskaPoMezu(d, d.osoby.get('k1')!), ['Kowalska', 'Kowalski', 'Zawadzka', 'Zawadzki', 'Nowakowa'], 'Nowak (mąż m3) to nazwisko podstawowe – pomijane; od P3 (SRCH-D-20) dochodzi forma „Nowakowa”')
     assert.deepEqual(nazwiskaPoMezu(d, d.osoby.get('k2')!), ['Kowalski'], '„Kowalska” już jest w innych nazwiskach')
     assert.deepEqual(nazwiskaPoMezu(d, d.osoby.get('m1')!), [], 'mężczyzna bez żony: nic')
 })
@@ -45,4 +45,27 @@ test('forma żeńska nazwiska męża', () => {
     assert.equal(formaZenskaNazwiska('Zawadzki'), 'Zawadzka')
     assert.equal(formaZenskaNazwiska('Nowak'), 'Nowak')
     assert.equal(formaZenskaNazwiska('Wójcicki'), 'Wójcicka')
+})
+
+// SRCH-D-20 (P3): formy na „-owa” (Nowak → Nowakowa) i dopisek „po mężu” z zapisem męża dosłownie
+test('SRCH-D-20: forma na -owa – nazwiska nieprzymiotnikowe zakończone spółgłoską albo -o', () => {
+    assert.equal(formaOwaNazwiska('Nowak'), 'Nowakowa')
+    assert.equal(formaOwaNazwiska('Kowal'), 'Kowalowa')
+    assert.equal(formaOwaNazwiska('Moniuszko'), 'Moniuszkowa')
+    assert.equal(formaOwaNazwiska('Kowalski'), null, 'przymiotnikowe – forma żeńska, nie -owa')
+    assert.equal(formaOwaNazwiska('Zaręba'), null, 'zakończone na -a – bez zgadywania')
+    assert.equal(formaOwaNazwiska('Nowakowa'), null, 'już forma -owa')
+})
+
+test('SRCH-D-20: dopiski po mężu – forma żeńska albo -owa i zapis męża dosłownie, także gdy nazwisko żony jest takie samo', () => {
+    const d = drzewo()
+    assert.deepEqual(dopiskiPoMezu(d, d.osoby.get('k1')!), ['Kowalska (Kowalski)', 'Zawadzka (Zawadzki)', 'Nowakowa (Nowak)'])
+    // wyszukiwarka dostaje wszystkie formy (k1 nosi „Nowak” – Nowakowa dochodzi jako nowa forma)
+    assert.ok(nazwiskaPoMezu(d, d.osoby.get('k1')!).includes('Nowakowa'))
+})
+
+test('KRT-01 (P3): „zgłosił(a)” w karcie osoby – podpis zostaje, adres e-mail odrzucony przy zapisie', async () => {
+    const { poprawOsobe } = await import('./model')
+    assert.equal(poprawOsobe({ id: 'x', zglosil: ' Jan z Testowa ' }).zglosil, 'Jan z Testowa')
+    assert.equal(poprawOsobe({ id: 'x', zglosil: 'jan@example.org' }).zglosil, undefined)
 })

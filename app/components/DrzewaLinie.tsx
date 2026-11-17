@@ -42,7 +42,9 @@ function grupa(nazwa: string, ...el: HTMLElement[]): HTMLElement {
     return g
 }
 
-function przygotuj(fig: HTMLElement): () => void {
+/** Obsługa jednego drzewa. Eksport (DRZ-01, P3): karta osoby wywołuje ją sama przy każdym nowym drzewie (DrzewoKarty) –
+ *  po zmianie liczby pokoleń drzewo jest wstawiane od nowa, a efekt strony uruchamia się tylko raz. */
+export function przygotuj(fig: HTMLElement): () => void {
     const przew = fig.querySelector<HTMLElement>(':scope > .dr-przewijanie')
     if (!przew || fig.dataset.drzewoGotowe) return () => {}
     fig.dataset.drzewoGotowe = '1'
@@ -80,6 +82,20 @@ function przygotuj(fig: HTMLElement): () => void {
     }
     stanPrzyciskow()
 
+    // DRZ-01 (P3, decyzja 17.11): drzewo w tabeli karty osoby ma liczbę pokoleń z adresu (przełącznik 1/2/3). To, co doczytano
+    // na pełnym ekranie, jest osobnym oglądaniem – po zamknięciu wraca drzewo z adresu.
+    const KLUCZE = ['wstecz', 'naprzod', 'zakres', 'wiecejWstecz', 'wiecejNaprzod', 'rodzenstwo'] as const
+    const wTabeli = fig.classList.contains('dr-w-tabeli')
+    const poczatek = wTabeli ? { html: przew.innerHTML, tekst: fig.querySelector(':scope > .dr-tekst')?.outerHTML ?? null, dane: Object.fromEntries(KLUCZE.map((k) => [k, fig.dataset[k] ?? ''])) } : null
+    const przywrocPoczatek = () => {
+        if (!poczatek || KLUCZE.every((k) => (fig.dataset[k] ?? '') === poczatek.dane[k])) return
+        przew.innerHTML = poczatek.html
+        const t = fig.querySelector(':scope > .dr-tekst')
+        if (t && poczatek.tekst) t.outerHTML = poczatek.tekst
+        for (const k of KLUCZE) fig.dataset[k] = poczatek.dane[k]
+        stanPrzyciskow()
+    }
+
     // wielkość drzewa (tylko na pełnym ekranie; A−/A+ strony działa niezależnie)
     let skala = 1
     try { const z = Number(localStorage.getItem(KLUCZ_SKALI)); if (SKALE.includes(z)) skala = z } catch { /* bez pamięci */ }
@@ -109,6 +125,7 @@ function przygotuj(fig: HTMLElement): () => void {
         glowny.textContent = 'pełny ekran ⤢'
         document.body.style.overflow = ''
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+        przywrocPoczatek()
         requestAnimationFrame(() => { wysrodkuj(przew); przywrocFokus(otwierajacy); otwierajacy = null })
     }
     const otworz = () => {
@@ -147,7 +164,7 @@ function przygotuj(fig: HTMLElement): () => void {
             przew.replaceChildren(...nowyPrzew.childNodes)
             const tekst = nowa.querySelector(':scope > .dr-tekst')
             if (tekst) fig.querySelector(':scope > .dr-tekst')?.replaceWith(tekst)
-            for (const k of ['wstecz', 'naprzod', 'zakres', 'wiecejWstecz', 'wiecejNaprzod', 'rodzenstwo'] as const) fig.dataset[k] = nowa.dataset[k] ?? ''
+            for (const k of KLUCZE) fig.dataset[k] = nowa.dataset[k] ?? ''
             requestAnimationFrame(() => wysrodkuj(przew, true))
             b.textContent = napis
         } catch {
@@ -200,7 +217,8 @@ function przygotuj(fig: HTMLElement): () => void {
 
 export default function DrzewaLinie() {
     React.useEffect(() => {
-        const sprzatanie = [...document.querySelectorAll<HTMLElement>('figure.drzewo')].map(przygotuj)
+        // drzewa z własną obsługą (karta osoby – DrzewoKarty) pomijamy
+        const sprzatanie = [...document.querySelectorAll<HTMLElement>('figure.drzewo')].filter((f) => !f.closest('[data-drzewo-wlasne]')).map(przygotuj)
         return () => sprzatanie.forEach((f) => f())
     }, [])
     return null

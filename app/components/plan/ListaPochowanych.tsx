@@ -10,10 +10,11 @@ import { katalog, typGrobu, type UstawieniaPlanow } from '@/lib/plany/typy'
 import type { OsobaNaPlanie } from '@/lib/plany/rodzina'
 import PoleSzukania from '../PoleSzukania'
 import { odmiana } from '@/lib/tekst'
+import { liniaNazwyNapisu, napisObok } from '@/lib/plany/pochowani'
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
 
-interface Wiersz { klucz: string; el: Element; nazwisko: string; imie: string; lata: string; zm: number | null; razem: string[]; idOsoby?: string; zNapisu: boolean }
+interface Wiersz { klucz: string; el: Element; nazwisko: string; imie: string; lata: string; zm: number | null; razem: string[]; idOsoby?: string; zNapisu: boolean; napisObok?: string | null }
 
 /** „Jan Przykładowy”, „Maria Przykładowa z d. Testowa” → nazwisko i reszta */
 function rozbij(nazwa: string): { nazwisko: string; imie: string } {
@@ -46,12 +47,12 @@ export default function ListaPochowanych({ plan, ustawienia, osoby, naPlanie }: 
             if (L.length) {
                 L.forEach((o, i) => {
                     const r = rozbij(o.nazwa)
-                    W.push({ klucz: `${e.id}-${i}`, el: e, ...r, lata: o.ur || o.zm ? `${o.ur ?? '?'} – ${o.zm ?? '?'}` : '', zm: rok(o.zm), razem: L.filter((x) => x !== o).map((x) => x.nazwa), idOsoby: o.id && osoby[o.id] ? o.id : undefined, zNapisu: false })
+                    W.push({ klucz: `${e.id}-${i}`, el: e, ...r, lata: o.ur || o.zm ? `${o.ur ?? '?'} – ${o.zm ?? '?'}` : '', zm: rok(o.zm), razem: L.filter((x) => x !== o).map((x) => x.nazwa), idOsoby: o.id && osoby[o.id] ? o.id : undefined, zNapisu: false, napisObok: napisObok(e.napis, r.nazwisko) })
                 })
             } else if (e.nazwa?.trim()) {
                 W.push({ klucz: e.id, el: e, ...rozbij(e.nazwa.trim()), lata: '', zm: e.rokZgonu ?? null, razem: [], zNapisu: false })
             } else if (e.napis?.trim()) {
-                const linia = e.napis.split('\n').map((l) => l.trim()).find((l) => /\p{L}{3,}/u.test(l) && !/^(ś\.?\s*†?\s*p\.?|tu spoczywa|tu spoczywaj[ąa])/i.test(l)) ?? e.napis.trim().split('\n')[0]
+                const linia = liniaNazwyNapisu(e.napis) ?? e.napis.trim().split('\n')[0]
                 W.push({ klucz: e.id, el: e, nazwisko: linia, imie: '', lata: '', zm: e.rokZgonu ?? null, razem: [], zNapisu: true })
             } else bez++
         }
@@ -107,13 +108,13 @@ export default function ListaPochowanych({ plan, ustawienia, osoby, naPlanie }: 
                     <tbody>
                         {lista.map((w) => (
                             <tr key={w.klucz}>
-                                <td>{w.zNapisu ? <><span>{w.nazwisko}</span> <span className="lista-cichy lista-drobne">z napisu</span></> : <><b>{w.nazwisko}</b> {w.imie}</>}</td>
-                                <td className="lista-nowrap">{w.lata}</td>
-                                <td className="lista-nowrap">{numerKrotki(numery.get(w.el.id)) || '—'}</td>
-                                <td className="lista-cichy">{w.razem.join(', ') || '—'}</td>
-                                <td>{w.el.zdjecia?.length ? '✓' : ''}</td>
-                                <td>{w.idOsoby ? <a href={`/osoby/${w.idOsoby}`} className="odn">karta →</a> : ''}</td>
-                                <td><button type="button" onClick={() => naPlanie(w.el.id)} className="plan-panel-odn lista-nowrap">na planie →</button></td>
+                                <td data-e="nazwisko i imię">{w.zNapisu ? <><span>{w.nazwisko}</span> <span className="lista-cichy lista-drobne">z napisu</span></> : <><b>{w.nazwisko}</b> {w.imie}{w.napisObok && <span className="lista-cichy lista-drobne"> · na napisie: {w.napisObok}</span>}</>}</td>
+                                <td data-e="lata" className="lista-nowrap">{w.lata}</td>
+                                <td data-e="grób" className="lista-nowrap">{numerKrotki(numery.get(w.el.id)) || '—'}</td>
+                                <td data-e="razem w grobie" className="lista-cichy">{w.razem.join(', ') || '—'}</td>
+                                <td data-e="zdjęcie">{w.el.zdjecia?.length ? '✓' : ''}</td>
+                                <td data-e="drzewo">{w.idOsoby ? <a href={`/osoby/${w.idOsoby}`} className="odn">karta →</a> : ''}</td>
+                                <td className="lp-plan"><button type="button" onClick={() => naPlanie(w.el.id)} className="plan-panel-odn lista-nowrap">na planie →</button></td>
                             </tr>
                         ))}
                         {lista.length === 0 && <tr><td colSpan={7} className="lista-cichy">{wiersze.length ? (bezNapisu ? 'Nic nie znaleziono. To nie znaczy, że tej osoby tu nie pochowano – nie wszystkie napisy są już odczytane.' : 'Nic nie znaleziono.') : 'Napisy z nagrobków nie zostały jeszcze odczytane.'}</td></tr>}

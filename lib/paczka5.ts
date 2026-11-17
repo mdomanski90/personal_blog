@@ -13,8 +13,8 @@ const reader = createReader(process.cwd(), keystaticConfig)
 const cache: <T extends (...a: never[]) => unknown>(fn: T) => T =
   (React as unknown as { cache?: <T>(fn: T) => T }).cache ?? ((fn) => fn)
 
-export type Zbior = { id: string; nazwa: string; opis: Node | null; pochodzenie: string; prawa: string; widocznosc: Widocznosc; zrodla: string[] }
-export type Publikacja = { id: string; nazwa: string; rodzaj: string; autor: string; rok: string; wydawca: string; isbn: string; url: string; opis: string; miejsca: string[]; tematy: string[]; widocznosc: Widocznosc }
+export type Zbior = { id: string; nazwa: string; opis: Node | null; pochodzenie: string; prawa: string; widocznosc: Widocznosc; zrodla: string[]; zglosil?: string }
+export type Publikacja = { id: string; nazwa: string; rodzaj: string; autor: string; rok: string; wydawca: string; isbn: string; url: string; opis: string; miejsca: string[]; tematy: string[]; widocznosc: Widocznosc; zglosil?: string }
 
 async function istnieje(katalog: string): Promise<boolean> {
   const fs = await import('node:fs/promises')
@@ -30,6 +30,7 @@ const wszystkieZbiory = cache(async (): Promise<Zbior[]> => {
     pochodzenie: entry.provenance ?? '', prawa: entry.rights ?? '',
     widocznosc: entry.visibility as Widocznosc,
     zrodla: [...(entry.sources ?? [])].map(String).filter(Boolean),
+    zglosil: String(entry.reportedBy ?? '').trim(),
   })).sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
 
@@ -43,6 +44,7 @@ const wszystkiePublikacje = cache(async (): Promise<Publikacja[]> => {
     miejsca: [...(entry.spatial ?? [])].filter((id): id is string => !!id),
     tematy: [...(entry.subject ?? [])].filter((id): id is string => !!id),
     widocznosc: entry.visibility as Widocznosc,
+    zglosil: String(entry.reportedBy ?? '').trim(),
   })).sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
 
@@ -67,6 +69,8 @@ export async function materialyZbioru(id: string, poziom: Widocznosc): Promise<M
 export interface FiltrP5 {
   q?: string; rodzaj?: string; miejsce?: string; temat?: string; osoba?: string;
   obiekt?: string; zbior?: string; od?: number; do?: number;
+  /** KRT-03 (P3): materiały instytucji – „wszystkie (N) w archiwum →” z karty instytucji */
+  instytucja?: string;
   sort?: 'data_rosnaco' | 'data_malejaco' | 'tytul' | 'dodano'; strona?: number
 }
 export interface WynikiP5 { wyniki: Material[]; razem: number; stron: number; strona: number }
@@ -79,6 +83,7 @@ export async function katalogP5(poziom: Widocznosc, f: FiltrP5): Promise<WynikiP
     if (f.obiekt && !m.obiekty.includes(f.obiekt)) return false
     if (f.osoba && !m.osobyIds.includes(f.osoba)) return false
     if (f.zbior && !m.zbiory.includes(f.zbior)) return false
+    if (f.instytucja && !m.instytucje.includes(f.instytucja)) return false
     if (f.od !== undefined || f.do !== undefined) {
       const l = lataMaterialu(m)
       if (!l || (f.od !== undefined && l[1] < f.od) || (f.do !== undefined && l[0] > f.do)) return false

@@ -73,8 +73,9 @@ export default async function Szukaj({ searchParams }: { searchParams: Promise<P
                         {wyn.wyniki.map((w) => (
                             <li key={`${w.rodzaj}:${w.id}`} className="szukaj-wynik">
                                 <div className="szukaj-wynik-gora">
-                                    <span className="szukaj-rodzaj"><span className={`szukaj-znak szukaj-znak--${rodzinaRodzaju(w.rodzaj)}`} aria-hidden="true" />{w.etykieta}</span>
+                                    {/* SRCH-D-22 (odbiór P2, decyzja makiet 17.11): rodzaj za tytułem – kropka rodziny + rodzaj szarym drobnym tekstem */}
                                     <Link href={w.adres} className="szukaj-tytul">{w.tytul}</Link>
+                                    <span className="szukaj-rodzaj"><span className={`szukaj-znak szukaj-znak--${rodzinaRodzaju(w.rodzaj)}`} aria-hidden="true" />{w.etykieta}</span>
                                 </div>
                                 {w.przez && <span className="szukaj-przez">powiązane z: {w.przez}</span>}
                                 {w.fragment && <p className="szukaj-fragment">{w.fragment}</p>}

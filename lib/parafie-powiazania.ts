@@ -35,3 +35,17 @@ export function zapiszOkres(od: number | null, doRoku: number | null): string {
     if (doRoku !== null) return `do ${doRoku}`
     return 'okres nieustalony'
 }
+
+/** Osoba związana z instytucją (pole „Osoby związane z instytucją” w panelu; `zrodlo` – PAR-06, P3). */
+export type OsobaInstytucji = { nazwa: string; rola: string; okres: string; idOsoby: string; zrodlo: string }
+
+/** PAR-06 (P3, zasada 1.5): odnośnik do karty osoby tylko wtedy, gdy czytelnik może ją zobaczyć – inaczej samo imię i nazwisko z karty instytucji. */
+export function osobyInstytucjiDlaCzytelnika(osoby: OsobaInstytucji[], widoczna: (id: string) => boolean): (OsobaInstytucji & { href?: string })[] {
+    return osoby.map((o) => (o.idOsoby && widoczna(o.idOsoby) ? { ...o, href: `/osoby/${encodeURIComponent(o.idOsoby)}` } : o))
+}
+
+/** PPL-04/05 (P3): funkcje osoby we wszystkich instytucjach – odnośnik zwrotny na karcie osoby. Wyznanie należy do instytucji (funkcji),
+ *  nigdy nie jest przypisywane osobie. Kolejność: instytucje w kolejności listy, w instytucji – kolejność wpisów. */
+export function funkcjeOsoby<I extends { id: string; nazwa: string; wyznanie: string; osoby?: OsobaInstytucji[] }>(id: string, instytucje: I[]) {
+    return instytucje.flatMap((instytucja) => (instytucja.osoby ?? []).filter((o) => o.idOsoby === id).map((o) => ({ rola: o.rola, okres: o.okres, zrodlo: o.zrodlo, instytucja })))
+}

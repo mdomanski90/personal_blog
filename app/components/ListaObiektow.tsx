@@ -9,7 +9,7 @@ export type PozycjaObiektu = { id: string; nazwa: string; rodzaj: string; nazwaR
  * Rodzaj nie jest powtarzany tekstem (niesie go tarcza z opisem dla czytników ekranu), „nie istnieje” – słowem, nie kolorem.
  * Dopisek: krótka informacja zależna od kontekstu (np. okres przynależności do parafii).
  */
-export default function ListaObiektow({ pozycje }: { pozycje: PozycjaObiektu[] }) {
+function Pozycje({ pozycje }: { pozycje: PozycjaObiektu[] }) {
     return (
         <ul className="lista-obiektow">
             {pozycje.map((o) => (
@@ -22,5 +22,19 @@ export default function ListaObiektow({ pozycje }: { pozycje: PozycjaObiektu[] }
                 </li>
             ))}
         </ul>
+    )
+}
+
+/** OBJ-02 (P3, canva 17.11): `zwijajPo` – po tylu pozycjach reszta zwinięta pod „pokaż wszystkie (N)” (details/summary – klawiatura i bez skryptu). */
+export default function ListaObiektow({ pozycje, zwijajPo }: { pozycje: PozycjaObiektu[]; zwijajPo?: number }) {
+    if (!zwijajPo || pozycje.length <= zwijajPo) return <Pozycje pozycje={pozycje} />
+    return (
+        <>
+            <Pozycje pozycje={pozycje.slice(0, zwijajPo)} />
+            <details className="lo-reszta">
+                <summary>pokaż wszystkie ({pozycje.length})</summary>
+                <div className="rozwin-tresc"><Pozycje pozycje={pozycje.slice(zwijajPo)} /></div>
+            </details>
+        </>
     )
 }

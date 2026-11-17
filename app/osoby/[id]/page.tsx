@@ -23,6 +23,9 @@ import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import Powiazania, { czesciPowiazan } from '../../components/Powiazania'
 import { PastylkaOsoby } from '@/app/components/Wzorce'
+import DrzewoKarty from '../../components/DrzewoKarty'
+import { funkcjeOsoby } from '@/lib/parafie-powiazania'
+import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
 import { numerKat } from '@/lib/katalog/dane'
 import { WierszNrKat } from '../../components/NrKat'
 
@@ -127,6 +130,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
     const nrKat = numerKat('osoba', id)
     const materialyOsoby = (await materialy(poziom)).filter((m) => m.osobyIds.includes(id))
     const wyst = await wystapieniaKarty('osoba', id)
+    const funkcje = funkcjeOsoby(id, par)
     // prośba o zdjęcie tylko dla osób żyjących po 1900 r. (decyzja 16.11): ur. albo zm. po 1900 albo bez dat
     const po1900 = (rokZgonu(o) ?? rokUrodzenia(o) ?? 1901) > 1900
     const podstawowe = [
@@ -178,7 +182,8 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                 {wszystkie.map((z) => {
                     const ob = obrzadki.get(z.id)
                     return (
-                        <W key={z.id} e={etykietaZdarzenia(z)}>
+                        <React.Fragment key={z.id}>
+                        <W e={etykietaZdarzenia(z)}>
                             <span className="flex flex-col gap-0.5">
                                 <span>
                                     {z.data ? formatujEdtf(z.data) : z.dataTekst}
@@ -186,10 +191,16 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                                     {zKim.get(z.id) && <> · z: <Osobka x={zKim.get(z.id)} /></>}
                                     {ob && <> <Obrz o={ob.obrzadek} wywnioskowany={ob.wywnioskowany} /></>}
                                 </span>
-                                {z.chrzestni?.length ? <span className="ot-drobne">chrzestni: {z.chrzestni.map((c, i) => <span key={i}>{i > 0 && ', '}{c.osoba && s.drzewo.osoby.has(c.osoba) ? <Osobka x={c.osoba} /> : c.tekst}</span>)}</span> : null}
                                 {z.opis && <span className="ot-drobne whitespace-pre-line">{z.opis}</span>}
                             </span>
                         </W>
+                        {/* PPL-08 (P3): chrzestni jako osobny wiersz tabeli karty – pastylki wyrównane do kolumny wartości, jak „rodzice” */}
+                        {z.chrzestni?.length ? (
+                            <W e="chrzestni">
+                                <span className="ot-osoby">{z.chrzestni.map((c, i) => (c.osoba && s.drzewo.osoby.has(c.osoba) ? <Osobka key={i} x={c.osoba} /> : <span key={i}>{c.tekst}</span>))}</span>
+                            </W>
+                        ) : null}
+                        </React.Fragment>
                     )
                 })}
                 {pochowki.map((g) => (
@@ -208,7 +219,22 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                         </span>
                     </W>
                 ))}
-                {wszystkie.length === 0 && !pochowki.length && <W e="—"><span className="text-[var(--tekst-etykieta)]">brak dat i miejsc</span></W>}
+                {/* PPL-04/05, PAR-06 (P3): funkcje w instytucjach – odnośnik zwrotny; wyznanie należy do instytucji, nie do osoby */}
+                {funkcje.length > 0 && (
+                    <W e={funkcje.length > 1 ? 'funkcje' : 'funkcja'}>
+                        <span className="flex flex-col gap-0.5">
+                            {funkcje.map((f, i) => (
+                                <span key={i}>
+                                    {f.rola && <>{f.rola} · </>}<Link href={`/parafie/${f.instytucja.id}`} className="odn">{f.instytucja.nazwa}</Link>
+                                    {WYZNANIA_PARAFII[f.instytucja.wyznanie] && <span className="text-[var(--tekst-opis)]"> ({WYZNANIA_PARAFII[f.instytucja.wyznanie]})</span>}
+                                    {f.okres && <> · {f.okres}</>}
+                                    {f.zrodlo && <span className="ot-drobne"> · źródło: {f.zrodlo}</span>}
+                                </span>
+                            ))}
+                        </span>
+                    </W>
+                )}
+                {wszystkie.length === 0 && !pochowki.length && !funkcje.length && <W e="—"><span className="text-[var(--tekst-etykieta)]">brak dat i miejsc</span></W>}
 
                 <Naglowek tytul="rodzina">{podsumowanieRodziny}</Naglowek>
                 {rel.rodzice.map((f) => (
@@ -237,7 +263,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                             </span>
                             <button type="button" className="ot-przycisk" data-drzewo-pelny="drzewo-osoby">pełny ekran ⤢</button>
                         </Naglowek>
-                        <div className="ot-drzewo" dangerouslySetInnerHTML={{ __html: html }} />
+                        <DrzewoKarty html={html} />
                     </>
                 )}
 
@@ -264,7 +290,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
 
                 {/* makieta wpisu 17.11 (P3): powiązania jak na pozostałych kartach – części tabeli przed „jak cytować” */}
                 <Powiazania dane={siec} />
-                <CzescJakCytowac plik={id} dane={daneCytatu({ tytul: lataZycia(o) ? `${tytul} (${lataZycia(o)})` : tytul, sciezka: `/osoby/${id}`, nrKat, rodzaj: 'osoba' })} />
+                <CzescJakCytowac plik={id} zglosil={o.zglosil} dane={daneCytatu({ tytul: lataZycia(o) ? `${tytul} (${lataZycia(o)})` : tytul, sciezka: `/osoby/${id}`, nrKat, rodzaj: 'osoba' })} />
                 {wierszeZrodel.length > 0 && (
                     <>
                         <Naglowek tytul="źródła">{odmiana(new Set(wierszeZrodel.flatMap((w) => w.z.map((x) => x.tytul))).size, ['źródło', 'źródła', 'źródeł'])}</Naglowek>

@@ -188,7 +188,7 @@ export default async function ObiektStrona({ params }: Parametry) {
                     <WierszeWystapien w={wyst} />
                     {planyObiektu.length > 1 && <><Czesc tytul="plany">{odmiana(planyObiektu.length, ['plan', 'plany', 'planów'])}</Czesc><WCaly><ListaPlanow plany={planyObiektu} /></WCaly></>}
                     <Powiazania dane={siec} />
-                    <CzescJakCytowac plik={o.id} dane={daneCytatu({ tytul: o.nazwa, sciezka: `/obiekty/${o.id}`, nrKat, rodzaj: 'obiekt' })} />
+                    <CzescJakCytowac plik={o.id} zglosil={o.zglosil} dane={daneCytatu({ tytul: o.nazwa, sciezka: `/obiekty/${o.id}`, nrKat, rodzaj: 'obiekt' })} />
                     <Zrodla pozycje={[
                         ...o.zrodla.map((z, i) => <ZAdresami key={`z${i}`} tekst={z} />),
                         ...o.zdjecia.filter((z) => z.autor || z.prawa).map((z, i) => <span key={`f${i}`}>fotografia{z.podpis ? ` „${z.podpis}”` : ''}{z.data ? `, ${z.data}` : ''}: {[z.autor, z.prawa].filter(Boolean).join(', ')}</span>),

@@ -231,7 +231,7 @@ export function zrodloZIndeksu(plik: string): ZrodloDokumentow & { zamknij(): vo
 // ---------- odcisk treści i odbudowa leniwa ----------
 
 /** Wersja układu dokumentów w indeksie – podbić ręcznie, gdy zmienia się to, co `dokumentySzukania` wkłada do indeksu (poza wydaniem programu, zob. niżej). */
-export const WERSJA_INDEKSU = 1
+export const WERSJA_INDEKSU = 2 // P3: dopisek „po mężu” z zapisem męża, formy „-owa”, hasła w sieci
 
 /** Identyfikator wydania programu (`.next/BUILD_ID`): nowe wydanie = nowy kod budujący dokumenty = indeks do odbudowy, nawet gdy treść się nie zmieniła. */
 function wydanie(korzen: string): string {
