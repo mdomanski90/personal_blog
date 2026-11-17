@@ -42,11 +42,10 @@ function Probka({ motyw }: { motyw: string }) {
                 <PastylkaOsoby href="#" plec="M">Jan Przykładowski</PastylkaOsoby>
                 <PastylkaOsoby href="#" plec="U">N.N. Przykładowskie</PastylkaOsoby>
             </div>
-            {/* etap 3 · wariant B (17.11): nagłówek karty nad siatką, pasek części (spis) pod nim, pasek boczny od pierwszej tabeli */}
+            {/* etap 3 · wariant B (17.11): nagłówek karty nad siatką, pasek boczny od pierwszej tabeli */}
             <div className="karta-naglowek"><span className="wz-blok" id={`wz-${motyw}-wstep`}>nagłówek karty (karta-naglowek) – tytuł, linia, wstęp (pozycja „wstęp” w spisie)</span></div>
-            <div className="karta-pasek-czesci"><SpisTresci pozycje={spis} /></div>
             <div className="karta-odcinek karta-odcinek-pierwszy">
-                <aside className="karta-bok"><span className="wz-blok wz-obraz">obraz nagłówka (bok)</span></aside>
+                <aside className="karta-bok"><span className="wz-blok wz-obraz">obraz nagłówka (bok)</span><div className="karta-spis"><SpisTresci pozycje={spis} /></div></aside>
                 <div className="karta-kolumna">
                     {spis.slice(1).map((p) => <span key={p.id} id={p.id} className="wz-blok">{p.tekst} – kolumna tekstu (66 znaków)</span>)}
                 </div>
@@ -113,7 +112,6 @@ export default function WzorceJezykaWizualnego() {
 .wz-panel{border:1px solid var(--linia-podzialu);border-radius:var(--promien);overflow:hidden;max-width:380px}
 .wz-panel .plan-aplet-panel{height:320px;border-left:0}
 .wz .karta-odcinek{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
-.wz .karta-pasek-czesci{position:static}
 .wz-rozmiary p{margin:0;color:var(--tekst-opis)}
 ${ROZMIARY.map(([t]) => `.wz-r-${t.slice(10)}{font-size:var(${t})}`).join('\n')}
 .wz-tab{width:100%;border-collapse:collapse;font-size:13.5px}

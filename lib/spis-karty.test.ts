@@ -54,16 +54,16 @@ test('każda karta z tekstem nad tabelą (lead=) ma „wstęp” w spisie (opcja
     assert.deepEqual(bez, [], `karty z lead bez „wstępu” w spisie: ${bez.join(', ')}`)
 })
 
-// decyzja 17.11 po odbiorze etapu 3: spis treści od góry i widoczny cały czas – pasek części pod nagłówkiem karty,
-// przyklejony na całej wysokości karty (nie w pasku bocznym, który zaczyna się dopiero przy pierwszej tabeli
-// i znikał obok elementów pełnej szerokości – skan materiału, wstawki we wpisie)
-test('spis treści karty to przyklejony pasek części pod nagłówkiem, poza paskiem bocznym', () => {
+// decyzja 17.11 po odbiorze (canva „spis treści karty”, wariant 1): karta bez obrazu – spis w pasku bocznym od wysokości
+// tytułu, także gdy karta zaczyna się szerokim skanem (materiał); szeroki blok przerywa pasek, spis wraca pod nim;
+// karta z obrazem lub mapą – wariant B (nagłówek nad siatką). Pasek części u góry (a2048ec) – odrzucony.
+test('układ karty: spis od tytułu na karcie bez obrazu, wraca po elemencie pełnej szerokości', () => {
     const uklad = fs.readFileSync(path.join(ROOT, 'app/components/Uklad.tsx'), 'utf8')
-    const karta = uklad.slice(uklad.indexOf('function UkladKarty('), uklad.indexOf('export function Strona('))
-    assert.match(karta, /\{spis && <div className="karta-pasek-czesci">\{spis\}<\/div>\}/)
-    assert.ok(karta.indexOf('karta-pasek-czesci') < karta.indexOf('odcinki.map'), 'pasek części przed pierwszym odcinkiem karty')
-    assert.doesNotMatch(karta, /<aside[^>]*>[^\n]*\{spis/, 'spis nie w pasku bocznym')
-    const css = fs.readFileSync(path.join(ROOT, 'app/globals.css'), 'utf8')
-    assert.match(css, /\.karta-pasek-czesci\{position:sticky;top:0;/)
-    assert.doesNotMatch(css.match(/@media \(max-width:900px\)\{[^}]*\.karta-pasek-czesci[^}]*\}/)?.[0] ?? '', /position:static/, 'przyklejony także na telefonie')
+    const karta = uklad.slice(uklad.indexOf('export function UkladKarty('), uklad.indexOf('export function Strona('))
+    assert.match(karta, /const odGory = !!spis && !bok/)
+    const galaz = karta.slice(karta.indexOf('if (odGory)'), karta.indexOf('// wariant B'))
+    assert.ok(galaz.indexOf('{aside}') < galaz.indexOf('karta-naglowek'), 'spis w pierwszym odcinku, obok nagłówka')
+    assert.match(galaz, /if \(o\.pelny\) return <React\.Fragment/, 'element pełnej szerokości poza kolumną – spis na niego nie najeżdża')
+    assert.match(galaz, /\{dalej\}/, 'spis wraca w odcinku po elemencie pełnej szerokości')
+    assert.doesNotMatch(karta, /karta-pasek-czesci/)
 })
