@@ -2200,14 +2200,14 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .kk-grupa-tresc{display:flex;flex-direction:column;gap:10px;padding:2px 0 18px 14px}
 
 /* P2 · SLW-01: słownik – siatka jednostronnych fiszek (połowa hasło, połowa wyjaśnienie), fiszka-zaproszenie z przerywaną ramką */
-.siatka-fiszek{grid-template-columns:repeat(auto-fill,minmax(min(100%,24rem),1fr))}
+.siatka-fiszek{grid-template-columns:repeat(auto-fill,minmax(min(100%,30rem),1fr));gap:14px}
 /* SLW-05 (P3, wg opisu makiety 17.11): lewa część 42% – hasło w akcencie z kreską 32 × 3 i rodzaj na tle sekcji; prawa – znaczenie (4 wiersze), źródło, „czytaj dalej →” */
-.sm-fiszka-odn{display:grid;grid-template-columns:minmax(0,42fr) minmax(0,58fr);height:100%}
-.sm-fiszka-haslo{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:14px;background:var(--tlo-sekcji);overflow-wrap:anywhere}
-.sm-fiszka-haslo .sm-tytul{font-size:var(--rozmiar-tresc);font-weight:700;color:var(--akcent)}
+.sm-fiszka-odn{display:grid;grid-template-columns:minmax(0,42fr) minmax(0,58fr);height:100%;min-height:calc(150px * var(--font-scale,1))} /* łatka 17.11: wysokość i proporcje jak na planszy 1440 */
+.sm-fiszka-haslo{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:16px 18px;background:var(--tlo-sekcji);overflow-wrap:anywhere}
+.sm-fiszka-haslo .sm-tytul{font-size:var(--rozmiar-tytul-sekcji);line-height:1.25;font-weight:700;color:var(--akcent)}
 .sm-fiszka-haslo .sm-tytul::after{content:"";display:block;width:32px;height:var(--kreska-tytulu);border-radius:2px;background:var(--akcent);margin-top:8px}
-.sm-fiszka-tresc{display:flex;flex-direction:column;gap:6px;padding:12px 14px;min-width:0}
-.sm-fiszka-znaczenie{margin:0;font-size:var(--rozmiar-opis);line-height:1.5;color:var(--tekst);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.sm-fiszka-tresc{display:flex;flex-direction:column;gap:8px;padding:16px 18px 14px;min-width:0}
+.sm-fiszka-znaczenie{margin:0;font-size:var(--rozmiar-opis);line-height:1.6;color:var(--tekst);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .sm-fiszka-zrodlo{text-transform:none}
 .sm-fiszka .zapowiedz-dalej{margin-top:auto;align-self:flex-end;font-weight:700;font-size:var(--rozmiar-maly);color:var(--akcent)}
 .sm-fiszka-odn:hover .zapowiedz-dalej{text-decoration:underline}
@@ -2224,7 +2224,7 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .lista-litera--brak{color:var(--tekst-etykieta);cursor:default}
 .lista-litera--brak:hover{border-color:transparent}
 .sm-plus{font-size:calc(72px * var(--font-scale,1));line-height:1;color:var(--akcent);font-weight:700}
-@media (max-width:640px){.sm-fiszka-odn{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){.sm-fiszka-odn{grid-template-columns:minmax(0,38fr) minmax(0,62fr);min-height:calc(160px * var(--font-scale,1))}.sm-fiszka-haslo,.sm-fiszka-tresc{padding:14px 12px}} /* plansza 390: obie części obok siebie */
 
 /* P1 · UX-06 / KIER-03: obszary dotyku 44 px wszędzie tam, gdzie wskaźnik jest palcem – nie tylko do 640 px (tablet, telefon poziomo).
    Odnośniki w biegu zdania wyjęte (WCAG 2.5.8); pojedyncze odnośniki-przyciski i kontrolki mają 44 px. Test: lib/dostepnosc.test.ts. */
