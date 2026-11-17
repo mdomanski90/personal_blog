@@ -1,12 +1,15 @@
 import type { Metadata } from 'next'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
-import { nazwy, opowiesc, powiazania, poziomCzytelnika, kontekstTresci } from '@/lib/archiwum'
+import { Link } from 'next-view-transitions'
+import { nazwy, opowiesc, powiazania, poziomCzytelnika, kontekstTresci, materialy } from '@/lib/archiwum'
+import { adresMiniatury } from '@/lib/zapowiedzi'
+import { pozycjaKadru } from '@/lib/kadr'
 import { naHtml, naglowkiZHtml, podzielWstawki } from '@/lib/markdoc'
 import { PelnaSzerokosc, Strona, Tresc, TytulStrony } from '../../components/Uklad'
-import Powiazania from '../../components/Powiazania'
+import Powiazania, { czesciPowiazan } from '../../components/Powiazania'
 import { LiniaWpisu } from '../../components/MetkiWpisu'
 import { daneCytatu } from '@/lib/cytowanie'
-import { CzescJakCytowac, Tabela, ZglosPoprawke, idCzesci } from '../../components/Karta'
+import { CzescJakCytowac, Tabela, ZglosPoprawke, spisCzesci } from '../../components/Karta'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import SpisTresci from '../../components/SpisTresci'
 import WstawkaMaterialu from '../../components/WstawkaMaterialu'
@@ -41,23 +44,38 @@ export default async function OpowiescStrona({ params }: Parametry) {
     const odcinki = podzielWstawki(html)
     const naglowki = naglowkiZHtml(html)
     // wpis bez nagłówków – bez spisu (decyzja 16.11)
-    const spis = naglowki.length ? [...naglowki, { id: idCzesci('jak cytować'), tekst: 'jak cytować' }] : []
+    const dalej = spisCzesci([...czesciPowiazan({ odnosniki: siec.odnosniki, wzmianki: [] }), 'jak cytować'])
+    const spis = naglowki.length ? [...naglowki, ...dalej] : []
+    // makieta 17.11 (P1): miniatura wpisu (cover albo pierwszy materiał) w gnieździe „bok” – jak zdjęcie na karcie obiektu
+    const mat = o.miniatura ? (await materialy(poziom)).find((m) => m.id === o.miniatura) : undefined
+    const obraz = adresMiniatury(mat, 480)
+    const bok = mat && obraz ? (
+        <figure className="osoba-portret kadr-poziomy">
+            <Link href={`/archiwum/${mat.id}`} tabIndex={-1} aria-hidden="true">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={obraz} alt="" style={/* styl-dynamiczny: kadr miniatury z danych materiału */ { objectPosition: pozycjaKadru(mat.kadr) }} />
+            </Link>
+            <figcaption>{mat.nazwa} · <Link href={`/archiwum/${mat.id}`} className="odn">w archiwum →</Link></figcaption>
+        </figure>
+    ) : undefined
 
     const naglowek = (
         <>
             <TytulStrony bezOkruszkow>{o.tytul}</TytulStrony>
             <LiniaWpisu wpis={o} nazwy={n} />
             <LiniaNrKat nr={nrKat} />
+            {/* makieta 17.11 (P2): zapowiedź redakcyjna pod metryczką – jak lead na kartach */}
+            {o.zapowiedz && <div className="osoba-lead"><p className="m-0">{o.zapowiedz}</p></div>}
         </>
     )
     return (
-        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'wpisy', href: '/wpisy' }]} akcje={<><CopyLinkButton sciezka={`/wpisy/${o.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} spis={spis.length ? <SpisTresci pozycje={spis} /> : undefined}>
+        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'wpisy', href: '/wpisy' }]} akcje={<><CopyLinkButton sciezka={`/wpisy/${o.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={bok} spis={spis.length ? <SpisTresci pozycje={spis} /> : undefined}>
             {odcinki.map((cz, i) => ('material' in cz
                 ? <PelnaSzerokosc key={i}><WstawkaMaterialu id={cz.material} poziom={poziom} /></PelnaSzerokosc>
                 : <article key={i} className="wpis-tresc"><Tresc html={cz.html} /></article>))}
-            {siec.odnosniki.length > 0 && <Powiazania dane={{ odnosniki: siec.odnosniki, wzmianki: [] }} />}
             {/* uwaga 16.11: „jak cytować” jako część tabeli karty – jak na pozostałych kartach */}
             <Tabela etykieta={`${o.tytul} – jak cytować`}>
+                <Powiazania dane={{ odnosniki: siec.odnosniki, wzmianki: [] }} />
                 <CzescJakCytowac plik={o.id} dane={daneCytatu({ tytul: o.tytul, sciezka: `/wpisy/${o.id}`, nrKat, rodzaj: 'wpis', rok: o.data?.slice(0, 4) })} />
             </Tabela>
             <ZglosPoprawke adres={`/wpisy/${o.id}`} tytul={o.tytul} pytanie="Coś się nie zgadza albo wiesz więcej?" />

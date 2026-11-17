@@ -789,6 +789,8 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .osoba-portret{margin:0;display:flex;flex-direction:column;gap:4px}
 .osoba-portret img{width:100%;border-radius:6px;border:1px solid var(--linia-podzialu);display:block}
 .osoba-portret figcaption{font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta);line-height:1.4}
+/* makieta wpisu 17.11 (P1): miniatura wpisu w pasku bocznym – kadr poziomy 3:2 */
+.osoba-portret.kadr-poziomy img{aspect-ratio:3/2;object-fit:cover}
 
 .drzewo .dr-narzedzia { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--linia-podzialu); }
 /* poza pełnym ekranem tylko „pełny ekran ⤢”; na karcie osoby pasek wcale (przycisk jest w nagłówku tabeli) */
@@ -1604,6 +1606,10 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .pozycja-w-karcie{display:flex;flex-direction:column;gap:4px;padding:10px 0}
 .pozycja-w-karcie+.pozycja-w-karcie{border-top:1px solid var(--linia-podzialu)}
 .pozycja-w-karcie:first-child{padding-top:2px}
+/* makieta wpisu 17.11 (P3): odnośniki w tekstach jako część tabeli karty – fragment tekstu pod tytułem */
+.kb-fragment{margin:0;font-size:var(--rozmiar-opis);line-height:1.6;color:var(--tekst-opis)}
+.kb-wzmianki>summary{cursor:pointer;font-size:var(--rozmiar-opis);color:var(--tekst-opis);text-transform:lowercase}
+.kb-wzmianki>.rozwin-tresc>.ot-drobne{display:block;margin:6px 0 4px}
 /* obraz w dwóch motywach (np. miniatura planu): widoczny tylko ten z bieżącego motywu */
 .tylko-ciemny{display:none!important}
 .dark .tylko-ciemny{display:block!important}
@@ -1780,14 +1786,16 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 .karta-losowa,.dark .karta-losowa{height:calc(320px * var(--font-scale,1))}
 .glowna-naglowek-wpisow{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}
 /* uwagi właściciela 16.11 – wariant B (canva „lista wpisów”), ZapowiedziWpisow na stronie głównej i /wpisy:
-   tekst do prawej krawędzi wpisu, w kolumnach wyrównanych (balance) z limitem wierszy – z miniaturą 2 × 7 (od 861 px),
+   tekst do prawej krawędzi wpisu, w kolumnach z limitem wierszy (od 17.11 wypełnianych po kolei) – z miniaturą 2 × 7 (od 861 px),
    bez miniatury 3 × 9 (od 1024 px; 761–1023 px dwie, węziej jedna); krótka zapowiedź bez kolumn, „czytaj dalej” przy końcu tekstu */
 @media (min-width:861px){
   .zapowiedz.z-obrazem .zapowiedz-uklad{grid-template-columns:calc(300px * var(--font-scale,1)) minmax(0,1fr)}
   .zapowiedz.z-obrazem .zapowiedz-tekst{column-count:2;column-gap:var(--odstep-kolumn);column-rule:1px solid var(--linia-podzialu)}
   .zapowiedz.z-obrazem .zapowiedz-blok.krotka{max-width:calc((100% - var(--odstep-kolumn)) / 2)}
 }
-.zapowiedz-tekst{max-height:calc(7 * 1.6em);overflow:hidden;column-fill:balance}
+/* uwaga właściciela 17.11: kolumny wypełniane po kolei – pierwsza do limitu wierszy, potem następna (nie wyrównane);
+   „czytaj dalej” pod ostatnią kolumną, przy prawej krawędzi */
+.zapowiedz-tekst{max-height:calc(7 * 1.6em);overflow:hidden;column-fill:auto}
 .zapowiedz:not(.z-obrazem) .zapowiedz-tekst{max-height:calc(9 * 1.6em);column-count:2;column-gap:var(--odstep-kolumn);column-rule:1px solid var(--linia-podzialu)}
 @media (min-width:1024px){
   .zapowiedz:not(.z-obrazem) .zapowiedz-tekst{column-count:3}
@@ -1921,3 +1929,17 @@ img.medium-zoom-image{transition:transform max(var(--ruch-wolny), 1ms) var(--ruc
 div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruch-krzywa)} /* ruch-wyjatek: medium-zoom czeka na transitionend */
 /* zmiany stanu w miejscu: przycisk „do góry” wchodzi wygaszeniem */
 .przycisk-do-gory{animation:ruch-pojaw var(--ruch-szybki) var(--ruch-krzywa)}
+/* PH3 (17.11): narzędzia rekonstrukcji na rysunku planu – kolory z tokenów planu (--pl-*), oba motywy */
+.pl-napis-tlo{fill:var(--pl-papier);fill-opacity:.88;stroke:var(--pl-szary);stroke-opacity:.35;stroke-width:.5}
+.pl-wskaznik{fill:none;stroke:var(--pl-tekst);stroke-linecap:round}
+.pl-wskaznik-grot{fill:var(--pl-tekst)}
+.pl-nr-legendy{fill:var(--pl-papier);stroke:var(--pl-tekst)}
+.pl-nr-legendy-txt{fill:var(--pl-tekst);font-weight:700;font-family:var(--font-jetbrains),'JetBrains Mono',ui-monospace,monospace}
+/* PH-08: legenda numerowana pod planem (rozwinięta legenda) i w części „rekonstrukcja” karty materiału */
+.plan-legenda-numery{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.plan-legenda-numery ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,20rem),1fr));gap:4px 24px}
+.plan-legenda-numery li{display:flex;align-items:baseline;gap:10px;min-height:calc(28px * var(--font-scale,1));font-size:var(--rozmiar-etykieta)}
+.plan-legenda-nr{flex:0 0 auto;min-width:calc(22px * var(--font-scale,1));height:calc(22px * var(--font-scale,1));box-sizing:border-box;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--tekst);border-radius:999px;font-weight:700;font-size:var(--rozmiar-drobny)}
+.plan-legenda-element{background:none;border:0;padding:0;font:inherit;color:var(--link);cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:2px}
+.plan-legenda-uwaga{color:var(--tekst-etykieta)}
+.plan-legenda-numery.w-karcie{margin-top:0}.plan-legenda-numery.w-karcie ol{grid-template-columns:minmax(0,1fr)}

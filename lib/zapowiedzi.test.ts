@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DLUGOSC_ZAPOWIEDZI, czyKrotkaZapowiedz } from './zapowiedzi'
+import { DLUGOSC_ZAPOWIEDZI, adresMiniatury, czyKrotkaZapowiedz } from './zapowiedzi'
 
 // uwagi właściciela 16.11 (wariant B): tekst w kolumnach z limitem wierszy; krótka zapowiedź (do ok. jednej kolumny) bez kolumn
 test('zapowiedź: długość wypełnia kolumny, krótka do ok. jednej kolumny', () => {
@@ -12,4 +12,12 @@ test('zapowiedź: długość wypełnia kolumny, krótka do ok. jednej kolumny', 
     assert.equal(czyKrotkaZapowiedz('x'.repeat(250), true), false)
     assert.equal(czyKrotkaZapowiedz('x'.repeat(400), false), false)
     assert.equal(czyKrotkaZapowiedz('', true), true)
+})
+
+test('miniatura wpisu: strona skanu, obraz, inne pliki bez miniatury (zapowiedź i strona wpisu)', () => {
+    assert.equal(adresMiniatury({ strony: [{ adres: '/pliki/strony/m/s-1.jpg' }], plik: null }), '/pliki/strony/m/s-1.jpg?w=640')
+    assert.equal(adresMiniatury({ strony: [{ adres: '/pliki/strony/m/s-1.jpg' }] }, 480), '/pliki/strony/m/s-1.jpg?w=480')
+    assert.equal(adresMiniatury({ strony: [], plik: '/pliki/zdj.JPG' }), '/pliki/zdj.JPG?w=640')
+    assert.equal(adresMiniatury({ strony: [], plik: '/pliki/akt.pdf' }), undefined)
+    assert.equal(adresMiniatury(undefined), undefined)
 })

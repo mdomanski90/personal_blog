@@ -7,6 +7,7 @@
 import * as React from 'react'
 import OpisElementu from './OpisElementu'
 import { doSzukania, punktyElementu, srodek, jednostka, type Element, type Numer, type Plan } from '@/lib/plany/model'
+import { elementyLegendy } from '@/lib/plany/ph3'
 import { grobyKolejno, numerKrotki, numerTekst, numeryPlanu } from '@/lib/plany/numeracja'
 import { katalog, GRUPY, typGrobu, type TypElementu, type UstawieniaPlanow } from '@/lib/plany/typy'
 import type { OsobaNaPlanie, KrewnyNaPlanie } from '@/lib/plany/rodzina'
@@ -60,10 +61,13 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
             .sort((a, b) => GRUPY.indexOf(a.t.grupa) - GRUPY.indexOf(b.t.grupa))
     }, [plan, typy, ukryteTypy])
 
+    // PH-08: legenda numerowana – elementy z numerem (także „położenie nieznane”), w kolejności numerów
+    const numerowane = React.useMemo(() => elementyLegendy(plan.elementy.filter((e) => typy.has(e.typ))), [plan, typy])
+
     const trafienia = React.useMemo(() => {
         const q = norm(szukaj.trim())
         if (q.length < 2) return [] as Element[]
-        return plan.elementy.filter((e) => doSzukania(e).includes(q))
+        return plan.elementy.filter((e) => !e.nieznanePolozenie && doSzukania(e).includes(q))
     }, [szukaj, plan])
     const wyroznione = React.useMemo(() => new Set(trafienia.map((e) => e.id)), [trafienia])
     // stan opracowania planu: ile grobów, ile z odczytanym napisem (pokazany nad planem)
@@ -333,7 +337,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
                         zamknij={() => ustawWybrany(null)} idz={(g) => pokazElement(g)} pokazRodzine={() => ustawRodzinaDla(el.id)} rodzinaIle={rodzinaGrobu(el.id)} otworzFoto={ustawFoto} />
                 ) : null}
             </div>
-            <Legenda uzyte={uzyte} prefix={`${prefix}-sw`} wylaczone={wylaczone} rodzina={!!rodzina} przelacz={(id) => ustawWylaczone((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })} wszystkie={() => ustawWylaczone(new Set())} />
+            <Legenda uzyte={uzyte} numerowane={numerowane} typy={typy} pokaz={(e) => pokazElement(e)} prefix={`${prefix}-sw`} wylaczone={wylaczone} rodzina={!!rodzina} przelacz={(id) => ustawWylaczone((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })} wszystkie={() => ustawWylaczone(new Set())} />
             {el && foto !== null && el.zdjecia?.[foto] && (
                 <Galeria plan={plan} el={el} numer={numery.get(el.id)} i={foto} ustaw={ustawFoto} />
             )}
@@ -341,11 +345,12 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
     )
 }
 
-function Legenda({ uzyte, prefix, wylaczone, przelacz, wszystkie, rodzina }: { uzyte: { t: TypElementu; n: number }[]; prefix: string; wylaczone: Set<string>; przelacz: (id: string) => void; wszystkie: () => void; rodzina: boolean }) {
-    if (!uzyte.length) return null
+function Legenda({ uzyte, numerowane, typy, pokaz, prefix, wylaczone, przelacz, wszystkie, rodzina }: { uzyte: { t: TypElementu; n: number }[]; numerowane: (Element & { nrLegendy: string })[]; typy: Map<string, TypElementu>; pokaz: (e: Element) => void; prefix: string; wylaczone: Set<string>; przelacz: (id: string) => void; wszystkie: () => void; rodzina: boolean }) {
+    if (!uzyte.length && !numerowane.length) return null
     return (
-        // zwinięta – rozwija się po kliknięciu w „legenda”; przy ukrytych typach od razu widać „pokaż wszystko”
-        <details className="plan-legenda flex flex-col" style={{ gap: 6 }}>
+        // zwinięta – rozwija się po kliknięciu w „legenda”; przy ukrytych typach od razu widać „pokaż wszystko”;
+        // PH-08: plan z legendą numerowaną – rozwinięta od razu (numery na planie bez listy nic nie mówią)
+        <details className="plan-legenda flex flex-col" style={{ gap: 6 }} open={numerowane.length > 0 || undefined}>
             <summary className="flex items-baseline" style={{ gap: 12 }}>
                 <span className="plan-legenda-tytul">legenda</span>
                 {wylaczone.size > 0 && <button type="button" onClick={(e) => { e.preventDefault(); wszystkie() }} className="plan-bez-druku text-[#4c3cc4] dark:text-[#419cff]" style={{ fontSize: 12, background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>pokaż wszystko</button>}
@@ -361,6 +366,28 @@ function Legenda({ uzyte, prefix, wylaczone, przelacz, wszystkie, rodzina }: { u
                 ))}
                 {rodzina && <span className="flex items-center" style={{ gap: 9, fontSize: 13 }}><span className="plan-rodzina-probka" aria-hidden="true" />grób rodziny</span>}
             </div>
+            {numerowane.length > 0 && (
+                <div className="plan-legenda-numery">
+                    <span className="plan-legenda-tytul">numery na planie</span>
+                    <ol>
+                        {numerowane.map((e) => {
+                            const nazwa = e.nazwa?.split('\n').join(' ') || e.nazwaZrodlowa || typy.get(e.typ)?.nazwa.replace(/ \(.*\)$/, '') || '—'
+                            return (
+                                <li key={e.id}>
+                                    <span className="plan-legenda-nr" aria-hidden="true">{e.nrLegendy}</span>
+                                    <span className="plan-legenda-poz">
+                                        <span className="sr-only">{e.nrLegendy}. </span>
+                                        {e.nieznanePolozenie ? <span>{nazwa} <span className="plan-legenda-uwaga">· położenie nieznane</span></span>
+                                            : <button type="button" className="plan-legenda-element" onClick={() => pokaz(e)}>{nazwa}</button>}
+                                        {e.nazwaZrodlowa && e.nazwaZrodlowa !== nazwa && <span className="plan-legenda-uwaga"> · w źródle: „{e.nazwaZrodlowa}”</span>}
+                                        {(e.odnosniki ?? []).map((k) => <span key={k.adres}> · <a href={k.adres}>{k.nazwa}</a></span>)}
+                                    </span>
+                                </li>
+                            )
+                        })}
+                    </ol>
+                </div>
+            )}
             </div>
         </details>
     )

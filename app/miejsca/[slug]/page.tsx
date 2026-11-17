@@ -22,7 +22,7 @@ import MapaKarty from '../../components/MapaKarty'
 import Zgloszenie from '../../components/Zgloszenie'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
-import Powiazania from '../../components/Powiazania'
+import Powiazania, { czesciPowiazan } from '../../components/Powiazania'
 import { TabelaKsiag } from '../../components/Ksiegi'
 import ListaPlanow from '../../components/plan/ListaPlanow'
 import { planyDlaCzytelnika } from '@/lib/plany/serwer'
@@ -99,7 +99,8 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const jestTeren = swiatynie.length > 0 || !obszar
     const jestKsiegi = ksiegiSa || m.parafie.length > 0
     const tytulHistorii = obszar ? 'opis' : 'historia'
-    const spis = spisCzesci(['podstawowe', m.rodzaj === 'gmina' && potomkowie.length > 0 && 'wsie gminy', tytulHistorii, jestTeren && 'w terenie', planyWsi.length > 0 && 'plany i schematy', jestKsiegi && 'księgi metrykalne', 'powiązane', 'jak cytować', (m.zrodla.length > 0 || !!zrodlo) && 'źródła'])
+    const daneSieci = { odnosniki: odnosnikiWTekstach, wzmianki: siec.wzmianki }
+    const spis = spisCzesci(['podstawowe', m.rodzaj === 'gmina' && potomkowie.length > 0 && 'wsie gminy', tytulHistorii, jestTeren && 'w terenie', planyWsi.length > 0 && 'plany i schematy', jestKsiegi && 'księgi metrykalne', 'powiązane', ...czesciPowiazan(daneSieci), 'jak cytować', (m.zrodla.length > 0 || !!zrodlo) && 'źródła'])
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
@@ -216,14 +217,13 @@ export default async function MiejsceStrona({ params }: Parametry) {
                 <WCaly>
                     <span className="ot-drobne">{opow.length === 0 && mat.length === 0 ? `Nie ma jeszcze wpisów ani materiałów o ${obszar ? 'tym obszarze' : 'tej miejscowości'}. ` : ''}Masz zdjęcie, dokument albo wspomnienie? <Zgloszenie rodzaj="material" adres={`/miejsca/${m.id}`} tytul={m.nazwa} wariant="link" etykieta="przyślij materiał" /></span>
                 </WCaly>
+                <Powiazania dane={daneSieci} />
                 <CzescJakCytowac plik={m.id} dane={daneCytatu({ tytul: m.nazwa, sciezka: `/miejsca/${m.id}`, nrKat, rodzaj: 'miejsce' })} />
                 <Zrodla pozycje={[
                     ...m.zrodla.map((z, i) => <ZAdresami key={`z${i}`} tekst={z} />),
                     zrodlo && <ZAdresami key="opis" tekst={zrodlo} />,
                 ]} />
             </Tabela>
-
-            <Powiazania dane={{ odnosniki: odnosnikiWTekstach, wzmianki: siec.wzmianki }} />
 
             <ZglosPoprawke adres={`/miejsca/${m.id}`} tytul={m.nazwa} pytanie="Coś się nie zgadza albo wiesz więcej o tym miejscu?" />
         </Strona>

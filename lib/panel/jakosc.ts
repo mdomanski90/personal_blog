@@ -6,7 +6,9 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import matter from 'gray-matter'
-import { wczytajPrzekierowania, celPrzekierowania, RODZAJE_PRZEKIEROWAN } from '../przekierowania'
+import { wczytajPrzekierowania, celPrzekierowania, RODZAJE_PRZEKIEROWAN, type Przekierowanie } from '../przekierowania'
+import { normalizuj } from '../tekst'
+import { objasnieniaMaterialu } from '../objasnienia'
 
 export type StanUwagi = 'aktywne' | 'odlozone' | 'ignorowane'
 export type UwagaJakosci = {
@@ -175,6 +177,18 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
             if (kolekcja === 'zespoly' && !pole(d,'repository')) dodaj('brak-archiwum','Brak instytucji przechowującej','Uzupełnij archiwum.')
         }
     }
+    // PH3 (decyzja 16.11): elementy planów – powiązania [[…]] i podstawa (materiał, objaśnienie) wskazujące nieistniejące pozycje
+    const cele = kluczeCelow(wszystkie, await osobyIstniejace())
+    for (const plan of await planyDoKontroli()) {
+        for (const u of uwagiPlanu(plan, {
+            cel: (t) => cele.has(kluczCelu(t)),
+            material: (id) => istnieje.get('materialy')!.has(id),
+            objasnienie: (mat, id) => objasnieniaMaterialu(mat).some((o) => o.id === id),
+        }, przekierowania, (rodzaj, id) => istnieje.get(KOLEKCJA_RODZAJU[rodzaj])?.has(id) ?? false)) {
+            const dec = stany.decyzje[u.id]
+            wynik.push({ ...u, stan: dec?.stan ?? 'aktywne', notatka: dec?.notatka ?? '' })
+        }
+    }
     // tabela przekierowań: nowy musi istnieć, stary nie może istnieć (inaczej przekierowanie nigdy nie zadziała)
     przekierowania.forEach((w, i) => {
         const kol = KOLEKCJA_RODZAJU[w.rodzaj]
@@ -209,4 +223,106 @@ export async function stanUwagi(id: string, stan: StanUwagi, notatka: string): P
         await fs.rename(tmp, plik)
     } finally { await fs.unlink(tmp).catch(() => {}) }
     return true
+}
+
+// ---------- PH3: elementy planów (decyzja właściciela 16.11, ankieta 17.11 – tylko plany) ----------
+
+const PRZYIMEK = /^(w|we|z|ze|do|na|od|po|pod|przy|nad|ku|koło)\s/i
+/** Klucz porównania celu [[…]] – jak w słowniku odnośników (lib/odnosniki.ts): bez przyimka, bez znaków diakrytycznych. */
+export const kluczCelu = (t: string) => normalizuj(t.replace(PRZYIMEK, '').trim())
+
+/**
+ * Wszystkie cele [[…]] istniejące w danych BEZ WZGLĘDU NA WIDOCZNOŚĆ (karta ukryta istnieje – to nie błąd powiązania):
+ * identyfikatory, nazwy, inne nazwy i formy odmiany miejsc, tematów, obiektów, wpisów, materiałów oraz osoby (id, imiona i nazwisko).
+ */
+function kluczeCelow(wszystkie: Map<string, { slug: string; d: Record<string, unknown> }[]>, osoby: { id: string; nazwa: string }[]): Set<string> {
+    const k = new Set<string>()
+    const dodaj = (t: unknown) => { if (typeof t === 'string' && t.trim()) k.add(kluczCelu(t)) }
+    for (const kol of ['miejsca', 'tematy', 'obiekty', 'posts', 'materialy']) for (const r of wszystkie.get(kol) ?? []) {
+        dodaj(r.slug); dodaj(nazwa(r.d.title)); dodaj(nazwa(r.d.name))
+        for (const pole of ['alternative', 'inflections']) if (Array.isArray(r.d[pole])) (r.d[pole] as unknown[]).forEach(dodaj)
+    }
+    for (const o of osoby) { dodaj(o.id); dodaj(o.nazwa) }
+    return k
+}
+
+async function osobyIstniejace(): Promise<{ id: string; nazwa: string }[]> {
+    const kat = path.join(base(), 'osoby')
+    let pliki: string[]
+    try { pliki = await fs.readdir(kat) } catch { return [] }
+    const wyn: { id: string; nazwa: string }[] = []
+    for (const f of pliki.slice(0, 50000)) {
+        if (!f.endsWith('.json') || f.startsWith('_')) continue
+        const id = f.slice(0, -5)
+        try {
+            const o = JSON.parse(await fs.readFile(path.join(/*turbopackIgnore: true*/ kat, f), 'utf8')) as { imiona?: string; nazwisko?: string }
+            wyn.push({ id, nazwa: `${o.imiona ?? ''} ${o.nazwisko ?? ''}`.trim() })
+        } catch { wyn.push({ id, nazwa: '' }) }
+    }
+    return wyn
+}
+
+type ElementDoKontroli = { id: string; typ?: string; nazwa?: string; powiazania?: unknown; podstawa?: unknown }
+export type PlanDoKontroli = { slug: string; tytul: string; elementy: ElementDoKontroli[] }
+
+async function planyDoKontroli(): Promise<PlanDoKontroli[]> {
+    const kat = path.join(base(), 'plany')
+    let pliki: string[]
+    try { pliki = await fs.readdir(kat) } catch { return [] }
+    const wyn: PlanDoKontroli[] = []
+    for (const f of pliki) {
+        if (!f.endsWith('.json') || f.startsWith('_')) continue
+        const slug = f.slice(0, -5)
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) continue
+        try {
+            const p = JSON.parse(await fs.readFile(path.join(/*turbopackIgnore: true*/ kat, f), 'utf8')) as { tytul?: string; elementy?: unknown }
+            wyn.push({ slug, tytul: typeof p.tytul === 'string' && p.tytul.trim() ? p.tytul : slug, elementy: Array.isArray(p.elementy) ? (p.elementy as ElementDoKontroli[]).filter((e) => e && typeof e.id === 'string') : [] })
+        } catch { continue /* uszkodzony plik – nie zgadujemy */ }
+    }
+    return wyn
+}
+
+const RODZAJE_CELU = ['miejsca', 'tematy', 'obiekty', 'wpisy', 'archiwum'] as const
+
+/**
+ * Uwagi dla jednego planu (czysta funkcja – testy). Osobno: powiązanie [[…]] z kartą, materiał podstawy, objaśnienie podstawy
+ * (materiał istnieje, objaśnienia na nim brak). Odnośnik do edytora z zaznaczonym elementem (?el=). Podpowiedź z tabeli
+ * przekierowań tylko wtedy, gdy cel jest jednoznaczny (dla [[…]] rodzaj nie jest zapisany – sprawdzamy wszystkie rodzaje).
+ */
+export function uwagiPlanu(
+    plan: PlanDoKontroli,
+    jest: { cel: (t: string) => boolean; material: (id: string) => boolean; objasnienie: (material: string, id: string) => boolean },
+    przekierowania: Przekierowanie[],
+    istniejeWRodzaju: (rodzaj: string, id: string) => boolean,
+): Omit<UwagaJakosci, 'stan' | 'notatka'>[] {
+    const wyn: Omit<UwagaJakosci, 'stan' | 'notatka'>[] = []
+    const edytuj = (e: ElementDoKontroli) => `/keystatic/plany/${encodeURIComponent(plan.slug)}?el=${encodeURIComponent(e.id)}`
+    const podpis = (e: ElementDoKontroli) => `Element ${e.nazwa?.trim() ? `„${e.nazwa.split('\n').join(' ').trim()}”` : `${e.typ ?? ''} ${e.id}`.trim()}`
+    const nowyDla = (rodzaje: readonly string[], id: string) => [...new Set(rodzaje.map((r) => celPrzekierowania(przekierowania, r, id)).filter((x): x is string => !!x && x !== id))]
+        .filter((n) => rodzaje.some((r) => istniejeWRodzaju(r, n)))
+    const dodaj = (e: ElementDoKontroli, czesc: string, cel: string, opis: string, wskazowka: string) => wyn.push({
+        id: `plany:${plan.slug}:relacja-do-nieistniejacego:${e.id}:${czesc}:${kluczCelu(cel).slice(0, 80)}`,
+        kolekcja: 'plany', rekord: plan.slug, tytul: plan.tytul, regula: 'relacja-do-nieistniejacego', opis, wskazowka, edytuj: edytuj(e),
+    })
+    for (const e of plan.elementy) {
+        for (const c of Array.isArray(e.powiazania) ? e.powiazania : []) {
+            if (typeof c !== 'string' || !c.trim() || jest.cel(c)) continue
+            const nowy = nowyDla(RODZAJE_CELU, c.trim())
+            dodaj(e, 'powiazanie', c, `${podpis(e)}: powiązanie [[${c.trim()}]] wskazuje kartę, której nie ma`,
+                nowy.length === 1 ? `W przekierowaniach: „${c.trim()}” → „${nowy[0]}”. Otwórz edytor planu i wybierz „${nowy[0]}” w powiązaniach elementu.` : 'Identyfikator zmieniono albo kartę usunięto. W edytorze planu (źródło i powiązania) wybierz właściwą kartę albo usuń powiązanie.')
+        }
+        for (const q of Array.isArray(e.podstawa) ? e.podstawa : []) {
+            const m = q && typeof q === 'object' ? (q as { material?: unknown; objasnienie?: unknown }) : null
+            if (!m || typeof m.material !== 'string' || !m.material) continue
+            if (!jest.material(m.material)) {
+                const nowy = nowyDla(['archiwum'], m.material)
+                dodaj(e, 'material', m.material, `${podpis(e)}: podstawa wskazuje materiał „${m.material}”, którego nie ma w archiwum`,
+                    nowy.length === 1 ? `W przekierowaniach: „${m.material}” → „${nowy[0]}”. W edytorze planu wybierz ten materiał w podstawie elementu.` : 'W edytorze planu (źródło i powiązania) wybierz właściwy materiał albo usuń podstawę.')
+            } else if (typeof m.objasnienie === 'string' && m.objasnienie && !jest.objasnienie(m.material, m.objasnienie)) {
+                dodaj(e, 'objasnienie', `${m.material}-${m.objasnienie}`, `${podpis(e)}: podstawa wskazuje objaśnienie ${m.objasnienie}, którego nie ma na skanie „${m.material}”`,
+                    'Objaśnienie usunięto w panelu objaśnień materiału. W edytorze planu wybierz inne objaśnienie albo zostaw sam materiał.')
+            }
+        }
+    }
+    return wyn
 }

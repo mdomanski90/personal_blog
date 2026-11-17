@@ -12,3 +12,12 @@ const JEDNA_KOLUMNA = { zObrazem: 200, bezObrazu: 230 } as const
 export function czyKrotkaZapowiedz(tekst: string, zObrazem: boolean): boolean {
     return tekst.trim().length <= (zObrazem ? JEDNA_KOLUMNA.zObrazem : JEDNA_KOLUMNA.bezObrazu)
 }
+
+/** Adres obrazu miniatury wpisu z materiału: pierwsza strona skanu albo plik obrazu; inne pliki (PDF, nagranie) – brak.
+ *  Wspólne dla zapowiedzi i strony wpisu (makieta wpisu 17.11, P1). */
+export function adresMiniatury(m: { strony: { adres: string }[]; plik?: string | null } | undefined, w = 640): string | undefined {
+    if (!m) return undefined
+    const skan = m.strony[0]?.adres
+    if (skan) return skan.startsWith('/pliki/strony/') ? `${skan}?w=${w}` : skan
+    return m.plik && /\.(jpe?g|png|webp)$/i.test(m.plik) ? `${m.plik}?w=${w}` : undefined
+}

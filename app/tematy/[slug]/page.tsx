@@ -11,7 +11,7 @@ import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj, PrzyciskDrukujCalosc } from '../../components/Druk'
 import CopyLinkButton from '../../components/CopyLinkButton'
-import Powiazania from '../../components/Powiazania'
+import Powiazania, { czesciPowiazan } from '../../components/Powiazania'
 import { numerKat } from '@/lib/katalog/dane'
 import { WierszNrKat } from '../../components/NrKat'
 
@@ -52,7 +52,7 @@ export default async function TematStrona({ params }: Parametry) {
     const wpisyWTekstach = siec.odnosniki.filter((z) => z.zrodlo.rodzaj !== 'wpis' || !opow.some((o) => o.id === z.zrodlo.id))
 
     const nrKat = numerKat('temat', t.id)
-    const spis = spisCzesci([(!!nrKat || t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && 'w skrócie', 'opis', 'powiązane', 'jak cytować', t.zrodla.length > 0 && 'źródła'])
+    const spis = spisCzesci([(!!nrKat || t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && 'w skrócie', 'opis', 'powiązane', ...czesciPowiazan({ odnosniki: wpisyWTekstach, wzmianki: siec.wzmianki }), 'jak cytować', t.zrodla.length > 0 && 'źródła'])
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
@@ -84,12 +84,11 @@ export default async function TematStrona({ params }: Parametry) {
                     <W e="wpisy">{opow.length > 0 && <KrotkieWpisy wpisy={opow} />}</W>
                     <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
                     <WierszeWystapien w={wyst} />
+                    <Powiazania dane={{ odnosniki: wpisyWTekstach, wzmianki: siec.wzmianki }} />
                     <CzescJakCytowac plik={t.id} dane={daneCytatu({ tytul: t.nazwa, sciezka: `/tematy/${t.id}`, nrKat, rodzaj: 'temat' })} />
                     <Zrodla pozycje={t.zrodla.map((z, i) => <ZAdresami key={i} tekst={z} />)} />
                 </Tabela>
             )}
-
-            <Powiazania dane={{ odnosniki: wpisyWTekstach, wzmianki: siec.wzmianki }} />
 
             {opow.length === 0 && mat.length === 0 && (
                 <Sekcja tytul="powiązane" id={idCzesci('powiązane')}>

@@ -18,7 +18,8 @@ import { ETAPY, ETYKIETA_ETAPU, ETYKIETA_POLOZENIA, ETYKIETA_ZRODEL, etapElement
 import { odczytajExif } from '@/lib/plany/exif'
 import { kolejnoDoPracy, numerTekst, numeryPlanu, zastosujNumery, type Numer } from '@/lib/plany/numeracja'
 import { NumerGrobu, StanNumeracjiPlanu, TabelaRoznic, UstawieniaKwatery, type Roznice } from './Numeracja'
-import { RysunekPlanu, Wzory } from '@/app/components/plan/Rysunek'
+import { RysunekPlanu, Wzory, szerLinii } from '@/app/components/plan/Rysunek'
+import { poUsunieciu, poWstawieniu, WYROWNANIA, WSKAZNIKI, type Wyrownanie, type Wskaznik } from '@/lib/plany/ph3'
 import { Probka, WzoryProbek } from '@/app/components/plan/Probka'
 
 type VB = [number, number, number, number]
@@ -555,15 +556,16 @@ export default function Edytor({ slug }: { slug: string }) {
                 const i = +uch.slice(2)
                 if (e.altKey && (wzor.g.k === 'w' || wzor.g.k === 'l')) {
                     const g = wzor.g
-                    if (g.p.length > (g.k === 'w' ? 3 : 2)) zmienElementy(new Map([[wzor.id, { g: { ...g, p: g.p.filter((_, j) => j !== i) } }]]))
+                    // PH3: szerokości w węzłach i ostre narożniki idą za węzłami
+                    if (g.p.length > (g.k === 'w' ? 3 : 2)) zmienElementy(new Map([[wzor.id, { g: { ...g, p: g.p.filter((_, j) => j !== i) }, ...poUsunieciu(wzor, i) }]]))
                     return
                 }
                 ruch.current = { rodzaj: 'wierzcholek', ...baza, orig, id: wzor.id, i }
             } else if (uch.startsWith('m:') && (wzor.g.k === 'w' || wzor.g.k === 'l')) {
                 const i = +uch.slice(2), g = wzor.g
-                const np = [...g.p.slice(0, i + 1), p, ...g.p.slice(i + 1)]
-                zmienElementy(new Map([[wzor.id, { g: { ...g, p: np } }]]))
-                ruch.current = { rodzaj: 'wierzcholek', ...baza, orig: new Map([[wzor.id, { ...wzor, g: { ...g, p: np } }]]), id: wzor.id, i: i + 1 }
+                const np = [...g.p.slice(0, i + 1), p, ...g.p.slice(i + 1)], pola = poWstawieniu(wzor, i)
+                zmienElementy(new Map([[wzor.id, { g: { ...g, p: np }, ...pola }]]))
+                ruch.current = { rodzaj: 'wierzcholek', ...baza, orig: new Map([[wzor.id, { ...wzor, g: { ...g, p: np }, ...pola }]]), id: wzor.id, i: i + 1 }
             }
             return
         }
@@ -1221,7 +1223,10 @@ function Nakladka({ plan, wzor, zaznaczone, r }: { plan: Plan; wzor: Element | n
                     const b = g.p[(i + 1) % n]
                     return <circle key={'m' + i} cx={(q[0] + b[0]) / 2} cy={(q[1] + b[1]) / 2} r={r * 0.45} className="ed-uch-m" data-uchwyt={`m:${i}`} />
                 })}
-                {g.p.map((q, i) => <circle key={i} cx={q[0]} cy={q[1]} r={r * 0.75} className="ed-uch" data-uchwyt={`w:${i}`} />)}
+                {/* PH-05: ostry narożnik gładkiej linii – uchwyt kwadratowy */}
+                {g.p.map((q, i) => wzor?.gladka && wzor.ostre?.includes(i)
+                    ? <rect key={i} x={q[0] - r * 0.75} y={q[1] - r * 0.75} width={r * 1.5} height={r * 1.5} className="ed-uch" data-uchwyt={`w:${i}`} />
+                    : <circle key={i} cx={q[0]} cy={q[1]} r={r * 0.75} className="ed-uch" data-uchwyt={`w:${i}`} />)}
             </g>
         )
     }
@@ -1327,6 +1332,79 @@ function PodkladZMaterialu({ plan, materialy, dodaj }: { plan: Plan; materialy: 
     )
 }
 
+/**
+ * PH3 (PH-04–08): napis (wyrównanie, tło, wzdłuż linii), wskaźnik od etykiety, gładkość i szerokość w węzłach, numer legendy.
+ * Rysuj: kształt (gładkość, węzły); w każdym trybie: napis i legenda.
+ */
+function NarzedziaPH3({ e, plan, t, zmiana, rysuj }: { e: Element; plan: Plan; t: TypElementu | undefined; zmiana: (zm: Partial<Element>) => void; rysuj: boolean }) {
+    const g = e.g, wezly = g.k === 'l' || g.k === 'w' ? g.p : null
+    const napis = t?.rys === 'napis' || !!e.pokazNazwe || t?.id === 'kwatera' || (e.pokazNazwe === undefined && t?.rodzaj === 'obszar' && !t?.grob)
+    const linie = plan.elementy.filter((x) => x.g.k === 'l' && x.g.p.length > 1)
+    const nazwaLinii = (x: Element) => `${x.nazwa?.split('\n').join(' ') || '(bez nazwy)'}${x.id === e.id ? ' – ta linia' : ''}`
+    const nr = e.nrLegendy?.trim().toLocaleLowerCase('pl')
+    const powt = !!nr && plan.elementy.some((x) => x.id !== e.id && x.nrLegendy?.trim().toLocaleLowerCase('pl') === nr)
+    const k = e.kotwica ?? [0.5, 0.5]
+    const przelaczOstry = (i: number) => { const o = new Set(e.ostre ?? []); if (o.has(i)) o.delete(i); else o.add(i); zmiana({ ostre: o.size ? [...o].sort((a, b) => a - b) : undefined }) }
+    return (
+        <>
+            {napis && t?.id !== 'kwatera' && (
+                <div className="ed-rzad">
+                    <span className="ed-seg" role="group" aria-label="wyrównanie wierszy napisu">{(Object.keys(WYROWNANIA) as Wyrownanie[]).map((w) => (
+                        <button key={w} aria-pressed={(e.wyrownanie ?? 's') === w} title={WYROWNANIA[w]} onClick={() => zmiana({ wyrownanie: w === 's' ? undefined : w })}>{w === 'l' ? '⇤' : w === 'p' ? '⇥' : '↔'}</button>
+                    ))}</span>
+                    <label className="ed-ch"><input type="checkbox" checked={!!e.tlo} onChange={(x) => zmiana({ tlo: x.target.checked || undefined })} /> tło pod napisem</label>
+                </div>
+            )}
+            {napis && t?.id !== 'kwatera' && linie.length > 0 && (
+                <Pole etykieta="napis wzdłuż linii (np. nazwa rzeki)">
+                    <select className="ed-in" value={e.wzdluz ?? ''} onChange={(x) => zmiana({ wzdluz: x.target.value || undefined })}>
+                        <option value="">— prosty —</option>
+                        {linie.map((x) => <option key={x.id} value={x.id}>{nazwaLinii(x)}</option>)}
+                    </select>
+                </Pole>
+            )}
+            {napis && t?.id !== 'kwatera' && !e.wzdluz && (
+                <div className="ed-rzad">
+                    <Pole etykieta="wskaźnik">
+                        <select className="ed-in" value={e.wskaznik ?? ''} onChange={(x) => zmiana({ wskaznik: (x.target.value || undefined) as Wskaznik | undefined })}>
+                            <option value="">bez wskaźnika</option>
+                            {(Object.keys(WSKAZNIKI) as Wskaznik[]).map((w) => <option key={w} value={w}>{WSKAZNIKI[w]}</option>)}
+                        </select>
+                    </Pole>
+                    {e.wskaznik && <>
+                        <Pole etykieta="wskazuje: x %"><input className="ed-in" type="number" min={0} max={100} step={5} value={Math.round(k[0] * 100)} onChange={(x) => zmiana({ kotwica: [Math.min(1, Math.max(0, +x.target.value / 100)), k[1]] })} /></Pole>
+                        <Pole etykieta="y %"><input className="ed-in" type="number" min={0} max={100} step={5} value={Math.round(k[1] * 100)} onChange={(x) => zmiana({ kotwica: [k[0], Math.min(1, Math.max(0, +x.target.value / 100))] })} /></Pole>
+                    </>}
+                </div>
+            )}
+            {napis && e.wskaznik && !e.etykieta && <span className="ed-maly">Przesuń napis od elementu (przeciągnij go na planie) – wtedy pojawi się {WSKAZNIKI[e.wskaznik]}.</span>}
+            {rysuj && wezly && (
+                <>
+                    <label className="ed-ch"><input type="checkbox" checked={!!e.gladka} disabled={wezly.length < 3} onChange={(x) => zmiana({ gladka: x.target.checked || undefined })} /> gładka krzywa (ostre narożniki – w tabeli węzłów)</label>
+                    {g.k === 'l' && <label className="ed-ch"><input type="checkbox" checked={!!e.s} onChange={(x) => { const d = +(e.szer ?? szerLinii(e, t?.rys ?? 'wlasny', jednostka(plan))).toFixed(2); zmiana({ s: x.target.checked ? wezly.map(() => d) : undefined }) }} /> zmienna szerokość (w węzłach)</label>}
+                    {(e.gladka || e.s) && (
+                        <table className="ed-wezly">
+                            <thead><tr><th scope="col">węzeł</th>{e.s && <th scope="col">szerokość</th>}{e.gladka && <th scope="col">narożnik</th>}</tr></thead>
+                            <tbody>
+                                {wezly.map((_, i) => (
+                                    <tr key={i}>
+                                        <td>{i + 1}</td>
+                                        {e.s && <td><input className="ed-in" type="number" step={0.25} min={0.1} aria-label={`szerokość w węźle ${i + 1}`} value={e.s[i] ?? ''} onChange={(x) => { const v = Math.max(0.1, +x.target.value || 0.1); zmiana({ s: e.s!.map((w, j) => (j === i ? v : w)) }) }} /></td>}
+                                        {e.gladka && <td><button className="ed-btn" aria-pressed={!!e.ostre?.includes(i)} aria-label={`węzeł ${i + 1}: ostry narożnik`} onClick={() => przelaczOstry(i)}>ostry</button></td>}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </>
+            )}
+            <Pole etykieta="numer w legendzie planu (np. 2, 13, A)"><input className="ed-in" maxLength={8} value={e.nrLegendy ?? ''} onChange={(x) => zmiana({ nrLegendy: x.target.value.trim() || undefined })} /></Pole>
+            <label className="ed-ch"><input type="checkbox" checked={!!e.nieznanePolozenie} onChange={(x) => zmiana({ nieznanePolozenie: x.target.checked || undefined })} /> położenie nieznane (tylko w legendzie)</label>
+            {powt && <span className="ed-uwaga">Numer {e.nrLegendy} ma już inny element – zapis zostanie odrzucony.</span>}
+        </>
+    )
+}
+
 function Pole({ etykieta, children }: { etykieta: string; children: React.ReactNode }) {
     return <label className="ed-pole"><span>{etykieta}</span>{children}</label>
 }
@@ -1393,16 +1471,18 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
                 <select className="ed-in" value={e.typ} onChange={(x) => zmiana({ typ: x.target.value })}>{zgodne.map((x) => <option key={x.id} value={x.id}>{x.nazwa}</option>)}</select>
             </Pole>}
             <Pole etykieta={t?.rys === 'napis' ? 'treść napisu' : t?.id === 'kwatera' ? 'nazwa kwatery' : 'nazwa / napis na planie'}>
-                <input id={`pole-nazwa-${e.id}`} className="ed-in" value={e.nazwa ?? ''} onChange={(x) => zmiana({ nazwa: x.target.value || undefined })} />
+                {/* PH-06: napis w kilku wierszach – Enter = nowy wiersz */}
+                <textarea id={`pole-nazwa-${e.id}`} className="ed-in" rows={Math.min(4, Math.max(1, (e.nazwa ?? '').split('\n').length))} value={e.nazwa ?? ''} onChange={(x) => zmiana({ nazwa: x.target.value || undefined })} />
             </Pole>
             {t?.rys !== 'napis' && t?.id !== 'kwatera' && <label className="ed-ch"><input type="checkbox" checked={e.pokazNazwe ?? (t?.rodzaj === 'obszar' && !t?.grob)} onChange={(x) => zmiana({ pokazNazwe: x.target.checked })} /> pokaż nazwę na planie</label>}
             {(t?.rys === 'napis' || e.pokazNazwe) && (
                 <div className="ed-rzad">
                     <span className="ed-seg" role="group" aria-label="wielkość napisu (stopień)">{(Object.keys(ROZMIAR_STOPNIA).map(Number) as Stopien[]).map((n) => <button key={n} aria-pressed={stopienNapisu(e, t?.rys === 'napis' ? 3 : 2) === n} title={`stopień ${n} (${ROZMIAR_STOPNIA[n]} jednostki planu)`} onClick={() => zmiana({ stopien: n, rozmiar: undefined })}>{n}</button>)}</span>
-                    <select className="ed-in" value={e.styl ?? ''} onChange={(x) => zmiana({ styl: (x.target.value || undefined) as Element['styl'] })}><option value="">styl domyślny</option><option value="zwykly">zwykły</option><option value="kursywa">kursywa</option><option value="rozstrzelony">rozstrzelony</option></select>
-                    <select className="ed-in" value={e.kolor ?? ''} onChange={(x) => zmiana({ kolor: (x.target.value || undefined) as Element['kolor'] })}><option value="">kolor domyślny</option><option value="tekst">czarny</option><option value="szary">szary</option><option value="woda">woda</option><option value="las">roślinność</option><option value="teren">teren</option><option value="pamiec">pamięć</option></select>
+                    <select className="ed-in" aria-label="styl napisu" value={e.styl ?? ''} onChange={(x) => zmiana({ styl: (x.target.value || undefined) as Element['styl'] })}><option value="">styl domyślny</option><option value="zwykly">zwykły</option><option value="kursywa">kursywa</option><option value="rozstrzelony">rozstrzelony</option></select>
+                    <select className="ed-in" aria-label="kolor napisu" value={e.kolor ?? ''} onChange={(x) => zmiana({ kolor: (x.target.value || undefined) as Element['kolor'] })}><option value="">kolor domyślny</option><option value="tekst">czarny</option><option value="szary">szary</option><option value="woda">woda</option><option value="las">roślinność</option><option value="teren">teren</option><option value="pamiec">pamięć</option></select>
                 </div>
             )}
+            {!t?.grob && <NarzedziaPH3 e={e} plan={plan} t={t} zmiana={zmiana} rysuj={rysuj} />}
             {!t?.grob && <ZrodloElementu e={e} plan={plan} zmiana={zmiana} listy={listy} />}
             {rysuj && (<>
             {(e.etykieta) && <button className="ed-maly" onClick={() => zmiana({ etykieta: undefined })}>przywróć położenie napisu</button>}
@@ -1416,7 +1496,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
             )}
             {g.k === 'w' && <span className="ed-maly">powierzchnia {fmt(pole(g.p), 'pole')} · obwód {fmt(dlugosc(g.p, true))}</span>}
             {g.k === 'l' && <span className="ed-maly">długość {fmt(dlugosc(g.p))}</span>}
-            {(t?.rodzaj === 'linia') && <Pole etykieta="grubość (jednostki planu, puste = domyślna)"><input className="ed-in" type="number" step={0.5} value={e.szer ?? ''} onChange={(x) => zmiana({ szer: x.target.value ? Math.max(0.1, +x.target.value) : undefined })} /></Pole>}
+            {(t?.rodzaj === 'linia') && !e.s && <Pole etykieta="grubość (jednostki planu, puste = domyślna)"><input className="ed-in" type="number" step={0.5} value={e.szer ?? ''} onChange={(x) => zmiana({ szer: x.target.value ? Math.max(0.1, +x.target.value) : undefined })} /></Pole>}
             {t?.id === 'kwatera' && <Pole etykieta="kąt rzędów (°)"><input className="ed-in" type="number" step={0.5} value={e.kat ?? 0} onChange={(x) => zmiana({ kat: +x.target.value || 0 })} /></Pole>}
             {t?.id === 'kwatera' && <UstawieniaKwatery e={e} plan={plan} typy={typy} zmiana={zmiana} podglad={podglad} />}
             </>)}
@@ -1677,6 +1757,7 @@ const CSS = `
 .ed-seg{display:inline-flex}.ed-seg button{border-radius:0}.ed-seg button+button{border-left:0}
 .ed-seg button:first-child{border-radius:7px 0 0 7px}.ed-seg button:last-child{border-radius:0 7px 7px 0}
 .ed-ch{display:inline-flex;align-items:center;gap:5px;color:#4f4a41}
+.ed-wezly{border-collapse:collapse;font-size:12px;width:100%}.ed-wezly th{text-align:left;font-weight:400;color:var(--tekst-etykieta);padding:2px 4px}.ed-wezly td{padding:2px 4px;border-top:1px solid var(--linia-podzialu)}.ed-wezly .ed-in{width:5.5em}
 .dark .ed-ch{color:#9ca3af}
 .ed-in{font:inherit;height:28px;padding:0 8px;border:1px solid #d6d1c6;border-radius:7px;background:transparent;color:inherit;min-width:0;width:100%;box-sizing:border-box}
 textarea.ed-in{height:auto;padding:6px 8px;resize:vertical}

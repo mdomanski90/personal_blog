@@ -4,7 +4,7 @@ import * as React from 'react'
 type Stan = 'aktywne' | 'odlozone' | 'ignorowane'
 type Uwaga = { id: string; kolekcja: string; rekord: string; tytul: string; regula: string; opis: string; wskazowka: string; edytuj: string; stan: Stan; notatka: string }
 const API = '/api/keystatic/panel/jakosc'
-const NAZWY: Record<string,string> = { miejsca: 'miejscowości', obiekty:'obiekty', parafie:'instytucje', materialy:'materiały archiwalne', ksiegi:'księgi', publikacje:'publikacje', zbiory:'zbiory', posts:'wpisy', tematy:'tematy', hasla:'słownik', zespoly:'zespoły', biogramy:'biogramy', przekierowania:'przekierowania adresów' }
+const NAZWY: Record<string,string> = { plany:'plany', miejsca: 'miejscowości', obiekty:'obiekty', parafie:'instytucje', materialy:'materiały archiwalne', ksiegi:'księgi', publikacje:'publikacje', zbiory:'zbiory', posts:'wpisy', tematy:'tematy', hasla:'słownik', zespoly:'zespoły', biogramy:'biogramy', przekierowania:'przekierowania adresów' }
 
 export default function DoOpracowania() {
     const [lista, ustaw] = React.useState<Uwaga[]>([])
@@ -94,7 +94,7 @@ export default function DoOpracowania() {
                         <h2 style={{fontSize:19}}>{wybor.tytul}</h2>
                         <p style={{fontWeight:700,margin:0}}>{wybor.opis}</p>
                         <p className="pn-maly">{wybor.wskazowka}</p>
-                        <a className="pn-btn pn-btn-gl" style={{alignSelf:'flex-start'}} href={wybor.edytuj} target="_blank" rel="noreferrer">otwórz rekord w Keystatic ↗</a>
+                        <a className="pn-btn pn-btn-gl" style={{alignSelf:'flex-start'}} href={wybor.edytuj} target="_blank" rel="noreferrer">{wybor.kolekcja === 'plany' ? 'otwórz w edytorze planu ↗' : 'otwórz rekord w Keystatic ↗'}</a>
                         <label className="pn-maly">notatka do decyzji (opcjonalnie)<br/>
                             <textarea className="pn-in" value={notatka} onChange={e=>ustawNotatke(e.target.value)} rows={3} maxLength={800} style={{width:'100%',marginTop:5}} placeholder="np. brak informacji w źródłach" /></label>
                         <div className="pn-rzad">

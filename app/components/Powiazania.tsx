@@ -2,60 +2,60 @@ import * as React from 'react'
 import { Link } from 'next-view-transitions'
 import type { Powiazania as DanePowiazan, ZrodloPowiazania } from '@/lib/archiwum'
 import { odmiana } from '@/lib/tekst'
-import { RAMKA, Sekcja } from './Uklad'
+import { Czesc, WCaly } from './Karta'
+import { PozycjaWKarcie } from './KartaPozycji'
 
 const RODZAJ: Record<string, string> = { wpis: 'wpis', miejsce: 'miejsce', temat: 'temat', obiekt: 'obiekt', material: 'materiał', osoba: 'biogram' }
 
-function Lista({ zrodla, wyroznienie }: { zrodla: ZrodloPowiazania[]; wyroznienie: 'odnosnik' | 'wzmianka' }) {
+export const TYTUL_ODNOSNIKOW = 'odnośniki w tekstach'
+export const TYTUL_WZMIANEK = 'wspomniane bez odnośnika'
+
+/** Tytuły części do spisu treści (puste pomijane – spisCzesci). */
+export const czesciPowiazan = (d: DanePowiazan) => [d.odnosniki.length > 0 && TYTUL_ODNOSNIKOW, d.wzmianki.length > 0 && TYTUL_WZMIANEK]
+
+function Pozycje({ zrodla, wyroznienie }: { zrodla: ZrodloPowiazania[]; wyroznienie: 'odnosnik' | 'wzmianka' }) {
     return (
-        <ul className="flex flex-col" style={{ gap: 'calc(0.9rem * var(--font-scale, 1))', listStyle: 'none', padding: 0, margin: 0 }}>
+        <>
             {zrodla.map((z) => (
-                <li key={`${z.zrodlo.rodzaj}:${z.zrodlo.id}`} className={`${RAMKA} powiazanie`} style={{ borderRadius: 8, padding: 'calc(0.6rem * var(--font-scale, 1)) calc(0.8rem * var(--font-scale, 1))' }}>
-                    <div className="flex flex-wrap items-baseline" style={{ gap: '2px 10px' }}>
-                        <span className="text-[var(--tekst-etykieta)] lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>{RODZAJ[z.zrodlo.rodzaj]}</span>
-                        <Link href={z.zrodlo.adres} className="font-bold" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{z.zrodlo.nazwa}</Link>
-                        {z.ile > z.fragmenty.length && (
-                            <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>{odmiana(z.ile, ['raz', 'razy', 'razy'])}</span>
-                        )}
-                    </div>
+                <PozycjaWKarcie key={`${z.zrodlo.rodzaj}:${z.zrodlo.id}`} tytul={<Link href={z.zrodlo.adres}>{z.zrodlo.nazwa}</Link>}
+                    prawa={[RODZAJ[z.zrodlo.rodzaj] ?? z.zrodlo.rodzaj, z.ile > z.fragmenty.length && odmiana(z.ile, ['raz', 'razy', 'razy'])].filter(Boolean).join(' · ')} pola={[]}>
                     {z.fragmenty.map((f, i) => (
-                        <p key={i} className="text-[var(--tekst-opis)] leading-relaxed" style={{ fontSize: 'calc(14px * var(--font-scale, 1))', marginTop: 4 }}>
-                            {f.przed}
-                            <mark className={`powiazanie-${wyroznienie}`}>{f.trafienie}</mark>
-                            {f.po}
-                        </p>
+                        <p key={i} className="kb-fragment">{f.przed}<mark className={`powiazanie-${wyroznienie}`}>{f.trafienie}</mark>{f.po}</p>
                     ))}
-                </li>
+                </PozycjaWKarcie>
             ))}
-        </ul>
+        </>
     )
 }
 
 /**
- * Sieć powiązań na dole strony (jak w Logseq): teksty z odnośnikiem [[…]] do tej pozycji
- * oraz – zwinięte – teksty, w których jej nazwa pada bez odnośnika.
+ * Sieć powiązań (jak w Logseq) jako CZĘŚCI TABELI KARTY (makieta wpisu 17.11, P3): teksty z odnośnikiem [[…]] do tej pozycji
+ * i – zwinięte – teksty, w których jej nazwa pada bez odnośnika. Pozycje to bloki `pozycja-w-karcie` (bez ramek – zasada 2a).
+ * Wstawiać wewnątrz <Tabela>, przed „jak cytować”.
  */
 export default function Powiazania({ dane }: { dane: DanePowiazan }) {
     if (!dane.odnosniki.length && !dane.wzmianki.length) return null
     return (
         <>
             {dane.odnosniki.length > 0 && (
-                <Sekcja tytul={`odnośniki w tekstach (${dane.odnosniki.length})`} id="odnosniki">
-                    <Lista zrodla={dane.odnosniki} wyroznienie="odnosnik" />
-                </Sekcja>
+                <>
+                    <Czesc tytul={TYTUL_ODNOSNIKOW}>{dane.odnosniki.length}</Czesc>
+                    <WCaly><Pozycje zrodla={dane.odnosniki} wyroznienie="odnosnik" /></WCaly>
+                </>
             )}
             {dane.wzmianki.length > 0 && (
-                <details id="wzmianki" className="flex flex-col">
-                    <summary className="cursor-pointer lowercase font-bold" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
-                        wspomniane bez odnośnika ({dane.wzmianki.length})
-                    </summary>
-                    <div className="rozwin-tresc flex flex-col">
-                    <p className="text-[var(--tekst-etykieta)] lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))', margin: '6px 0 10px' }}>
-                        teksty, w których pada ta nazwa albo jej forma, ale bez odnośnika [[…]] i bez powiązania w panelu.
-                    </p>
-                    <Lista zrodla={dane.wzmianki} wyroznienie="wzmianka" />
-                    </div>
-                </details>
+                <>
+                    <Czesc tytul={TYTUL_WZMIANEK}>{dane.wzmianki.length}</Czesc>
+                    <WCaly>
+                        <details className="kb-wzmianki">
+                            <summary>pokaż {odmiana(dane.wzmianki.length, ['tekst', 'teksty', 'tekstów'])}</summary>
+                            <div className="rozwin-tresc">
+                                <p className="ot-drobne">teksty, w których pada ta nazwa albo jej forma, ale bez odnośnika [[…]] i bez powiązania w panelu.</p>
+                                <Pozycje zrodla={dane.wzmianki} wyroznienie="wzmianka" />
+                            </div>
+                        </details>
+                    </WCaly>
+                </>
             )}
         </>
     )

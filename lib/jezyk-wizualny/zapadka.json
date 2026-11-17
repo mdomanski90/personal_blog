@@ -49,9 +49,6 @@
     "app/components/PoleSzukania.tsx": {
       "styl": 1
     },
-    "app/components/Powiazania.tsx": {
-      "styl": 14
-    },
     "app/components/PrzegladarkaDokumentu.tsx": {
       "styl": 1
     },

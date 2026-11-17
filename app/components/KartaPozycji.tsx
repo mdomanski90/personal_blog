@@ -25,14 +25,16 @@ export function KartaPozycji({ tytul, prawa, id, etykieta, children }: { tytul: 
 export function PozycjaWKarcie({ tytul, prawa, pola, miniatura, id, etykieta, children }: {
     tytul: React.ReactNode; prawa?: React.ReactNode; pola: [string, React.ReactNode][]; miniatura?: React.ReactNode; id?: string; etykieta?: string; children?: React.ReactNode
 }) {
+    // bez pól (np. odnośniki w tekstach) – bez pustej listy
+    const widoczne = pola.filter(([, v]) => v !== null && v !== undefined && v !== false && v !== '')
     const tresc = (
         <>
             <div className="kb-nagl"><h3>{tytul}</h3>{prawa && <span className="kb-lata">{prawa}</span>}</div>
-            <dl className="kb-pola">
-                {pola.filter(([, v]) => v !== null && v !== undefined && v !== false && v !== '').map(([e, v]) => (
+            {widoczne.length > 0 && <dl className="kb-pola">
+                {widoczne.map(([e, v]) => (
                     <div key={e} className="kb-w"><dt>{e}</dt><dd>{v}</dd></div>
                 ))}
-            </dl>
+            </dl>}
             {children}
         </>
     )

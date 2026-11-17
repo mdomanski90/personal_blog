@@ -18,10 +18,11 @@ import { odnosnikiInstytucji, odnosnikiOsob } from '@/lib/powiazania-karty'
 import { parafie } from '@/lib/archiwum'
 import SkanZTekstem from '../../components/SkanZTekstem'
 import { rekonstrukcjaMaterialu } from '@/lib/plany/serwer'
+import { elementyLegendy } from '@/lib/plany/ph3'
 import { opisPlanu } from '@/lib/plany/katalog'
 import { katalog } from '@/lib/plany/typy'
 import CopyLinkButton from '../../components/CopyLinkButton'
-import Powiazania from '../../components/Powiazania'
+import Powiazania, { czesciPowiazan } from '../../components/Powiazania'
 import { zbiory } from '@/lib/paczka5'
 import { Link } from 'next-view-transitions'
 import { widoczne } from '@/lib/archiwum'
@@ -71,6 +72,8 @@ export default async function MaterialStrona({ params }: Parametry) {
     // PH1 · jeden widok dokumentu: plan zrekonstruowany z tego materiału jako warstwa skanu i część karty „rekonstrukcja”
     const rek = skan ? await rekonstrukcjaMaterialu(m.id) : null
     const opisRek = rek ? opisPlanu(rek.plan, katalog(rek.ustawienia)) : null
+    const typyRek = rek ? katalog(rek.ustawienia) : new Map()
+    const legendaRek = rek ? elementyLegendy(rek.plan.elementy.filter((e) => typyRek.has(e.typ))) : []
     const oryginal = [m.pochodzenie, m.sygnatura].filter(Boolean).join(', ')
     const podpisZrodla = m.podpisZrodla || [m.miejscePrzechowywania, m.sygnatura, m.prawa].filter(Boolean).join(' · ')
 
@@ -82,7 +85,7 @@ export default async function MaterialStrona({ params }: Parametry) {
     const nrKat = numerKat('material', m.id)
     const jestOpis = !!nrKat || !!(m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal || m.miejscePrzechowywania || m.transkrypcja || m.zbiory.length || osobyM.length || instytucjeM.length)
     const jestDotyczy = miejscaM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0
-    const spis = spisCzesci([jestOpis && 'opis archiwalny', jestDotyczy && 'dotyczy', rek && 'rekonstrukcja', 'jak cytować', (oryginal || m.zrodla.length > 0) && 'źródła'])
+    const spis = spisCzesci([jestOpis && 'opis archiwalny', jestDotyczy && 'dotyczy', rek && 'rekonstrukcja', ...czesciPowiazan({ odnosniki: inneOdnosniki, wzmianki: [] }), 'jak cytować', (oryginal || m.zrodla.length > 0) && 'źródła'])
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
@@ -146,18 +149,32 @@ export default async function MaterialStrona({ params }: Parametry) {
                         {opisRek.pola.map(([e, v]) => <W key={e} e={e}>{v}</W>)}
                         <W e="opis">{rek.plan.opis}</W>
                         <W e="prawa do rekonstrukcji">{rek.plan.prawa}</W>
+                        {/* PH-08: legenda numerowana rekonstrukcji (te same numery co na skanie z warstwą planu) */}
+                        <W e="legenda planu">{legendaRek.length > 0 && (
+                            <div className="plan-legenda-numery w-karcie">
+                                <ol>
+                                    {legendaRek.map((e) => (
+                                        <li key={e.id}>
+                                            <span className="plan-legenda-nr" aria-hidden="true">{e.nrLegendy}</span>
+                                            <span><span className="sr-only">{e.nrLegendy}. </span>{e.nazwa?.split('\n').join(' ') || e.nazwaZrodlowa || typyRek.get(e.typ)?.nazwa.replace(/ \(.*\)$/, '')}
+                                                {e.nieznanePolozenie && <span className="plan-legenda-uwaga"> · położenie nieznane</span>}
+                                                {(e.odnosniki ?? []).map((k) => <span key={k.adres}> · <Link href={k.adres}>{k.nazwa}</Link></span>)}</span>
+                                        </li>
+                                    ))}
+                                </ol>
+                            </div>
+                        )}</W>
                         <WCaly><span className="ot-drobne">Rekonstrukcję widać na skanie: przełącznik „skan / skan + plan / plan” nad obrazem{rek.podklad.strona > 0 ? ` (strona ${rek.podklad.strona + 1})` : ''}.</span></WCaly>
                     </>
                 )}
 
+                <Powiazania dane={{ odnosniki: inneOdnosniki, wzmianki: [] }} />
                 <CzescJakCytowac plik={m.id} dane={daneCytatu({ tytul: m.czas && !m.nazwa.includes(formatujEdtf(m.czas)) ? `${m.nazwa}, ${formatujEdtf(m.czas)}` : m.nazwa, sciezka: `/archiwum/${m.id}`, nrKat, rodzaj: 'material', opracowal: m.opracowal || undefined, autor: m.tworca || undefined, rok: m.czas?.slice(0, 4), oryginal: oryginal || undefined })} />
                 <Zrodla pozycje={[
                     oryginal && <>oryginał: {oryginal}</>,
                     ...m.zrodla.map((z, i) => <ZAdresami key={i} tekst={z} />),
                 ]} />
             </Tabela>
-
-            {inneOdnosniki.length > 0 && <Powiazania dane={{ odnosniki: inneOdnosniki, wzmianki: [] }} />}
 
             <ZglosPoprawke adres={`/archiwum/${m.id}`} tytul={m.nazwa} pytanie="Coś się nie zgadza w opisie albo transkrypcji? „To nie Piotr, tylko Paweł” wystarczy." />
         </Strona>

@@ -17,7 +17,7 @@ import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import MapaKarty from '../../components/MapaKarty'
-import Powiazania from '../../components/Powiazania'
+import Powiazania, { czesciPowiazan } from '../../components/Powiazania'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import ListaPlanow from '../../components/plan/ListaPlanow'
@@ -72,7 +72,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     const jestPowiazane = mat.length > 0 || planyObiektu.length > 1 || wyst.plany.length > 0 || wyst.skany.length > 0
     const jestZrodla = o.zrodla.length > 0 || o.zdjecia.some((z) => z.autor || z.prawa)
     // JW-2: spis treści z części; drugiej mapy w wierszu „położenie” nie ma (JW-15) – mapa jest w pasku bocznym, gdy nie ma zdjęcia
-    const spis = spisCzesci(['podstawowe', o.zdjecia.length > 1 && 'fotografie', maTekst(opisHtml) && 'opis', jestPowiazane && 'powiązane', 'jak cytować', jestZrodla && 'źródła'])
+    const spis = spisCzesci(['podstawowe', o.zdjecia.length > 1 && 'fotografie', maTekst(opisHtml) && 'opis', jestPowiazane && 'powiązane', ...czesciPowiazan(siec), 'jak cytować', jestZrodla && 'źródła'])
     const tabelaPodstawowa = (
         <Tabela etykieta={`${o.nazwa} – dane`}>
             <Czesc tytul="podstawowe" />
@@ -139,6 +139,7 @@ export default async function ObiektStrona({ params }: Parametry) {
                     <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
                     <WierszeWystapien w={wyst} />
                     {planyObiektu.length > 1 && <><Czesc tytul="plany">{odmiana(planyObiektu.length, ['plan', 'plany', 'planów'])}</Czesc><WCaly><ListaPlanow plany={planyObiektu} /></WCaly></>}
+                    <Powiazania dane={siec} />
                     <CzescJakCytowac plik={o.id} dane={daneCytatu({ tytul: o.nazwa, sciezka: `/obiekty/${o.id}`, nrKat, rodzaj: 'obiekt' })} />
                     <Zrodla pozycje={[
                         ...o.zrodla.map((z, i) => <ZAdresami key={`z${i}`} tekst={z} />),
@@ -146,8 +147,6 @@ export default async function ObiektStrona({ params }: Parametry) {
                     ]} />
                 </Tabela>
             )}
-
-            <Powiazania dane={siec} />
 
             <ZglosPoprawke adres={`/obiekty/${o.id}`} tytul={o.nazwa} pytanie="Coś się nie zgadza albo wiesz więcej o tym obiekcie?" />
         </Strona>

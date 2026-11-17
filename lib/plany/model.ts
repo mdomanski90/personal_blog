@@ -6,6 +6,7 @@ import { katalog, typGrobu, type TypElementu, type UstawieniaPlanow } from './ty
 import type { Etap, Polozenie, StanZrodel } from './statusy'
 import { poprawPolaPH2, type Identyfikacja, type Odnosnik, type Podstawa } from './podstawa'
 import { dobryStopien, poprawMetadane, poprawPodklad, type MetadanePlanu, type PodkladZMaterialu, type Stopien } from './metadane'
+import { poprawPolaPH3, type PolaPH3 } from './ph3'
 
 export type Widocznosc = 'publiczne' | 'bliscy' | 'ja'
 export type Pkt = [number, number]
@@ -32,7 +33,8 @@ export interface Zdjecie {
     data?: string
 }
 
-export interface Element {
+/** PH3 (PH-04–08): pola narzędzi rekonstrukcji – lib/plany/ph3.ts */
+export interface Element extends PolaPH3 {
     id: string
     typ: string
     g: Geometria
@@ -445,7 +447,14 @@ export function popraw(p: Partial<Plan> & { slug: string }): Plan {
 /** PH2: powiązania, podstawa, nazwa ze źródła, identyfikacja – tylko w dobrym kształcie; `odnosniki` nigdy z pliku. */
 function poprawPH2(e: Element): Element {
     const { powiazania: _a, podstawa: _b, nazwaZrodlowa: _c, identyfikacja: _d, odnosniki: _f, ...reszta } = e
-    return { ...reszta, ...poprawPolaPH2(e as unknown as Record<string, unknown>) }
+    return poprawPH3({ ...reszta, ...poprawPolaPH2(e as unknown as Record<string, unknown>) })
+}
+
+/** PH3: szerokości w węzłach, gładkość, napisy, wskaźnik, numer legendy – tylko w dobrym kształcie (lib/plany/ph3.ts). */
+function poprawPH3(e: Element): Element {
+    const { s: _s, gladka: _g, ostre: _o, wyrownanie: _w, tlo: _t, wzdluz: _z, wskaznik: _k, kotwica: _a, nrLegendy: _n, nieznanePolozenie: _p, ...reszta } = e
+    const wezly = e.g.k === 'l' || e.g.k === 'w' ? e.g.p.length : 0
+    return { ...reszta, ...poprawPolaPH3(e as unknown as Record<string, unknown>, wezly) }
 }
 
 /** Stopień napisu spoza 1–6 (ręczna edycja pliku) – usuwany; napis wraca do wielkości domyślnej albo dawnego `rozmiar`. */

@@ -6,6 +6,7 @@ import * as React from 'react'
 import { jednostka, losowe, pole, punktyElementu, rad, srodek, wWielokacie, type Element, type Numer, type Pkt, type Plan, type Podklad } from '@/lib/plany/model'
 import { KOLEJNOSC_WARSTW, KOLORY, WZORY, type TypElementu } from '@/lib/plany/typy'
 import { ROZMIAR_STOPNIA, stopienNapisu, type Stopien } from '@/lib/plany/metadane'
+import { doCzytania, liniaWskazujaca, probkiOsi, punktKotwicy, sciezka, szerokoscWiersza, wierszeNapisu, wstega, type Wyrownanie } from '@/lib/plany/ph3'
 
 const F = { fontFamily: 'var(--font-jetbrains), JetBrains Mono, ui-monospace, monospace' }
 const v = (nazwa: string) => `var(--pl-${nazwa})`
@@ -142,7 +143,7 @@ export function Znak({ typ, x, y, s, halo = true, kolor }: { typ: TypElementu; x
 }
 
 // ---------- las ----------
-function Las({ e, p, u, gesty, prefix }: { e: Element; p: Pkt[]; u: number; gesty: boolean; prefix: string }) {
+function Las({ e, p, u, gesty, prefix, d }: { e: Element; p: Pkt[]; u: number; gesty: boolean; prefix: string; d?: string }) {
     const los = losowe(e.id)
     // korony rozrzucone nieregularnie: różna wielkość, prześwity między nimi, część zachodzi na siebie
     const rmin = gesty ? u * 0.6 : u * 0.45, rmax = gesty ? u * 1.6 : u * 1.1, gest = gesty ? 0.36 : 0.22
@@ -164,8 +165,8 @@ function Las({ e, p, u, gesty, prefix }: { e: Element; p: Pkt[]; u: number; gest
     const id = `${prefix}-las-${e.id}`
     return (
         <g>
-            <clipPath id={id}><polygon points={P(p)} /></clipPath>
-            <polygon points={P(p)} style={{ fill: v('las') }} />
+            <clipPath id={id}>{d ? <path d={d} /> : <polygon points={P(p)} />}</clipPath>
+            {d ? <path d={d} style={/* styl-dynamiczny: kolor z tokenu --pl-* */ { fill: v('las') }} /> : <polygon points={P(p)} style={{ fill: v('las') }} />}
             <g clipPath={`url(#${id})`}>
                 {kola.map(([x, y, r], i) => {
                     const m = 6 + Math.floor(los() * 3), faza = los() * 6.28
@@ -177,7 +178,7 @@ function Las({ e, p, u, gesty, prefix }: { e: Element; p: Pkt[]; u: number; gest
                     return <path key={i} d={gladka(pts)} style={{ fill: v(kol), stroke: v('las-brzeg'), strokeWidth: Math.max(0.4, r / 16), strokeOpacity: 0.95, strokeLinejoin: 'round' }} />
                 })}
             </g>
-            <polygon points={P(p)} style={{ fill: 'none', stroke: v('las-brzeg'), strokeWidth: Math.max(0.5, rmin / 14) }} />
+            {d ? <path d={d} style={/* styl-dynamiczny: grubość z jednostki planu, kolor z tokenu --pl-* */ { fill: 'none', stroke: v('las-brzeg'), strokeWidth: Math.max(0.5, rmin / 14) }} /> : <polygon points={P(p)} style={{ fill: 'none', stroke: v('las-brzeg'), strokeWidth: Math.max(0.5, rmin / 14) }} />}
         </g>
     )
 }
@@ -232,7 +233,8 @@ function Dolina({ pts, szer, u }: { pts: Pkt[]; szer: number; u: number }) {
 }
 
 // ---------- linie ----------
-interface Linia { d: string; szer: number; e: Element; rys: string; wl?: { kolor: string; kreski: string } }
+/** pr – PH-04: próbki osi z szerokością w węzłach (linia rysowana wstęgą zamiast kreską) */
+interface Linia { d: string; szer: number; e: Element; rys: string; wl?: { kolor: string; kreski: string }; pr?: [number, number, number][] }
 const DOMYSLNA_SZER: Record<string, number> = { ulica: 1.5, kolej: 0.3, wal: 0.55, most: 0.9, droga: 0.9, polna: 0.45, sciezka: 0.09, alejka: 0.85, rzeka: 0.36, ogrodzenie: 0.05, granica: 0.045, dolina: 1.2, wlasny: 0.12 }
 export const szerLinii = (e: Element, rys: string, u: number) => e.szer ?? (DOMYSLNA_SZER[rys] ?? 0.1) * u
 
@@ -246,8 +248,12 @@ function SiecDrog({ linie, u }: { linie: Linia[]; u: number }) {
         <g>
             {pol.map((l) => <path key={'pt' + l.e.id} d={l.d} style={{ ...okr, stroke: v('polna-tlo'), strokeWidth: l.szer }} />)}
             {pol.map((l) => <path key={'pk' + l.e.id} d={l.d} style={{ ...okr, stroke: v('polna'), strokeWidth: Math.max(u * 0.08, l.szer * 0.26), strokeDasharray: `${u * 0.45} ${u * 0.25}` }} />)}
-            {bite.map((l) => <path key={'o' + l.e.id} d={l.d} style={{ ...okr, stroke: v(obw[l.rys][0]), strokeWidth: l.szer + u * obw[l.rys][1] }} />)}
-            {bite.map((l) => <path key={'w' + l.e.id} d={l.d} style={{ ...okr, stroke: v(l.rys === 'alejka' ? 'alejka' : 'droga'), strokeWidth: l.szer }} />)}
+            {bite.map((l) => l.pr
+                ? <path key={'o' + l.e.id} d={wstega(l.pr, u * obw[l.rys][1])} style={/* styl-dynamiczny: kolor z tokenu --pl-* (PH-04 wstęga) */ { fill: v(obw[l.rys][0]) }} />
+                : <path key={'o' + l.e.id} d={l.d} style={{ ...okr, stroke: v(obw[l.rys][0]), strokeWidth: l.szer + u * obw[l.rys][1] }} />)}
+            {bite.map((l) => l.pr
+                ? <path key={'w' + l.e.id} d={wstega(l.pr)} style={/* styl-dynamiczny: kolor z tokenu --pl-* (PH-04 wstęga) */ { fill: v(l.rys === 'alejka' ? 'alejka' : 'droga') }} />
+                : <path key={'w' + l.e.id} d={l.d} style={{ ...okr, stroke: v(l.rys === 'alejka' ? 'alejka' : 'droga'), strokeWidth: l.szer }} />)}
         </g>
     )
 }
@@ -256,7 +262,10 @@ function LiniaInna({ l, u }: { l: Linia; u: number }) {
     const okr: React.CSSProperties = { fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
     switch (l.rys) {
         case 'sciezka': return <path d={l.d} style={{ ...okr, stroke: v('polna'), strokeWidth: l.szer, strokeDasharray: `${u * 0.1} ${u * 0.2}` }} />
-        case 'rzeka': return <path d={l.d} style={{ ...okr, stroke: v('rzeka'), strokeWidth: l.szer }} />
+        // PH-04 (S1): rzeka o zmiennej szerokości – warstwy: brzeg (szersza wstęga), na nim woda
+        case 'rzeka': return l.pr
+            ? <><path d={wstega(l.pr, u * 0.08)} style={/* styl-dynamiczny: kolor z tokenu --pl-* (PH-04 wstęga) */ { fill: v('woda-brzeg') }} /><path d={wstega(l.pr)} style={/* styl-dynamiczny: kolor z tokenu --pl-* (PH-04 wstęga) */ { fill: v('rzeka') }} /></>
+            : <path d={l.d} style={{ ...okr, stroke: v('rzeka'), strokeWidth: l.szer }} />
         case 'ogrodzenie': return <path d={l.d} style={{ ...okr, strokeLinecap: 'butt', stroke: v('plot'), strokeWidth: l.szer, strokeDasharray: `${u * 0.4} ${u * 0.2} ${u * 0.08} ${u * 0.2}` }} />
         case 'granica': return <path d={l.d} style={{ ...okr, stroke: v('szary'), strokeWidth: l.szer, strokeDasharray: `${u * 0.45} ${u * 0.25}` }} />
         // PH-22: kolej – ciemna linia z jasnymi odcinkami w środku (klasyczny znak mapy)
@@ -297,20 +306,33 @@ function Niepewnosc({ elementy, u }: { elementy: Element[]; u: number }) {
 // ---------- napisy ----------
 const KOLOR_NAPISU: Record<string, string> = { tekst: v('tekst'), szary: v('szary'), woda: v('woda-txt'), las: v('las-txt'), teren: v('teren-txt'), pamiec: v('pamiec') }
 
-export function Napis({ x, y, tekst, u, stopien = 3, styl = 'zwykly', kolor = 'tekst', kat = 0, obrotPlanu = 0, kotwica = 'middle', waga }: {
+export function Napis({ x, y, tekst, u, stopien = 3, styl = 'zwykly', kolor = 'tekst', kat = 0, obrotPlanu = 0, kotwica = 'middle', waga, wyrownanie, tlo }: {
     x: number; y: number; tekst: string; u: number; stopien?: Stopien; styl?: string; kolor?: string; kat?: number; obrotPlanu?: number; kotwica?: 'start' | 'middle' | 'end'; waga?: number
+    /** PH-06: wyrównanie wierszy w bloku napisu (blok wyśrodkowany w punkcie x, y) */
+    wyrownanie?: Wyrownanie
+    /** PH-06: jasne tło pod napisem */
+    tlo?: boolean
 }) {
     const fs = u * ROZMIAR_STOPNIA[stopien]
     const roz = styl === 'rozstrzelony'
+    const L = wierszeNapisu(roz ? tekst.toUpperCase() : tekst), lh = fs * 1.2
+    const szer = Math.max(0, ...L.map((w) => szerokoscWiersza(w, fs, roz)))
+    // PH-06: wiele wierszy – blok wyśrodkowany w punkcie; wyrównanie przesuwa kotwicę wierszy do krawędzi bloku
+    const wiele = L.length > 1 || !!wyrownanie
+    const anchor = wiele ? (wyrownanie === 'l' ? 'start' : wyrownanie === 'p' ? 'end' : 'middle') : kotwica
+    const xa = wiele ? (wyrownanie === 'l' ? x - szer / 2 : wyrownanie === 'p' ? x + szer / 2 : x) : x
+    const y0 = y - ((L.length - 1) * lh) / 2, pad = fs * 0.3
     return (
-        <text
-            x={x} y={y} fontSize={fs} textAnchor={kotwica} dominantBaseline="middle"
-            transform={kat || obrotPlanu ? `rotate(${kat - obrotPlanu} ${x} ${y})` : undefined}
-            style={{
-                ...F, fill: KOLOR_NAPISU[kolor] ?? v('tekst'), fontStyle: styl === 'kursywa' ? 'italic' : undefined, fontWeight: waga ?? (roz ? 700 : 400),
-                letterSpacing: roz ? fs * 0.45 : undefined, stroke: v('papier'), strokeWidth: fs * 0.32, strokeLinejoin: 'round', paintOrder: 'stroke',
-            }}
-        >{roz ? tekst.toUpperCase() : tekst}</text>
+        <g transform={kat || obrotPlanu ? `rotate(${kat - obrotPlanu} ${x} ${y})` : undefined}>
+            {tlo && <rect x={x - szer / 2 - pad} y={y0 - lh / 2 - pad * 0.6} width={szer + 2 * pad} height={L.length * lh + pad * 1.2} rx={fs * 0.25} className="pl-napis-tlo" />}
+            <text
+                x={xa} y={y0} fontSize={fs} textAnchor={anchor} dominantBaseline="middle"
+                style={{
+                    ...F, fill: KOLOR_NAPISU[kolor] ?? v('tekst'), fontStyle: styl === 'kursywa' ? 'italic' : undefined, fontWeight: waga ?? (roz ? 700 : 400),
+                    letterSpacing: roz ? fs * 0.45 : undefined, stroke: v('papier'), strokeWidth: tlo ? 0 : fs * 0.32, strokeLinejoin: 'round', paintOrder: 'stroke',
+                }}
+            >{L.length > 1 ? L.map((w, i) => <tspan key={i} x={xa} dy={i ? lh : 0}>{w || '\u00a0'}</tspan>) : L[0] ?? ''}</text>
+        </g>
     )
 }
 
@@ -353,8 +375,14 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
         const t = typy.get(e.typ)
         if (!t || o.ukryteTypy?.has(e.typ)) return false
         if (o.ukryteWarstwy?.has(t.warstwa)) return false
+        // PH-08 (K3): obiekt znany tylko z legendy – na planie dla czytelnika go nie ma (w edytorze widać miejsce robocze)
+        if (e.nieznanePolozenie && !o.edycja) return false
         return o.pokaz ? o.pokaz(e) : true
     }
+    // PH-05: gładki obrys obszaru (krzywa przez węzły z ostrymi narożnikami)
+    const dGladki = (e: Element) => (e.gladka && e.g.k === 'w' ? sciezka(e.g.p, { zamknieta: true, gladka: true, ostre: e.ostre }) : undefined)
+    const dLinii = (e: Element, p: Pkt[], zamknieta = false) => sciezka(p, { zamknieta, gladka: e.gladka, ostre: e.ostre })
+    const linieWg = new Map(plan.elementy.filter((e) => e.g.k === 'l').map((e) => [e.id, e]))
     const el = plan.elementy.filter(widoczny)
     const wg = new Map<string, Element[]>()
     for (const e of el) {
@@ -374,6 +402,22 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
         const pokaz = e.pokazNazwe ?? (t.id === 'kwatera' || t.rys === 'napis' || t.rys === 'ulica' || (t.rodzaj === 'obszar' && !t.grob && t.rys !== 'budynek' && t.rys !== 'gosp'))
         const tekst = t.rys === 'napis' ? (e.nazwa || e.opis || '') : e.nazwa
         if (!pokaz || !tekst) return
+        // PH-06: napis wzdłuż linii (rzeka, droga) – po krzywej linii, zawsze do czytania; brak linii → napis prosty niżej
+        const wz = e.wzdluz ? linieWg.get(e.wzdluz) : undefined
+        if (wz && wz.g.k === 'l' && wz.g.p.length > 1) {
+            const p0 = wz.g.p, p1 = doCzytania(p0, obrot), odwr = p1 !== p0, n = p0.length
+            const idS = `${prefix}-wz-${e.id}`, fs = u * ROZMIAR_STOPNIA[stopienNapisu(e, t.rys === 'napis' ? 3 : 2)]
+            const domKolorWz = t.warstwa === 'woda' || typy.get(wz.typ)?.warstwa === 'woda' ? 'woda' : 'tekst'
+            napisy.push(
+                <g key={'n' + e.id} data-id={o.edycja ? e.id : undefined} data-czesc={o.edycja ? 'etykieta' : undefined}>
+                    <path id={idS} d={sciezka(p1, { gladka: wz.gladka, ostre: odwr ? wz.ostre?.map((j) => n - 1 - j) : wz.ostre })} fill="none" />
+                    <text fontSize={fs} dominantBaseline="middle" style={/* styl-dynamiczny: wielkość z jednostki planu, kolor z tokenu --pl-* */ { ...F, fill: KOLOR_NAPISU[e.kolor ?? domKolorWz] ?? v('tekst'), fontStyle: (e.styl ?? (domKolorWz === 'woda' ? 'kursywa' : 'zwykly')) === 'kursywa' ? 'italic' : undefined, letterSpacing: e.styl === 'rozstrzelony' ? fs * 0.45 : undefined, stroke: v('papier'), strokeWidth: fs * 0.32, strokeLinejoin: 'round', paintOrder: 'stroke' }}>
+                        <textPath href={`#${idS}`} startOffset="50%" textAnchor="middle">{wierszeNapisu(e.styl === 'rozstrzelony' ? tekst.toUpperCase() : tekst).join(' ')}</textPath>
+                    </text>
+                </g>,
+            )
+            return
+        }
         if (t.rys === 'ulica' && e.g.k === 'l' && e.g.p.length > 1 && !e.etykieta) {
             // PH-22: nazwa ulicy w środku jezdni, wzdłuż najdłuższego odcinka, zawsze do czytania (bez napisu do góry nogami)
             const p = e.g.p
@@ -397,9 +441,41 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
         }
         const domKolor = t.rys === 'las' || t.rys === 'zagajnik' || t.rys === 'kolor' && t.wzor === 'laka' ? 'las' : t.warstwa === 'woda' ? 'woda' : t.warstwa === 'teren' ? 'teren' : 'tekst'
         const domStyl = domKolor === 'tekst' ? 'zwykly' : 'kursywa'
+        const st = stopienNapisu(e, t.rys === 'napis' ? 3 : 2), styl = e.styl ?? domStyl, kat = e.g.k === 't' ? e.g.a : 0
+        // PH-07 (K2): linia / strzałka od odsuniętej etykiety do punktu elementu (kotwica w obwiedni; brak = środek) – sieroty niemożliwe
+        let wsk: React.ReactNode = null
+        if (e.wskaznik) {
+            const fs = u * ROZMIAR_STOPNIA[st], L = wierszeNapisu(styl === 'rozstrzelony' ? tekst.toUpperCase() : tekst)
+            const hw = Math.max(0, ...L.map((w) => szerokoscWiersza(w, fs, styl === 'rozstrzelony'))) / 2 + fs * 0.35, hh = (L.length * fs * 1.2) / 2 + fs * 0.25
+            const cel = punktKotwicy(punktyElementu(e.g), e.kotwica, [cx, cy])
+            const ln = liniaWskazujaca([cx + dx, cy + dy], hw, hh, cel, e.wskaznik === 'strzalka' ? u * 0.6 : 0, kat - obrot)
+            if (ln) wsk = <>
+                <path d={ln.d} className="pl-wskaznik" style={/* styl-dynamiczny: grubość z jednostki planu */ { strokeWidth: u * 0.07 }} />
+                {ln.grot && <path d={ln.grot} className="pl-wskaznik-grot" />}
+            </>
+        }
         napisy.push(
             <g key={'n' + e.id} data-id={o.edycja ? e.id : undefined} data-czesc={o.edycja ? 'etykieta' : undefined}>
-                <Napis x={cx + dx} y={cy + dy} tekst={tekst} u={u} stopien={stopienNapisu(e, t.rys === 'napis' ? 3 : 2)} styl={e.styl ?? domStyl} kolor={e.kolor ?? domKolor} kat={e.g.k === 't' ? e.g.a : 0} obrotPlanu={obrot} />
+                {wsk}
+                <Napis x={cx + dx} y={cy + dy} tekst={tekst} u={u} stopien={st} styl={styl} kolor={e.kolor ?? domKolor} kat={kat} obrotPlanu={obrot} wyrownanie={e.wyrownanie} tlo={e.tlo} />
+            </g>,
+        )
+    }
+
+    // PH-08: numer legendy w kółku przy elemencie (znak punktowy – z boku znaku, obszar i linia – w środku)
+    const numery: React.ReactNode[] = []
+    const numerLegendy = (e: Element, t: TypElementu) => {
+        if (!e.nrLegendy || e.nieznanePolozenie) return
+        const [x0, y0] = e.g.k === 't' ? [e.g.x, e.g.y] : srodek(e.g)
+        const r = u * (0.55 + 0.17 * Math.min(3, e.nrLegendy.length))
+        // nazwa pokazana w środku obszaru (bez przesunięcia) – numer nad nią, żeby się nie nakładały
+        const nazwa = (e.pokazNazwe ?? (t.rodzaj === 'obszar' && !t.grob && t.rys !== 'budynek' && t.rys !== 'gosp')) && !e.etykieta && !e.wzdluz && e.nazwa
+        const nadNazwa = nazwa ? (wierszeNapisu(e.nazwa!).length * u * ROZMIAR_STOPNIA[stopienNapisu(e, 2)] * 1.2) / 2 + r * 1.3 : 0
+        const [x, y] = t.rodzaj === 'punkt' || e.g.k === 'p' ? [x0 + u * 1.25, y0 - u * 1.25] : [x0, y0 - nadNazwa]
+        numery.push(
+            <g key={'nr' + e.id} transform={obrot ? `rotate(${-obrot} ${x} ${y})` : undefined}>
+                <circle cx={x} cy={y} r={r} className="pl-nr-legendy" style={/* styl-dynamiczny: grubość z jednostki planu */ { strokeWidth: u * 0.08 }} />
+                <text x={x} y={y} fontSize={u * 0.85} textAnchor="middle" dominantBaseline="central" className="pl-nr-legendy-txt">{e.nrLegendy}</text>
             </g>,
         )
     }
@@ -415,6 +491,7 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
             const g = e.g, id = e.id
             const pts = punktyElementu(g)
             etykieta(e, t)
+            numerLegendy(e, t)
             const dane = { 'data-id': id } as Record<string, string>
             switch (t.rys) {
                 case 'ikona':
@@ -423,10 +500,11 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                         const [x, y] = srodek(g)
                         inne.push(<g key={id} {...dane}>{wyrozn(e) && <circle cx={x} cy={y} r={u * 1.3} style={{ fill: v('akcent-tlo'), stroke: v('akcent'), strokeWidth: u * 0.1 }} />}<Znak typ={t} x={x} y={y} s={u * 1.8} kolor={e.stan === 'nie-istnieje' ? v('szary') : undefined} /><circle cx={x} cy={y} r={u * 1.1} style={{ fill: 'transparent' }} /></g>)
                     } else if (t.rodzaj === 'linia' && g.k === 'l') {
-                        linie.push({ d: M(g.p), szer: szerLinii(e, 'wlasny', u) * (t.wlasny?.linia?.grubosc ?? 1), e, rys: 'wlasny', wl: t.wlasny?.linia })
+                        linie.push({ d: dLinii(e, g.p), szer: szerLinii(e, 'wlasny', u) * (t.wlasny?.linia?.grubosc ?? 1), e, rys: 'wlasny', wl: t.wlasny?.linia })
                     } else {
                         const wl = t.wlasny
-                        inne.push(<g key={id} {...dane}><polygon points={P(pts)} style={{ fill: wl?.wzor ? `url(#${prefix}-${wl.wzor})` : wl?.tlo ?? v('laka'), stroke: wl?.tlo ? 'none' : undefined }} />{obrysWyr(e, pts)}</g>)
+                        const dg = dGladki(e)
+                        inne.push(<g key={id} {...dane}>{dg ? <path d={dg} style={/* styl-dynamiczny: wzór / kolor własnego typu z ustawień planu */ { fill: wl?.wzor ? `url(#${prefix}-${wl.wzor})` : wl?.tlo ?? v('laka'), stroke: wl?.tlo ? 'none' : undefined }} /> : <polygon points={P(pts)} style={{ fill: wl?.wzor ? `url(#${prefix}-${wl.wzor})` : wl?.tlo ?? v('laka'), stroke: wl?.tlo ? 'none' : undefined }} />}{obrysWyr(e, pts)}</g>)
                     }
                     break
                 }
@@ -434,14 +512,16 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                 case 'kolor':
                     inne.push(
                         <g key={id} {...dane}>
-                            <polygon points={P(pts)} style={{ fill: wypelnienie(prefix, t.wzor), stroke: t.plot ? v('plot') : t.wzor === 'woda' ? v('woda-brzeg') : 'none', strokeWidth: t.plot ? u * 0.035 : u * 0.03, strokeDasharray: t.plot ? `${u * 0.22} ${u * 0.11} ${u * 0.045} ${u * 0.11}` : undefined }} />
+                            {dGladki(e)
+                                ? <path d={dGladki(e)} style={/* styl-dynamiczny: grubość i kreski z jednostki planu, kolor z tokenu --pl-* */ { fill: wypelnienie(prefix, t.wzor), stroke: t.plot ? v('plot') : t.wzor === 'woda' ? v('woda-brzeg') : 'none', strokeWidth: t.plot ? u * 0.035 : u * 0.03, strokeDasharray: t.plot ? `${u * 0.22} ${u * 0.11} ${u * 0.045} ${u * 0.11}` : undefined }} />
+                                : <polygon points={P(pts)} style={{ fill: wypelnienie(prefix, t.wzor), stroke: t.plot ? v('plot') : t.wzor === 'woda' ? v('woda-brzeg') : 'none', strokeWidth: t.plot ? u * 0.035 : u * 0.03, strokeDasharray: t.plot ? `${u * 0.22} ${u * 0.11} ${u * 0.045} ${u * 0.11}` : undefined }} />}
                             {obrysWyr(e, pts)}
                         </g>,
                     )
                     break
                 case 'las':
                 case 'zagajnik':
-                    inne.push(<g key={id} {...dane}><Las e={e} p={pts} u={u} gesty={t.rys === 'las'} prefix={prefix} />{obrysWyr(e, pts)}</g>)
+                    inne.push(<g key={id} {...dane}><Las e={e} p={pts} u={u} gesty={t.rys === 'las'} prefix={prefix} d={dGladki(e)} />{obrysWyr(e, pts)}</g>)
                     break
                 case 'zaglebienie':
                 case 'wzniesienie':
@@ -452,7 +532,7 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                     break
                 case 'budynek':
                 case 'gosp':
-                    inne.push(<g key={id} {...dane}><polygon points={P(pts)} style={{ fill: v(t.rys === 'gosp' ? 'gosp' : 'bud'), stroke: wyrozn(e) ? v('akcent') : 'none', strokeWidth: u * 0.12 }} />{e.stan === 'nie-istnieje' && <polygon points={P(pts)} style={{ fill: v('papier'), stroke: v('szary'), strokeWidth: u * 0.05, strokeDasharray: `${u * 0.12} ${u * 0.12}` }} />}</g>)
+                    inne.push(<g key={id} {...dane}>{dGladki(e) ? <path d={dGladki(e)} style={/* styl-dynamiczny: grubość z jednostki planu, kolor z tokenu --pl-* */ { fill: v(t.rys === 'gosp' ? 'gosp' : 'bud'), stroke: wyrozn(e) ? v('akcent') : 'none', strokeWidth: u * 0.12 }} /> : <polygon points={P(pts)} style={{ fill: v(t.rys === 'gosp' ? 'gosp' : 'bud'), stroke: wyrozn(e) ? v('akcent') : 'none', strokeWidth: u * 0.12 }} />}{e.stan === 'nie-istnieje' && <polygon points={P(pts)} style={{ fill: v('papier'), stroke: v('szary'), strokeWidth: u * 0.05, strokeDasharray: `${u * 0.12} ${u * 0.12}` }} />}</g>)
                     break
                 case 'grob': {
                     const wyb = o.wybrane?.has(id), wyr = o.wyroznione?.has(id), rodz = o.rodzina?.has(id)
@@ -477,8 +557,12 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                 case 'kolej':
                 case 'wal':
                 case 'most':
-                    if (g.k === 'l') linie.push({ d: M(g.p), szer: szerLinii(e, t.rys, u), e, rys: t.rys })
-                    else if (g.k === 'w') linie.push({ d: M(g.p) + 'Z', szer: szerLinii(e, t.rys, u), e, rys: t.rys })
+                    if (g.k === 'l') {
+                        const szer = szerLinii(e, t.rys, u)
+                        // PH-04: szerokość w węzłach – próbki osi do wstęgi (droga, ulica, alejka, rzeka); inne typy – kreska o największej szerokości
+                        const pr = e.s && ['droga', 'ulica', 'alejka', 'rzeka'].includes(t.rys) ? probkiOsi(g.p, e.s, szer, { gladka: e.gladka, ostre: e.ostre }) : undefined
+                        linie.push({ d: dLinii(e, g.p), szer: e.s ? Math.max(...e.s) : szer, e, rys: t.rys, pr })
+                    } else if (g.k === 'w') linie.push({ d: dLinii(e, g.p, true), szer: szerLinii(e, t.rys, u), e, rys: t.rys })
                     break
                 case 'napis':
                     if (g.k === 't' && wyrozn(e)) inne.push(<circle key={id} cx={g.x} cy={g.y} r={u * 0.35} style={{ fill: v('akcent') }} pointerEvents="none" />)
@@ -506,6 +590,7 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
             {KOLEJNOSC_WARSTW.map(warstwa)}
             <Niepewnosc elementy={el} u={u} />
             <g data-warstwa="etykiety" pointerEvents={o.edycja ? undefined : 'none'}>{napisy}</g>
+            {numery.length > 0 && <g data-warstwa="legenda" pointerEvents="none">{numery}</g>}
         </g>
     )
 }

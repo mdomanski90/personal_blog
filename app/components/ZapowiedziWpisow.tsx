@@ -3,7 +3,7 @@ import { Link } from 'next-view-transitions'
 import { kontekstTresci, materialy, nazwy, type Opowiesc, type Widocznosc } from '@/lib/archiwum'
 import { zajawka } from '@/lib/markdoc'
 import { pozycjaKadru } from '@/lib/kadr'
-import { DLUGOSC_ZAPOWIEDZI, czyKrotkaZapowiedz } from '@/lib/zapowiedzi'
+import { DLUGOSC_ZAPOWIEDZI, adresMiniatury, czyKrotkaZapowiedz } from '@/lib/zapowiedzi'
 import MetkiWpisu from './MetkiWpisu'
 
 /**
@@ -21,8 +21,7 @@ export default async function ZapowiedziWpisow({ wpisy, poziom, naglowek = 'h3' 
         <>
             {wpisy.map((w) => {
                 const m = w.miniatura ? mats.get(w.miniatura) : undefined
-                const skan = m?.strony[0]?.adres
-                const obraz = !m ? undefined : skan ? (skan.startsWith('/pliki/strony/') ? `${skan}?w=640` : skan) : m.plik && /\.(jpe?g|png|webp)$/i.test(m.plik) ? `${m.plik}?w=640` : undefined
+                const obraz = adresMiniatury(m)
                 const tekst = w.zapowiedz || (obraz
                     ? zajawka(w.tresc, DLUGOSC_ZAPOWIEDZI.zObrazem, kontekst.rozwiaz)
                     : zajawka(w.tresc, DLUGOSC_ZAPOWIEDZI.bezObrazu, kontekst.rozwiaz, { akapity: true }))

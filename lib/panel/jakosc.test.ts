@@ -3,7 +3,7 @@ import test from 'node:test'
 import os from 'node:os'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { uwagiJakosci, stanUwagi } from './jakosc'
+import { uwagiJakosci, stanUwagi, uwagiPlanu } from './jakosc'
 
 test('P6: kolejkowanie, trwałe ignorowanie i automatyczne domknięcie ostrzeżenia', async () => {
     const przed = process.cwd()
@@ -60,4 +60,50 @@ test('0C: powiązanie do nieistniejącego wpisu i błędne przekierowania (dane 
         const prz = w.filter((x) => x.regula === 'przekierowanie-bledne').map((x) => x.opis).sort()
         assert.deepEqual(prz, ['Nowy identyfikator nie istnieje', 'Stary identyfikator nadal istnieje'])
     } finally { process.chdir(przed); await fs.rm(tmp, { recursive: true, force: true }) }
+})
+
+test('PH3: elementy planów – powiązania [[…]] i podstawa do nieistniejących pozycji (dane syntetyczne)', async () => {
+    const przed = process.cwd()
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'odniepamieci-ph3-jakosc-'))
+    try {
+        process.chdir(tmp)
+        for (const k of ['miejsca', 'materialy', 'obiekty', 'plany', '_panel', 'osoby']) await fs.mkdir(`content/${k}`, { recursive: true })
+        await fs.writeFile('content/miejsca/testowo.mdoc', `---\ntitle: Testowo\ntype: wies\nvisibility: tylko-ja\ninflections:\n  - Testowie\n---\nOpis.\n`)
+        await fs.writeFile('content/obiekty/mlyn-nowy.mdoc', `---\ntitle: Młyn nowy\n---\nOpis.\n`)
+        await fs.writeFile('content/materialy/szkic.mdoc', `---\ntitle: Szkic\ntype: dokument\n---\n`)
+        await fs.writeFile('content/osoby/p1.json', JSON.stringify({ imiona: 'Jan', nazwisko: 'Przykładowy' }))
+        await fs.writeFile('content/_panel/przekierowania.json', JSON.stringify({ wpisy: [{ rodzaj: 'obiekty', stary: 'mlyn', nowy: 'mlyn-nowy' }] }))
+        await fs.writeFile('content/plany/syntetyczny.json', JSON.stringify({ slug: 'syntetyczny', tytul: 'Plan syntetyczny', elementy: [
+            { id: 'el1aaaa', typ: 'mlyn', nazwa: 'Młyn', g: { k: 'p', x: 1, y: 1 }, powiazania: ['mlyn', 'w Testowie', 'testowo', 'Jan Przykładowy', 'p1', 'nie-ma-takiej'] },
+            { id: 'el2bbbb', typ: 'kosciol', g: { k: 'p', x: 2, y: 2 }, podstawa: [{ material: 'szkic' }, { material: 'usuniety-skan', objasnienie: 'o-abcd' }] },
+        ] }))
+        const L = (await uwagiJakosci()).filter((x) => x.kolekcja === 'plany')
+        assert.deepEqual(L.map((x) => x.opis).sort(), [
+            'Element „Młyn”: powiązanie [[mlyn]] wskazuje kartę, której nie ma',
+            'Element „Młyn”: powiązanie [[nie-ma-takiej]] wskazuje kartę, której nie ma',
+            'Element kosciol el2bbbb: podstawa wskazuje materiał „usuniety-skan”, którego nie ma w archiwum',
+        ].sort())
+        assert.equal(L.length, 3, 'ukryta karta (Testowo), forma z przyimkiem, osoba po id i po nazwie – istnieją')
+        const mlyn = L.find((x) => x.opis.includes('[[mlyn]]'))!
+        assert.match(mlyn.wskazowka, /„mlyn” → „mlyn-nowy”/)
+        assert.equal(mlyn.edytuj, '/keystatic/plany/syntetyczny?el=el1aaaa')
+        assert.equal(mlyn.regula, 'relacja-do-nieistniejacego')
+        assert.doesNotMatch(L.find((x) => x.opis.includes('nie-ma-takiej'))!.wskazowka, /przekierowaniach/)
+        // decyzja „ignoruj” trzyma się elementu i celu (klucz z id elementu – stały przy zmianie kolejności)
+        assert.equal(await stanUwagi(mlyn.id, 'ignorowane', 'sprawdzone'), true)
+        const p = JSON.parse(await fs.readFile('content/plany/syntetyczny.json', 'utf8'))
+        p.elementy.reverse()
+        await fs.writeFile('content/plany/syntetyczny.json', JSON.stringify(p))
+        assert.equal((await uwagiJakosci()).find((x) => x.id === mlyn.id)?.stan, 'ignorowane')
+    } finally {
+        process.chdir(przed)
+        await fs.rm(tmp, { recursive: true, force: true })
+    }
+})
+
+test('PH3: objaśnienie podstawy usunięte ze skanu – osobna uwaga (materiał istnieje)', () => {
+    const L = uwagiPlanu({ slug: 'x', tytul: 'X', elementy: [{ id: 'e1', nazwa: 'Rynek', podstawa: [{ material: 'szkic', objasnienie: 'o-zzzz' }, { material: 'szkic', objasnienie: 'o-jest' }] }] },
+        { cel: () => true, material: (id) => id === 'szkic', objasnienie: (_m, id) => id === 'o-jest' }, [], () => false)
+    assert.equal(L.length, 1)
+    assert.equal(L[0].opis, 'Element „Rynek”: podstawa wskazuje objaśnienie o-zzzz, którego nie ma na skanie „szkic”')
 })

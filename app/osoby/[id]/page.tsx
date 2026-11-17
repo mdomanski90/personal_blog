@@ -21,7 +21,7 @@ import { Czesc, CzescJakCytowac, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCa
 import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
-import Powiazania from '../../components/Powiazania'
+import Powiazania, { czesciPowiazan } from '../../components/Powiazania'
 import { PastylkaOsoby } from '@/app/components/Wzorce'
 import { numerKat } from '@/lib/katalog/dane'
 import { WierszNrKat } from '../../components/NrKat'
@@ -48,7 +48,6 @@ function Obrz({ o, wywnioskowany }: { o: Obrzadek; wywnioskowany: boolean }) {
 // JW-2: karta osoby z komponentów tabeli karty (Tabela / Czesc / W z Karta.tsx) – jak pozostałe karty.
 const Naglowek = Czesc
 
-const RODZAJ_POWIAZANIA: Record<string, string> = { wpis: 'wpis', miejsce: 'miejsce', temat: 'temat', obiekt: 'obiekt', material: 'materiał', osoba: 'biogram' }
 
 export default async function KartaOsoby({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ wstecz?: string }> }) {
     const { id } = await params
@@ -135,7 +134,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
         o.przydomek && `${o.plec === 'K' ? 'zwana' : o.plec === 'M' ? 'zwany' : 'zwany(-a)'} „${o.przydomek}”`,
         o.inneNazwiska?.length && `${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}`,
     ].filter(Boolean).join(' · ')
-    const spis = spisCzesci([(bio?.tresc || bio?.lead) && 'biogram', 'życie', 'rodzina', html && 'drzewo', o.notatki && poziom !== 'publiczne' && 'notatki', materialyOsoby.length > 0 && 'materiały archiwalne', 'jak cytować', wierszeZrodel.length > 0 && 'źródła', siec.odnosniki.length > 0 && 'w archiwum i wpisach'])
+    const spis = spisCzesci([(bio?.tresc || bio?.lead) && 'biogram', 'życie', 'rodzina', html && 'drzewo', o.notatki && poziom !== 'publiczne' && 'notatki', materialyOsoby.length > 0 && 'materiały archiwalne', ...czesciPowiazan(siec), 'jak cytować', wierszeZrodel.length > 0 && 'źródła'])
     const prosbaOZdjecie = !o.portret && po1900
     const portret = o.portret ? (
         <figure className="osoba-portret">
@@ -262,6 +261,8 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                     </>
                 )}
 
+                {/* makieta wpisu 17.11 (P3): powiązania jak na pozostałych kartach – części tabeli przed „jak cytować” */}
+                <Powiazania dane={siec} />
                 <CzescJakCytowac plik={id} dane={daneCytatu({ tytul: lataZycia(o) ? `${tytul} (${lataZycia(o)})` : tytul, sciezka: `/osoby/${id}`, nrKat, rodzaj: 'osoba' })} />
                 {wierszeZrodel.length > 0 && (
                     <>
@@ -282,22 +283,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                     </>
                 )}
 
-                {siec.odnosniki.length > 0 && (
-                    <>
-                        <Naglowek tytul="w archiwum i wpisach">{siec.odnosniki.length}</Naglowek>
-                        {siec.odnosniki.map((z) => (
-                            <W key={`${z.zrodlo.rodzaj}:${z.zrodlo.id}`} e={RODZAJ_POWIAZANIA[z.zrodlo.rodzaj] ?? z.zrodlo.rodzaj}>
-                                <span>
-                                    <Link href={z.zrodlo.adres}>{z.zrodlo.nazwa}</Link>
-                                    {z.fragmenty[0] && <span className="ot-drobne"> · „…{z.fragmenty[0].przed.slice(-60)}<mark className="powiazanie-odnosnik">{z.fragmenty[0].trafienie}</mark>{z.fragmenty[0].po.slice(0, 60)}…”</span>}
-                                </span>
-                            </W>
-                        ))}
-                    </>
-                )}
             </Tabela>
-
-            <Powiazania dane={{ odnosniki: [], wzmianki: siec.wzmianki }} />
 
             <Zgloszenie rodzaj="poprawka" adres={`/osoby/${id}`} tytul={tytul} />
         </Strona>
