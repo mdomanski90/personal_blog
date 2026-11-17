@@ -9,7 +9,7 @@ import { PelnaSzerokosc, Strona, Tresc, TytulStrony } from '../../components/Ukl
 import Powiazania, { czesciPowiazan } from '../../components/Powiazania'
 import { LiniaWpisu } from '../../components/MetkiWpisu'
 import { daneCytatu } from '@/lib/cytowanie'
-import { CzescJakCytowac, Tabela, ZglosPoprawke, spisCzesci } from '../../components/Karta'
+import { CzescJakCytowac, ID_WSTEPU, Tabela, ZglosPoprawke, spisCzesci } from '../../components/Karta'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import SpisTresci from '../../components/SpisTresci'
 import WstawkaMaterialu from '../../components/WstawkaMaterialu'
@@ -47,7 +47,8 @@ export default async function OpowiescStrona({ params }: Parametry) {
     const naglowki = naglowkiZHtml(html)
     // wpis bez nagłówków – bez spisu (decyzja 16.11)
     const dalej = spisCzesci([...czesciPowiazan({ odnosniki: siec.odnosniki, wzmianki: [] }), 'jak cytować'])
-    const spis = naglowki.length ? [...naglowki, ...dalej] : []
+    // zasada „wstęp” (17.11): zapowiedź nad tekstem ma pozycję w spisie
+    const spis = naglowki.length ? [...spisCzesci([], { wstep: !!o.zapowiedz }), ...naglowki, ...dalej] : []
     // makieta 17.11 (P1): miniatura wpisu (cover albo pierwszy materiał) w gnieździe „bok” – jak zdjęcie na karcie obiektu
     const mat = o.miniatura ? (await materialy(poziom)).find((m) => m.id === o.miniatura) : undefined
     const obraz = adresMiniatury(mat, 480)
@@ -68,7 +69,7 @@ export default async function OpowiescStrona({ params }: Parametry) {
             <LiniaWpisu wpis={o} nazwy={n} />
             <LiniaNrKat nr={nrKat} />
             {/* makieta 17.11 (P2): zapowiedź redakcyjna pod metryczką – jak lead na kartach */}
-            {o.zapowiedz && <div className="osoba-lead"><p className="m-0">{o.zapowiedz}</p></div>}
+            {o.zapowiedz && <div className="osoba-lead" id={ID_WSTEPU}><p className="m-0">{o.zapowiedz}</p></div>}
         </>
     )
     return (

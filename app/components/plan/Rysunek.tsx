@@ -88,15 +88,15 @@ export function Wzory({ prefix, u }: { prefix: string; u: number }) {
                 const W = (w.w ?? 20) * k, H = (w.h ?? 20) * k
                 return (
                     <pattern key={id} id={`${prefix}-${id}`} width={W} height={H} patternUnits="userSpaceOnUse">
-                        <rect width={W} height={H} style={{ fill: w.tlo }} />
-                        <path d={w.rys} transform={`scale(${k})`} style={{ fill: 'none', stroke: w.kreska, strokeWidth: 0.9, strokeLinecap: 'round' }} />
+                        <rect width={W} height={H} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: w.tlo }} />
+                        <path d={w.rys} transform={`scale(${k})`} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: 'none', stroke: w.kreska, strokeWidth: 0.9, strokeLinecap: 'round' }} />
                     </pattern>
                 )
             })}
             <radialGradient id={`${prefix}-dol`}>
-                <stop offset="0" style={{ stopColor: v('teren-cien') }} />
-                <stop offset=".65" style={{ stopColor: v('teren-jasny') }} />
-                <stop offset="1" style={{ stopColor: v('teren-jasny'), stopOpacity: 0 }} />
+                <stop offset="0" style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { stopColor: v('teren-cien') }} />
+                <stop offset=".65" style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { stopColor: v('teren-jasny') }} />
+                <stop offset="1" style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { stopColor: v('teren-jasny'), stopOpacity: 0 }} />
             </radialGradient>
         </>
     )
@@ -118,7 +118,7 @@ export function Znak({ typ, x, y, s, halo = true, kolor }: { typ: TypElementu; x
     const dop = vb ? `scale(${24 / Math.max(vb[2], vb[3])}) translate(${-vb[0]} ${-vb[1]})` : undefined
     const rysuj = (styl: React.CSSProperties, klucz: string) =>
         ksztalty ? (
-            <g key={klucz} style={{ ...styl, strokeWidth: vb ? (Number(styl.strokeWidth) * Math.max(vb[2], vb[3])) / 24 : styl.strokeWidth }} transform={dop}>
+            <g key={klucz} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { ...styl, strokeWidth: vb ? (Number(styl.strokeWidth) * Math.max(vb[2], vb[3])) / 24 : styl.strokeWidth }} transform={dop}>
                 {ksztalty.map((e, i) => {
                     switch (e.t) {
                         case 'path': return <path key={i} d={e.d} />
@@ -131,7 +131,7 @@ export function Znak({ typ, x, y, s, halo = true, kolor }: { typ: TypElementu; x
                 })}
             </g>
         ) : (
-            <path key={klucz} d={typ.ikona ?? 'M6 12a6 6 0 1 0 12 0a6 6 0 1 0-12 0'} style={styl} strokeDasharray={typ.id === 'nie-istnieje' ? '2 2.5' : undefined} />
+            <path key={klucz} d={typ.ikona ?? 'M6 12a6 6 0 1 0 12 0a6 6 0 1 0-12 0'} style={/* styl-dynamiczny: rysunek SVG – grubości z jednostki planu, kolory z tokenów --pl-* */ styl} strokeDasharray={typ.id === 'nie-istnieje' ? '2 2.5' : undefined} />
         )
     const baza: React.CSSProperties = { fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
     return (
@@ -166,7 +166,7 @@ function Las({ e, p, u, gesty, prefix, d }: { e: Element; p: Pkt[]; u: number; g
     return (
         <g>
             <clipPath id={id}>{d ? <path d={d} /> : <polygon points={P(p)} />}</clipPath>
-            {d ? <path d={d} style={/* styl-dynamiczny: kolor z tokenu --pl-* */ { fill: v('las') }} /> : <polygon points={P(p)} style={{ fill: v('las') }} />}
+            {d ? <path d={d} className="pl-f-las" /> : <polygon points={P(p)} className="pl-f-las" />}
             <g clipPath={`url(#${id})`}>
                 {kola.map(([x, y, r], i) => {
                     const m = 6 + Math.floor(los() * 3), faza = los() * 6.28
@@ -175,10 +175,10 @@ function Las({ e, p, u, gesty, prefix, d }: { e: Element; p: Pkt[]; u: number; g
                         return [x + rr * Math.cos(f), y + rr * Math.sin(f)]
                     })
                     const kol = ['korona1', 'korona2', 'korona3'][Math.floor(los() * 3)]
-                    return <path key={i} d={gladka(pts)} style={{ fill: v(kol), stroke: v('las-brzeg'), strokeWidth: Math.max(0.4, r / 16), strokeOpacity: 0.95, strokeLinejoin: 'round' }} />
+                    return <path key={i} d={gladka(pts)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: v(kol), stroke: v('las-brzeg'), strokeWidth: Math.max(0.4, r / 16), strokeOpacity: 0.95, strokeLinejoin: 'round' }} />
                 })}
             </g>
-            {d ? <path d={d} style={/* styl-dynamiczny: grubość z jednostki planu, kolor z tokenu --pl-* */ { fill: 'none', stroke: v('las-brzeg'), strokeWidth: Math.max(0.5, rmin / 14) }} /> : <polygon points={P(p)} style={{ fill: 'none', stroke: v('las-brzeg'), strokeWidth: Math.max(0.5, rmin / 14) }} />}
+            {d ? <path d={d} style={/* styl-dynamiczny: grubość z jednostki planu, kolor z tokenu --pl-* */ { fill: 'none', stroke: v('las-brzeg'), strokeWidth: Math.max(0.5, rmin / 14) }} /> : <polygon points={P(p)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: 'none', stroke: v('las-brzeg'), strokeWidth: Math.max(0.5, rmin / 14) }} />}
         </g>
     )
 }
@@ -189,10 +189,10 @@ function Zaglebienie({ p, u, prefix, wypukle }: { p: Pkt[]; u: number; prefix: s
     const kol = wypukle ? v('teren-wzn') : v('teren')
     return (
         <g>
-            <path d={gladka(p)} style={{ fill: wypukle ? v('teren-wzn-tlo') : `url(#${prefix}-dol)` }} />
-            <path d={gladka(p)} style={{ fill: 'none', stroke: kol, strokeWidth: sw }} />
-            <path d={kreski(zew, u * 0.33, u * 0.55, !wypukle)} style={{ fill: 'none', stroke: kol, strokeWidth: sw * 0.9, strokeLinecap: 'round' }} />
-            {p.length >= 3 && <path d={gladka(wew)} style={{ fill: wypukle ? v('teren-wzn-jasny') : 'none', stroke: kol, strokeWidth: sw * 0.8, strokeOpacity: 0.8 }} />}
+            <path d={gladka(p)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: wypukle ? v('teren-wzn-tlo') : `url(#${prefix}-dol)` }} />
+            <path d={gladka(p)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: 'none', stroke: kol, strokeWidth: sw }} />
+            <path d={kreski(zew, u * 0.33, u * 0.55, !wypukle)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: 'none', stroke: kol, strokeWidth: sw * 0.9, strokeLinecap: 'round' }} />
+            {p.length >= 3 && <path d={gladka(wew)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: wypukle ? v('teren-wzn-jasny') : 'none', stroke: kol, strokeWidth: sw * 0.8, strokeOpacity: 0.8 }} />}
         </g>
     )
 }
@@ -223,11 +223,11 @@ function Dolina({ pts, szer, u }: { pts: Pkt[]; szer: number; u: number }) {
     }
     return (
         <g>
-            <polygon points={P(pas(1))} style={{ fill: v('teren-jasny'), fillOpacity: 0.8 }} />
-            <polygon points={P(pas(0.45))} style={{ fill: v('teren-cien'), fillOpacity: 0.7 }} />
-            {[L, R].map((k, i) => <polyline key={i} points={P(k)} style={{ fill: 'none', stroke: v('teren'), strokeWidth: sw, strokeLinecap: 'round', strokeLinejoin: 'round' }} />)}
-            <path d={kr(L, 1) + kr(R, -1)} style={{ fill: 'none', stroke: v('teren'), strokeWidth: sw * 0.85, strokeLinecap: 'round', strokeOpacity: 0.85 }} />
-            <polyline points={P(c)} style={{ fill: 'none', stroke: v('teren'), strokeWidth: sw * 0.8, strokeDasharray: `${u * 0.08} ${u * 0.1}`, strokeOpacity: 0.7 }} />
+            <polygon points={P(pas(1))} className="pl-dolina-jasna" />
+            <polygon points={P(pas(0.45))} className="pl-dolina-cien" />
+            {[L, R].map((k, i) => <polyline key={i} points={P(k)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: 'none', stroke: v('teren'), strokeWidth: sw, strokeLinecap: 'round', strokeLinejoin: 'round' }} />)}
+            <path d={kr(L, 1) + kr(R, -1)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: 'none', stroke: v('teren'), strokeWidth: sw * 0.85, strokeLinecap: 'round', strokeOpacity: 0.85 }} />
+            <polyline points={P(c)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: 'none', stroke: v('teren'), strokeWidth: sw * 0.8, strokeDasharray: `${u * 0.08} ${u * 0.1}`, strokeOpacity: 0.7 }} />
         </g>
     )
 }
@@ -246,14 +246,14 @@ function SiecDrog({ linie, u }: { linie: Linia[]; u: number }) {
     const okr: React.CSSProperties = { fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
     return (
         <g>
-            {pol.map((l) => <path key={'pt' + l.e.id} d={l.d} style={{ ...okr, stroke: v('polna-tlo'), strokeWidth: l.szer }} />)}
-            {pol.map((l) => <path key={'pk' + l.e.id} d={l.d} style={{ ...okr, stroke: v('polna'), strokeWidth: Math.max(u * 0.08, l.szer * 0.26), strokeDasharray: `${u * 0.45} ${u * 0.25}` }} />)}
+            {pol.map((l) => <path key={'pt' + l.e.id} d={l.d} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { ...okr, stroke: v('polna-tlo'), strokeWidth: l.szer }} />)}
+            {pol.map((l) => <path key={'pk' + l.e.id} d={l.d} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { ...okr, stroke: v('polna'), strokeWidth: Math.max(u * 0.08, l.szer * 0.26), strokeDasharray: `${u * 0.45} ${u * 0.25}` }} />)}
             {bite.map((l) => l.pr
                 ? <path key={'o' + l.e.id} d={wstega(l.pr, u * obw[l.rys][1])} style={/* styl-dynamiczny: kolor z tokenu --pl-* (PH-04 wstęga) */ { fill: v(obw[l.rys][0]) }} />
-                : <path key={'o' + l.e.id} d={l.d} style={{ ...okr, stroke: v(obw[l.rys][0]), strokeWidth: l.szer + u * obw[l.rys][1] }} />)}
+                : <path key={'o' + l.e.id} d={l.d} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { ...okr, stroke: v(obw[l.rys][0]), strokeWidth: l.szer + u * obw[l.rys][1] }} />)}
             {bite.map((l) => l.pr
                 ? <path key={'w' + l.e.id} d={wstega(l.pr)} style={/* styl-dynamiczny: kolor z tokenu --pl-* (PH-04 wstęga) */ { fill: v(l.rys === 'alejka' ? 'alejka' : 'droga') }} />
-                : <path key={'w' + l.e.id} d={l.d} style={{ ...okr, stroke: v(l.rys === 'alejka' ? 'alejka' : 'droga'), strokeWidth: l.szer }} />)}
+                : <path key={'w' + l.e.id} d={l.d} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { ...okr, stroke: v(l.rys === 'alejka' ? 'alejka' : 'droga'), strokeWidth: l.szer }} />)}
         </g>
     )
 }
@@ -261,13 +261,13 @@ function SiecDrog({ linie, u }: { linie: Linia[]; u: number }) {
 function LiniaInna({ l, u }: { l: Linia; u: number }) {
     const okr: React.CSSProperties = { fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
     switch (l.rys) {
-        case 'sciezka': return <path d={l.d} style={{ ...okr, stroke: v('polna'), strokeWidth: l.szer, strokeDasharray: `${u * 0.1} ${u * 0.2}` }} />
+        case 'sciezka': return <path d={l.d} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { ...okr, stroke: v('polna'), strokeWidth: l.szer, strokeDasharray: `${u * 0.1} ${u * 0.2}` }} />
         // PH-04 (S1): rzeka o zmiennej szerokości – warstwy: brzeg (szersza wstęga), na nim woda
         case 'rzeka': return l.pr
             ? <><path d={wstega(l.pr, u * 0.08)} style={/* styl-dynamiczny: kolor z tokenu --pl-* (PH-04 wstęga) */ { fill: v('woda-brzeg') }} /><path d={wstega(l.pr)} style={/* styl-dynamiczny: kolor z tokenu --pl-* (PH-04 wstęga) */ { fill: v('rzeka') }} /></>
-            : <path d={l.d} style={{ ...okr, stroke: v('rzeka'), strokeWidth: l.szer }} />
-        case 'ogrodzenie': return <path d={l.d} style={{ ...okr, strokeLinecap: 'butt', stroke: v('plot'), strokeWidth: l.szer, strokeDasharray: `${u * 0.4} ${u * 0.2} ${u * 0.08} ${u * 0.2}` }} />
-        case 'granica': return <path d={l.d} style={{ ...okr, stroke: v('szary'), strokeWidth: l.szer, strokeDasharray: `${u * 0.45} ${u * 0.25}` }} />
+            : <path d={l.d} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { ...okr, stroke: v('rzeka'), strokeWidth: l.szer }} />
+        case 'ogrodzenie': return <path d={l.d} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { ...okr, strokeLinecap: 'butt', stroke: v('plot'), strokeWidth: l.szer, strokeDasharray: `${u * 0.4} ${u * 0.2} ${u * 0.08} ${u * 0.2}` }} />
+        case 'granica': return <path d={l.d} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { ...okr, stroke: v('szary'), strokeWidth: l.szer, strokeDasharray: `${u * 0.45} ${u * 0.25}` }} />
         // PH-22: kolej – ciemna linia z jasnymi odcinkami w środku (klasyczny znak mapy)
         case 'kolej': return <><path d={l.d} style={/* styl-dynamiczny: grubość i kreski z jednostki planu, kolor z tokenu --pl-* */ { ...okr, strokeLinecap: 'butt', stroke: v('tekst'), strokeWidth: l.szer }} /><path d={l.d} style={/* styl-dynamiczny: grubość i kreski z jednostki planu, kolor z tokenu --pl-* */ { ...okr, strokeLinecap: 'butt', stroke: v('papier'), strokeWidth: l.szer * 0.55, strokeDasharray: `${u * 0.7} ${u * 0.7}` }} /></>
         // wał, grobla – oś i krótkie kreski poprzeczne (szeroka kreska z gęstym przerywaniem)
@@ -277,7 +277,7 @@ function LiniaInna({ l, u }: { l: Linia; u: number }) {
         case 'wlasny': {
             const w = l.wl
             const kreski = w?.kreski === 'przerywana' ? `${u * 0.45} ${u * 0.25}` : w?.kreski === 'kropkowana' ? `${u * 0.1} ${u * 0.2}` : undefined
-            return <path d={l.d} style={{ ...okr, stroke: w?.kolor ?? v('tekst'), strokeWidth: l.szer, strokeDasharray: kreski }} />
+            return <path d={l.d} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { ...okr, stroke: w?.kolor ?? v('tekst'), strokeWidth: l.szer, strokeDasharray: kreski }} />
         }
         default: return null
     }
@@ -327,7 +327,7 @@ export function Napis({ x, y, tekst, u, stopien = 3, styl = 'zwykly', kolor = 't
             {tlo && <rect x={x - szer / 2 - pad} y={y0 - lh / 2 - pad * 0.6} width={szer + 2 * pad} height={L.length * lh + pad * 1.2} rx={fs * 0.25} className="pl-napis-tlo" />}
             <text
                 x={xa} y={y0} fontSize={fs} textAnchor={anchor} dominantBaseline="middle"
-                style={{
+                style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ {
                     ...F, fill: KOLOR_NAPISU[kolor] ?? v('tekst'), fontStyle: styl === 'kursywa' ? 'italic' : undefined, fontWeight: waga ?? (roz ? 700 : 400),
                     letterSpacing: roz ? fs * 0.45 : undefined, stroke: v('papier'), strokeWidth: tlo ? 0 : fs * 0.32, strokeLinejoin: 'round', paintOrder: 'stroke',
                 }}
@@ -351,6 +351,8 @@ export interface OpcjeRysunku {
     podklady?: { p: Podklad; adres: string; krycie?: number }[]
     /** w edytorze: ukryte warstwy */
     ukryteWarstwy?: Set<string>
+    /** etap 3 · CEM-09: groby opisane (z danych jawnych – lib/plany/przegladarka.ts opisany()) – krótka kreska w kolorze obwódki grobu */
+    opisane?: Set<string>
     edycja?: boolean
 }
 
@@ -394,8 +396,8 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
     const obrot = plan.obrot || 0
     const wyrozn = (e: Element) => o.wybrane?.has(e.id) || o.wyroznione?.has(e.id)
     const obrysWyr = (e: Element, pts: Pkt[], zamk = true) => wyrozn(e) ? (
-        zamk ? <polygon key={'wyr' + e.id} points={P(pts)} style={{ fill: v('akcent-tlo'), stroke: v('akcent'), strokeWidth: u * (o.wybrane?.has(e.id) ? 0.14 : 0.1) }} pointerEvents="none" />
-            : <polyline key={'wyr' + e.id} points={P(pts)} style={{ fill: 'none', stroke: v('akcent'), strokeWidth: u * 0.12, strokeOpacity: 0.7 }} pointerEvents="none" />
+        zamk ? <polygon key={'wyr' + e.id} points={P(pts)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: v('akcent-tlo'), stroke: v('akcent'), strokeWidth: u * (o.wybrane?.has(e.id) ? 0.14 : 0.1) }} pointerEvents="none" />
+            : <polyline key={'wyr' + e.id} points={P(pts)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: 'none', stroke: v('akcent'), strokeWidth: u * 0.12, strokeOpacity: 0.7 }} pointerEvents="none" />
     ) : null
 
     const etykieta = (e: Element, t: TypElementu) => {
@@ -436,7 +438,7 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
         const [cx, cy] = e.g.k === 't' ? [e.g.x, e.g.y] : srodek(e.g)
         const dx = e.etykieta?.dx ?? 0, dy = e.etykieta?.dy ?? (t.rodzaj === 'punkt' ? u * 1.55 : 0)
         if (t.id === 'kwatera') {
-            napisy.push(<text key={'n' + e.id} x={cx + dx} y={cy + dy} fontSize={u * 1.7} textAnchor="middle" dominantBaseline="middle" transform={obrot ? `rotate(${-obrot} ${cx + dx} ${cy + dy})` : undefined} style={{ ...F, fontWeight: 700, fill: v('kw-txt') }} pointerEvents="none">{tekst}</text>)
+            napisy.push(<text key={'n' + e.id} x={cx + dx} y={cy + dy} fontSize={u * 1.7} textAnchor="middle" dominantBaseline="middle" transform={obrot ? `rotate(${-obrot} ${cx + dx} ${cy + dy})` : undefined} className="pl-kwatera-txt" pointerEvents="none">{tekst}</text>)
             return
         }
         const domKolor = t.rys === 'las' || t.rys === 'zagajnik' || t.rys === 'kolor' && t.wzor === 'laka' ? 'las' : t.warstwa === 'woda' ? 'woda' : t.warstwa === 'teren' ? 'teren' : 'tekst'
@@ -485,7 +487,7 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
         const waga = (e: Element) => (e.g.k === 'w' || e.g.k === 'r' ? -pole(punktyElementu(e.g)) : e.g.k === 'l' ? 1 : 2)
         const L = [...(wg.get(w) ?? [])].sort((a, b) => waga(a) - waga(b))
         if (!L.length) return null
-        const linie: Linia[] = [], inne: React.ReactNode[] = []
+        const linie: Linia[] = [], inne: React.ReactNode[] = [], napisyGrobow: React.ReactNode[] = []
         for (const e of L) {
             const t = typy.get(e.typ)!
             const g = e.g, id = e.id
@@ -498,13 +500,13 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                 case 'wlasny': {
                     if (t.rodzaj === 'punkt' || g.k === 'p') {
                         const [x, y] = srodek(g)
-                        inne.push(<g key={id} {...dane}>{wyrozn(e) && <circle cx={x} cy={y} r={u * 1.3} style={{ fill: v('akcent-tlo'), stroke: v('akcent'), strokeWidth: u * 0.1 }} />}<Znak typ={t} x={x} y={y} s={u * 1.8} kolor={e.stan === 'nie-istnieje' ? v('szary') : undefined} /><circle cx={x} cy={y} r={u * 1.1} style={{ fill: 'transparent' }} /></g>)
+                        inne.push(<g key={id} {...dane}>{wyrozn(e) && <circle cx={x} cy={y} r={u * 1.3} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: v('akcent-tlo'), stroke: v('akcent'), strokeWidth: u * 0.1 }} />}<Znak typ={t} x={x} y={y} s={u * 1.8} kolor={e.stan === 'nie-istnieje' ? v('szary') : undefined} /><circle cx={x} cy={y} r={u * 1.1} className="pl-traf" /></g>)
                     } else if (t.rodzaj === 'linia' && g.k === 'l') {
                         linie.push({ d: dLinii(e, g.p), szer: szerLinii(e, 'wlasny', u) * (t.wlasny?.linia?.grubosc ?? 1), e, rys: 'wlasny', wl: t.wlasny?.linia })
                     } else {
                         const wl = t.wlasny
                         const dg = dGladki(e)
-                        inne.push(<g key={id} {...dane}>{dg ? <path d={dg} style={/* styl-dynamiczny: wzór / kolor własnego typu z ustawień planu */ { fill: wl?.wzor ? `url(#${prefix}-${wl.wzor})` : wl?.tlo ?? v('laka'), stroke: wl?.tlo ? 'none' : undefined }} /> : <polygon points={P(pts)} style={{ fill: wl?.wzor ? `url(#${prefix}-${wl.wzor})` : wl?.tlo ?? v('laka'), stroke: wl?.tlo ? 'none' : undefined }} />}{obrysWyr(e, pts)}</g>)
+                        inne.push(<g key={id} {...dane}>{dg ? <path d={dg} style={/* styl-dynamiczny: wzór / kolor własnego typu z ustawień planu */ { fill: wl?.wzor ? `url(#${prefix}-${wl.wzor})` : wl?.tlo ?? v('laka'), stroke: wl?.tlo ? 'none' : undefined }} /> : <polygon points={P(pts)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: wl?.wzor ? `url(#${prefix}-${wl.wzor})` : wl?.tlo ?? v('laka'), stroke: wl?.tlo ? 'none' : undefined }} />}{obrysWyr(e, pts)}</g>)
                     }
                     break
                 }
@@ -514,7 +516,7 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                         <g key={id} {...dane}>
                             {dGladki(e)
                                 ? <path d={dGladki(e)} style={/* styl-dynamiczny: grubość i kreski z jednostki planu, kolor z tokenu --pl-* */ { fill: wypelnienie(prefix, t.wzor), stroke: t.plot ? v('plot') : t.wzor === 'woda' ? v('woda-brzeg') : 'none', strokeWidth: t.plot ? u * 0.035 : u * 0.03, strokeDasharray: t.plot ? `${u * 0.22} ${u * 0.11} ${u * 0.045} ${u * 0.11}` : undefined }} />
-                                : <polygon points={P(pts)} style={{ fill: wypelnienie(prefix, t.wzor), stroke: t.plot ? v('plot') : t.wzor === 'woda' ? v('woda-brzeg') : 'none', strokeWidth: t.plot ? u * 0.035 : u * 0.03, strokeDasharray: t.plot ? `${u * 0.22} ${u * 0.11} ${u * 0.045} ${u * 0.11}` : undefined }} />}
+                                : <polygon points={P(pts)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: wypelnienie(prefix, t.wzor), stroke: t.plot ? v('plot') : t.wzor === 'woda' ? v('woda-brzeg') : 'none', strokeWidth: t.plot ? u * 0.035 : u * 0.03, strokeDasharray: t.plot ? `${u * 0.22} ${u * 0.11} ${u * 0.045} ${u * 0.11}` : undefined }} />}
                             {obrysWyr(e, pts)}
                         </g>,
                     )
@@ -532,12 +534,19 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                     break
                 case 'budynek':
                 case 'gosp':
-                    inne.push(<g key={id} {...dane}>{dGladki(e) ? <path d={dGladki(e)} style={/* styl-dynamiczny: grubość z jednostki planu, kolor z tokenu --pl-* */ { fill: v(t.rys === 'gosp' ? 'gosp' : 'bud'), stroke: wyrozn(e) ? v('akcent') : 'none', strokeWidth: u * 0.12 }} /> : <polygon points={P(pts)} style={{ fill: v(t.rys === 'gosp' ? 'gosp' : 'bud'), stroke: wyrozn(e) ? v('akcent') : 'none', strokeWidth: u * 0.12 }} />}{e.stan === 'nie-istnieje' && <polygon points={P(pts)} style={{ fill: v('papier'), stroke: v('szary'), strokeWidth: u * 0.05, strokeDasharray: `${u * 0.12} ${u * 0.12}` }} />}</g>)
+                    inne.push(<g key={id} {...dane}>{dGladki(e) ? <path d={dGladki(e)} style={/* styl-dynamiczny: grubość z jednostki planu, kolor z tokenu --pl-* */ { fill: v(t.rys === 'gosp' ? 'gosp' : 'bud'), stroke: wyrozn(e) ? v('akcent') : 'none', strokeWidth: u * 0.12 }} /> : <polygon points={P(pts)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: v(t.rys === 'gosp' ? 'gosp' : 'bud'), stroke: wyrozn(e) ? v('akcent') : 'none', strokeWidth: u * 0.12 }} />}{e.stan === 'nie-istnieje' && <polygon points={P(pts)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: v('papier'), stroke: v('szary'), strokeWidth: u * 0.05, strokeDasharray: `${u * 0.12} ${u * 0.12}` }} />}</g>)
                     break
                 case 'grob': {
                     const wyb = o.wybrane?.has(id), wyr = o.wyroznione?.has(id), rodz = o.rodzina?.has(id)
+                    // CEM-09: znak „opisany” – kreska równoległa do pierwszego boku, bliżej niego (na dole grobu w typowym rysunku)
+                    if (o.opisane?.has(id) && pts.length >= 3) {
+                        const [a, b] = pts, [sx, sy] = srodek(g), dl = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1
+                        const dx = (b[0] - a[0]) / dl, dy = (b[1] - a[1]) / dl, L = Math.min(dl * 0.3, u * 0.5)
+                        const mx = sx + ((a[0] + b[0]) / 2 - sx) * 0.5, my = sy + ((a[1] + b[1]) / 2 - sy) * 0.5
+                        napisyGrobow.push(<line key={'op' + id} x1={mx - dx * L} y1={my - dy * L} x2={mx + dx * L} y2={my + dy * L} className="pl-opisany" style={/* styl-dynamiczny: grubość z jednostki planu */ { strokeWidth: Math.max(u * 0.07, 0.4) }} />)
+                    }
                     inne.push(
-                        <polygon key={id} {...dane} points={P(pts)} style={{
+                        <polygon key={id} {...dane} points={P(pts)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ {
                             fill: wyb || wyr ? v('akcent-tlo') : rodz ? v('rodzina-tlo') : e.stan === 'nie-istnieje' ? 'transparent' : v('grob'),
                             stroke: wyb || wyr ? v('akcent') : rodz ? v('rodzina') : v('grob-obw'), strokeWidth: wyb ? u * 0.12 : wyr || rodz ? u * 0.1 : Math.max(u * 0.03, 0.5),
                             strokeDasharray: e.stan === 'nie-istnieje' ? `${u * 0.1} ${u * 0.08}` : undefined,
@@ -565,17 +574,18 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                     } else if (g.k === 'w') linie.push({ d: dLinii(e, g.p, true), szer: szerLinii(e, t.rys, u), e, rys: t.rys })
                     break
                 case 'napis':
-                    if (g.k === 't' && wyrozn(e)) inne.push(<circle key={id} cx={g.x} cy={g.y} r={u * 0.35} style={{ fill: v('akcent') }} pointerEvents="none" />)
+                    if (g.k === 't' && wyrozn(e)) inne.push(<circle key={id} cx={g.x} cy={g.y} r={u * 0.35} className="pl-f-akcent" pointerEvents="none" />)
                     break
             }
         }
         return (
             <g key={w} data-warstwa={w}>
                 {inne}
+                {napisyGrobow.length > 0 && <g pointerEvents="none" data-znak="opisany">{napisyGrobow}</g>}
                 {linie.length > 0 && <SiecDrog linie={linie} u={u} />}
                 {linie.filter((l) => !['droga', 'polna', 'alejka', 'ulica'].includes(l.rys)).map((l) => <g key={'l' + l.e.id}><LiniaInna l={l} u={u} /></g>)}
                 {/* szersze, niewidoczne pasy do klikania w linie */}
-                {linie.map((l) => <path key={'k' + l.e.id} data-id={l.e.id} d={l.d} style={{ fill: 'none', stroke: 'transparent', strokeWidth: Math.max(l.szer, u * 0.6), strokeLinecap: 'round' }} />)}
+                {linie.map((l) => <path key={'k' + l.e.id} data-id={l.e.id} d={l.d} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ { fill: 'none', stroke: 'transparent', strokeWidth: Math.max(l.szer, u * 0.6), strokeLinecap: 'round' }} />)}
                 {linie.map((l) => obrysWyr(l.e, l.e.g.k === 'l' || l.e.g.k === 'w' ? l.e.g.p : [], false))}
             </g>
         )
@@ -607,12 +617,12 @@ export function Podzialka({ plan, kadr: [x, y, w, h] }: { plan: Plan; kadr: [num
     const st: React.CSSProperties = { stroke: v('szary'), strokeWidth: u * 0.06, fill: 'none' }
     return (
         <g pointerEvents="none">
-            <path d={`M${x0} ${y0 - u * 0.3}v${u * 0.3}h${dl}v${-u * 0.3}M${x0 + dl / 2} ${y0}v${-u * 0.2}`} style={st} />
-            <text x={x0} y={y0 + u * 0.8} fontSize={u * 0.7} style={{ ...F, fill: v('szary') }}>0</text>
-            <text x={x0 + dl} y={y0 + u * 0.8} fontSize={u * 0.7} textAnchor="end" style={{ ...F, fill: v('szary') }}>{m} m</text>
+            <path d={`M${x0} ${y0 - u * 0.3}v${u * 0.3}h${dl}v${-u * 0.3}M${x0 + dl / 2} ${y0}v${-u * 0.2}`} style={/* styl-dynamiczny: rysunek SVG – grubości z jednostki planu, kolory z tokenów --pl-* */ st} />
+            <text x={x0} y={y0 + u * 0.8} fontSize={u * 0.7} className="pl-podzialka-txt">0</text>
+            <text x={x0 + dl} y={y0 + u * 0.8} fontSize={u * 0.7} textAnchor="end" className="pl-podzialka-txt">{m} m</text>
             <g transform={`translate(${x + w - u * 1.8} ${y + h - u * 3})`}>
-                <path d={`M0 ${u * 1.6}V0M${-u * 0.4} ${u * 0.5}L0 0L${u * 0.4} ${u * 0.5}`} style={st} />
-                <text x={0} y={u * 2.4} fontSize={u * 0.7} textAnchor="middle" style={{ ...F, fill: v('szary') }}>N</text>
+                <path d={`M0 ${u * 1.6}V0M${-u * 0.4} ${u * 0.5}L0 0L${u * 0.4} ${u * 0.5}`} style={/* styl-dynamiczny: rysunek SVG – grubości z jednostki planu, kolory z tokenów --pl-* */ st} />
+                <text x={0} y={u * 2.4} fontSize={u * 0.7} textAnchor="middle" className="pl-podzialka-txt">N</text>
             </g>
         </g>
     )

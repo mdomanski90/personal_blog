@@ -12,8 +12,13 @@ import PrzegladarkaDokumentu, { obrazStrony, type StronaPodgladu } from './Przeg
 import type { DaneRekonstrukcji } from './plan/WarstwaRekonstrukcji'
 import { ListaObjasnien, TekstZrodla, type ObjasnienieNaStronie } from './ObjasnieniaSkanu'
 import { przewin, przewinDo } from '@/lib/ruch'
+import { KartaElementu, LegendaNumerowana } from './plan/PanelPlanu'
+import { katalog } from '@/lib/plany/typy'
+import { elementyLegendy } from '@/lib/plany/ph3'
+import { znakObjasnienia } from '@/lib/plany/przegladarka'
 
-type Zakladka = 'transkrypcja' | 'oryginał' | 'tłumaczenie' | 'objaśnienia'
+// PH4: zakładka „plan” – obiekty rekonstrukcji (legenda numerowana) i wybrany obiekt, te same części co PanelPlanu
+type Zakladka = 'transkrypcja' | 'oryginał' | 'tłumaczenie' | 'objaśnienia' | 'plan'
 
 export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja, oryginal, tlumaczenie, opracowal, rekonstrukcja, startowa = 0 }: {
     strony: StronaPodgladu[]
@@ -33,7 +38,12 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
     const [wskazane, ustawWskazane] = React.useState<string | null>(null)
     const tekst = React.useRef<HTMLDivElement>(null)
 
-    const naStronie: ObjasnienieNaStronie[] = React.useMemo(() => objasnienia.filter((o) => o.strona === strona).map((o, i) => ({ ...o, nr: i + 1 })), [objasnienia, strona])
+    const [element, ustawElement] = React.useState<string | null>(null)
+    const litery = !!rekonstrukcja?.plan.elementy.some((e) => e.nrLegendy)
+    const naStronie: ObjasnienieNaStronie[] = React.useMemo(() => objasnienia.filter((o) => o.strona === strona).map((o, i) => ({ ...o, nr: znakObjasnienia(i, litery) })), [objasnienia, strona, litery])
+    const typyRek = React.useMemo(() => (rekonstrukcja ? katalog(rekonstrukcja.ustawienia) : null), [rekonstrukcja])
+    const legendaRek = React.useMemo(() => (rekonstrukcja && typyRek ? elementyLegendy(rekonstrukcja.plan.elementy.filter((e) => typyRek.has(e.typ))) : []), [rekonstrukcja, typyRek])
+    const elRek = rekonstrukcja && element ? rekonstrukcja.plan.elementy.find((e) => e.id === element) : undefined
     const odczytySa = objasnienia.some((o) => o.rodzaj === 'odczyt')
     const tlumaczeniaSa = objasnienia.some((o) => o.rodzaj === 'tlumaczenie')
     const dostepne: Zakladka[] = [
@@ -41,6 +51,7 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
         oryginal && 'oryginał',
         (tlumaczenie || tlumaczeniaSa) && 'tłumaczenie',
         objasnienia.length > 0 && 'objaśnienia',
+        !!rekonstrukcja && 'plan',
     ].filter(Boolean) as Zakladka[]
     const [zakladka, ustawZakladke] = React.useState<Zakladka>(dostepne[0] ?? 'objaśnienia')
 
@@ -90,7 +101,13 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
     )
     const tresc = (
         <>
-                    {html ? (
+                    {zakladka === 'plan' && rekonstrukcja && typyRek ? (
+                        <div className="osoba-tabela plan-panel-tabela szt-plan">
+                            {elRek && <KartaElementu key={elRek.id} el={elRek} typ={typyRek.get(elRek.typ)} naPodstawe={(oid) => ustawAktywne(oid)} />}
+                            <LegendaNumerowana elementy={legendaRek} typy={typyRek} pokaz={(e) => ustawElement(e.id)} wybrany={element} />
+                            {!elRek && !legendaRek.length && <p className="szt-pusto szt-plan-pusto">Kliknij obiekt rekonstrukcji na skanie (warstwa „skan + plan” albo „plan”), żeby zobaczyć jego opis.</p>}
+                        </div>
+                    ) : html ? (
                         <>
                             {opracowal && zakladka !== 'oryginał' && <p className="szt-kto">{zakladka}: {opracowal}</p>}
                             <div className="post-content szt-html" dangerouslySetInnerHTML={{ __html: html }} />
@@ -120,6 +137,7 @@ export default function SkanZTekstem({ strony, objasnienia, tytul, transkrypcja,
                 {/* P7E-2: na pełnym ekranie ten sam panel tekstu (transkrypcja / oryginał / tłumaczenie / objaśnienia) z boku skanu */}
                 <PrzegladarkaDokumentu strony={strony} objasnienia={objasnienia} tytul={tytul} wariant="karta" wysokosc="calc(560px * var(--font-scale, 1))"
                     naZmianeStrony={ustawStrone} aktywneZ={aktywne} naAktywne={zSkanu} rekonstrukcja={rekonstrukcja}
+                    elementZ={rekonstrukcja ? element : undefined} naElement={rekonstrukcja ? (id) => { ustawElement(id); if (id) ustawZakladke('plan') } : undefined}
                     panelTekstu={<div className="szt-tekst szt-tekst-pelny">{pasek}<div className="szt-tresc" tabIndex={0} role="tabpanel" aria-label={opis}>{tresc}</div></div>} />
             </div>
             <div className="szt-tekst">

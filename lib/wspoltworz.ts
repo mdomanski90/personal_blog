@@ -11,13 +11,14 @@ import type { Material, Miejsce, Obiekt } from './archiwum'
 import { naTekst, rozdzielZrodla } from './markdoc'
 import { RODZAJE_MATERIALOW } from './materialy'
 import { formatujEdtf } from './edtf'
+import { odmiana } from './tekst'
 import { NAZWY_OBIEKTOW as RODZAJE_OBIEKTOW } from './tarcze'
 import { brakiMaterialu, brakiMiejsca, brakiObiektu, etykietaBraku, jezyki, kluczZadania, RODZAJ_BRAKU, RODZAJE_ZADAN, type IdBraku, type RodzajZadania } from './wspoltworz-reguly'
 
 export interface Zadanie {
     /** `kolekcja:id:brak` – ten sam co klucz decyzji w panelu i parametr ?uzupelnij= */
     klucz: string
-    kolekcja: 'materialy' | 'obiekty' | 'miejsca'
+    kolekcja: 'materialy' | 'obiekty' | 'miejsca' | 'plany'
     id: string
     brak: IdBraku
     rodzaj: RodzajZadania
@@ -87,6 +88,8 @@ export function zbierzZadania(d: {
     materialy: Material[]; obiekty: Obiekt[]; miejsca: Miejsce[]; zignorowane: Set<string>
     odczyty: (id: string) => { odczyt: boolean; tlumaczenie: boolean }
     rodzajMiejsca: (m: Miejsce) => { nazwa: string; obszar: boolean }
+    /** WSP-06: plany publiczne (w wersji dla czytelnika publicznego) z liczbą grobów, których napis czeka na odczyt */
+    plany?: { slug: string; tytul: string; widocznosc: string; miejsce?: string; doOdczytania: number }[]
 }): Zadanie[] {
     const pub = <T extends { widocznosc: string }>(l: T[]) => l.filter((x) => x.widocznosc === 'publiczne')
     const msc = pub(d.miejsca), mats = pub(d.materialy), obs = pub(d.obiekty)
@@ -98,6 +101,13 @@ export function zbierzZadania(d: {
     for (const m of mats) wyn.push(...zadaniaMaterialu(m, d.odczyty(m.id), nazwa))
     for (const o of obs) wyn.push(...zadaniaObiektu(o, nazwa))
     for (const m of msc) { const r = d.rodzajMiejsca(m); wyn.push(...zadaniaMiejsca(m, nazwa, r.nazwa, r.obszar)) }
+    // WSP-06: jedno zadanie na plan (nie na grób) – „N napisów do odczytania”, prowadzi do przeglądarki z listą tych grobów
+    for (const p of d.plany ?? []) {
+        if (p.widocznosc !== 'publiczne' || p.doOdczytania < 1) continue
+        const b = 'napisy-do-odczytania' as const
+        wyn.push({ klucz: kluczZadania('plany', p.slug, b), kolekcja: 'plany', id: p.slug, brak: b, rodzaj: RODZAJ_BRAKU[b], tytul: p.tytul, href: `/plany/${p.slug}?napisy=1`,
+            linia: [nazwa(p.miejsce ?? ''), 'plan cmentarza'].filter(Boolean).join(' · '), etykieta: odmiana(p.doOdczytania, ['napis do odczytania', 'napisy do odczytania', 'napisów do odczytania']), miejsca: p.miejsce ? [p.miejsce] : [], jezyki: [] })
+    }
     // filtr miejscowości (zadania.miejsca) – tylko publiczne
     return bezWylaczonych(wyn, wyl, d.zignorowane).map((z) => ({ ...z, miejsca: z.miejsca.filter((id) => nazwy.has(id)) }))
 }

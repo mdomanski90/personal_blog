@@ -31,7 +31,7 @@ export default async function Publikacja({ params }: P) {
       naglowek={<NaglowekKarty sciezka={[]}
         tytul={p.nazwa} linia={[RODZAJE[p.rodzaj] ?? p.rodzaj, p.autor || null, p.rok || null]}
         lead={p.opis ? <p className="m-0 whitespace-pre-wrap">{p.opis}</p> : undefined} />}
-      spis={<SpisTresci pozycje={spisCzesci(['podstawowe', (miejscaP.length > 0 || tematyP.length > 0) && 'powiązane', 'jak cytować'])} />}>
+      spis={<SpisTresci pozycje={spisCzesci(['podstawowe', (miejscaP.length > 0 || tematyP.length > 0) && 'powiązane', 'jak cytować'], { wstep: !!p.opis })} />}>
       <Tabela etykieta={`${p.nazwa} – opis bibliograficzny`}>
         <Czesc tytul="podstawowe" />
         <WierszNrKat nr={nrKat} />

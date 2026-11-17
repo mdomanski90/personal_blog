@@ -52,7 +52,7 @@ export default async function TematStrona({ params }: Parametry) {
     const wpisyWTekstach = siec.odnosniki.filter((z) => z.zrodlo.rodzaj !== 'wpis' || !opow.some((o) => o.id === z.zrodlo.id))
 
     const nrKat = numerKat('temat', t.id)
-    const spis = spisCzesci([(!!nrKat || t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && 'w skrócie', 'opis', 'powiązane', ...czesciPowiazan({ odnosniki: wpisyWTekstach, wzmianki: siec.wzmianki }), 'jak cytować', t.zrodla.length > 0 && 'źródła'])
+    const spis = spisCzesci([(!!nrKat || t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && 'w skrócie', 'opis', 'powiązane', ...czesciPowiazan({ odnosniki: wpisyWTekstach, wzmianki: siec.wzmianki }), 'jak cytować', t.zrodla.length > 0 && 'źródła'], { wstep: !!lead })
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}

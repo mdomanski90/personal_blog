@@ -71,6 +71,8 @@ export interface Miejsce {
     dodano: string | null
     /** skąd pochodzi opis (np. Wikipedia, CC BY-SA) */
     zrodloOpisu: string
+    /** etap 3 (ankieta 2, 17.11): krótki wstęp nad tabelą karty, pisany ręcznie; pusty – nad tabelą nic (bez skrótu historii) */
+    wstep: string
     /** źródła karty (pole „Źródła” w panelu) – pokazywane na dole, numerowane */
     zrodla: string[]
     opis: Node | null
@@ -281,6 +283,7 @@ const wszystkieMiejscaSurowe = cache(async (): Promise<Miejsce[]> => {
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
             zrodloOpisu: entry.descriptionSource ?? '',
+            wstep: (entry.intro ?? '').trim(),
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             opis: entry.description?.node ?? null,
             bezWspoltworz: !!(entry as { contributeHide?: boolean }).contributeHide,

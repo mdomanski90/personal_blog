@@ -295,6 +295,7 @@ export default config({
         dateSubmitted: dodano(),
         sources: zrodlaKarty(),
         descriptionSource: fields.text({ label: 'Źródło opisu', description: 'Np. „na podstawie: Wikipedia, hasło Olszanka (powiat łosicki), CC BY-SA 4.0 – https://pl.wikipedia.org/wiki/…”. Adresy zamieniają się w odnośniki.', multiline: true }),
+        intro: fields.text({ label: 'Wstęp', description: 'Krótki tekst nad tabelą karty (2–3 zdania, pisany ręcznie). Puste – nad tabelą nic się nie pokazuje (karta nie skraca już historii).', multiline: true, validation: { length: { max: 600 } } }),
         description: opisMarkdoc('Historia i opis', 'miejsca'),
       },
     }),

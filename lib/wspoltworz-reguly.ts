@@ -7,25 +7,27 @@
 import { normalizuj } from './tekst'
 
 /** Identyfikatory braków – te same co reguły panelu (klucz decyzji „zignoruj”: `kolekcja:rekord:regula`). */
-export type IdBraku = 'brak-transkrypcji' | 'brak-tlumaczenia' | 'zdjecie-do-rozpoznania' | 'bez-opisu' | 'brak-wspolrzednych' | 'brak-zdjecia-obiektu'
+export type IdBraku = 'brak-transkrypcji' | 'brak-tlumaczenia' | 'zdjecie-do-rozpoznania' | 'bez-opisu' | 'brak-wspolrzednych' | 'brak-zdjecia-obiektu' | 'napisy-do-odczytania'
 
 /** Rodzaj zadania na stronie „współtwórz” (grupa i filtr) – kolejność grup na stronie. */
-export type RodzajZadania = 'do-odczytania' | 'do-przetlumaczenia' | 'zdjecia' | 'bez-opisu' | 'mapa'
+export type RodzajZadania = 'do-odczytania' | 'do-przetlumaczenia' | 'zdjecia' | 'napisy' | 'bez-opisu' | 'mapa'
 export const RODZAJE_ZADAN: Record<RodzajZadania, { nazwa: string; filtr: string; opis: string; gotowe: string }> = {
     'do-odczytania': { nazwa: 'dokumenty do odczytania', filtr: 'do odczytania', opis: 'Skany bez transkrypcji.', gotowe: 'wszystkie dokumenty ze skanem mają transkrypcję.' },
     'do-przetlumaczenia': { nazwa: 'do przetłumaczenia', filtr: 'do przetłumaczenia', opis: 'Odczytane dokumenty w językach obcych, które czekają na tłumaczenie.', gotowe: 'wszystkie odczytane dokumenty mają tłumaczenie.' },
     zdjecia: { nazwa: 'zdjęcia do rozpoznania', filtr: 'zdjęcia do rozpoznania', opis: 'Może wiesz kto jest na zdjęciu, gdzie lub kiedy je zrobiono?', gotowe: 'wszystkie zdjęcia mają opis, datę i miejsce.' },
+    // WSP-06 (etap 3): groby ze zdjęciem nagrobka, bez odczytanego napisu – tylko groby z napisem jawnym (bez progu lat i „ukryj napis”)
+    napisy: { nazwa: 'napisy z nagrobków do odczytania', filtr: 'napisy z nagrobków', opis: 'Zdjęcia nagrobków, z których nie odczytano jeszcze napisu. Otwórz plan, wybierz grób i porównaj zdjęcie z napisem.', gotowe: 'wszystkie sfotografowane nagrobki mają odczytany napis.' },
     'bez-opisu': { nazwa: 'miejsca i obiekty bez opisu', filtr: 'bez opisu', opis: 'Strony, na których nie ma jeszcze historii – wystarczy kilka zdań, wspomnienie albo wskazanie źródła.', gotowe: 'wszystkie miejsca i obiekty mają opis.' },
     mapa: { nazwa: 'brakuje na mapie', filtr: 'mapa', opis: 'Obiekty bez położenia albo bez zdjęcia. Możesz też zgłosić miejsce, którego jeszcze nie ma.', gotowe: 'wszystkie obiekty mają położenie i zdjęcie.' },
 }
 /** Rodzaj zgłoszenia otwieranego przy „uzupełnij” (lib/zgloszenia.ts). */
 export const ZGLOSZENIE_BRAKU: Record<IdBraku, 'odczyt' | 'rozpoznanie' | 'poprawka' | 'material'> = {
     'brak-transkrypcji': 'odczyt', 'brak-tlumaczenia': 'odczyt', 'zdjecie-do-rozpoznania': 'rozpoznanie',
-    'bez-opisu': 'poprawka', 'brak-wspolrzednych': 'poprawka', 'brak-zdjecia-obiektu': 'material',
+    'bez-opisu': 'poprawka', 'brak-wspolrzednych': 'poprawka', 'brak-zdjecia-obiektu': 'material', 'napisy-do-odczytania': 'odczyt',
 }
 export const RODZAJ_BRAKU: Record<IdBraku, RodzajZadania> = {
     'brak-transkrypcji': 'do-odczytania', 'brak-tlumaczenia': 'do-przetlumaczenia', 'zdjecie-do-rozpoznania': 'zdjecia',
-    'bez-opisu': 'bez-opisu', 'brak-wspolrzednych': 'mapa', 'brak-zdjecia-obiektu': 'mapa',
+    'bez-opisu': 'bez-opisu', 'brak-wspolrzednych': 'mapa', 'brak-zdjecia-obiektu': 'mapa', 'napisy-do-odczytania': 'napisy',
 }
 
 /** Rodzaje materiałów, których skan czeka na odczyt (zdjęcia, mapy i nagrania – nie). */
@@ -90,6 +92,7 @@ export function etykietaBraku(b: IdBraku, kontekst: { jezyk?: string; zdjecie?: 
         case 'bez-opisu': return kontekst.obszar === false ? 'brak historii' : 'brak opisu'
         case 'brak-wspolrzednych': return 'brak położenia'
         case 'brak-zdjecia-obiektu': return 'brak zdjęcia z dzisiaj'
+        case 'napisy-do-odczytania': return 'napisy do odczytania'
     }
 }
 
@@ -102,7 +105,7 @@ export const OPISY_PANELU: Record<'brak-transkrypcji' | 'brak-tlumaczenia' | 'zd
 }
 
 /** Klucz zadania w adresie (?uzupelnij=…): `kolekcja:id:brak` – ten sam co klucz decyzji w panelu. */
-export const kluczZadania = (kolekcja: 'materialy' | 'obiekty' | 'miejsca', id: string, brak: IdBraku) => `${kolekcja}:${id}:${brak}`
+export const kluczZadania = (kolekcja: 'materialy' | 'obiekty' | 'miejsca' | 'plany', id: string, brak: IdBraku) => `${kolekcja}:${id}:${brak}`
 
 // ---- odczyt z surowego tekstu Markdoc (panel czyta pliki bez parsera Markdoc) ----
 const ZRODLO = /\{%\s*zrodlo\b[^%]*%\}[\s\S]*?\{%\s*\/zrodlo\s*%\}/g

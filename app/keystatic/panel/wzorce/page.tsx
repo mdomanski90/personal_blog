@@ -6,6 +6,7 @@ import SpisTresci from '@/app/components/SpisTresci'
 import { PrzyciskDrukuj } from '@/app/components/Druk'
 import { PozycjaWKarcie } from '@/app/components/KartaPozycji'
 import SiatkaMiniatur from '@/app/components/SiatkaMiniatur'
+import PanelPlanu, { CalyPanelu, CzescPanelu, WierszPanelu } from '@/app/components/plan/PanelPlanu'
 
 /**
  * JW-1: podgląd wzorców języka wizualnego – komponenty bazowe na żywo, w obu motywach, z klas i tokenów app/globals.css.
@@ -15,7 +16,7 @@ const ROZMIARY: [string, string][] = [
     ['--rozmiar-drobny', '12 px'], ['--rozmiar-etykieta', '13 px'], ['--rozmiar-opis', '14 px'], ['--rozmiar-maly', '15 px'],
     ['--rozmiar-tekst', '16 px'], ['--rozmiar-tresc', '18 px'], ['--rozmiar-tytul-sekcji', '20 px'], ['--rozmiar-tytul', '1.3rem'], ['--rozmiar-tytul-strony', '1.75rem'],
 ]
-const SPIS = [['podstawowe', 'podstawowe'], ['historia', 'pełna historia'], ['teren', 'w terenie, księgi'], ['zrodla', 'źródła']]
+const SPIS = [['wstep', 'wstęp'], ['podstawowe', 'podstawowe'], ['historia', 'pełna historia'], ['teren', 'w terenie, księgi'], ['zrodla', 'źródła']]
 
 function Probka({ motyw }: { motyw: string }) {
     const spis = SPIS.map(([id, tekst]) => ({ id: `wz-${motyw}-${id}`, tekst }))
@@ -41,11 +42,12 @@ function Probka({ motyw }: { motyw: string }) {
                 <PastylkaOsoby href="#" plec="M">Jan Przykładowski</PastylkaOsoby>
                 <PastylkaOsoby href="#" plec="U">N.N. Przykładowskie</PastylkaOsoby>
             </div>
+            {/* etap 3 · wariant B (17.11): nagłówek karty nad siatką, pasek boczny od pierwszej tabeli */}
+            <div className="karta-naglowek"><span className="wz-blok" id={`wz-${motyw}-wstep`}>nagłówek karty (karta-naglowek) – tytuł, linia, wstęp (pozycja „wstęp” w spisie)</span></div>
             <div className="karta-odcinek karta-odcinek-pierwszy">
-                <div className="karta-naglowek"><span className="wz-blok">nagłówek karty (karta-naglowek)</span></div>
                 <aside className="karta-bok"><span className="wz-blok wz-obraz">obraz nagłówka (bok)</span><div className="karta-spis"><SpisTresci pozycje={spis} /></div></aside>
                 <div className="karta-kolumna">
-                    {spis.map((p) => <span key={p.id} id={p.id} className="wz-blok">{p.tekst} – kolumna tekstu (66 znaków)</span>)}
+                    {spis.slice(1).map((p) => <span key={p.id} id={p.id} className="wz-blok">{p.tekst} – kolumna tekstu (66 znaków)</span>)}
                 </div>
             </div>
             <div className="osoba-tabela karta-tabela">
@@ -58,6 +60,8 @@ function Probka({ motyw }: { motyw: string }) {
                 { klucz: 'a', href: '#', tytul: 'Materiał przykładowy', linia: 'dokument · 1917', znak: '▣' },
                 { klucz: 'b', href: '#', tytul: 'Plan przykładowy', linia: 'plan historyczny · 1939', znak: '▤' },
             ]} />
+            {/* etap 3 · PanelPlanu: tabela karty na wysokość mapy (przeglądarka planu, materiał z rekonstrukcją) */}
+            <PanelProbka />
             {/* WSP-01 (etap R): wzorce strony „współtwórz” */}
             <KrokiDzialania kroki={[{ tytul: 'Przesłanie zgłoszenia', opis: 'krok pierwszy (wsp-kroki)' }, { tytul: 'Weryfikacja', opis: 'krok drugi' }, { tytul: 'Uzupełnienie na stronie', opis: 'krok trzeci' }]} />
             <GrupaZadan tytul="grupa zadań (wsp-grupa)" liczba={2} opis="Opis grupy – jedno zdanie.">
@@ -65,6 +69,26 @@ function Probka({ motyw }: { motyw: string }) {
             </GrupaZadan>
             <div className="wz-rozmiary">
                 {ROZMIARY.map(([t, opis]) => <p key={t} className={`wz-r-${t.slice(10)}`}>{t} · {opis} · zażółć gęślą jaźń</p>)}
+            </div>
+        </div>
+    )
+}
+
+function PanelProbka() {
+    const [q, ustawQ] = React.useState('')
+    return (
+        <div className="wz-panel">
+            <div className="szt-pasek"><b className="szt-jedna">szukaj i opis planu (szt-pasek)</b></div>
+            <div className="plan-aplet-panel">
+                <PanelPlanu tytul="szukaj i opis planu" szukaj={q} ustawSzukaj={ustawQ} podpowiedz="nazwisko, imię, rok – na tym planie" etykieta="panel planu – podgląd" opisPodpowiedzi="Nie wszystkie napisy są już odczytane.">
+                    <CzescPanelu tytul="na tym planie" />
+                    <WierszPanelu e="groby">212</WierszPanelu>
+                    <WierszPanelu e="opisane">48 · plan w opracowaniu</WierszPanelu>
+                    <CzescPanelu tytul="kwatery">2 kwatery</CzescPanelu>
+                    <CalyPanelu><span className="plan-panel-przyciski"><button type="button" className="k-btn k-btn--s">A</button><button type="button" className="k-btn k-btn--s">B</button></span></CalyPanelu>
+                    <CzescPanelu tytul="o planie" />
+                    <WierszPanelu e="numeracja">robocza, nie urzędowa</WierszPanelu>
+                </PanelPlanu>
             </div>
         </div>
     )
@@ -85,6 +109,8 @@ export default function WzorceJezykaWizualnego() {
 .wz-rzad{display:flex;flex-wrap:wrap;gap:8px}
 .wz-blok{display:block;padding:10px 12px;border:1px dashed var(--linia-podzialu);border-radius:var(--promien);color:var(--tekst-etykieta);font-size:var(--rozmiar-etykieta)}
 .wz-obraz{min-height:120px}
+.wz-panel{border:1px solid var(--linia-podzialu);border-radius:var(--promien);overflow:hidden;max-width:380px}
+.wz-panel .plan-aplet-panel{height:320px;border-left:0}
 .wz .karta-odcinek{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
 .wz-rozmiary p{margin:0;color:var(--tekst-opis)}
 ${ROZMIARY.map(([t]) => `.wz-r-${t.slice(10)}{font-size:var(${t})}`).join('\n')}

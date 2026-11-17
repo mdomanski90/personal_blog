@@ -9,7 +9,8 @@ import Zgloszenie from './Zgloszenie'
 import JakCytowac from './JakCytowac'
 import type { DaneCytatu } from '@/lib/cytowanie'
 import { Okruszki } from './Wzorce'
-import { identyfikatorZNazwy } from '@/lib/tekst'
+import { idCzesci as idCzesciK, idWstepu } from '@/lib/spis-karty'
+export { ID_WSTEPU, idCzesci, spisCzesci } from '@/lib/spis-karty'
 
 // Wspólny układ kart (miejscowość, obiekt, materiał, temat – jak karta osoby):
 // ① nagłówek: obraz (zdjęcie, skan, mapa) | tytuł, spokojna linia, krótki opis; bez obrazu – na całą szerokość;
@@ -47,14 +48,19 @@ export function LiniaKarty({ elementy, className = 'karta-linia' }: { elementy: 
     )
 }
 
-/** Nagłówek karty: ścieżka, obraz po lewej (200 px; szerszy dla mapy gminy) i obok tytuł, linia, opis. */
-export function NaglowekKarty({ sciezka, tytul, obraz, szerokiObraz, linia, lead, children }: {
+/**
+ * Nagłówek karty: ścieżka, obraz po lewej (200 px; szerszy dla mapy gminy) i obok tytuł, linia, opis.
+ * Etap 3 (zasada „wstęp”): tekst nad tabelą (`lead`) ma id „wstep” – cel pozycji „wstęp” w spisie (spisCzesci z { wstep });
+ * `wstepTo` – tytuł części, która zaczyna się od tego tekstu (osoba: „biogram”).
+ */
+export function NaglowekKarty({ sciezka, tytul, obraz, szerokiObraz, linia, lead, wstepTo, children }: {
     sciezka: { tekst: string; href: string }[]
     tytul: React.ReactNode
     obraz?: React.ReactNode
     szerokiObraz?: boolean
     linia?: Element[]
     lead?: React.ReactNode
+    wstepTo?: string
     children?: React.ReactNode
 }) {
     return (
@@ -66,7 +72,7 @@ export function NaglowekKarty({ sciezka, tytul, obraz, szerokiObraz, linia, lead
                 <div className="osoba-karta-opis">
                     <h1 className="tytul-strony">{tytul}</h1>
                     {linia && <LiniaKarty elementy={linia} />}
-                    {lead && <div className="osoba-lead">{typeof lead === 'string' ? <p className="m-0">{lead}</p> : lead}</div>}
+                    {lead && <div className="osoba-lead" id={idWstepu(wstepTo)}>{typeof lead === 'string' ? <p className="m-0">{lead}</p> : lead}</div>}
                     {children}
                 </div>
             </div>
@@ -78,16 +84,10 @@ export function Tabela({ children, etykieta }: { children: React.ReactNode; etyk
     return <div className="osoba-tabela karta-tabela" aria-label={etykieta}>{children}</div>
 }
 
-/** JW-2: identyfikator części tabeli z jej tytułu („w terenie” → „cz-w-terenie”) – cel spisu treści. */
-export const idCzesci = (tytul: string) => `cz-${identyfikatorZNazwy(tytul)}`
-
-/** JW-2: pozycje spisu treści z tytułów części (pomija puste / wyłączone). */
-export const spisCzesci = (tytuly: (string | false | null | undefined)[]) => tytuly.filter((t): t is string => !!t).map((t) => ({ id: idCzesci(t), tekst: t }))
-
 /** Wiersz-nagłówek części tabeli (z tłem); id domyślnie z tytułu (idCzesci) – cel spisu treści. */
 export function Czesc({ tytul, id, children }: { tytul: string; id?: string; children?: React.ReactNode }) {
     return (
-        <div className="ot-nagl" id={id ?? idCzesci(tytul)}>
+        <div className="ot-nagl" id={id ?? idCzesciK(tytul)}>
             <h2>{tytul}</h2>
             {children && <span className="ot-nagl-prawa">{children}</span>}
         </div>

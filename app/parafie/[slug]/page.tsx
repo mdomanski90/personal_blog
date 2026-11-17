@@ -44,13 +44,14 @@ export default async function ParafiaStrona({ params }: Parametry) {
     const osobyInstytucji = p.osoby ?? []
     const zrodlaInstytucji = p.zrodla ?? []
     const nrKat = numerKat('instytucja', p.id)
-    const spis = spisCzesci(['podstawowe', miejscowosci.length > 0 && 'miejscowości', budynki.length > 0 && 'powiązane obiekty', osobyInstytucji.length > 0 && 'osoby związane z instytucją', matInstytucji.length > 0 && 'materiały archiwalne', spisKsieg.length > 0 && 'księgi metrykalne', 'historia', 'jak cytować', zrodlaInstytucji.length > 0 && 'źródła'])
+    const lead = p.opis ? `${p.opis.replace(/\s+/g, ' ').slice(0, 240)}${p.opis.length > 240 ? '…' : ''}` : ''
+    const spis = spisCzesci(['podstawowe', miejscowosci.length > 0 && 'miejscowości', budynki.length > 0 && 'powiązane obiekty', osobyInstytucji.length > 0 && 'osoby związane z instytucją', matInstytucji.length > 0 && 'materiały archiwalne', spisKsieg.length > 0 && 'księgi metrykalne', 'historia', 'jak cytować', zrodlaInstytucji.length > 0 && 'źródła'], { wstep: !!lead })
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
             tytul={p.nazwa}
             linia={[wyznanie, p.czas ? formatujEdtf(p.czas) : null, siedziba ? { tekst: siedziba.nazwa, href: `/miejsca/${siedziba.id}` } : null]}
-            lead={p.opis ? `${p.opis.replace(/\s+/g, ' ').slice(0, 240)}${p.opis.length > 240 ? '…' : ''}` : undefined}
+            lead={lead || undefined}
         />
     )
     return (

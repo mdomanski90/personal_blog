@@ -398,7 +398,8 @@ export function dlaCzytelnika(plan: Plan, poziom: Widocznosc, u: UstawieniaPlano
 
 /** Tekst do wyszukiwania nazwisk (bez polskich znaków, małe litery). */
 export function doSzukania(e: Element): string {
-    return [e.nazwa, e.napis, e.opis, ...(e.osoby ?? []).map((o) => o.nazwa)].filter(Boolean).join(' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
+    // etap 3 / PH4: także nazwa w źródle (szukanie „Church” na planie ze szkicu – test PH-20)
+    return [e.nazwa, e.nazwaZrodlowa, e.napis, e.opis, ...(e.osoby ?? []).map((o) => o.nazwa)].filter(Boolean).join(' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
 }
 
 /** Groby: dawne pole „opis” (napis z nagrobka, uwagi) → `napis` (transkrypcja). */

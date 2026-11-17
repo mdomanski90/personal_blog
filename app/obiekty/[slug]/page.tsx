@@ -12,7 +12,7 @@ import { naHtml, zajawka } from '@/lib/markdoc'
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import { tarczaObiektu } from '@/lib/tarcze'
-import { PelnaSzerokosc, Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
+import { Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
 import { wystapieniaKarty } from '@/lib/plany/wystapienia'
 import { Czesc, CzescJakCytowac, KrotkieMaterialy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
 import { daneCytatu } from '@/lib/cytowanie'
@@ -25,7 +25,11 @@ import CopyLinkButton from '../../components/CopyLinkButton'
 import ListaPlanow from '../../components/plan/ListaPlanow'
 import { planDlaCzytelnika, planyDlaCzytelnika } from '@/lib/plany/serwer'
 import { wczytajUstawienia } from '@/lib/plany/dane'
-import WidokObiektu from '../../components/plan/WidokObiektu'
+import MiniaturaPlanu from '../../components/plan/MiniaturaPlanu'
+import PoleSzukania from '../../components/PoleSzukania'
+import { katalog } from '@/lib/plany/typy'
+import { planGrobowy } from '@/lib/plany/metadane'
+import { napisyDoOdczytania, stanPlanu } from '@/lib/plany/przegladarka'
 import { osobyPlanu } from '@/lib/plany/rodzina'
 import OtworzWMapach from '../../components/OtworzWMapach'
 import GaleriaZdjec from '../../components/GaleriaZdjec'
@@ -74,9 +78,15 @@ export default async function ObiektStrona({ params }: Parametry) {
     const nrKat = numerKat('obiekt', o.id)
     const wyst = await wystapieniaKarty('obiekt', o.id)
     const jestPowiazane = mat.length > 0 || planyObiektu.length > 1 || wyst.plany.length > 0 || wyst.skany.length > 0
+    // CEM-01/02 (etap 3): karta obiektu nie osadza przeglądarki – część „plan cmentarza” z liczbami (z planu dla czytelnika),
+    // polem szukania prowadzącym do przeglądarki i napisami do odczytania (WSP-06); podgląd planu w pasku bocznym
+    const typyPlanu = glowny && ustawienia ? katalog(ustawienia) : null
+    const stanGlownego = glowny && typyPlanu ? stanPlanu(glowny.plan, typyPlanu, new Set(Object.keys(osobyGlownego ?? {}))) : null
+    const doOdczytania = glowny && typyPlanu && planGrobowy(glowny.plan) ? napisyDoOdczytania(glowny.plan, typyPlanu).length : 0
+    const tytulPlanu = glowny ? (planGrobowy(glowny.plan) ? 'plan cmentarza' : 'plan') : null
     const jestZrodla = o.zrodla.length > 0 || o.zdjecia.some((z) => z.autor || z.prawa)
     // JW-2: spis treści z części; drugiej mapy w wierszu „położenie” nie ma (JW-15) – mapa jest w pasku bocznym, gdy nie ma zdjęcia
-    const spis = spisCzesci(['podstawowe', o.zdjecia.length > 1 && 'fotografie', (maTekst(opisHtml) || pomoc.has('bez-opisu')) && 'opis', jestPowiazane && 'powiązane', ...czesciPowiazan(siec), 'jak cytować', jestZrodla && 'źródła'])
+    const spis = spisCzesci(['podstawowe', tytulPlanu, o.zdjecia.length > 1 && 'fotografie', (maTekst(opisHtml) || pomoc.has('bez-opisu')) && 'opis', jestPowiazane && 'powiązane', ...czesciPowiazan(siec), 'jak cytować', jestZrodla && 'źródła'], { wstep: !!lead })
     const tabelaPodstawowa = (
         <Tabela etykieta={`${o.nazwa} – dane`}>
             <Czesc tytul="podstawowe" />
@@ -104,6 +114,16 @@ export default async function ObiektStrona({ params }: Parametry) {
                     ? <OtworzWMapach wspolrzedne={o.wspolrzedne} przyblizone={o.przyblizone} />
                     : <span className="text-[var(--tekst-opis)]">nieustalone</span>}
             </W>
+            {glowny && tytulPlanu && (
+                <>
+                    <Czesc tytul={tytulPlanu}><Link href={`/plany/${glowny.plan.slug}`} className="odn">otwórz plan →</Link></Czesc>
+                    {stanGlownego && planGrobowy(glowny.plan) && <W e="groby">{stanGlownego.groby > 0 ? `${stanGlownego.groby} · opisane: ${stanGlownego.opisane}${stanGlownego.dlaBliskich ? ` · ${odmiana(stanGlownego.dlaBliskich, ['grób', 'groby', 'grobów'])} z napisem tylko dla bliskich` : ''}` : null}</W>}
+                    <W e="napisy do odczytania">{doOdczytania > 0 && <Link href={`/plany/${glowny.plan.slug}?napisy=1`} className="odn">{odmiana(doOdczytania, ['grób', 'groby', 'grobów'])} ze zdjęciem bez odczytanego napisu – pomóż odczytać</Link>}</W>
+                    <WCaly>
+                        <PoleSzukania action={`/plany/${glowny.plan.slug}`} name="szukaj" placeholder={planGrobowy(glowny.plan) ? 'nazwisko, imię, rok – na planie' : 'nazwa obiektu – na planie'} etykieta="szukaj na planie" obszar="szukaj na planie cmentarza" />
+                    </WCaly>
+                </>
+            )}
             {o.zdjecia.length > 1 && <Czesc tytul="fotografie">{o.zdjecia.length}</Czesc>}
             {o.zdjecia.length > 1 && <WCaly><GaleriaZdjec zdjecia={o.zdjecia} tytul={o.nazwa} /></WCaly>}
         </Tabela>
@@ -116,19 +136,34 @@ export default async function ObiektStrona({ params }: Parametry) {
             lead={lead || undefined}
         />
     )
-    // pasek boczny: zdjęcie (gdy jest), inaczej mapa położenia (bez planu – plan ma własną mapę w widoku obiektu)
-    const bok = foto ? (
-        <figure className="osoba-portret">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <a href={`${foto.plik}?w=1800`} target="_blank" rel="noopener" title="powiększ zdjęcie"><img src={`${foto.plik}?w=480`} alt={foto.podpis || o.nazwa} /></a>
-            <figcaption>{podpisFoto}{o.zdjecia.length > 1 && <>{podpisFoto && ' · '}<a href={`#${idCzesci('fotografie')}`} className="odn">wszystkie ({o.zdjecia.length}) ↓</a></>}</figcaption>
+    // pasek boczny: zdjęcie (gdy jest) i podgląd planu z „otwórz plan →” (CEM-01); bez zdjęcia – podgląd planu i mapa położenia
+    const podgladPlanu = glowny ? (
+        <figure className="osoba-portret karta-plan">
+            <Link href={`/plany/${glowny.plan.slug}`} tabIndex={-1} aria-hidden="true"><MiniaturaPlanu slug={glowny.plan.slug} /></Link>
+            <figcaption>{glowny.plan.tytul} · <Link href={`/plany/${glowny.plan.slug}`} className="odn">otwórz plan →</Link></figcaption>
         </figure>
-    ) : mapa && !glowny ? <MapaKarty mapa={mapa} wysokosc={300} podpis="położenie" /> : undefined
+    ) : null
+    const bok = foto ? (
+        <>
+            <figure className="osoba-portret">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <a href={`${foto.plik}?w=1800`} target="_blank" rel="noopener" title="powiększ zdjęcie"><img src={`${foto.plik}?w=480`} alt={foto.podpis || o.nazwa} /></a>
+                <figcaption>{podpisFoto}{o.zdjecia.length > 1 && <>{podpisFoto && ' · '}<a href={`#${idCzesci('fotografie')}`} className="odn">wszystkie ({o.zdjecia.length}) ↓</a></>}</figcaption>
+            </figure>
+            {podgladPlanu}
+        </>
+    ) : (podgladPlanu || mapa) ? (
+        // bez zdjęcia: podgląd planu i mapa położenia (dawniej zakładka „mapa” w osadzonym planie – PD-02)
+        <>
+            {podgladPlanu}
+            {mapa && <MapaKarty mapa={mapa} wysokosc={300} podpis="położenie" />}
+        </>
+    ) : undefined
 
     return (
         <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : [])]} akcje={<><CopyLinkButton sciezka={`/obiekty/${o.id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={bok} spis={<SpisTresci pozycje={spis} />}>
-            {/* z planem (np. cmentarz): plan na całą szerokość z zakładkami, dane obok; bez planu – tabela w kolumnie */}
-            {glowny ? <PelnaSzerokosc><WidokObiektu plan={glowny.plan} ustawienia={ustawienia} zalogowany={glowny.poziom === 'bliscy'} osoby={osobyGlownego} mapa={mapa} info={tabelaPodstawowa} /></PelnaSzerokosc> : tabelaPodstawowa}
+            {/* CEM-01: karta = dane i historia; plan otwiera się w przeglądarce /plany/[slug] (część tabeli i pasek boczny) */}
+            {tabelaPodstawowa}
 
             {maTekst(opisHtml) ? (
                 <Sekcja tytul="opis" id={idCzesci('opis')}>

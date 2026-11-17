@@ -165,7 +165,7 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
                     maTranskrypcje: z.transkrypcja || pole(d, 'transcription') || obj.some((o) => o.rodzaj === 'odczyt'),
                     maTlumaczenie: z.tlumaczenie || obj.some((o) => o.rodzaj === 'tlumaczenie'),
                     jezyk: typeof d.language === 'string' ? d.language : '', maCzas: pole(d, 'temporal'), maMiejsca: pole(d, 'spatial'), maOpis: z.opis,
-                })) if (b !== 'bez-opisu' && b !== 'brak-wspolrzednych' && b !== 'brak-zdjecia-obiektu') dodaj(b, ...OPISY_PANELU[b])
+                })) if (b !== 'bez-opisu' && b !== 'brak-wspolrzednych' && b !== 'brak-zdjecia-obiektu' && b !== 'napisy-do-odczytania') dodaj(b, ...OPISY_PANELU[b])
             }
             if (kolekcja === 'zbiory' && !pole(d,'provenance')) dodaj('brak-pochodzenia','Brak informacji o pochodzeniu zbioru','Uzupełnij pochodzenie, jeśli znane.')
             if (kolekcja === 'publikacje') {

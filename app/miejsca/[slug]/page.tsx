@@ -9,7 +9,7 @@ import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import ListaObiektow from '../../components/ListaObiektow'
 import { formatujEdtf } from '@/lib/edtf'
-import { naHtml, zajawka } from '@/lib/markdoc'
+import { naHtml } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
 import { wystapieniaKarty } from '@/lib/plany/wystapienia'
 import { Czesc, CzescJakCytowac, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
@@ -90,7 +90,8 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const tematyGminy = m.rodzaj === 'gmina' ? [...new Map((await Promise.all([...idsGminy].map((id) => tematyDlaMiejsca(id, poziom)))).flat().map((t) => [t.id, t])).values()] : []
 
     const ktx = await kontekstTresci(poziom)
-    const lead = zajawka(m.opis, 240, ktx.rozwiaz)
+    // ankieta 2 (17.11): nad tabelą osobne pole wstępu (pisane ręcznie); bez pola – nic, bez skrótu historii
+    const lead = m.wstep
     const mapa = !(m.wspolrzedne || (m.rodzaj === 'gmina' && punkty.length > 0)) ? null : m.rodzaj === 'gmina'
         ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} wysokosc="100%" obrys={{ url: '/granice/gminy-okolic.geojson', nazwa: m.nazwa.replace(/^gmina /i, '') }} wyroznione={[...idsGminy]} />
         : <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={m.wspolrzedne ?? undefined} wysokosc="100%" />
@@ -103,7 +104,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const jestKsiegi = ksiegiSa || m.parafie.length > 0
     const tytulHistorii = obszar ? 'opis' : 'historia'
     const daneSieci = { odnosniki: odnosnikiWTekstach, wzmianki: siec.wzmianki }
-    const spis = spisCzesci(['podstawowe', m.rodzaj === 'gmina' && potomkowie.length > 0 && 'wsie gminy', tytulHistorii, jestTeren && 'w terenie', planyWsi.length > 0 && 'plany i schematy', jestKsiegi && 'księgi metrykalne', 'powiązane', ...czesciPowiazan(daneSieci), 'jak cytować', (m.zrodla.length > 0 || !!zrodlo) && 'źródła'])
+    const spis = spisCzesci(['podstawowe', m.rodzaj === 'gmina' && potomkowie.length > 0 && 'wsie gminy', tytulHistorii, jestTeren && 'w terenie', planyWsi.length > 0 && 'plany i schematy', jestKsiegi && 'księgi metrykalne', 'powiązane', ...czesciPowiazan(daneSieci), 'jak cytować', (m.zrodla.length > 0 || !!zrodlo) && 'źródła'], { wstep: !!lead })
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}

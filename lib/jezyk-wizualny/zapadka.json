@@ -49,9 +49,6 @@
     "app/components/PoleSzukania.tsx": {
       "styl": 1
     },
-    "app/components/PrzegladarkaDokumentu.tsx": {
-      "styl": 1
-    },
     "app/components/ScrollToTop.tsx": {
       "styl": 5
     },
@@ -70,34 +67,14 @@
     "app/components/WstepDzialu.tsx": {
       "styl": 1
     },
-    "app/components/plan/ListaPochowanych.tsx": {
-      "styl": 34
-    },
-    "app/components/plan/PlanInteraktywny.tsx": {
-      "styl": 139,
-      "hex": 8
-    },
-    "app/components/plan/Probka.tsx": {
-      "styl": 26
-    },
-    "app/components/plan/Rysunek.tsx": {
-      "styl": 79
-    },
-    "app/components/plan/WidokObiektu.tsx": {
-      "styl": 13,
-      "hex": 2
-    },
     "app/globals.css": {
-      "hex": 274
+      "hex": 255
     },
     "app/parafie/page.tsx": {
       "styl": 1
     },
     "app/plany/[slug]/mapa.png/route.ts": {
       "hex": 1
-    },
-    "app/plany/[slug]/page.tsx": {
-      "styl": 3
     },
     "app/szukaj/page.tsx": {
       "styl": 15

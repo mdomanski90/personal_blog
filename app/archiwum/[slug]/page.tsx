@@ -92,13 +92,14 @@ export default async function MaterialStrona({ params }: Parametry) {
     const nrKat = numerKat('material', m.id)
     const jestOpis = !!nrKat || !!(m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal || m.miejscePrzechowywania || m.transkrypcja || m.zbiory.length || osobyM.length || instytucjeM.length)
     const jestDotyczy = miejscaM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0
-    const spis = spisCzesci([jestOpis && 'opis archiwalny', jestDotyczy && 'dotyczy', rek && 'rekonstrukcja', ...czesciPowiazan({ odnosniki: inneOdnosniki, wzmianki: [] }), 'jak cytować', (oryginal || m.zrodla.length > 0) && 'źródła'])
+    const jestWstep = maTekst(reszta)
+    const spis = spisCzesci([jestOpis && 'opis archiwalny', jestDotyczy && 'dotyczy', rek && 'rekonstrukcja', ...czesciPowiazan({ odnosniki: inneOdnosniki, wzmianki: [] }), 'jak cytować', (oryginal || m.zrodla.length > 0) && 'źródła'], { wstep: jestWstep })
     const naglowek = (
         <NaglowekKarty
             sciezka={[]}
             tytul={m.nazwa}
             linia={[RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj, rok && !m.nazwa.includes(rok) ? rok : null, ileStr, m.jezyk || null, m.widocznosc === 'bliscy' ? 'dla bliskich' : null]}
-            lead={maTekst(reszta) ? <Tresc html={reszta} pusta={null} /> : undefined}
+            lead={jestWstep ? <Tresc html={reszta} pusta={null} /> : undefined}
         />
     )
 

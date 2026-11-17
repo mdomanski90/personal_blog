@@ -8,7 +8,8 @@ import type { Plan } from './model'
 export interface KrewnyNaPlanie { id: string; nazwa: string; lata: string; relacja: string }
 /** P7C-4: części zdania o rodzinie z odnośnikami do kart osób (np. „rodzice: A i B”, „żona: C”) */
 export interface CzescRodziny { etykieta: string; osoby: { id: string; nazwa: string }[] }
-export interface OsobaNaPlanie { id: string; nazwa: string; lata: string; zdanie: string; rodzina: CzescRodziny[]; krewni: KrewnyNaPlanie[] }
+/** etap 3: `plec` – kolor pastylki osoby w karcie grobu (PastylkaOsoby, tokeny wspólne z drzewem) */
+export interface OsobaNaPlanie { id: string; nazwa: string; lata: string; plec?: 'K' | 'M' | 'U'; zdanie: string; rodzina: CzescRodziny[]; krewni: KrewnyNaPlanie[] }
 
 const rola = (o: Osoba | undefined, m: string, k: string, n: string) => (o?.plec === 'M' ? m : o?.plec === 'K' ? k : n)
 
@@ -43,7 +44,7 @@ export async function osobyPlanu(plan: Plan, poziom: Widocznosc): Promise<Record
         }
         const rodzina: CzescRodziny[] = [...(rodzice.length ? [{ etykieta: 'rodzice', osoby: rodzice }] : []), ...malzonkowie]
         const zdanie = rodzina.map((c) => `${c.etykieta}: ${c.osoby.map((x) => x.nazwa).join(' i ')}`).join(' · ')
-        wyn[id] = { id, nazwa: nazwaOsoby(o), lata: lataZycia(o), zdanie, rodzina, krewni }
+        wyn[id] = { id, nazwa: nazwaOsoby(o), lata: lataZycia(o), plec: o.plec === 'K' || o.plec === 'M' ? o.plec : 'U', zdanie, rodzina, krewni }
     }
     return wyn
 }

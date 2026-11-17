@@ -8,6 +8,9 @@ export const RODZAJE_ZRODLA = { pomiarowy: 'pomiar w terenie', wspomnieniowy: 's
 export type RodzajZrodla = keyof typeof RODZAJE_ZRODLA
 export const DOKLADNOSCI = { schematyczny: 'schematyczny (bez skali)', przyblizony: 'przybliżony', geodezyjny: 'geodezyjny' } as const
 export type Dokladnosc = keyof typeof DOKLADNOSCI
+/** PH-17: styl rysunku na stronie – „atrament” = tokeny --pla-* (papier sepia, kreska atramentu, napisy kursywą); brak = styl współczesny */
+export const STYLE_PLANU = { atrament: 'atrament (styl dawnego planu)' } as const
+export type StylPlanu = keyof typeof STYLE_PLANU
 
 /** Filtry spisu planów miejscowości pokazują się od tylu planów (decyzja 16.11; zmiana w ustawieniach planów). */
 export const PROG_FILTROW_DOMYSLNY = 7
@@ -32,6 +35,12 @@ export interface MetadanePlanu {
     wyrozniony?: boolean
     /** ręczna kolejność na liście planów miejscowości (mniejsza = wyżej) */
     kolejnosc?: number
+    /** CEM-07: kadr startowy przeglądarki [x, y, szer, wys] w układzie planu (przed obrotem), ustawiany w edytorze; brak = groby i kwatery */
+    kadr?: [number, number, number, number]
+    /** CEM-14: skąd pochodzi numeracja grobów (np. „numeracja robocza wg oględzin 2024”) – pokazywane w panelu „o planie” */
+    zrodloNumeracji?: string
+    /** PH-17: styl rysunku na stronie */
+    styl?: StylPlanu
 }
 
 /** Podkład wskazujący stronę materiału archiwum (jedno przechowywanie skanu i praw, K6). */
@@ -62,6 +71,9 @@ export function poprawMetadane(p: Record<string, unknown>): MetadanePlanu {
         zasieg: tekst(p.zasieg, 300),
         wyrozniony: p.wyrozniony === true ? true : undefined,
         kolejnosc: typeof p.kolejnosc === 'number' && Number.isFinite(p.kolejnosc) ? p.kolejnosc : undefined,
+        kadr: dobryKadr(p.kadr) ? (p.kadr as [number, number, number, number]) : undefined,
+        zrodloNumeracji: tekst(p.zrodloNumeracji, 500),
+        styl: zListy(p.styl, STYLE_PLANU),
     })
 }
 
@@ -75,11 +87,16 @@ export function poprawPodklad<T extends { material?: unknown }>(d: T): T {
         : (reszta as T)
 }
 
+/** CEM-07: kadr = 4 liczby skończone, szerokość i wysokość dodatnie. */
+export const dobryKadr = (v: unknown): boolean => Array.isArray(v) && v.length === 4 && v.every((x) => typeof x === 'number' && Number.isFinite(x)) && v[2] > 0 && v[3] > 0
+
 /** Walidacja przy zapisie (zasada 2.6) – błędny zapis odrzucony z opisem po polsku, nie zignorowany. */
 export function bladMetadanych(p: MetadanePlanu & { podklady?: { material?: unknown }[] }): string | null {
     if (p.okres && !czyPoprawnaEdtf(p.okres)) return `Data „stan przedstawiony” (${p.okres}) nie jest zapisem EDTF, np. 1939, 193X, 1930/1939.`
     if (p.sporzadzono && !czyPoprawnaEdtf(p.sporzadzono)) return `Data „sporządzono” (${p.sporzadzono}) nie jest zapisem EDTF, np. 1985, 198X.`
     if (p.zrodlo?.material !== undefined && !ID.test(p.zrodlo.material)) return 'Identyfikator materiału źródłowego ma zły kształt.'
+    if (p.kadr !== undefined && !dobryKadr(p.kadr)) return 'Kadr startowy ma zły kształt (cztery liczby: x, y, szerokość i wysokość większe od zera).'
+    if (p.styl !== undefined && !(p.styl in STYLE_PLANU)) return `Nieznany styl planu „${String(p.styl)}”.`
     for (const d of p.podklady ?? []) {
         const m = d.material as { id?: unknown; strona?: unknown } | undefined
         if (m !== undefined && !(typeof m.id === 'string' && ID.test(m.id) && Number.isInteger(m.strona) && (m.strona as number) >= 0)) return 'Podkład wskazuje materiał w złym kształcie (identyfikator materiału i numer strony od 0).'

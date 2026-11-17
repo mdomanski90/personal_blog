@@ -22,7 +22,7 @@ const mat = (id: string, x: Partial<Material> = {}): Material => ({
 })
 const msc = (id: string, x: Partial<Miejsce> = {}): Miejsce => ({
     id, nazwa: id === 'testowo' ? 'Testowo' : `Wieś ${id}`, inneNazwy: [], formy: [], rodzaj: 'wies', wspolrzedne: null, przyblizone: false, wyznania: [], wyznaniaRowne: false,
-    nalezyDo: null, parafie: [], sameAs: null, widocznosc: 'publiczne', dodano: null, zrodloOpisu: '', zrodla: [], opis: null, bezWspoltworz: false, ...x,
+    nalezyDo: null, parafie: [], sameAs: null, widocznosc: 'publiczne', dodano: null, zrodloOpisu: '', wstep: '', zrodla: [], opis: null, bezWspoltworz: false, ...x,
 })
 const obi = (id: string, x: Partial<Obiekt> = {}): Obiekt => ({
     id, nazwa: `obiekt ${id}`, inneNazwy: [], rodzaj: 'krzyz', miejsce: 'testowo', miejsca: ['testowo'], wspolrzedne: null, przyblizone: false, czas: '', istnieje: true,
@@ -119,4 +119,17 @@ test('SRC-02: notatka robocza (pole note) nie jest czytana przez strony publiczn
     for (const k of ['app', 'lib', 'scripts']) zbierzPliki(k)
     const zle = pliki.filter((p) => /\.note\b|\[['"]note['"]\]/.test(fs.readFileSync(path.join(ROOT, p), 'utf8')))
     assert.deepEqual(zle, [], 'pole „note” (notatka robocza) czytane poza panelem')
+})
+
+test('WSP-06: jedno zadanie na plan publiczny z napisami do odczytania; plan niepubliczny, bez napisów i „zignorowany” – bez zadania', () => {
+    const baza = { materialy: [], obiekty: [], miejsca: [msc('testowo', { opis: doc('Historia.') })], odczyty: () => ({ odczyt: false, tlumaczenie: false }), rodzajMiejsca: () => ({ nazwa: 'wieś', obszar: false }) }
+    const plany = [
+        { slug: 'cmentarz-a', tytul: 'Cmentarz A', widocznosc: 'publiczne', miejsce: 'testowo', doOdczytania: 3 },
+        { slug: 'cmentarz-b', tytul: 'Cmentarz B', widocznosc: 'bliscy', miejsce: 'testowo', doOdczytania: 5 },
+        { slug: 'cmentarz-c', tytul: 'Cmentarz C', widocznosc: 'publiczne', doOdczytania: 0 },
+    ]
+    const z = zbierzZadania({ ...baza, zignorowane: new Set(), plany }).filter((x) => x.rodzaj === 'napisy')
+    assert.deepEqual(z.map((x) => [x.id, x.etykieta, x.href, x.linia]), [['cmentarz-a', '3 napisy do odczytania', '/plany/cmentarz-a?napisy=1', 'Testowo · plan cmentarza']])
+    const ign = zbierzZadania({ ...baza, zignorowane: new Set(['plany:cmentarz-a:napisy-do-odczytania']), plany }).filter((x) => x.rodzaj === 'napisy')
+    assert.equal(ign.length, 0)
 })

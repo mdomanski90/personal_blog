@@ -9,7 +9,7 @@ import {
     type Element, type Geometria, type Macierz, type Osoba, type Pkt, type Plan, type Podklad, type Zdjecie,
 } from '@/lib/plany/model'
 import { GRUPY, katalog, typGrobu, WARSTWY, type TypElementu, type UstawieniaPlanow, type Warstwa } from '@/lib/plany/typy'
-import { DOKLADNOSCI, RODZAJE_PLANU, RODZAJE_ZRODLA, ROZMIAR_STOPNIA, planGrobowy, rodzajPlanu, stopienNapisu, type RodzajPlanu, type Stopien } from '@/lib/plany/metadane'
+import { DOKLADNOSCI, RODZAJE_PLANU, RODZAJE_ZRODLA, ROZMIAR_STOPNIA, STYLE_PLANU, planGrobowy, rodzajPlanu, stopienNapisu, type RodzajPlanu, type Stopien } from '@/lib/plany/metadane'
 import { Uchwyt, useSzerokosc } from './Uchwyt'
 import PolePowiazan, { CSS_POLA_POWIAZAN, type CelPowiazania } from '../../wspolne/PolePowiazan'
 import { IDENTYFIKACJE, type Identyfikacja } from '@/lib/plany/podstawa'
@@ -1078,7 +1078,7 @@ export default function Edytor({ slug }: { slug: string }) {
                             <button className="ed-btn" onClick={powiel}>dodaj {duchy.length} {duchy.length === 1 ? 'kopię' : 'kopii'}</button>
                         </div>
                     )}
-                    {zakl === 'plan' && <PanelPlanu plan={plan} listy={listy} skala={skala} rys={rys} narz={narz} ustawNarz={(n) => { ustawNarz(n); ustawRys([]) }} zmien={(zm) => zmien((p) => ({ ...p, ...zm }))} />}
+                    {zakl === 'plan' && <PanelPlanu plan={plan} listy={listy} skala={skala} rys={rys} narz={narz} widok={vb} ustawNarz={(n) => { ustawNarz(n); ustawRys([]) }} zmien={(zm) => zmien((p) => ({ ...p, ...zm }))} />}
                     {zakl === 'plan' && planGrobowy(plan) && <div className="ed-sekcja"><StanNumeracjiPlanu plan={plan} typy={typy} podglad={ustawRoznice} pokaz={pokazGrob} /></div>}
                     {zakl === 'podklady' && (
                         <PanelPodkladow plan={plan} slug={slug} ukryte={ukrytePodklady} przelacz={(id) => ustawUkrytePodklady((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })}
@@ -1278,7 +1278,7 @@ function ZrodloElementu({ e, plan, zmiana, listy }: { e: Element; plan: Plan; zm
 }
 
 /** PH1 (PH-03, 11): rodzaj planu, dwie daty, źródło, dokładność, kolejność na liście planów miejscowości. */
-function MetadanePlanu({ plan, listy, zmien }: { plan: Plan; listy: Listy; zmien: (zm: Partial<Plan>) => void }) {
+function MetadanePlanu({ plan, listy, widok, zmien }: { plan: Plan; listy: Listy; widok: VB; zmien: (zm: Partial<Plan>) => void }) {
     const opc = (v: string) => v || undefined
     return (
         <>
@@ -1295,6 +1295,16 @@ function MetadanePlanu({ plan, listy, zmien }: { plan: Plan; listy: Listy; zmien
             <Pole etykieta="dokładność"><select className="ed-in" value={plan.dokladnosc ?? ''} onChange={(e) => zmien({ dokladnosc: opc(e.target.value) as Plan['dokladnosc'] })}><option value="">—</option>{Object.entries(DOKLADNOSCI).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Pole>
             {plan.dokladnosc === 'schematyczny' && <p className="ed-maly">Plan schematyczny – na stronie bez paska skali.</p>}
             <Pole etykieta="zasięg (opis)"><input className="ed-in" value={plan.zasieg ?? ''} onChange={(e) => zmien({ zasieg: opc(e.target.value) })} /></Pole>
+            {/* etap 3 · CEM-14: źródło numeracji grobów – w panelu „o planie” na stronie */}
+            <Pole etykieta="źródło numeracji grobów (np. numeracja robocza wg oględzin 2024)"><input className="ed-in" value={plan.zrodloNumeracji ?? ''} onChange={(e) => zmien({ zrodloNumeracji: opc(e.target.value) })} /></Pole>
+            {/* PH-17: styl rysunku na stronie */}
+            <Pole etykieta="styl na stronie"><select className="ed-in" value={plan.styl ?? ''} onChange={(e) => zmien({ styl: opc(e.target.value) as Plan['styl'] })}><option value="">współczesny</option>{Object.entries(STYLE_PLANU).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Pole>
+            {/* etap 3 · CEM-07: kadr startowy przeglądarki = bieżący widok edytora (układ planu, przed obrotem) */}
+            <div className="ed-wiersz"><span>kadr startowy</span><b>{plan.kadr ? 'zapisany' : 'samodzielnie – groby i kwatery'}</b></div>
+            <div className="ed-rzad">
+                <button className="ed-btn" onClick={() => zmien({ kadr: widok.map((x) => Math.round(x * 10) / 10) as [number, number, number, number] })}>ustaw bieżący widok jako kadr startowy</button>
+                {plan.kadr && <button className="ed-maly" onClick={() => zmien({ kadr: undefined })}>usuń kadr</button>}
+            </div>
             <div className="ed-rzad">
                 <label className="ed-ch"><input type="checkbox" checked={!!plan.wyrozniony} onChange={(e) => zmien({ wyrozniony: e.target.checked || undefined })} /> plan reprezentacyjny miejscowości</label>
                 <label className="ed-ch">kolejność <input className="ed-in" type="number" value={plan.kolejnosc ?? ''} onChange={(e) => zmien({ kolejnosc: e.target.value === '' ? undefined : +e.target.value })} /></label>
@@ -1669,8 +1679,8 @@ function PanelWielu({ zaznaczone, wzor, typy, duplikuj, usun, obroc, powielOtwar
     )
 }
 
-function PanelPlanu({ plan, listy, skala, rys, narz, ustawNarz, zmien }: {
-    plan: Plan; listy: Listy; skala: number | null; rys: Pkt[]; narz: Narzedzie
+function PanelPlanu({ plan, listy, skala, rys, narz, widok, ustawNarz, zmien }: {
+    plan: Plan; listy: Listy; skala: number | null; rys: Pkt[]; narz: Narzedzie; widok: VB
     ustawNarz: (n: Narzedzie) => void; zmien: (zm: Partial<Plan>) => void
 }) {
     const [metry, ustawMetry] = React.useState('')
@@ -1683,7 +1693,7 @@ function PanelPlanu({ plan, listy, skala, rys, narz, ustawNarz, zmien }: {
             <Pole etykieta="obiekt (np. cmentarz)"><select className="ed-in" value={plan.obiekt ?? ''} onChange={(e) => zmien({ obiekt: e.target.value || undefined })}><option value="">—</option>{listy.obiekty.filter((o) => !plan.miejsce || o.miejsce === plan.miejsce).map((o) => <option key={o.id} value={o.id}>{o.nazwa}</option>)}</select></Pole>
             <Pole etykieta="widoczność planu"><select className="ed-in" value={plan.widocznosc} onChange={(e) => zmien({ widocznosc: e.target.value as Plan['widocznosc'] })}><option value="ja">szkic – tylko ja</option><option value="bliscy">dla bliskich</option><option value="publiczne">publiczny</option></select></Pole>
             <Pole etykieta="opis pod tytułem"><textarea className="ed-in" rows={3} value={plan.opis ?? ''} onChange={(e) => zmien({ opis: e.target.value || undefined })} /></Pole>
-            <MetadanePlanu plan={plan} listy={listy} zmien={zmien} />
+            <MetadanePlanu plan={plan} listy={listy} widok={widok} zmien={zmien} />
             <div className="ed-gt">skala i kierunek</div>
             <div className="ed-wiersz"><span>skala</span><b>{skala ? `1 j. = ${skala.toFixed(4)} m` : 'nieustawiona'}{plan.skala === null && skala ? ' (z punktów geo)' : ''}</b></div>
             <button className="ed-btn" aria-pressed={narz === 'skala'} onClick={() => ustawNarz('skala')}>ustaw skalę: 2 punkty i odległość</button>

@@ -134,7 +134,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
         o.przydomek && `${o.plec === 'K' ? 'zwana' : o.plec === 'M' ? 'zwany' : 'zwany(-a)'} „${o.przydomek}”`,
         o.inneNazwiska?.length && `${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}`,
     ].filter(Boolean).join(' · ')
-    const spis = spisCzesci([(bio?.tresc || bio?.lead) && 'biogram', 'życie', 'rodzina', html && 'drzewo', o.notatki && poziom !== 'publiczne' && 'notatki', materialyOsoby.length > 0 && 'materiały archiwalne', ...czesciPowiazan(siec), 'jak cytować', wierszeZrodel.length > 0 && 'źródła'])
+    const spis = spisCzesci([(bio?.tresc || bio?.lead) && 'biogram', 'życie', 'rodzina', html && 'drzewo', o.notatki && poziom !== 'publiczne' && 'notatki', materialyOsoby.length > 0 && 'materiały archiwalne', ...czesciPowiazan(siec), 'jak cytować', wierszeZrodel.length > 0 && 'źródła'], { wstep: !!bio?.lead, wstepTo: 'biogram' })
     const prosbaOZdjecie = !o.portret && po1900
     const portret = o.portret ? (
         <figure className="osoba-portret">
@@ -151,7 +151,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
         </div>
     ) : undefined
     const naglowek = (
-        <NaglowekKarty sciezka={[]} tytul={tytul} linia={podstawowe ? [podstawowe] : undefined} lead={bio?.lead ? bezNawiasow(bio.lead, kontekst.rozwiaz) : undefined}>
+        <NaglowekKarty sciezka={[]} tytul={tytul} linia={podstawowe ? [podstawowe] : undefined} lead={bio?.lead ? bezNawiasow(bio.lead, kontekst.rozwiaz) : undefined} wstepTo="biogram">
             {o.inneZapisy?.length ? <p className="m-0 tekst-opis-maly text-[var(--tekst-opis)]">w źródłach także: {o.inneZapisy.join(' · ')}</p> : null}
             {prosbaOZdjecie && (
                 // na wąskim ekranie zamiast pola „brak zdjęcia” – krótka prośba (pole wypychałoby dane w dół)
@@ -164,7 +164,8 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
     return (
         <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'osoby', href: '/osoby' }]} akcje={<><CopyLinkButton sciezka={`/osoby/${id}`} /><PrzyciskDrukuj /></>} naglowek={naglowek} bok={portret} spis={<SpisTresci pozycje={spis} />}>
             {bio?.tresc && (
-                <Sekcja tytul="biogram" id={idCzesci('biogram')}>
+                // zasada „wstęp” (17.11): pozycja „biogram” prowadzi do początku biogramu – tekstu nad tabelą, gdy jest
+                <Sekcja tytul="biogram" id={bio.lead ? undefined : idCzesci('biogram')}>
                     <Tresc html={naHtml(bio.tresc, kontekst)} pusta={null} />
                 </Sekcja>
             )}

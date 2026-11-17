@@ -1,57 +1,70 @@
 'use client'
 
-// Plan obiektu na stronie: przybliżanie, wyszukiwanie nazwisk, podpowiedź po najechaniu, karta grobu z boku planu
-// (napis z nagrobka, weryfikacja w źródłach, zdjęcia, poprzedni/następny), groby rodziny z drzewa,
-// legenda z przełącznikami, eksport do PNG i druk (PDF), informacja albo prośba czytelnika.
+// Etap 3 · przeglądarka planu: mapa (SVG – przybliżanie, przesuwanie, podpowiedź po najechaniu, klawiatura) i PanelPlanu
+// (szukanie, stan pusty, karta wybranego, wyniki, groby rodziny) w jednej ramie apletu (PrzegladarkaPlanu – siatka
+// „pasek mapy | pasek panelu / mapa | panel”). Kadr startowy z planu albo z grobów (CEM-07); ?grob= przy wyborze (CEM-13);
+// znak „opisany” tylko z danych jawnych (CEM-09); plan historyczny / schemat bez interfejsu grobowego (PH-13).
 
 import * as React from 'react'
-import OpisElementu from './OpisElementu'
-import { doSzukania, punktyElementu, srodek, jednostka, type Element, type Numer, type Plan } from '@/lib/plany/model'
+import { punktyElementu, srodek, jednostka, type Element, type Numer, type Plan } from '@/lib/plany/model'
 import { elementyLegendy } from '@/lib/plany/ph3'
-import { grobyKolejno, numerKrotki, numerTekst, numeryPlanu } from '@/lib/plany/numeracja'
-import { katalog, GRUPY, typGrobu, type TypElementu, type UstawieniaPlanow } from '@/lib/plany/typy'
+import { numerKrotki, numerTekst, numeryPlanu } from '@/lib/plany/numeracja'
+import { katalog, GRUPY, typGrobu, type UstawieniaPlanow } from '@/lib/plany/typy'
 import type { OsobaNaPlanie, KrewnyNaPlanie } from '@/lib/plany/rodzina'
+import { adresZGrobem, elementyKadruStartowego, napisyDoOdczytania, elementyNawigacji, interfejsPlanu, kwateryPlanu, opisany, przesunVB, ruchKlawisza, stanPlanu, szukajNaPlanie, type VB } from '@/lib/plany/przegladarka'
 import { kadr, Podzialka, RysunekPlanu, Wzory } from './Rysunek'
-import { Probka, WzoryProbek } from './Probka'
-import PoleSzukania from '../PoleSzukania'
+import { WzoryProbek } from './Probka'
+import PanelPlanu, { CalyPanelu, CzescPanelu, KartaElementu, KartaGrobu, LegendaNumerowana, LegendaTypow, PanelRodziny, WierszPanelu, WynikiSzukania, opisElementu, type Rodzina } from './PanelPlanu'
 import { animuj, useFokusPowrotu } from '@/lib/ruch'
+import { odmiana } from '@/lib/tekst'
 
-type VB = [number, number, number, number]
+export interface NarzedziaPlanu { png: () => void; drukuj: () => void }
 
-const przycisk = 'border border-[var(--linia-podzialu)] bg-[var(--tlo-strony)] text-current'
-const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
-
-export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokosc = 'min(74vh, 700px)', osoby = {}, pokazGrob }: {
+export default function PlanInteraktywny({ plan, ustawienia, zalogowany, osoby = {}, pokazGrob, narzedzia, oPlanie }: {
     plan: Plan
     ustawienia: UstawieniaPlanow
     zalogowany: boolean
-    wysokosc?: string
     /** osoby z drzewa przypięte do grobów (tylko widoczne dla czytelnika) */
     osoby?: Record<string, OsobaNaPlanie>
     /** z zewnątrz (lista pochowanych): pokaż ten grób */
     pokazGrob?: { id: string; n: number } | null
+    /** narzędzia eksportu dla paska apletu (PNG, druk) */
+    narzedzia?: React.Ref<NarzedziaPlanu>
+    /** część „o planie” w stanie pustym panelu (opis, źródło rysunku – z serwera) */
+    oPlanie?: React.ReactNode
 }) {
     const typy = React.useMemo(() => katalog(ustawienia), [ustawienia])
     const ukryteTypy = React.useMemo(() => new Set(ustawienia.ukryteTypy), [ustawienia])
+    const interfejs = interfejsPlanu(plan)
     const prefix = `pl-${plan.slug}`
     const u = jednostka(plan)
     const pelny = React.useMemo(() => kadr(plan), [plan])
-    const [vb, ustawVb] = React.useState<VB>(pelny)
+    // CEM-07: kadr startowy – zapisany w planie (edytor, układ przed obrotem) albo groby i kwatery
+    const startowy = React.useMemo<VB>(() => {
+        if (plan.kadr) {
+            const [x, y, w, h] = plan.kadr
+            return kadr(plan, [{ id: 'kadr', typ: 'kadr', g: { k: 'w', p: [[x, y], [x + w, y], [x + w, y + h], [x, y + h]] } }])
+        }
+        return kadr(plan, elementyKadruStartowego(plan, typy))
+    }, [plan, typy])
+    const [vb, ustawVb] = React.useState<VB>(startowy)
     const [wylaczone, ustawWylaczone] = React.useState<Set<string>>(new Set())
     const [wybrany, ustawWybrany] = React.useState<string | null>(null)
     const [rodzinaDla, ustawRodzinaDla] = React.useState<string | null>(null)
     const [szukaj, ustawSzukaj] = React.useState('')
+    // WSP-06: ?napisy=1 – panel z listą grobów ze zdjęciem bez odczytanego napisu
+    const [trybNapisy, ustawTrybNapisy] = React.useState(false)
     const [podklad, ustawPodklad] = React.useState(false)
     const [nad, ustawNad] = React.useState<{ tekst: string; x: number; y: number } | null>(null)
     const [foto, ustawFoto] = React.useState<number | null>(null)
     const svgRef = React.useRef<SVGSVGElement>(null)
     const ramkaRef = React.useRef<HTMLDivElement>(null)
+    const panelRef = React.useRef<HTMLDivElement>(null)
     // numery zapisane w planie i rozwiązane przy wydawaniu (dlaCzytelnika) – te same dla każdego czytelnika
     const numery = React.useMemo(() => numeryPlanu(plan), [plan])
     const elementy = React.useMemo(() => new Map(plan.elementy.map((e) => [e.id, e])), [plan])
-
-    // groby w kolejności kwatera → rząd → miejsce (poprzedni / następny)
-    const kolejno = React.useMemo(() => grobyKolejno(plan, numery), [plan, numery])
+    // ‹ › i strzałki: groby wg numerów; plan bez grobów – obiekty z nazwą / numerem legendy
+    const kolejno = React.useMemo(() => elementyNawigacji(plan, typy, numery), [plan, typy, numery])
 
     // legenda: tylko typy użyte na planie, w kolejności katalogu
     const uzyte = React.useMemo(() => {
@@ -60,29 +73,21 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         return [...typy.values()].filter((t) => ile.has(t.id) && t.rys !== 'napis').map((t) => ({ t, n: ile.get(t.id)! }))
             .sort((a, b) => GRUPY.indexOf(a.t.grupa) - GRUPY.indexOf(b.t.grupa))
     }, [plan, typy, ukryteTypy])
-
     // PH-08: legenda numerowana – elementy z numerem (także „położenie nieznane”), w kolejności numerów
     const numerowane = React.useMemo(() => elementyLegendy(plan.elementy.filter((e) => typy.has(e.typ))), [plan, typy])
-
-    const trafienia = React.useMemo(() => {
-        const q = norm(szukaj.trim())
-        if (q.length < 2) return [] as Element[]
-        return plan.elementy.filter((e) => !e.nieznanePolozenie && doSzukania(e).includes(q))
-    }, [szukaj, plan])
+    const trafienia = React.useMemo(() => szukajNaPlanie(plan, szukaj), [szukaj, plan])
+    const szukanie = szukaj.trim().length >= 2
     const wyroznione = React.useMemo(() => new Set(trafienia.map((e) => e.id)), [trafienia])
-    // stan opracowania planu: ile grobów, ile z odczytanym napisem (pokazany nad planem)
-    const stan = React.useMemo(() => {
-        const groby = plan.elementy.filter((e) => typGrobu(typy.get(e.typ)))
-        const odczytane = groby.filter((e) => e.osoby?.length || e.nazwa || e.napis).length
-        const ograniczone = groby.filter((e) => e.ograniczony).length
-        return { groby: groby.length, odczytane, ograniczone }
-    }, [plan, typy])
-    const odm = (n: number, f: [string, string, string]) => `${n} ${n === 1 ? f[0] : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? f[1] : f[2]}`
+    // CEM-08/09: liczby pustego panelu i znak „opisany” – z planu dla czytelnika (dane jawne)
+    const stan = React.useMemo(() => stanPlanu(plan, typy, new Set(Object.keys(osoby))), [plan, typy, osoby])
+    const opisane = React.useMemo(() => new Set(plan.elementy.filter((e) => typGrobu(typy.get(e.typ)) && opisany(e)).map((e) => e.id)), [plan, typy])
+    const kwatery = React.useMemo(() => kwateryPlanu(plan, typy, numery), [plan, typy, numery])
+    const doOdczytania = React.useMemo(() => (interfejs.grobowy ? napisyDoOdczytania(plan, typy) : []), [plan, typy, interfejs.grobowy])
     const el = wybrany ? elementy.get(wybrany) ?? null : null
 
     // ---------- groby rodziny ----------
     const grobOsoby = React.useCallback((osobaId: string) => plan.elementy.find((e) => e.osoby?.some((o) => o.id === osobaId)) ?? null, [plan])
-    const rodzinaGrobu = React.useCallback((elId: string) => {
+    const rodzinaGrobu = React.useCallback((elId: string): Rodzina => {
         const e = elementy.get(elId)
         const wlasne = (e?.osoby ?? []).map((o) => (o.id ? osoby[o.id] : undefined)).filter((x): x is OsobaNaPlanie => !!x)
         const krewni: (KrewnyNaPlanie & { grob: Element | null; wzgledem: string })[] = []
@@ -102,7 +107,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         const q = p.matrixTransform(m)
         return [q.x, q.y]
     }
-    // 5A (scena 6): przesunięcie widoku płynnie (--ruch-wolny, --ruch-krzywa) przy wyborze grobu i przyciskach +/−/⤢;
+    // 5A (scena 6): przesunięcie widoku płynnie (--ruch-wolny) przy wyborze grobu i przyciskach +/−/⤢;
     // kółko, palce i przeciąganie – bez animacji (przerywają trwającą); przy ograniczeniu ruchu – od razu
     const vbRef = React.useRef(vb)
     vbRef.current = vb
@@ -125,14 +130,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
     }, [pelny, u, plynnie])
     const ruch = React.useRef<{ wsk: Map<number, [number, number]>; start?: { x: number; y: number; vb: VB }; pinch?: { d: number; vb: VB; c: [number, number] }; przesuniety: boolean }>({ wsk: new Map(), przesuniety: false })
 
-    const opisElementu = (e: Element): string => {
-        const t = typy.get(e.typ), n = numery.get(e.id)
-        if (typGrobu(t)) {
-            const kto = e.ograniczony ? 'grób – opis niedostępny publicznie' : e.osoby?.map((o) => o.nazwa).filter(Boolean).join(', ') || e.nazwa || (e.napis ? e.napis.split('\n').find((l) => /\p{L}{3,}/u.test(l))?.trim() : '') || 'grób'
-            return `${kto}${n ? ` · ${numerKrotki(n)}` : ''}`
-        }
-        return e.nazwa || t?.nazwa || ''
-    }
+    const opis = (e: Element) => opisElementu(e, typy.get(e.typ), numery.get(e.id))
     const pointerDown = (e: React.PointerEvent) => {
         przerwij.current()
         const r = ruch.current
@@ -156,7 +154,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
             const id = (e.target as globalThis.Element).closest('[data-id]')?.getAttribute('data-id')
             const x = id ? elementy.get(id) : null
             const b = ramkaRef.current?.getBoundingClientRect()
-            const tekst = x ? opisElementu(x) : ''
+            const tekst = x ? opis(x) : ''
             ustawNad(x && b && tekst ? { tekst, x: e.clientX - b.left, y: e.clientY - b.top } : null)
             return
         }
@@ -183,7 +181,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         if (r.wsk.size < 2) r.pinch = undefined
         if (r.start && !r.przesuniety) {
             const id = (e.target as globalThis.Element).closest('[data-id]')?.getAttribute('data-id')
-            ustawWybrany(id ?? null)
+            wybierz(id ?? null)
             if (!id) ustawRodzinaDla(null)
         }
         r.start = undefined
@@ -201,8 +199,13 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         return () => s.removeEventListener('wheel', kolko)
     }, [zoom])
 
+    // CEM-13: wybór grobu podmienia adres (?grob=<id>) – link z paska przeglądarki prowadzi do tego grobu
+    const wybierz = React.useCallback((id: string | null) => {
+        ustawWybrany(id)
+        if (typeof window !== 'undefined') window.history.replaceState(window.history.state, '', adresZGrobem(window.location.href, id))
+    }, [])
     const pokazElement = React.useCallback((e: Element, zostawRodzine = false, gladko = true) => {
-        ustawWybrany(e.id)
+        wybierz(e.id)
         if (!zostawRodzine) ustawRodzinaDla(null)
         if (plan.obrot) return
         const pts = punktyElementu(e.g), xs = pts.map((p) => p[0])
@@ -215,11 +218,20 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         }
         if (gladko) plynnie(cel)
         else { przerwij.current(); ustawVb(cel) }
-    }, [plan.obrot, u, plynnie])
+    }, [plan.obrot, u, plynnie, wybierz])
+    /** kwatera z pustego panelu: kadr jej grobów */
+    const pokazKwatere = (ids: string[]) => {
+        const L = ids.map((id) => elementy.get(id)).filter((x): x is Element => !!x)
+        if (L.length) plynnie(() => kadr(plan, L))
+    }
 
-    // link do grobu: ?grob=<id> – zaznacza grób i przybliża
+    // link do grobu: ?grob=<id> – zaznacza grób i przybliża; ?szukaj= – z pola na karcie obiektu; ?napisy=1 – WSP-06
     React.useEffect(() => {
-        const id = new URLSearchParams(window.location.search).get('grob')
+        const sp = new URLSearchParams(window.location.search)
+        const q = sp.get('szukaj')?.slice(0, 100)
+        if (q) ustawSzukaj(q)
+        if (sp.get('napisy') === '1') ustawTrybNapisy(true)
+        const id = sp.get('grob')
         const e = id ? elementy.get(id) : null
         // wejście na stronę z odnośnikiem do grobu – od razu (nic nie „wjeżdża” przy wejściu na stronę)
         if (e) pokazElement(e, false, false)
@@ -231,6 +243,24 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         if (e) pokazElement(e, false, !pierwszyPokaz.current)
         pierwszyPokaz.current = false
     }, [pokazGrob, elementy, pokazElement])
+
+    // CEM-24: klawiatura nad planem – ← ↑ / → ↓ poprzedni / następny, Enter – szczegóły w panelu, Shift + strzałki – przesunięcie
+    const klawisz = (e: React.KeyboardEvent<SVGSVGElement>) => {
+        const r = ruchKlawisza(e.key, e.shiftKey)
+        if (!r) return
+        e.preventDefault()
+        if ('kolejny' in r) {
+            if (!kolejno.length) return
+            const i = el ? kolejno.findIndex((x) => x.id === el.id) : -1
+            const nast = kolejno[i < 0 ? (r.kolejny > 0 ? 0 : kolejno.length - 1) : Math.min(kolejno.length - 1, Math.max(0, i + r.kolejny))]
+            if (nast) pokazElement(nast)
+        } else if ('szczegoly' in r) {
+            // pierwszy przycisk albo odnośnik szczegółów (querySelector z listą zwraca też przodka – stąd osobno)
+            panelRef.current?.querySelector<HTMLElement>('.plan-panel-tabela button:not(:disabled), .plan-panel-tabela a[href]')?.focus()
+        } else if ('przesun' in r) plynnie((v) => przesunVB(v, r.przesun))
+        else if ('zoom' in r) zoom(r.zoom, undefined, undefined, true)
+        else plynnie(() => startowy)
+    }
 
     // ---------- eksport ----------
     const doPng = async () => {
@@ -251,7 +281,8 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
         kopia.querySelectorAll('image').forEach((im) => im.remove())
         const tlo = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
         tlo.setAttribute('x', String(pelny[0])); tlo.setAttribute('y', String(pelny[1])); tlo.setAttribute('width', String(pelny[2])); tlo.setAttribute('height', String(pelny[3]))
-        tlo.style.fill = getComputedStyle(document.documentElement).getPropertyValue('--pl-papier') || '#f6f3ec'
+        // tło PNG = papier planu z tokenu (w stylu „atrament” – jego papier)
+        tlo.style.fill = getComputedStyle(ramkaRef.current ?? document.documentElement).getPropertyValue('--pl-papier') || 'white'
         kopia.insertBefore(tlo, kopia.firstChild)
         const xml = new XMLSerializer().serializeToString(kopia)
         const img = new Image()
@@ -269,303 +300,123 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, wysokos
             setTimeout(() => URL.revokeObjectURL(a.href), 5000)
         }, 'image/png')
     }
-    // JW-17: wydruk na wspólnym arkuszu druku (tytuł strony, stopka z numerami kartek); przed drukiem cały plan w kadrze
+    // JW-17: wydruk na wspólnym arkuszu druku; przed drukiem cały plan w kadrze
     const drukuj = () => {
         przerwij.current()
         ustawVb(pelny)
         setTimeout(() => window.print(), 100)
     }
 
+    React.useImperativeHandle(narzedzia, () => ({ png: doPng, drukuj }))
     const pokaz = (e: Element) => !wylaczone.has(e.typ)
     const podkladyDoPokazania = podklad ? plan.podklady.map((p) => ({ p, adres: `/plany/${plan.slug}/podklad/${p.plik}` })) : undefined
     const cx = plan.szer / 2, cy = plan.wys / 2
 
+    // ---------- panel: część i treść ----------
+    const grobWybrany = el && typGrobu(typy.get(el.typ))
+    const tytulCzesci = rodzina && rodzinaDla ? 'rodzina na tym cmentarzu'
+        : el ? (grobWybrany ? `grób ${numerKrotki(numery.get(el.id)) || ''}`.trim() : el.nazwa?.split('\n').join(' ') || el.nazwaZrodlowa || typy.get(el.typ)?.nazwa || 'obiekt')
+            : szukanie ? 'szukaj na planie' : trybNapisy ? 'napisy do odczytania' : interfejs.czescSzukania
+    const zamknijPanel = rodzina && rodzinaDla ? () => ustawRodzinaDla(null) : el ? () => wybierz(null) : szukanie ? () => ustawSzukaj('') : trybNapisy ? () => ustawTrybNapisy(false) : undefined
+    const nieWszystkoOdczytane = interfejs.grobowy && stan.bezOpisu > 0
+    const pustoUwaga = nieWszystkoOdczytane ? 'Nic nie znaleziono – to nie znaczy, że tej osoby tu nie pochowano: nie wszystkie napisy są już odczytane.' : 'Nic nie znaleziono.'
+
+    let tresc: React.ReactNode
+    if (rodzina && rodzinaDla) tresc = <PanelRodziny rodzina={rodzina} numery={numery} wybierz={(g) => pokazElement(g, true)} />
+    else if (el && grobWybrany) tresc = <KartaGrobu key={el.id} el={el} plan={plan} numer={numery.get(el.id)} numery={numery} kolejno={kolejno} osoby={osoby} zalogowany={zalogowany} idz={(g) => pokazElement(g)} pokazRodzine={() => ustawRodzinaDla(el.id)} rodzinaIle={rodzinaGrobu(el.id)} otworzFoto={ustawFoto} />
+    else if (el) tresc = <KartaElementu key={el.id} el={el} typ={typy.get(el.typ)} numer={numery.get(el.id)} />
+    else if (trybNapisy && !szukanie) tresc = (
+        <>
+            <CalyPanelu><p className="plan-panel-tekst">Groby ze zdjęciem nagrobka, z których nie odczytano jeszcze napisu. Wybierz grób, otwórz zdjęcie i napisz, co widać – przez „dodaj informację”.</p></CalyPanelu>
+            <WynikiSzukania wyniki={doOdczytania} wybrany={wybrany} wybierz={(e) => pokazElement(e)} opis={(e) => opisElementu(e, typy.get(e.typ))} numery={numery} pustoUwaga="Wszystkie sfotografowane nagrobki mają już odczytany napis." />
+        </>
+    )
+    else if (szukanie) tresc = <WynikiSzukania wyniki={trafienia} wybrany={wybrany} wybierz={(e) => pokazElement(e)} opis={(e) => opisElementu(e, typy.get(e.typ))} numery={numery} pustoUwaga={pustoUwaga} />
+    else tresc = (
+        <>
+            <CzescPanelu tytul="na tym planie" />
+            {interfejs.grobowy ? (
+                <>
+                    <WierszPanelu e="groby">{stan.groby > 0 ? String(stan.groby) : 'brak na rysunku'}</WierszPanelu>
+                    <WierszPanelu e="opisane">{stan.groby > 0 ? `${stan.opisane}${stan.bezOpisu > 0 ? ` · plan w opracowaniu` : ''}` : null}</WierszPanelu>
+                    <WierszPanelu e="do odczytania">{doOdczytania.length > 0 && <button type="button" className="plan-panel-odn" onClick={() => ustawTrybNapisy(true)}>{odmiana(doOdczytania.length, ['grób', 'groby', 'grobów'])} ze zdjęciem bez napisu – pomóż odczytać</button>}</WierszPanelu>
+                    <WierszPanelu e="dla bliskich">{stan.dlaBliskich > 0 ? `${odmiana(stan.dlaBliskich, ['grób', 'groby', 'grobów'])} z napisem tylko dla bliskich` : null}</WierszPanelu>
+                    <WierszPanelu e="w drzewie">{stan.wDrzewie > 0 ? `${odmiana(stan.wDrzewie, ['grób', 'groby', 'grobów'])} z osobami z drzewa` : null}</WierszPanelu>
+                </>
+            ) : (
+                <>
+                    <WierszPanelu e="obiekty">{String(kolejno.length)}</WierszPanelu>
+                    <WierszPanelu e="w legendzie">{numerowane.length > 0 ? String(numerowane.length) : null}</WierszPanelu>
+                </>
+            )}
+            {kwatery.length > 1 && (
+                <>
+                    <CzescPanelu tytul="kwatery">{odmiana(kwatery.length, ['kwatera', 'kwatery', 'kwater'])}</CzescPanelu>
+                    <CalyPanelu><span className="plan-panel-przyciski">{kwatery.map((k) => <button key={k.nazwa} type="button" className="k-btn k-btn--s" onClick={() => pokazKwatere(k.ids)}>{k.nazwa}</button>)}</span></CalyPanelu>
+                </>
+            )}
+            <LegendaNumerowana elementy={numerowane} typy={typy} pokaz={(e) => pokazElement(e)} wybrany={wybrany} />
+            <LegendaTypow uzyte={uzyte} prefix={`${prefix}-sw`} wylaczone={wylaczone} rodzina={!!rodzina}
+                przelacz={(id) => ustawWylaczone((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })} wszystkie={() => ustawWylaczone(new Set())} />
+            {plan.podklady.length > 0 && (
+                <CalyPanelu><label className="plan-panel-wybor"><input type="checkbox" checked={podklad} onChange={(e) => ustawPodklad(e.target.checked)} /> podkład pod rysunkiem</label></CalyPanelu>
+            )}
+            <CzescPanelu tytul="o planie" />
+            {oPlanie}
+            {interfejs.grobowy && numery.size > 0 && (
+                <WierszPanelu e="numeracja">{`robocza, nie urzędowa${plan.zrodloNumeracji ? ` – ${plan.zrodloNumeracji}` : ''}`}</WierszPanelu>
+            )}
+            <WierszPanelu e="klawiatura">← → – poprzedni i następny{interfejs.grobowy ? ' grób' : ' obiekt'} · Enter – szczegóły · Shift + strzałki – przesuń · + − – przybliż · 0 – cały plan</WierszPanelu>
+        </>
+    )
+
     return (
-        <div className="plan-do-druku flex flex-col" style={{ gap: 10 }}>
-            <WzoryProbek prefix={`${prefix}-sw`} />
-            {stan.groby > 0 && (
-                <p className="plan-bez-druku text-[var(--tekst-opis)]" style={{ margin: 0, fontSize: 13 }}>
-                    na planie {odm(stan.groby, ['grób', 'groby', 'grobów'])} · {stan.odczytane === 0 ? 'napisy nie zostały jeszcze odczytane' : `odczytane napisy: ${stan.odczytane}`}{stan.ograniczone ? ` · ${odm(stan.ograniczone, ['grób', 'groby', 'grobów'])} z napisem tylko dla bliskich` : ''}{stan.odczytane + stan.ograniczone < stan.groby ? ' – plan jest w opracowaniu' : ''}
-                </p>
-            )}
-            <div className="plan-bez-druku flex flex-wrap items-center" style={{ gap: 8 }}>
-                <PoleSzukania value={szukaj} onChange={ustawSzukaj} onSubmit={() => { if (trafienia[0]) pokazElement(trafienia[0]) }} placeholder="nazwisko, imię, rok – na tym planie" style={{ flex: '1 1 260px', maxWidth: 420 }} />
-                {szukaj.trim().length >= 2 && <span className="text-[var(--tekst-opis)]" style={{ fontSize: 13 }}>{trafienia.length ? `znaleziono: ${trafienia.length}` : stan.odczytane + stan.ograniczone < stan.groby ? 'nic nie znaleziono – to nie znaczy, że tej osoby tu nie pochowano: nie wszystkie napisy są już odczytane' : 'nic nie znaleziono'}</span>}
-                <span style={{ flex: 1 }} />
-                {plan.podklady.length > 0 && <label className="inline-flex items-center" style={{ gap: 6, fontSize: 13 }}><input type="checkbox" checked={podklad} onChange={(e) => ustawPodklad(e.target.checked)} /> podkład</label>}
-                <button type="button" onClick={doPng} className={`${przycisk} rounded-[7px]`} style={{ height: 28, padding: '0 10px', fontSize: 13 }}>pobierz PNG</button>
-                <button type="button" onClick={drukuj} className={`${przycisk} rounded-[7px]`} style={{ height: 28, padding: '0 10px', fontSize: 13 }}>drukuj / PDF</button>
+        <>
+            <div className="szt-pasek plan-panel-pasek">
+                <b className="szt-jedna">{tytulCzesci}</b>
+                {zamknijPanel && <button type="button" className="plan-panel-x" onClick={zamknijPanel} aria-label="zamknij">×</button>}
             </div>
-            {trafienia.length > 0 && (
-                <div className="plan-bez-druku flex flex-wrap" style={{ gap: 6 }}>
-                    {trafienia.slice(0, 16).map((e) => (
-                        <button key={e.id} type="button" onClick={() => pokazElement(e)} aria-pressed={e.id === wybrany} className={`${przycisk} rounded-[7px] plan-traf`} style={{ height: 28, padding: '0 8px', fontSize: 13 }}>{opisElementu(e)}</button>
-                    ))}
-                    {trafienia.length > 16 && <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 13, alignSelf: 'center' }}>i {trafienia.length - 16} więcej – zawęź</span>}
+            <div ref={ramkaRef} className={`plan-ramka plan-aplet-mapa${plan.styl === 'atrament' ? ' pl-styl-atrament' : ''}`} onPointerLeave={() => ustawNad(null)}>
+                <WzoryProbek prefix={`${prefix}-sw`} />
+                <svg ref={svgRef} viewBox={vb.join(' ')} preserveAspectRatio="xMidYMid meet" role="application" tabIndex={0}
+                    aria-label={`${plan.tytul} – plan. ${interfejs.grobowy ? 'Strzałki: poprzedni i następny grób' : 'Strzałki: poprzedni i następny obiekt'}, Enter – szczegóły, plus i minus – przybliżenie.`}
+                    aria-describedby={`${prefix}-wybrany`} onKeyDown={klawisz}
+                    onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}>
+                    <defs><Wzory prefix={prefix} u={u} /></defs>
+                    <rect x={pelny[0] - pelny[2]} y={pelny[1] - pelny[3]} width={pelny[2] * 3} height={pelny[3] * 3} className="pl-tlo" />
+                    <RysunekPlanu plan={plan} o={{ prefix, typy, ukryteTypy, pokaz, wyroznione: rodzina ? undefined : wyroznione, wybrane: wybrany ? new Set([wybrany]) : undefined, numery, podklady: podkladyDoPokazania, rodzina: grobyRodziny, opisane: interfejs.grobowy ? opisane : undefined }} />
+                    {rodzina && (
+                        <g transform={plan.obrot ? `rotate(${plan.obrot} ${cx} ${cy})` : undefined} pointerEvents="none">
+                            {rodzina.krewni.filter((k) => k.grob).map((k) => {
+                                const [x, y] = srodek(k.grob!.g)
+                                const px = vb[2] / (svgRef.current?.clientWidth || 800)
+                                return <text key={k.id} x={x} y={y - px * 14} fontSize={px * 12.5} textAnchor="middle" transform={plan.obrot ? `rotate(${-plan.obrot} ${x} ${y})` : undefined} className="plan-rodzina-podpis">{k.relacja}</text>
+                            })}
+                        </g>
+                    )}
+                    <Podzialka plan={plan} kadr={pelny} />
+                </svg>
+                {/* stan dla czytnika ekranu: wybrany element po ruchu klawiszami */}
+                <span id={`${prefix}-wybrany`} className="sr-only" aria-live="polite">{el ? `${opis(el)}${grobWybrany && numery.get(el.id) ? ` – ${numerTekst(numery.get(el.id))}` : ''}` : ''}</span>
+                <div className="plan-kontrolki plan-bez-druku" role="group" aria-label="przybliżenie">
+                    <button type="button" aria-label="przybliż" onClick={() => zoom(1 / 1.4, undefined, undefined, true)}>+</button>
+                    <button type="button" aria-label="oddal" onClick={() => zoom(1.4, undefined, undefined, true)}>−</button>
+                    <button type="button" aria-label="cały plan" onClick={() => plynnie(() => startowy)}>⤢</button>
                 </div>
-            )}
-            <div className="plan-uklad" style={{ height: wysokosc }}>
-                <div ref={ramkaRef} className="plan-ramka" onPointerLeave={() => ustawNad(null)}>
-                    <svg ref={svgRef} viewBox={vb.join(' ')} preserveAspectRatio="xMidYMid meet" role="img" aria-label={plan.tytul}
-                        onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} style={{ cursor: 'grab' }}>
-                        <defs><Wzory prefix={prefix} u={u} /></defs>
-                        <rect x={pelny[0] - pelny[2]} y={pelny[1] - pelny[3]} width={pelny[2] * 3} height={pelny[3] * 3} style={{ fill: 'var(--pl-papier)' }} />
-                        <RysunekPlanu plan={plan} o={{ prefix, typy, ukryteTypy, pokaz, wyroznione: rodzina ? undefined : wyroznione, wybrane: wybrany ? new Set([wybrany]) : undefined, numery, podklady: podkladyDoPokazania, rodzina: grobyRodziny }} />
-                        {rodzina && (
-                            <g transform={plan.obrot ? `rotate(${plan.obrot} ${cx} ${cy})` : undefined} pointerEvents="none">
-                                {rodzina.krewni.filter((k) => k.grob).map((k) => {
-                                    const [x, y] = srodek(k.grob!.g)
-                                    const px = vb[2] / (svgRef.current?.clientWidth || 800)
-                                    return <text key={k.id} x={x} y={y - px * 14} fontSize={px * 12.5} textAnchor="middle" transform={plan.obrot ? `rotate(${-plan.obrot} ${x} ${y})` : undefined} className="plan-rodzina-podpis">{k.relacja}</text>
-                                })}
-                            </g>
-                        )}
-                        <Podzialka plan={plan} kadr={pelny} />
-                    </svg>
-                    <div className="plan-bez-druku" style={{ position: 'absolute', right: 10, top: 10, display: 'flex', flexDirection: 'column' }}>
-                        {[['+', () => zoom(1 / 1.4, undefined, undefined, true), 'przybliż'], ['−', () => zoom(1.4, undefined, undefined, true), 'oddal'], ['⤢', () => plynnie(() => pelny), 'cały plan']].map(([t, f, l], i) => (
-                            <button key={i} type="button" aria-label={l as string} onClick={f as () => void} className={przycisk} style={{ width: 32, height: 32, fontSize: 16, marginTop: i ? -1 : 0, borderRadius: i === 0 ? '7px 7px 0 0' : i === 2 ? '0 0 7px 7px' : 0 }}>{t as string}</button>
-                        ))}
-                    </div>
-                    {nad && <div className="plan-podpowiedz plan-bez-druku" style={{ left: nad.x + 14, top: nad.y + 14 }}>{nad.tekst}</div>}
-                    <div className="plan-bez-druku text-[var(--tekst-etykieta)]" style={{ position: 'absolute', left: 10, bottom: 8, fontSize: 11 }}>najedź – nazwisko · kliknij – karta grobu · przeciągnij – przesuń · Ctrl + kółko – przybliż</div>
-                </div>
-                {rodzina && rodzinaDla ? (
-                    <PanelRodziny rodzina={rodzina} numery={numery} zamknij={() => ustawRodzinaDla(null)} wybierz={(g) => pokazElement(g)} />
-                ) : el ? (
-                    <Karta key={el.id} el={el} plan={plan} typ={typy.get(el.typ)} numer={numery.get(el.id)} numery={numery} kolejno={kolejno} osoby={osoby} progLat={ustawienia.progLat} zalogowany={zalogowany}
-                        zamknij={() => ustawWybrany(null)} idz={(g) => pokazElement(g)} pokazRodzine={() => ustawRodzinaDla(el.id)} rodzinaIle={rodzinaGrobu(el.id)} otworzFoto={ustawFoto} />
-                ) : null}
+                {nad && <div className="plan-podpowiedz plan-bez-druku" style={/* styl-dynamiczny: położenie podpowiedzi przy kursorze */ { left: nad.x + 14, top: nad.y + 14 }}>{nad.tekst}</div>}
+                <div className="plan-wskazowka plan-bez-druku">{interfejs.grobowy ? 'najedź – nazwisko · kliknij – karta grobu' : 'najedź – nazwa · kliknij – opis obiektu'} · przeciągnij – przesuń · Ctrl + kółko – przybliż</div>
             </div>
-            <Legenda uzyte={uzyte} numerowane={numerowane} typy={typy} pokaz={(e) => pokazElement(e)} prefix={`${prefix}-sw`} wylaczone={wylaczone} rodzina={!!rodzina} przelacz={(id) => ustawWylaczone((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })} wszystkie={() => ustawWylaczone(new Set())} />
+            <div ref={panelRef} className="plan-aplet-panel">
+                <PanelPlanu tytul={tytulCzesci} zamknij={zamknijPanel} szukaj={szukaj} ustawSzukaj={(v) => { ustawSzukaj(v); if (el) wybierz(null) }} naSzukaj={() => { if (trafienia[0]) pokazElement(trafienia[0]) }}
+                    podpowiedz={`${interfejs.podpowiedz} – na tym planie`} etykieta={interfejs.grobowy ? 'panel planu: groby' : 'panel planu: obiekty'}
+                    opisPodpowiedzi={szukanie ? undefined : interfejs.grobowy ? (nieWszystkoOdczytane ? 'Nie wszystkie napisy są już odczytane – brak wyniku nie znaczy, że tej osoby tu nie pochowano.' : 'Szukaj po nazwisku, imieniu albo roku z napisu.') : 'Szukaj po nazwie obiektu albo nazwie w źródle.'}>
+                    {tresc}
+                </PanelPlanu>
+            </div>
             {el && foto !== null && el.zdjecia?.[foto] && (
                 <Galeria plan={plan} el={el} numer={numery.get(el.id)} i={foto} ustaw={ustawFoto} />
             )}
-        </div>
-    )
-}
-
-function Legenda({ uzyte, numerowane, typy, pokaz, prefix, wylaczone, przelacz, wszystkie, rodzina }: { uzyte: { t: TypElementu; n: number }[]; numerowane: (Element & { nrLegendy: string })[]; typy: Map<string, TypElementu>; pokaz: (e: Element) => void; prefix: string; wylaczone: Set<string>; przelacz: (id: string) => void; wszystkie: () => void; rodzina: boolean }) {
-    if (!uzyte.length && !numerowane.length) return null
-    return (
-        // zwinięta – rozwija się po kliknięciu w „legenda”; przy ukrytych typach od razu widać „pokaż wszystko”;
-        // PH-08: plan z legendą numerowaną – rozwinięta od razu (numery na planie bez listy nic nie mówią)
-        <details className="plan-legenda flex flex-col" style={{ gap: 6 }} open={numerowane.length > 0 || undefined}>
-            <summary className="flex items-baseline" style={{ gap: 12 }}>
-                <span className="plan-legenda-tytul">legenda</span>
-                {wylaczone.size > 0 && <button type="button" onClick={(e) => { e.preventDefault(); wszystkie() }} className="plan-bez-druku text-[#4c3cc4] dark:text-[#419cff]" style={{ fontSize: 12, background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>pokaż wszystko</button>}
-            </summary>
-            <div className="rozwin-tresc flex flex-col gap-1.5">
-            <span className="plan-bez-druku text-[var(--tekst-etykieta)]" style={{ fontSize: 11, marginTop: 6 }}>kliknij, żeby ukryć albo pokazać</span>
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(13rem, 1fr))', gap: '4px 16px', marginTop: 6 }}>
-                {uzyte.map(({ t, n }) => (
-                    <button key={t.id} type="button" onClick={() => przelacz(t.id)} aria-pressed={!wylaczone.has(t.id)} className="flex items-center text-left text-current" style={{ gap: 9, fontSize: 13, opacity: wylaczone.has(t.id) ? 0.38 : 1, minHeight: 24, background: 'none', border: 0, padding: 0, font: 'inherit', cursor: 'pointer' }}>
-                        <Probka typ={t} prefix={prefix} />
-                        <span>{t.nazwa.replace(/ \(.*\)$/, '')}{n > 1 && <span className="text-[var(--tekst-etykieta)]"> · {n}</span>}</span>
-                    </button>
-                ))}
-                {rodzina && <span className="flex items-center" style={{ gap: 9, fontSize: 13 }}><span className="plan-rodzina-probka" aria-hidden="true" />grób rodziny</span>}
-            </div>
-            {numerowane.length > 0 && (
-                <div className="plan-legenda-numery">
-                    <span className="plan-legenda-tytul">numery na planie</span>
-                    <ol>
-                        {numerowane.map((e) => {
-                            const nazwa = e.nazwa?.split('\n').join(' ') || e.nazwaZrodlowa || typy.get(e.typ)?.nazwa.replace(/ \(.*\)$/, '') || '—'
-                            return (
-                                <li key={e.id}>
-                                    <span className="plan-legenda-nr" aria-hidden="true">{e.nrLegendy}</span>
-                                    <span className="plan-legenda-poz">
-                                        <span className="sr-only">{e.nrLegendy}. </span>
-                                        {e.nieznanePolozenie ? <span>{nazwa} <span className="plan-legenda-uwaga">· położenie nieznane</span></span>
-                                            : <button type="button" className="plan-legenda-element" onClick={() => pokaz(e)}>{nazwa}</button>}
-                                        {e.nazwaZrodlowa && e.nazwaZrodlowa !== nazwa && <span className="plan-legenda-uwaga"> · w źródle: „{e.nazwaZrodlowa}”</span>}
-                                        {(e.odnosniki ?? []).map((k) => <span key={k.adres}> · <a href={k.adres}>{k.nazwa}</a></span>)}
-                                    </span>
-                                </li>
-                            )
-                        })}
-                    </ol>
-                </div>
-            )}
-            </div>
-        </details>
-    )
-}
-
-type Rodzina = { wlasne: OsobaNaPlanie[]; krewni: (KrewnyNaPlanie & { grob: Element | null; wzgledem: string })[] }
-
-function PanelRodziny({ rodzina, numery, zamknij, wybierz }: { rodzina: Rodzina; numery: Map<string, Numer>; zamknij: () => void; wybierz: (e: Element) => void }) {
-    const naPlanie = rodzina.krewni.filter((k) => k.grob), poza = rodzina.krewni.filter((k) => !k.grob)
-    return (
-        <aside className="plan-karta plan-bez-druku" aria-label="rodzina na tym cmentarzu">
-            <div className="plan-karta-glowa">
-                <div className="flex items-start justify-between" style={{ gap: 12 }}>
-                    <div className="flex flex-col" style={{ gap: 2 }}>
-                        <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12 }}>rodzina na tym cmentarzu</span>
-                        <b style={{ fontSize: 15 }}>{rodzina.wlasne.map((o) => o.nazwa).join(', ')}</b>
-                        <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12 }}>wg drzewa – tylko osoby połączone z grobem</span>
-                    </div>
-                    <button type="button" onClick={zamknij} className="plan-karta-x" aria-label="wyłącz groby rodziny">×</button>
-                </div>
-            </div>
-            <div className="plan-karta-tresc">
-                {naPlanie.length === 0 && <p className="text-[var(--tekst-opis)]" style={{ margin: 0 }}>Nikt z rodziny nie jest jeszcze połączony z grobem na tym planie.</p>}
-                {naPlanie.map((k) => (
-                    <button key={k.id} type="button" className="plan-krewny" onClick={() => wybierz(k.grob!)}>
-                        <span className="plan-rodzina-probka" aria-hidden="true" />
-                        <span className="flex flex-col" style={{ gap: 1, minWidth: 0 }}><b>{k.nazwa}</b><span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12 }}>{k.relacja}{k.lata ? ` · ${k.lata}` : ''}{rodzina.wlasne.length > 1 ? ` · (${k.wzgledem})` : ''}</span></span>
-                        <span style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{numerKrotki(numery.get(k.grob!.id))}</span>
-                    </button>
-                ))}
-                {poza.length > 0 && (
-                    <div className="flex flex-col" style={{ gap: 6, paddingTop: 12 }}>
-                        <span className="plan-etyk">w drzewie, nie ma ich na tym planie</span>
-                        {poza.map((k) => <span key={k.id} style={{ fontSize: 13 }}><a href={`/osoby/${k.id}`}>{k.nazwa}</a> <span className="text-[var(--tekst-etykieta)]">· {k.relacja}{k.lata ? ` · ${k.lata}` : ''}</span></span>)}
-                        <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12 }}>Wiesz, gdzie są pochowani? Napisz przez „dodaj informację” przy grobie.</span>
-                    </div>
-                )}
-            </div>
-        </aside>
-    )
-}
-
-function Karta({ el, plan, typ, numer, numery, kolejno, osoby, progLat, zalogowany, zamknij, idz, pokazRodzine, rodzinaIle, otworzFoto }: {
-    el: Element; plan: Plan; typ?: TypElementu; numer?: Numer; numery: Map<string, Numer>; kolejno: Element[]; osoby: Record<string, OsobaNaPlanie>
-    progLat: number; zalogowany: boolean; zamknij: () => void; idz: (e: Element) => void; pokazRodzine: () => void; rodzinaIle: Rodzina; otworzFoto: (i: number) => void
-}) {
-    const [forma, ustawForme] = React.useState<null | 'informacja' | 'prosba'>(null)
-    const [stanWysylki, ustawStanWysylki] = React.useState<'' | 'wyslana' | 'blad'>('')
-    const [tresc, ustawTresc] = React.useState('')
-    const [kontakt, ustawKontakt] = React.useState('')
-    const [skopiowano, ustawSkopiowano] = React.useState(false)
-    const wyslij = async () => {
-        const r = await fetch('/api/plany/zgloszenie', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: plan.slug, element: el.id, tresc, kontakt, rodzaj: forma }) }).catch(() => null)
-        ustawStanWysylki(r?.ok ? 'wyslana' : 'blad')
-        if (r?.ok) { ustawForme(null); ustawTresc(''); ustawKontakt('') }
-    }
-    const kopiuj = () => {
-        const adres = `${location.origin}${location.pathname}?grob=${encodeURIComponent(el.id)}`
-        navigator.clipboard?.writeText(adres).then(() => { ustawSkopiowano(true); setTimeout(() => ustawSkopiowano(false), 1500) }).catch(() => {})
-    }
-    const i = kolejno.findIndex((x) => x.id === el.id)
-    const poprz = i > 0 ? kolejno[i - 1] : null, nast = i >= 0 && i < kolejno.length - 1 ? kolejno[i + 1] : null
-    const etykietaSasiada = (x: Element | null) => {
-        const n = x ? numery.get(x.id) : undefined
-        if (!n || !numer) return ''
-        return n.kwatera === numer.kwatera && n.rzad === numer.rzad ? `miejsce ${n.miejsce}` : `rząd ${n.rzad}${n.kwatera !== numer.kwatera ? ` (${n.kwatera || '—'})` : ''}`
-    }
-    const grob = typGrobu(typ)
-    const naglowek = numer ? numerTekst(numer) : typ?.nazwa
-    const ileGrobowRodziny = rodzinaIle.krewni.filter((k) => k.grob).length
-    const pole: React.CSSProperties = { font: 'inherit', fontSize: 13, padding: '6px 8px', borderRadius: 7, border: '1px solid var(--linia-podzialu)', background: 'transparent', color: 'inherit' }
-
-    return (
-        <aside className="plan-karta plan-bez-druku" aria-label={grob ? 'karta grobu' : 'opis elementu'}>
-            <div className="plan-karta-glowa">
-                <div className="flex items-center justify-between" style={{ gap: 8 }}>
-                    <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12 }}>{naglowek}</span>
-                    <button type="button" onClick={zamknij} className="plan-karta-x" aria-label="zamknij">×</button>
-                </div>
-                {(grob || poprz || nast) && (
-                    <div className="flex items-center" style={{ gap: 6 }}>
-                        {numer && <button type="button" className={`${przycisk} rounded-[7px]`} style={{ height: 26, padding: '0 8px', fontSize: 12 }} disabled={!poprz} onClick={() => poprz && idz(poprz)}>‹ {etykietaSasiada(poprz) || 'poprzedni'}</button>}
-                        {numer && <button type="button" className={`${przycisk} rounded-[7px]`} style={{ height: 26, padding: '0 8px', fontSize: 12 }} disabled={!nast} onClick={() => nast && idz(nast)}>{etykietaSasiada(nast) || 'następny'} ›</button>}
-                        <span style={{ flex: 1 }} />
-                        <button type="button" className={`${przycisk} rounded-[7px]`} style={{ height: 26, padding: '0 8px', fontSize: 12 }} onClick={kopiuj}>{skopiowano ? 'skopiowano' : 'kopiuj link'}</button>
-                    </div>
-                )}
-            </div>
-            <div className="plan-karta-tresc">
-                {el.ograniczony ? (
-                    <p className="text-[var(--tekst-opis)]" style={{ margin: 0, lineHeight: 1.5 }}>
-                        {/* decyzja 15.11: bez podawania powodu ograniczenia */}
-                        Opis niedostępny publicznie.
-                        {!zalogowany && <> <a href={`/zaloguj?wroc=${encodeURIComponent(typeof location !== 'undefined' ? location.pathname : `/plany/${plan.slug}`)}`}>Zaloguj się</a>.</>}
-                    </p>
-                ) : (
-                    <>
-                        {!grob && <b style={{ fontSize: 15 }}>{el.nazwa || typ?.nazwa}</b>}
-                        {grob && (el.osoby?.length || el.nazwa) ? (
-                            <section className="flex flex-col" style={{ gap: 8 }}>
-                                <span className="plan-etyk">pochowani</span>
-                                {(el.osoby ?? []).map((o, j) => {
-                                    const z = o.id ? osoby[o.id] : undefined
-                                    return (
-                                        <div key={j} className="flex flex-col" style={{ gap: 1 }}>
-                                            {z ? <a href={`/osoby/${o.id}`} style={{ fontWeight: 700, fontSize: 15 }}>{o.nazwa}</a> : <b style={{ fontSize: 15 }}>{o.nazwa}</b>}
-                                            {(o.ur || o.zm || z?.rodzina.length) && <span className="text-[var(--tekst-opis)]" style={{ fontSize: 12.5 }}>
-                                                {o.ur || o.zm ? `${o.ur ?? '?'} – ${o.zm ?? '?'}` : null}
-                                                {/* P7C-4: rodzice i małżonkowie jako odnośniki do kart osób */}
-                                                {z?.rodzina.map((c, ci) => (
-                                                    <React.Fragment key={c.etykieta + ci}>
-                                                        {(ci > 0 || o.ur || o.zm) && ' · '}{c.etykieta}:{' '}
-                                                        {c.osoby.map((x, xi) => <React.Fragment key={x.id}>{xi > 0 && ' i '}<a href={`/osoby/${x.id}`}>{x.nazwa}</a></React.Fragment>)}
-                                                    </React.Fragment>
-                                                ))}
-                                            </span>}
-                                        </div>
-                                    )
-                                })}
-                                {!el.osoby?.length && el.nazwa && <b style={{ fontSize: 15 }}>{el.nazwa}</b>}
-                                {rodzinaIle.krewni.length > 0 && <button type="button" onClick={pokazRodzine} className="plan-btn-rodzina">pokaż groby rodziny{ileGrobowRodziny ? ` (${ileGrobowRodziny})` : ''}</button>}
-                            </section>
-                        ) : null}
-                        {el.czas && <span><span className="text-[var(--tekst-etykieta)]">czas: </span>{el.czas}</span>}
-                        {el.stan && el.stan !== 'istnieje' && <span className="text-[var(--tekst-etykieta)]">{el.stan === 'nie-istnieje' ? 'nie istnieje' : 'do sprawdzenia'}</span>}
-                        {el.napis && (
-                            <section className="flex flex-col" style={{ gap: 6 }}>
-                                <div className="flex items-baseline justify-between"><span className="plan-etyk">napis na nagrobku</span><span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 11 }}>transkrypcja dosłowna</span></div>
-                                <pre className="plan-napis">{el.napis}</pre>
-                            </section>
-                        )}
-                        {el.zrodla && (
-                            <section className="flex flex-col" style={{ gap: 6 }}>
-                                <span className="plan-etyk">weryfikacja w źródłach</span>
-                                <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.55, fontSize: 13 }}>{el.zrodla}</p>
-                            </section>
-                        )}
-                        {el.opis && <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{el.opis}</p>}
-                        <OpisElementu e={el} />
-                        {grob && !el.osoby?.length && !el.nazwa && !el.napis && <p className="text-[var(--tekst-etykieta)]" style={{ margin: 0 }}>Napis nie został jeszcze odczytany.</p>}
-                        {el.zdjecia && el.zdjecia.length > 0 && (
-                            <section className="flex flex-col" style={{ gap: 6 }}>
-                                <span className="plan-etyk">zdjęcia</span>
-                                <div className="flex flex-wrap" style={{ gap: 8 }}>
-                                    {el.zdjecia.map((z, j) => (
-                                        <button key={z.plik} type="button" onClick={() => otworzFoto(j)} aria-label={`powiększ zdjęcie ${j + 1}`} style={{ padding: 0, border: 0, background: 'none', cursor: 'zoom-in' }}>
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={`/plany/${plan.slug}/zdjecie/${z.plik}`} alt="" style={{ height: 84, borderRadius: 6, display: 'block' }} loading="lazy" />
-                                        </button>
-                                    ))}
-                                </div>
-                            </section>
-                        )}
-                    </>
-                )}
-                {grob && (
-                    <div className="flex flex-col" style={{ gap: 6, borderTop: '1px solid var(--linia-podzialu)', paddingTop: 10, marginTop: 2 }}>
-                        {stanWysylki === 'wyslana' && <span className="text-[var(--tekst-opis)]" style={{ fontSize: 13 }}>Dziękuję – wiadomość trafiła do autora strony.</span>}
-                        {stanWysylki === 'blad' && <span style={{ fontSize: 13, color: '#b91c1c' }}>Nie udało się wysłać. Spróbuj za chwilę.</span>}
-                        {forma === null && <>
-                            <button type="button" onClick={() => { ustawForme('informacja'); ustawStanWysylki('') }} className="plan-link" style={{ fontSize: 13 }}>znasz tę osobę albo masz zdjęcie? dodaj informację</button>
-                            <button type="button" onClick={() => { ustawForme('prosba'); ustawStanWysylki('') }} className="plan-link text-[var(--tekst-opis)]" style={{ fontSize: 12 }}>poproś o usunięcie albo poprawkę</button>
-                        </>}
-                        {forma !== null && (
-                            <div className="flex flex-col" style={{ gap: 6 }}>
-                                <textarea value={tresc} onChange={(e) => ustawTresc(e.target.value)} rows={4} maxLength={2000} style={pole}
-                                    placeholder={forma === 'informacja' ? 'Co wiesz o pochowanych? Daty, rodzina, poprawny odczyt napisu. Zdjęcie – napisz, jak możesz je przesłać.' : 'Czego dotyczy prośba? (np. jestem z rodziny i proszę o ukrycie napisu)'} />
-                                <input value={kontakt} onChange={(e) => ustawKontakt(e.target.value)} maxLength={200} placeholder="kontakt do Ciebie (nieobowiązkowy, nie będzie pokazany)" style={pole} />
-                                <div className="flex" style={{ gap: 8 }}>
-                                    <button type="button" onClick={wyslij} disabled={tresc.trim().length < 3} className={`${przycisk} rounded-[7px]`} style={{ height: 28, padding: '0 10px', fontSize: 13 }}>wyślij</button>
-                                    <button type="button" onClick={() => ustawForme(null)} className="border border-[var(--linia-podzialu)] rounded-[7px] text-current" style={{ height: 28, padding: '0 10px', fontSize: 13, background: 'transparent', cursor: 'pointer' }}>anuluj</button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-        </aside>
+        </>
     )
 }
 
@@ -577,7 +428,7 @@ function Galeria({ plan, el, numer, i, ustaw }: { plan: Plan; el: Element; numer
     useFokusPowrotu(true, { wejscie: () => zamknijRef.current })
     React.useEffect(() => {
         const k = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') ustaw(null)
+            if (e.key === 'Escape') { e.stopPropagation(); ustaw(null) }
             else if (e.key === 'ArrowRight' && i < L.length - 1) ustaw(i + 1)
             else if (e.key === 'ArrowLeft' && i > 0) ustaw(i - 1)
         }
@@ -588,24 +439,24 @@ function Galeria({ plan, el, numer, i, ustaw }: { plan: Plan; el: Element; numer
     }, [i, L.length, ustaw])
     const z = L[i]
     return (
-        <div className="plan-galeria" role="dialog" aria-label="zdjęcie nagrobka" onClick={(e) => { if (e.target === e.currentTarget) ustaw(null) }}>
-            <div className="flex items-center" style={{ gap: 12, color: '#e8e6e1' }}>
-                <span style={{ fontSize: 13 }}>{plan.tytul}{numer ? ` · ${numerTekst(numer)}` : ''}</span>
-                <span style={{ flex: 1 }} />
-                {L.length > 1 && <span style={{ fontSize: 12.5, color: '#a3a09a' }}>zdjęcie {i + 1} z {L.length}</span>}
+        <div className="plan-galeria" role="dialog" aria-modal="true" aria-label="zdjęcie nagrobka" onClick={(e) => { if (e.target === e.currentTarget) ustaw(null) }}>
+            <div className="plan-galeria-glowa">
+                <span>{plan.tytul}{numer ? ` · ${numerTekst(numer)}` : ''}</span>
+                <span className="plan-panel-odstep" />
+                {L.length > 1 && <span className="plan-galeria-opis">zdjęcie {i + 1} z {L.length}</span>}
                 <button ref={zamknijRef} type="button" onClick={() => ustaw(null)} className="plan-galeria-btn">zamknij (Esc)</button>
             </div>
             <div className="plan-galeria-srodek">
-                <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {i > 0 && <button type="button" aria-label="poprzednie zdjęcie" onClick={() => ustaw(i - 1)} className="plan-galeria-btn" style={{ position: 'absolute', left: 0, width: 44, height: 44, fontSize: 18 }}>‹</button>}
+                <div className="plan-galeria-obraz">
+                    {i > 0 && <button type="button" aria-label="poprzednie zdjęcie" onClick={() => ustaw(i - 1)} className="plan-galeria-btn plan-galeria-strzalka plan-galeria-lewa">‹</button>}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/plany/${plan.slug}/zdjecie/${z.plik}`} alt="zdjęcie nagrobka" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 4 }} />
-                    {i < L.length - 1 && <button type="button" aria-label="następne zdjęcie" onClick={() => ustaw(i + 1)} className="plan-galeria-btn" style={{ position: 'absolute', right: 0, width: 44, height: 44, fontSize: 18 }}>›</button>}
+                    <img src={`/plany/${plan.slug}/zdjecie/${z.plik}`} alt="zdjęcie nagrobka" />
+                    {i < L.length - 1 && <button type="button" aria-label="następne zdjęcie" onClick={() => ustaw(i + 1)} className="plan-galeria-btn plan-galeria-strzalka plan-galeria-prawa">›</button>}
                 </div>
                 {(el.napis || z.data) && (
                     <aside className="plan-galeria-bok">
-                        {el.napis && <><span style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: '#a3a09a' }}>napis – do porównania ze zdjęciem</span><pre className="plan-napis plan-napis-ciemny">{el.napis}</pre></>}
-                        {z.data && <span style={{ fontSize: 12.5 }}><span style={{ color: '#a3a09a' }}>wykonane: </span>{new Date(z.data).toLocaleDateString('pl-PL')}</span>}
+                        {el.napis && <><span className="plan-galeria-etyk">napis – do porównania ze zdjęciem</span><pre className="plan-napis plan-napis-ciemny">{el.napis}</pre></>}
+                        {z.data && <span className="plan-galeria-data"><span className="plan-galeria-opis">wykonane: </span>{new Date(z.data).toLocaleDateString('pl-PL')}</span>}
                     </aside>
                 )}
             </div>

@@ -9,9 +9,9 @@ import { numerKrotki, numeryPlanu } from '@/lib/plany/numeracja'
 import { katalog, typGrobu, type UstawieniaPlanow } from '@/lib/plany/typy'
 import type { OsobaNaPlanie } from '@/lib/plany/rodzina'
 import PoleSzukania from '../PoleSzukania'
+import { odmiana } from '@/lib/tekst'
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
-const pole = 'border border-[var(--linia-podzialu)] bg-transparent text-current rounded-[7px]'
 
 interface Wiersz { klucz: string; el: Element; nazwisko: string; imie: string; lata: string; zm: number | null; razem: string[]; idOsoby?: string; zNapisu: boolean }
 
@@ -23,7 +23,6 @@ function rozbij(nazwa: string): { nazwisko: string; imie: string } {
     const nazwisko = t[t.length - 1]
     return { nazwisko, imie: (t.slice(0, -1).join(' ') + nazwa.slice(czysta.length)).trim() }
 }
-const odm = (n: number, f: [string, string, string]) => `${n} ${n === 1 ? f[0] : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? f[1] : f[2]}`
 const rok = (s?: string) => { const m = (s ?? '').match(/(1[5-9]|20)\d\d/); return m ? +m[0] : null }
 
 export default function ListaPochowanych({ plan, ustawienia, osoby, naPlanie }: { plan: Plan; ustawienia: UstawieniaPlanow; osoby: Record<string, OsobaNaPlanie>; naPlanie: (id: string) => void }) {
@@ -77,50 +76,51 @@ export default function ListaPochowanych({ plan, ustawienia, osoby, naPlanie }: 
     }, [wiersze, q, od, doRoku, kwatera, zeZdjeciem, zDrzewa, litera, numery])
     const osob = wiersze.filter((w) => !w.zNapisu).length
 
+    // etap 3 (JW): wygląd z klas i tokenów (.plan-lista…, .lista-pochowanych); wiersze jako bloki na telefonie – etap 5
     return (
-        <div className="flex flex-col" style={{ gap: 12 }}>
-            <p className="text-[var(--tekst-opis)]" style={{ margin: 0, fontSize: 13 }}>
-                {odm(osob, ['osoba', 'osoby', 'osób'])} z odczytanym napisem{bezNapisu ? ` · ${odm(bezNapisu, ['grób', 'groby', 'grobów'])} bez odczytanego napisu` : ''}{ograniczone ? ` · ${odm(ograniczone, ['grób', 'groby', 'grobów'])} z napisem dla bliskich` : ''}
+        <div className="plan-lista">
+            <p className="plan-lista-opis">
+                {odmiana(osob, ['osoba', 'osoby', 'osób'])} z odczytanym napisem{bezNapisu ? ` · ${odmiana(bezNapisu, ['grób', 'groby', 'grobów'])} bez odczytanego napisu` : ''}{ograniczone ? ` · ${odmiana(ograniczone, ['grób', 'groby', 'grobów'])} z napisem dla bliskich` : ''}
             </p>
-            <div className="flex flex-wrap items-end" style={{ gap: 12 }}>
-                <PoleSzukania value={q} onChange={ustawQ} onSubmit={() => {}} placeholder="nazwisko, imię, rok" style={{ flex: '1 1 240px', maxWidth: 380 }} />
-                <label className="flex items-center" style={{ gap: 6, fontSize: 13 }}>zmarli w latach
-                    <input inputMode="numeric" value={od} onChange={(e) => ustawOd(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="od" className={pole} style={{ width: 64, height: 28, padding: '0 8px', fontSize: 13 }} />–
-                    <input inputMode="numeric" value={doRoku} onChange={(e) => ustawDo(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="do" className={pole} style={{ width: 64, height: 28, padding: '0 8px', fontSize: 13 }} />
+            <div className="plan-lista-filtry">
+                <PoleSzukania value={q} onChange={ustawQ} onSubmit={() => {}} placeholder="nazwisko, imię, rok" className="plan-lista-szukaj" obszar="szukaj w liście pochowanych" />
+                <label className="plan-lista-pole">zmarli w latach
+                    <input inputMode="numeric" value={od} onChange={(e) => ustawOd(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="od" aria-label="zmarli od roku" className="plan-pole plan-pole-rok" />–
+                    <input inputMode="numeric" value={doRoku} onChange={(e) => ustawDo(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="do" aria-label="zmarli do roku" className="plan-pole plan-pole-rok" />
                 </label>
                 {kwatery.length > 1 && (
-                    <label className="flex items-center" style={{ gap: 6, fontSize: 13 }}>kwatera
-                        <select value={kwatera} onChange={(e) => ustawKwatera(e.target.value)} className={pole} style={{ height: 28, padding: '0 6px', fontSize: 13 }}><option value="">wszystkie</option>{kwatery.map((k) => <option key={k} value={k}>{k}</option>)}</select>
+                    <label className="plan-lista-pole">kwatera
+                        <select value={kwatera} onChange={(e) => ustawKwatera(e.target.value)} className="plan-pole"><option value="">wszystkie</option>{kwatery.map((k) => <option key={k} value={k}>{k}</option>)}</select>
                     </label>
                 )}
-                <label className="flex items-center" style={{ gap: 6, fontSize: 13 }}><input type="checkbox" checked={zeZdjeciem} onChange={(e) => ustawZeZdjeciem(e.target.checked)} /> ze zdjęciem</label>
-                {Object.keys(osoby).length > 0 && <label className="flex items-center" style={{ gap: 6, fontSize: 13 }}><input type="checkbox" checked={zDrzewa} onChange={(e) => ustawZDrzewa(e.target.checked)} /> z drzewa</label>}
+                <label className="plan-lista-pole"><input type="checkbox" checked={zeZdjeciem} onChange={(e) => ustawZeZdjeciem(e.target.checked)} /> ze zdjęciem</label>
+                {Object.keys(osoby).length > 0 && <label className="plan-lista-pole"><input type="checkbox" checked={zDrzewa} onChange={(e) => ustawZDrzewa(e.target.checked)} /> z drzewa</label>}
             </div>
             {litery.length > 3 && (
-                <nav aria-label="pierwsza litera nazwiska" className="flex flex-wrap" style={{ gap: 2 }}>
+                <nav aria-label="pierwsza litera nazwiska" className="plan-lista-litery">
                     {litery.map((l) => <button key={l} type="button" onClick={() => ustawLitere(litera === l ? '' : l)} aria-pressed={litera === l} className="lista-litera">{l}</button>)}
                 </nav>
             )}
-            <div style={{ overflowX: 'auto', border: '1px solid var(--linia-podzialu)', borderRadius: 8 }} className="lista-pochowanych">
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+            <div className="lista-pochowanych">
+                <table>
                     <thead><tr><th>nazwisko i imię</th><th>lata</th><th>grób</th><th>razem w grobie</th><th>zdjęcie</th><th>drzewo</th><th><span className="sr-only">plan</span></th></tr></thead>
                     <tbody>
                         {lista.map((w) => (
                             <tr key={w.klucz}>
-                                <td>{w.zNapisu ? <><span>{w.nazwisko}</span> <span className="text-[var(--tekst-etykieta)]" style={{ fontSize: 11.5 }}>z napisu</span></> : <><b>{w.nazwisko}</b> {w.imie}</>}</td>
-                                <td style={{ whiteSpace: 'nowrap' }}>{w.lata}</td>
-                                <td style={{ whiteSpace: 'nowrap' }}>{numerKrotki(numery.get(w.el.id)) || '—'}</td>
-                                <td className="text-[var(--tekst-opis)]">{w.razem.join(', ') || '—'}</td>
+                                <td>{w.zNapisu ? <><span>{w.nazwisko}</span> <span className="lista-cichy lista-drobne">z napisu</span></> : <><b>{w.nazwisko}</b> {w.imie}</>}</td>
+                                <td className="lista-nowrap">{w.lata}</td>
+                                <td className="lista-nowrap">{numerKrotki(numery.get(w.el.id)) || '—'}</td>
+                                <td className="lista-cichy">{w.razem.join(', ') || '—'}</td>
                                 <td>{w.el.zdjecia?.length ? '✓' : ''}</td>
-                                <td>{w.idOsoby ? <a href={`/osoby/${w.idOsoby}`}>karta →</a> : ''}</td>
-                                <td><button type="button" onClick={() => naPlanie(w.el.id)} className="plan-link" style={{ fontSize: 13, whiteSpace: 'nowrap' }}>na planie →</button></td>
+                                <td>{w.idOsoby ? <a href={`/osoby/${w.idOsoby}`} className="odn">karta →</a> : ''}</td>
+                                <td><button type="button" onClick={() => naPlanie(w.el.id)} className="plan-panel-odn lista-nowrap">na planie →</button></td>
                             </tr>
                         ))}
-                        {lista.length === 0 && <tr><td colSpan={7} className="text-[var(--tekst-etykieta)]">{wiersze.length ? (bezNapisu ? 'Nic nie znaleziono. To nie znaczy, że tej osoby tu nie pochowano – nie wszystkie napisy są już odczytane.' : 'Nic nie znaleziono.') : 'Napisy z nagrobków nie zostały jeszcze odczytane.'}</td></tr>}
+                        {lista.length === 0 && <tr><td colSpan={7} className="lista-cichy">{wiersze.length ? (bezNapisu ? 'Nic nie znaleziono. To nie znaczy, że tej osoby tu nie pochowano – nie wszystkie napisy są już odczytane.' : 'Nic nie znaleziono.') : 'Napisy z nagrobków nie zostały jeszcze odczytane.'}</td></tr>}
                     </tbody>
                 </table>
             </div>
-            <p className="text-[var(--tekst-etykieta)]" style={{ margin: 0, fontSize: 12 }}>Groby osób zmarłych w ciągu ostatnich {ustawienia.progLat} lat i groby z osobami żyjącymi na nagrobku nie mają tu nazwisk – ich napisy widzą tylko bliscy po zalogowaniu.</p>
+            <p className="plan-lista-uwaga">Groby osób zmarłych w ciągu ostatnich {ustawienia.progLat} lat i groby z osobami żyjącymi na nagrobku nie mają tu nazwisk – ich napisy widzą tylko bliscy po zalogowaniu.</p>
         </div>
     )
 }

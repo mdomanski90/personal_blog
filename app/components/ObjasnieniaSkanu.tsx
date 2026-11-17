@@ -9,7 +9,7 @@ import type OpenSeadragon from 'openseadragon'
 import { RODZAJE_OBJASNIEN, wKsztalcie, type ObjasnienieWidoku } from '@/lib/objasnienia-widok'
 
 export type TrybObjasnien = 'margines' | 'numery' | 'ukryj'
-export type ObjasnienieNaStronie = ObjasnienieWidoku & { nr: number }
+export type ObjasnienieNaStronie = ObjasnienieWidoku & { nr: number | string }
 
 const NS = 'http://www.w3.org/2000/svg'
 const ODSTEP = 8

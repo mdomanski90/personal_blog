@@ -564,44 +564,40 @@ body {
   --pl-ewa-tlo:#232830; --pl-ewa-wz:#6b7b8f; --pl-woj-tlo:#262721; --pl-woj-wz:#8a8068; --pl-epi-tlo:#2a2822; --pl-bagno-tlo:#1f2824; --pl-bagno-wz:#5e7f70;
   --pl-ulica-obw:#7c7566; --pl-kwartal:#2c2a26; --pl-kwartal-wz:#5a5446;
 }
-.plan-uklad{display:flex;border:1px solid var(--linia-podzialu);border-radius:8px;overflow:hidden;background:var(--pl-papier)}
-.dark .plan-uklad{border-color:#7d776c}
-.plan-ramka{flex:1 1 auto;min-width:0;height:100%;overflow:hidden;background:var(--pl-papier);position:relative;touch-action:none}
-.plan-karta{flex:0 0 390px;height:100%;display:flex;flex-direction:column;border-left:1px solid var(--linia-podzialu);background:var(--background,#fff);overflow:auto;font-size:14px}
-.dark .plan-karta{border-left-color:#7d776c}
-.plan-karta-glowa{padding:12px 14px 10px;border-bottom:1px solid #ece8de;display:flex;flex-direction:column;gap:8px;position:sticky;top:0;background:inherit;z-index:1}
-.dark .plan-karta-glowa{border-bottom-color:#3b3833}
-.plan-karta-tresc{padding:12px 14px 16px;display:flex;flex-direction:column;gap:14px}
-.plan-karta-x{border:0;background:none;font-size:20px;line-height:1;color:#6b665c;cursor:pointer;padding:0 2px}
-.plan-etyk{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6b665c}
-.plan-napis{margin:0;padding:12px;background:var(--pl-papier);border:1px solid #ece8de;border-radius:8px;font:inherit;font-size:13px;line-height:1.6;white-space:pre-wrap;text-align:center;overflow-wrap:anywhere}
-.dark .plan-napis{border-color:#3b3833}
+/* etap 3 · przeglądarka planu – mapa (ramka papieru) i panel; ramka apletu, paski i panel niżej (blok „PRZEGLĄDARKA PLANU”) */
+.plan-ramka{min-width:0;overflow:hidden;background:var(--pl-papier);position:relative;touch-action:none}
+.plan-napis{margin:0;padding:12px;background:var(--pl-papier);border:1px solid var(--linia-podzialu);border-radius:var(--promien);font:inherit;font-size:var(--rozmiar-etykieta);line-height:1.6;white-space:pre-wrap;text-align:center;overflow-wrap:anywhere}
 .plan-napis-ciemny{background:#24272c;border-color:#33363b;color:#f2f0eb}
-.plan-link{background:none;border:0;padding:0;text-align:left;cursor:pointer;color:inherit;text-decoration:underline;text-underline-offset:2px;font:inherit}
-.plan-btn-rodzina{align-self:flex-start;height:28px;padding:0 10px;border:1px solid var(--pl-rodzina);color:var(--pl-rodzina);background:transparent;border-radius:8px;font:inherit;font-size:13px;cursor:pointer}
-.plan-btn-rodzina:hover{background:var(--pl-rodzina-tlo)}
-.plan-krewny{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 0;border:0;border-bottom:1px solid #ece8de;background:none;text-align:left;font:inherit;font-size:14px;color:inherit;cursor:pointer;width:100%}
-.dark .plan-krewny{border-bottom-color:#3b3833}
+.plan-krewny{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 14px;border:0;border-bottom:1px solid var(--linia-podzialu);background:none;text-align:left;font:inherit;font-size:var(--rozmiar-opis);color:inherit;cursor:pointer;width:100%}
 .plan-krewny:hover{background:var(--pl-rodzina-tlo)}
+.plan-krewny-opis{display:flex;flex-direction:column;gap:1px;min-width:0}
 .plan-rodzina-probka{display:inline-block;width:11px;height:15px;margin-top:2px;border:2px solid var(--pl-rodzina);background:var(--pl-rodzina-tlo);box-sizing:border-box}
 .plan-rodzina-podpis{font-family:var(--font-jetbrains),monospace;font-weight:700;fill:var(--pl-rodzina);stroke:var(--pl-papier);stroke-width:.35em;paint-order:stroke;stroke-linejoin:round}
-.plan-podpowiedz{position:absolute;z-index:3;pointer-events:none;background:#1c1b19;color:#fbfaf7;font-size:12px;padding:4px 8px;border-radius:5px;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}
-.plan-traf[aria-pressed=true]{border-color:var(--pl-akcent)!important;background:var(--pl-akcent-tlo)!important}
+.plan-podpowiedz{position:absolute;z-index:3;pointer-events:none;background:var(--tekst);color:var(--tlo-strony);font-size:var(--rozmiar-drobny);padding:4px 8px;border-radius:var(--promien-maly);white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}
 .plan-galeria{position:fixed;inset:0;z-index:120;background:rgba(17,18,20,.96);display:flex;flex-direction:column;gap:12px;padding:16px 24px 20px}
 .plan-galeria-srodek{flex:1;min-height:0;display:flex;gap:20px}
 .plan-galeria-bok{flex:0 0 340px;display:flex;flex-direction:column;gap:10px;padding:14px;background:#1b1d21;border:1px solid #33363b;border-radius:8px;overflow:auto;color:#e8e6e1}
 .plan-galeria-btn{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 12px;border:1px solid #4b4f57;border-radius:8px;background:#1f2227;color:#e8e6e1;font:inherit;font-size:13px;cursor:pointer}
+.plan-galeria-glowa{display:flex;align-items:center;gap:12px;color:var(--pasek-pelny-tekst);font-size:var(--rozmiar-etykieta)}
+.plan-galeria-opis,.plan-galeria-etyk{color:var(--pasek-pelny-opis);font-size:var(--rozmiar-drobny)}
+.plan-galeria-etyk{letter-spacing:.08em;text-transform:uppercase}
+.plan-galeria-data{font-size:var(--rozmiar-drobny)}
+.plan-galeria-obraz{flex:1;min-width:0;position:relative;display:flex;align-items:center;justify-content:center}
+.plan-galeria-obraz img{max-width:100%;max-height:100%;object-fit:contain;border-radius:4px}
+.plan-galeria-strzalka{position:absolute;width:44px;height:44px;font-size:18px}
+.plan-galeria-lewa{left:0}
+.plan-galeria-prawa{right:0}
 :root{--pl-rodzina:#c2410c;--pl-rodzina-tlo:rgba(194,65,12,.18)}
 .dark{--pl-rodzina:#f0915a;--pl-rodzina-tlo:rgba(240,145,90,.2)}
-@media (max-width:900px){.plan-uklad{flex-direction:column;height:auto!important}.plan-ramka{height:60vh}.plan-karta{flex:0 0 auto;height:auto;border-left:0;border-top:1px solid #d6d1c6}.plan-galeria-srodek{flex-direction:column}.plan-galeria-bok{flex:0 0 auto}}
-.plan-ramka svg{display:block;width:100%;height:100%;user-select:none}
+@media (max-width:900px){.plan-galeria-srodek{flex-direction:column}.plan-galeria-bok{flex:0 0 auto}}
 /* JW-17: plan cmentarza drukuje się na wspólnych regułach (blok „WSPÓLNY ARKUSZ DRUKU”): plan na szerokość kartki, karta i narzędzia ukryte */
 @media print{
   .plan-bez-druku{display:none!important}
   .plan-druk-tylko{display:block!important}
-  .plan-uklad{display:block;height:auto!important}
-  .plan-ramka{height:auto;border:0}
-  .plan-ramka svg{width:100%;height:auto;max-height:190mm}
+  .plan-aplet{display:block!important;border:0!important}
+  .plan-aplet-pasek,.plan-panel-pasek,.plan-aplet-lista{display:none!important}
+  .plan-ramka{height:auto!important;border:0}
+  .plan-ramka svg:not(.pl-wzory-ukryte){width:100%;height:auto;max-height:190mm}
 }
 
 /* Osoby: lista, odnośniki w kolorach płci, obrządek, drzewo (klepsydra na komputerze, lista na telefonie) */
@@ -678,11 +674,9 @@ body {
 }
 
 /* strona obiektu: plan / lista / mapa na całą szerokość, dane pod spodem; pełny ekran */
-.widok-wizual{display:flex;flex-direction:column;gap:10px;min-width:0}
 .widok-pelny{position:fixed;inset:0;z-index:110;background:var(--background,#fbfaf7);padding:12px 16px;overflow:auto}
-.lista-pochowanych th{font-weight:400;text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#6b665c;padding:8px 10px;border-bottom:1px solid var(--linia-podzialu);white-space:nowrap}
-.lista-pochowanych td{padding:8px 10px;border-bottom:1px solid #eceae4;font-size:calc(14px * var(--font-scale,1));vertical-align:top}
-.dark .lista-pochowanych td{border-bottom-color:#2f343b}
+.lista-pochowanych th{font-weight:400;text-align:left;font-size:var(--rozmiar-drobny);letter-spacing:.06em;text-transform:uppercase;color:var(--tekst-etykieta);padding:8px 10px;border-bottom:1px solid var(--linia-podzialu);white-space:nowrap}
+.lista-pochowanych td{padding:8px 10px;border-bottom:1px solid var(--linia-podzialu);font-size:calc(14px * var(--font-scale,1));vertical-align:top}
 .lista-pochowanych tr:hover td{background:rgba(127,127,127,.06)}
 .lista-litera{min-width:26px;height:26px;border:1px solid transparent;border-radius:5px;background:none;font:inherit;font-size:13px;color:inherit;cursor:pointer}
 .lista-litera:hover{border-color:var(--linia-podzialu)}
@@ -732,12 +726,6 @@ html[data-emblemat] .emblemat-rysuj .emblemat-rama{animation:none;stroke-dashoff
 html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .osoba-biogram{color:#4f4a41;font-size:.92em}
 .dark .osoba-biogram{color:#d6d1c6}
-.plan-legenda>summary{cursor:pointer;list-style:none;width:fit-content}
-.plan-legenda>summary::-webkit-details-marker{display:none}
-.plan-legenda-tytul{font-size:13px;color:#4f4a41;text-decoration:underline dotted;text-underline-offset:3px}
-.plan-legenda-tytul::before{content:'▸ ';text-decoration:none;display:inline-block;margin-right:4px}
-.plan-legenda[open] .plan-legenda-tytul::before{content:'▾ '}
-.dark .plan-legenda-tytul{color:#d6d1c6}
 /* przeglądarka dokumentu (OpenSeadragon) */
 .dok{display:flex;flex-direction:column;gap:8px;min-width:0}
 .dok-pasek{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -1634,7 +1622,7 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 /* PH1: warstwa rekonstrukcji nad skanem (przeglądarka dokumentu); na skanie zawsze jasne kolory planu */
 .dark .rek-na-skanie{--pl-papier:var(--plj-papier); --pl-laka:var(--plj-laka); --pl-pole:var(--plj-pole); --pl-las:var(--plj-las); --pl-korona1:var(--plj-korona1); --pl-korona2:var(--plj-korona2); --pl-korona3:var(--plj-korona3); --pl-las-brzeg:var(--plj-las-brzeg); --pl-woda:var(--plj-woda); --pl-woda-brzeg:var(--plj-woda-brzeg); --pl-woda-wz:var(--plj-woda-wz); --pl-rzeka:var(--plj-rzeka); --pl-droga:var(--plj-droga); --pl-droga-obw:var(--plj-droga-obw); --pl-alejka:var(--plj-alejka); --pl-alejka-obw:var(--plj-alejka-obw); --pl-polna:var(--plj-polna); --pl-polna-tlo:var(--plj-polna-tlo); --pl-bud:var(--plj-bud); --pl-gosp:var(--plj-gosp); --pl-kw:var(--plj-kw); --pl-kw-txt:var(--plj-kw-txt); --pl-plac:var(--plj-plac); --pl-grob:var(--plj-grob); --pl-grob-obw:var(--plj-grob-obw); --pl-plot:var(--plj-plot); --pl-tekst:var(--plj-tekst); --pl-szary:var(--plj-szary); --pl-akcent:var(--plj-akcent); --pl-akcent-tlo:var(--plj-akcent-tlo); --pl-pamiec:var(--plj-pamiec); --pl-woda-txt:var(--plj-woda-txt); --pl-las-txt:var(--plj-las-txt); --pl-teren:var(--plj-teren); --pl-teren-txt:var(--plj-teren-txt); --pl-teren-cien:var(--plj-teren-cien); --pl-teren-jasny:var(--plj-teren-jasny); --pl-teren-wzn:var(--plj-teren-wzn); --pl-teren-wzn-tlo:var(--plj-teren-wzn-tlo); --pl-teren-wzn-jasny:var(--plj-teren-wzn-jasny); --pl-kat:var(--plj-kat); --pl-uni:var(--plj-uni); --pl-pra:var(--plj-pra); --pl-zyd:var(--plj-zyd); --pl-ewa:var(--plj-ewa); --pl-kat-tlo:var(--plj-kat-tlo); --pl-kat-wz:var(--plj-kat-wz); --pl-uni-tlo:var(--plj-uni-tlo); --pl-uni-wz:var(--plj-uni-wz); --pl-pra-tlo:var(--plj-pra-tlo); --pl-pra-wz:var(--plj-pra-wz); --pl-zyd-tlo:var(--plj-zyd-tlo); --pl-zyd-wz:var(--plj-zyd-wz); --pl-ewa-tlo:var(--plj-ewa-tlo); --pl-ewa-wz:var(--plj-ewa-wz); --pl-woj-tlo:var(--plj-woj-tlo); --pl-woj-wz:var(--plj-woj-wz); --pl-epi-tlo:var(--plj-epi-tlo); --pl-bagno-tlo:var(--plj-bagno-tlo); --pl-bagno-wz:var(--plj-bagno-wz); --pl-ulica-obw:var(--plj-ulica-obw); --pl-kwartal:var(--plj-kwartal); --pl-kwartal-wz:var(--plj-kwartal-wz);}
 .rek-warstwa{pointer-events:none}
-.rek-warstwa.rek-ukryta{display:none}
+.rek-warstwa.rek-ukryta{display:none!important} /* etap 3 (KOREKTA PH1): OpenSeadragon ustawia nakładce display:block w stylu elementu – bez !important warstwa była widoczna w trybie „skan” */
 .rek-svg{display:block;width:100%;height:100%;overflow:visible}
 .rek-tlo{fill:var(--pl-papier)}
 .dok-suwak{width:96px;accent-color:var(--akcent)}
@@ -1698,25 +1686,24 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 .strona-tresc.uklad-pelna>p,.strona-tresc.uklad-pelna>.wstep-dzialu-tekst{max-width:var(--szer-tekstu)}
 .tresc-czytana{font-size:var(--rozmiar-tresc)}
 
-/* Strona uklad="karta": kolumna tekstu + pasek boczny (obraz nagłówka, spis treści); pasek zaczyna się przy nagłówku karty.
-   Element <PelnaSzerokosc> przerywa kolumnę; w następnym odcinku spis wraca (przyklejony). */
+/* Strona uklad="karta": kolumna tekstu + pasek boczny (obraz nagłówka, spis treści).
+   Wariant B (decyzja 17.11): nagłówek karty (okruszki, tytuł, linia, wstęp) nad siatką, w szerokości kolumny tekstu;
+   pasek boczny zaczyna się na wysokości pierwszej tabeli. Element <PelnaSzerokosc> przerywa kolumnę; w następnym odcinku spis wraca. */
 .karta-odcinek{display:grid;grid-template-columns:minmax(0,var(--szer-tekstu)) minmax(0,1fr);column-gap:var(--odstep-kolumn);row-gap:var(--odstep-sekcji);align-items:start}
-.karta-odcinek-pierwszy{grid-template-areas:"nagl bok" "kol bok";grid-template-rows:auto 1fr}
-.karta-naglowek{grid-area:nagl;min-width:0;display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
-.karta-odcinek-pierwszy>.karta-bok{grid-area:bok}
-.karta-odcinek-pierwszy>.karta-kolumna{grid-area:kol}
+.karta-naglowek{min-width:0;max-width:var(--szer-tekstu);display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
+.karta-odcinek-pierwszy>.karta-bok{grid-column:2;grid-row:1}
+.karta-odcinek-pierwszy>.karta-kolumna{grid-column:1;grid-row:1}
 .karta-odcinek>.karta-kolumna{grid-column:1}
 .karta-kolumna{min-width:0;display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
 .karta-bok{grid-column:2;align-self:stretch;min-width:0;display:flex;flex-direction:column;gap:var(--odstep-sekcji)}
 .karta-bok>figure,.karta-bok>.osoba-portret{margin:0}
 /* okruszki nad siatką: odstęp jak między okruszkami a tytułem w TytulStrony */
-.strona-tresc>.okruszki+.karta-odcinek{margin-top:.4rem}
+.strona-tresc>.okruszki+.karta-naglowek,.strona-tresc>.okruszki+.karta-odcinek{margin-top:.4rem}
 .karta-spis{position:sticky;top:24px;max-height:calc(100vh - 48px);overflow-y:auto}
 .pelna-szerokosc{min-width:0}
 @media (max-width:900px){
   .karta-odcinek{grid-template-columns:minmax(0,1fr)}
-  .karta-odcinek-pierwszy{grid-template-areas:"nagl" "bok" "kol";grid-template-rows:auto}
-  .karta-bok{grid-column:1}
+  .karta-bok,.karta-odcinek-pierwszy>.karta-bok,.karta-odcinek-pierwszy>.karta-kolumna{grid-column:1;grid-row:auto}
   .karta-spis{position:static;max-height:none;overflow:visible}
   .karta-bok-dalej{display:none}
 }
@@ -1919,8 +1906,8 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 .dok-obj-wiecej{animation:ruch-pojaw var(--ruch-sredni) var(--ruch-krzywa)}
 /* scena 11 · rozwijane menu i podpowiedzi: wejście wygaszeniem, bez przesuwania; wyjście od razu */
 .menu-zakladki .menu-podlista,.menu-zakladki.menu-otwarte,.wysz-lista,.k-wybor-lista,.dok-menu,.mapa-panel-planu{animation:ruch-pojaw var(--ruch-szybki) var(--ruch-krzywa)}
-/* scena 6 · panel grobu (i grobów rodziny) wygaszeniem przy każdej zmianie grobu (Karta ma key = id grobu) */
-.plan-karta{animation:ruch-pojaw var(--ruch-szybki) var(--ruch-krzywa)}
+/* scena 6 · panel planu: karta grobu / obiektu wygaszeniem przy każdej zmianie (KartaGrobu ma key = id grobu) */
+.plan-panel-nawig,.plan-panel-tabela>.ot-nagl:first-child{animation:ruch-pojaw var(--ruch-szybki) var(--ruch-krzywa)}
 /* scena 4 · pełny ekran i okna na całą stronę: wejście wygaszeniem, wyjście od razu, fokus wraca (lib/ruch.ts) */
 .dok-pelny,.plan-galeria,.drzewo.drzewo-pelne{animation:ruch-pojaw var(--ruch-wolny) var(--ruch-krzywa)}
 /* powiększenie zdjęcia we wpisie (medium-zoom, ImageZoom.tsx): biblioteka kończy otwieranie i zamykanie na zdarzeniu
@@ -1979,3 +1966,181 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .wpis-zaproszenie-tresc p{margin:0}
 @media (max-width:760px){.wsp-kroki{grid-template-columns:1fr}.wsp-pozycja{grid-template-columns:1fr;justify-items:start}}
 @media print{.wsp-pomoc,.wpis-zaproszenie,#napisz,.sm-dol .k-btn,.wsp-pozycja .k-btn{display:none!important}}
+
+/* ===== PRZEGLĄDARKA PLANU (etap 3: CEM-02/03/04/08/11/12/24, PH4) =====
+   Strona uklad="przegladarka": nagłówek i stopka 1200 px, aplet do 1600 px (przy 1440 – 1376). Aplet = jedna ramka jak
+   .skan-z-tekstem: pasek .dok-pasek-karta nad mapą, pasek .szt-pasek nad panelem (46 px × A±), mapa | PanelPlanu (380 px) na
+   wysokość mapy. ≤900 px: mapa ok. 56vh, panel pod spodem, pasek panelu znika (nagłówek części wraca do panelu). */
+:root{--szer-przegladarki:1600px;--szer-panelu-planu:380px;--wys-planu:min(76vh, 760px)}
+/* PH-17 · styl „atrament” (zatwierdzony 17.11): papier sepia, kreska atramentu, napisy kursywą – oba motywy */
+:root{
+  --pla-papier:#f1e7cf; --pla-tlo:#e9dcbd; --pla-las:#ddd3b0; --pla-korona:#cfc29a; --pla-woda:#dcd6bd; --pla-woda-brzeg:#7d6a4c;
+  --pla-atrament:#3a2c1e; --pla-atrament-jasny:#6e5a40; --pla-grob:#eadcb8; --pla-droga:#efe3c6; --pla-bud:#8a7354; --pla-gosp:#b8a27e;
+}
+.dark{
+  --pla-papier:#2a241a; --pla-tlo:#312a1f; --pla-las:#333023; --pla-korona:#3e392a; --pla-woda:#2c2e2a; --pla-woda-brzeg:#a8946e;
+  --pla-atrament:#e6d7b5; --pla-atrament-jasny:#b9a67f; --pla-grob:#3a3226; --pla-droga:#3a3326; --pla-bud:#a89070; --pla-gosp:#6e5d45;
+}
+.pl-styl-atrament{
+  --pl-papier:var(--pla-papier); --pl-laka:var(--pla-tlo); --pl-pole:var(--pla-tlo); --pl-plac:var(--pla-tlo); --pl-kwartal:var(--pla-tlo);
+  --pl-las:var(--pla-las); --pl-korona1:var(--pla-korona); --pl-korona2:var(--pla-korona); --pl-korona3:var(--pla-korona); --pl-las-brzeg:var(--pla-atrament-jasny);
+  --pl-woda:var(--pla-woda); --pl-woda-brzeg:var(--pla-woda-brzeg); --pl-woda-wz:var(--pla-woda-brzeg); --pl-rzeka:var(--pla-woda-brzeg);
+  --pl-droga:var(--pla-droga); --pl-droga-obw:var(--pla-atrament); --pl-alejka:var(--pla-droga); --pl-alejka-obw:var(--pla-atrament-jasny); --pl-ulica-obw:var(--pla-atrament);
+  --pl-polna:var(--pla-atrament-jasny); --pl-polna-tlo:var(--pla-tlo); --pl-bud:var(--pla-bud); --pl-gosp:var(--pla-gosp);
+  --pl-grob:var(--pla-grob); --pl-grob-obw:var(--pla-atrament); --pl-plot:var(--pla-atrament); --pl-kw:var(--pla-tlo); --pl-kw-txt:var(--pla-atrament-jasny);
+  --pl-tekst:var(--pla-atrament); --pl-szary:var(--pla-atrament-jasny); --pl-teren:var(--pla-atrament-jasny); --pl-teren-txt:var(--pla-atrament-jasny);
+  --pl-woda-txt:var(--pla-woda-brzeg); --pl-las-txt:var(--pla-atrament-jasny);
+}
+.pl-styl-atrament text{font-style:italic}
+
+/* stałe kolory rysunku (dawniej style inline – JW, zasada 5.1) */
+.pl-tlo{fill:var(--pl-papier)}
+.pl-f-las{fill:var(--pl-las)}
+.pl-f-bud{fill:var(--pl-bud)}
+.pl-f-gosp{fill:var(--pl-gosp)}
+.pl-f-akcent{fill:var(--pl-akcent)}
+.pl-traf{fill:transparent}
+.pl-dolina-jasna{fill:var(--pl-teren-jasny);fill-opacity:.8}
+.pl-dolina-cien{fill:var(--pl-teren-cien);fill-opacity:.7}
+.pl-kwatera-txt{font-family:var(--font-jetbrains),'JetBrains Mono',ui-monospace,monospace;font-weight:700;fill:var(--pl-kw-txt)}
+.pl-podzialka-txt{font-family:var(--font-jetbrains),'JetBrains Mono',ui-monospace,monospace;fill:var(--pl-szary)}
+.pl-p-grob{fill:var(--pl-grob);stroke:var(--pl-grob-obw);stroke-width:.8}
+.pl-p-napis{fill:var(--pl-tekst);font-style:italic}
+.pl-probka{flex-shrink:0;overflow:visible}
+.pl-wzory-ukryte{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
+/* CEM-09: znak „opisany” – krótka kreska w kolorze obwódki grobu */
+.pl-opisany{stroke:var(--pl-grob-obw);stroke-linecap:round}
+
+/* strona i szerokość apletu */
+.strona-tresc.uklad-przegladarka{max-width:none}
+.strona-tresc.uklad-przegladarka>p{max-width:var(--szer-tekstu)}
+.przegladarka-opis{margin-top:0}
+.strona-tresc.uklad-przegladarka>.przegladarka-aplet{--szer-apletu:min(var(--szer-przegladarki), calc(100vw - 64px));width:var(--szer-apletu);margin-inline:calc((100% - var(--szer-apletu)) / 2);margin-top:calc(2 * var(--odstep-sekcji));box-sizing:border-box}
+
+/* rama apletu */
+.plan-aplet{display:grid;grid-template-columns:minmax(0,1fr) var(--szer-panelu-planu);grid-template-rows:auto auto;border:1px solid var(--linia-podzialu);border-radius:var(--promien);overflow:hidden;background:var(--tlo-strony);min-width:0}
+.plan-aplet-obszar{display:contents}
+.plan-aplet-pasek{grid-column:1;grid-row:1;min-width:0}
+.plan-aplet .dok-pasek-karta{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:nowrap;height:calc(46px * var(--font-scale,1));box-sizing:border-box;padding:0 10px;background:var(--tlo-sekcji);border-bottom:1px solid var(--linia-podzialu)}
+.plan-aplet .dok-grupa>button[aria-selected=true]{background:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu);font-weight:700}
+.plan-panel-pasek{grid-column:2;grid-row:1;border-left:1px solid var(--linia-podzialu);min-width:0}
+.plan-panel-pasek .szt-jedna{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plan-panel-x{flex:0 0 auto;width:calc(32px * var(--font-scale,1));height:calc(32px * var(--font-scale,1));border:1px solid var(--linia-podzialu);border-radius:var(--promien-maly);background:var(--tlo-kontrolki);color:var(--tekst);font:inherit;font-size:var(--rozmiar-tekst);line-height:1;cursor:pointer}
+.plan-panel-x:hover{border-color:var(--akcent);color:var(--akcent)}
+.plan-aplet-mapa{grid-column:1;grid-row:2;height:var(--wys-planu)}
+.plan-aplet-panel{grid-column:2;grid-row:2;height:var(--wys-planu);min-width:0;border-left:1px solid var(--linia-podzialu);display:flex;flex-direction:column}
+.plan-aplet-lista{grid-column:1 / -1;grid-row:2;padding:16px;min-width:0}
+.plan-aplet:not(.plan-aplet--lista) .plan-aplet-lista{display:none}
+.plan-aplet--lista .plan-aplet-mapa,.plan-aplet--lista .plan-aplet-panel,.plan-aplet--lista .plan-panel-pasek{display:none}
+.plan-aplet--lista .plan-aplet-pasek{grid-column:1 / -1}
+.plan-aplet--pelny{position:fixed;inset:0;z-index:110;border:0;border-radius:0;--wys-planu:calc(100dvh - 46px * var(--font-scale,1) - 1px);overflow:auto}
+.plan-aplet--pelny.plan-aplet--lista{grid-template-rows:auto 1fr}
+.plan-ramka svg:not(.pl-wzory-ukryte){display:block;width:100%;height:100%;user-select:none;cursor:grab}
+.plan-ramka svg:focus-visible{outline:2px solid var(--fokus);outline-offset:-3px}
+/* kontrolki mapy 40 px z tokenów (jedna grupa) */
+.plan-kontrolki{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;border:1px solid var(--krawedz-kontrolki);border-radius:var(--promien);overflow:hidden;background:var(--tlo-kontrolki)}
+.plan-kontrolki button{width:calc(40px * var(--font-scale,1));height:calc(40px * var(--font-scale,1));border:0;border-top:1px solid var(--linia-podzialu);background:transparent;color:var(--tekst);font:inherit;font-size:var(--rozmiar-tekst);cursor:pointer}
+.plan-kontrolki button:first-child{border-top:0}
+.plan-kontrolki button:hover{color:var(--akcent);background:var(--tlo-sekcji)}
+.plan-wskazowka{position:absolute;left:10px;bottom:8px;max-width:calc(100% - 20px);font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta)}
+
+/* PanelPlanu – tabela karty na wysokość mapy, przewijana wewnątrz */
+.plan-panel{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;background:var(--tlo-strony)}
+.plan-panel-glowa-tel{display:none;align-items:center;justify-content:space-between;gap:8px;min-height:calc(46px * var(--font-scale,1));padding:0 14px;background:var(--tlo-sekcji);border-bottom:1px solid var(--linia-podzialu);font-size:var(--rozmiar-opis)}
+.plan-panel-szukaj{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-bottom:1px solid var(--linia-podzialu)}
+.plan-panel-podpowiedz{margin:0;font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta);line-height:1.45}
+.plan-panel .osoba-tabela.plan-panel-tabela{border:0;border-radius:0;background:transparent;font-size:var(--rozmiar-opis)}
+.plan-panel .osoba-tabela>.ot-nagl h2{margin:0;font-size:inherit;font-weight:700}
+.plan-panel .osoba-tabela>.ot-w{grid-template-columns:calc(104px * var(--font-scale,1)) minmax(0,1fr);column-gap:12px;padding:8px 14px}
+.plan-panel .osoba-tabela>.ot-cala{padding:10px 14px;border-bottom:1px solid var(--linia-podzialu)}
+.plan-panel-nawig{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--linia-podzialu)}
+.plan-panel-odstep{flex:1}
+.plan-panel-wyniki,.plan-panel-osoby,.plan-panel-legenda{list-style:none;margin:0;padding:0}
+.plan-panel-wynik{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:calc(40px * var(--font-scale,1));padding:0 14px;box-sizing:border-box;border:0;border-bottom:1px solid var(--linia-podzialu);background:transparent;color:inherit;font:inherit;font-size:var(--rozmiar-opis);text-align:left;cursor:pointer}
+.plan-panel-wynik:hover{background:var(--tlo-sekcji)}
+.plan-panel-wynik[aria-current=true]{background:var(--akcent-tlo);color:var(--akcent-na-tle);font-weight:700}
+.plan-panel-wynik-nr{flex:0 0 auto;color:var(--tekst-etykieta);font-size:var(--rozmiar-drobny);white-space:nowrap}
+.plan-panel-osoby{display:flex;flex-direction:column;gap:10px}
+.plan-panel-osoba{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.plan-panel-drobne{margin:0;font-size:var(--rozmiar-drobny);color:var(--tekst-opis);line-height:1.45}
+.plan-panel-tekst{margin:0;line-height:1.55}
+.plan-panel-zachowaj{white-space:pre-wrap}
+.plan-panel-pusto{margin:0;color:var(--tekst-etykieta);font-size:var(--rozmiar-opis)}
+.plan-panel-blad{color:var(--blad);font-size:var(--rozmiar-etykieta)}
+.plan-panel-odn{background:none;border:0;padding:0;font:inherit;color:var(--link);text-align:left;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.plan-panel-odn-cichy{color:var(--tekst-opis);font-size:var(--rozmiar-drobny)}
+.plan-panel-przyciski{display:flex;flex-wrap:wrap;gap:6px}
+.plan-panel-zgloszenie{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.plan-panel-zgloszenie .plan-pole{align-self:stretch}
+.plan-panel-legenda{display:flex;flex-direction:column}
+.plan-panel-typ{display:flex;align-items:center;gap:9px;min-height:calc(28px * var(--font-scale,1));width:100%;background:none;border:0;padding:0;font:inherit;font-size:var(--rozmiar-etykieta);color:inherit;cursor:pointer;text-align:left}
+.plan-panel-typ[aria-pressed=false]{opacity:.38}
+.plan-panel-liczba{color:var(--tekst-etykieta)}
+.plan-panel-wybor{display:flex;align-items:center;gap:6px;font-size:var(--rozmiar-etykieta)}
+.plan-panel-numery li[aria-current=true] .plan-legenda-element{font-weight:700}
+.plan-panel-zdjecia{display:flex;flex-wrap:wrap;gap:8px}
+.plan-panel-zdjecie{padding:0;border:0;background:none;cursor:zoom-in}
+.plan-panel-zdjecie img{height:84px;border-radius:var(--promien-maly);display:block}
+.plan-pole{font:inherit;font-size:var(--rozmiar-etykieta);padding:6px 8px;border-radius:var(--promien-maly);border:1px solid var(--krawedz-kontrolki);background:var(--tlo-kontrolki);color:inherit;box-sizing:border-box}
+.plan-pole-rok{width:calc(64px * var(--font-scale,1))}
+
+/* listy w zakładce (pochowani / obiekty) */
+.plan-lista{display:flex;flex-direction:column;gap:12px}
+.plan-lista-opis,.plan-lista-uwaga{margin:0;font-size:var(--rozmiar-etykieta);color:var(--tekst-opis)}
+.plan-lista-uwaga{font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta)}
+.plan-lista-filtry{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+.plan-lista-szukaj{flex:1 1 240px;max-width:380px}
+.plan-lista-pole{display:flex;align-items:center;gap:6px;font-size:var(--rozmiar-etykieta)}
+.plan-lista-litery{display:flex;flex-wrap:wrap;gap:2px}
+.lista-pochowanych{position:relative;overflow-x:auto;border:1px solid var(--linia-podzialu);border-radius:var(--promien)}
+.lista-pochowanych table{width:100%;border-collapse:collapse;min-width:760px}
+.lista-cichy{color:var(--tekst-opis)}
+.lista-drobne{font-size:var(--rozmiar-drobny)}
+.lista-nowrap{white-space:nowrap}
+
+/* karta obiektu: podgląd planu w pasku bocznym (CEM-01) */
+.karta-plan .miniatura-planu,.karta-plan img{display:block;width:100%;height:auto;border:1px solid var(--linia-podzialu);border-radius:var(--promien);background:var(--pl-papier)}
+
+@media (max-width:900px){
+  .strona-tresc.uklad-przegladarka>.przegladarka-aplet{width:100%;margin-inline:0}
+  .plan-aplet{grid-template-columns:minmax(0,1fr)}
+  .plan-panel-pasek{display:none}
+  .plan-aplet-mapa{grid-column:1;grid-row:2;height:clamp(52vh, 56vh, 60vh)}
+  .plan-aplet-panel{grid-column:1;grid-row:3;height:auto;border-left:0;border-top:1px solid var(--linia-podzialu)}
+  .plan-panel{overflow:visible}
+  .plan-panel-glowa-tel{display:flex}
+  .plan-wskazowka{display:none}
+  .plan-aplet--pelny .plan-aplet-panel{max-height:40dvh;overflow:auto}
+  .plan-aplet--pelny{--wys-planu:55dvh}
+}
+@media (max-width:640px){.plan-pasek-eksport{display:none}}
+
+/* wysokość pola skanu z parametru przeglądarki (dawniej style inline); pełny ekran – reguła .dok-pelny */
+.dok-pole{height:var(--wys-skanu, auto)}
+/* PH4 · materiał z rekonstrukcją bez tekstu obok: skan | PanelPlanu (360 px) w jednej ramce, paski tej samej wysokości */
+.dok-z-panelem{display:grid;grid-template-columns:minmax(0,1fr) calc(360px * var(--font-scale,1));gap:0;border:1px solid var(--linia-podzialu);border-radius:var(--promien);overflow:hidden;background:var(--tlo-strony)}
+.dok-z-panelem-skan{min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--linia-podzialu)}
+.dok-z-panelem .dok-pasek-karta{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:nowrap;height:calc(46px * var(--font-scale,1));box-sizing:border-box;padding:0 10px;background:var(--tlo-sekcji);border-bottom:1px solid var(--linia-podzialu)}
+.dok-z-panelem .dok-pole{border:0;border-radius:0}
+.dok-z-panelem .dok-grupa>button[aria-pressed=true]{background:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu);font-weight:700}
+.dok-z-panelem .dok-grupa>button[aria-pressed=true] .dok-licznik{background:var(--akcent-na-wypelnieniu);color:var(--akcent-wypelnienie)}
+.dok-z-panelem-bok{min-width:0;display:flex;flex-direction:column}
+.dok-z-panelem-bok .szt-pasek .szt-jedna{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dok-z-panelem-panel{position:relative;flex:1;min-height:0}
+.dok-z-panelem-panel>.plan-panel{position:absolute;inset:0}
+.dok-z-panelem-dol{grid-column:1 / -1;padding:6px 10px;border-top:1px solid var(--linia-podzialu)}
+.plan-panel .dok-obj-lista{margin:0}
+@media (max-width:900px){
+  .dok-z-panelem{grid-template-columns:minmax(0,1fr)}
+  .dok-z-panelem-skan{border-right:0;border-bottom:1px solid var(--linia-podzialu)}
+  .dok-z-panelem-bok>.szt-pasek{display:none}
+  .dok-z-panelem-panel>.plan-panel{position:static}
+  .dok-z-panelem .dok-pasek-karta{height:auto;min-height:calc(46px * var(--font-scale,1));flex-wrap:wrap;padding:6px 8px}
+  .plan-aplet .dok-pasek-karta{height:auto;min-height:calc(46px * var(--font-scale,1));flex-wrap:wrap;padding:6px 8px}
+}
+/* PH4 · zakładka „plan” w panelu tekstu karty materiału (SkanZTekstem) – części tabeli karty jak w PanelPlanu */
+.szt-tresc .osoba-tabela.szt-plan{margin:-14px -18px;border:0;border-radius:0;background:transparent;font-size:var(--rozmiar-opis)}
+.szt-tresc .osoba-tabela.szt-plan>.ot-nagl h2{margin:0;font-size:inherit;font-weight:700}
+.szt-tresc .osoba-tabela.szt-plan>.ot-w{grid-template-columns:calc(104px * var(--font-scale,1)) minmax(0,1fr);column-gap:12px;padding:8px 14px}
+.szt-tresc .osoba-tabela.szt-plan>.ot-cala{padding:10px 14px;border-bottom:1px solid var(--linia-podzialu)}
+.szt-plan-pusto{padding:14px}

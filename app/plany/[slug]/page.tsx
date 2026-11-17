@@ -6,13 +6,16 @@ import { wczytajUstawienia } from '@/lib/plany/dane'
 import { planDlaCzytelnika } from '@/lib/plany/serwer'
 import { Strona, TytulStrony } from '../../components/Uklad'
 import CopyLinkButton from '../../components/CopyLinkButton'
-import WidokObiektu from '../../components/plan/WidokObiektu'
+import PrzegladarkaPlanu from '../../components/plan/PrzegladarkaPlanu'
+import { CalyPanelu, WierszPanelu } from '../../components/plan/PanelPlanu'
 import { osobyPlanu } from '@/lib/plany/rodzina'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import { numerKat } from '@/lib/katalog/dane'
 import { LiniaNrKat } from '../../components/NrKat'
 import { CzescJakCytowac, Tabela } from '../../components/Karta'
 import { daneCytatu } from '@/lib/cytowanie'
+import { formatujEdtf } from '@/lib/edtf'
+import { DOKLADNOSCI, RODZAJE_PLANU, RODZAJE_ZRODLA, planGrobowy } from '@/lib/plany/metadane'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +27,11 @@ export async function generateMetadata({ params }: Parametry): Promise<Metadata>
     return { title: w ? `${w.plan.tytul} · odniepamieci.pl` : 'odniepamieci.pl', robots: w?.plan.widocznosc === 'publiczne' ? undefined : { index: false } }
 }
 
+/**
+ * Etap 3 · przeglądarka planu (CEM-02/03): Strona uklad="przegladarka" – nagłówek i stopka 1200 px, aplet (ramka z paskami,
+ * mapa, PanelPlanu) do 1600 px; odstęp opis → aplet = 2 × --odstep-sekcji. Część „o planie” w pustym panelu (CEM-14):
+ * źródło rysunku i numeracji z metadanych planu (dawniej zdanie na sztywno pod planem).
+ */
 export default async function PlanStrona({ params }: Parametry) {
     const { slug } = await params
     const w = await planDlaCzytelnika(slug)
@@ -37,20 +45,41 @@ export default async function PlanStrona({ params }: Parametry) {
     const ustawienia = await wczytajUstawienia()
     const osoby = await osobyPlanu(plan, poz)
     const nrKat = numerKat('plan', plan.slug)
+    const grobowy = planGrobowy(plan)
+    const zrodloRysunku = [plan.rodzajZrodla && RODZAJE_ZRODLA[plan.rodzajZrodla], plan.zrodlo?.opis].filter(Boolean).join(' – ')
+    const oPlanie = (
+        <>
+            <WierszPanelu e="rodzaj">{plan.rodzaj ? RODZAJE_PLANU[plan.rodzaj] : null}</WierszPanelu>
+            <WierszPanelu e="stan na">{plan.okres ? formatujEdtf(plan.okres) : null}</WierszPanelu>
+            <WierszPanelu e="sporządzono">{plan.sporzadzono ? formatujEdtf(plan.sporzadzono) : null}</WierszPanelu>
+            {/* plan cmentarza bez opisu źródła – dotychczasowe zdanie (opis źródła w edytorze planu je zastępuje) */}
+            <WierszPanelu e="rysunek">{zrodloRysunku || (grobowy ? 'uproszczony, na podstawie zdjęć lotniczych i oględzin w terenie' : 'źródło rysunku nie zostało jeszcze opisane')}</WierszPanelu>
+            <WierszPanelu e="twórca">{plan.tworca}</WierszPanelu>
+            <WierszPanelu e="dokładność">{plan.dokladnosc ? DOKLADNOSCI[plan.dokladnosc] : null}</WierszPanelu>
+            <WierszPanelu e="zasięg">{plan.zasieg}</WierszPanelu>
+            <WierszPanelu e="prawa">{plan.prawa}</WierszPanelu>
+            {grobowy && (
+                <CalyPanelu>
+                    <p className="plan-panel-drobne">
+                        Groby osób zmarłych w ciągu ostatnich {ustawienia.progLat} lat – bez napisów i nazwisk
+                        {poziom === 'bliscy' ? ' (jesteś zalogowany – widzisz je).' : <> (widoczne <Link href={`/zaloguj?wroc=${encodeURIComponent(`/plany/${plan.slug}`)}`} className="odn">dla bliskich</Link>).</>}
+                    </p>
+                </CalyPanelu>
+            )}
+        </>
+    )
     return (
-        <Strona szeroka nrKat={nrKat} akcje={<><CopyLinkButton sciezka={`/plany/${plan.slug}`} /><PrzyciskDrukuj /></>}>
+        <Strona uklad="przegladarka" nrKat={nrKat} akcje={<><CopyLinkButton sciezka={`/plany/${plan.slug}`} /><PrzyciskDrukuj /></>}>
             <TytulStrony
                 sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...(wies ? [{ tekst: wies.nazwa, href: `/miejsca/${wies.id}` }] : []), ...(ob ? [{ tekst: ob.nazwa, href: `/obiekty/${ob.id}` }] : [])]}
             >
                 {plan.tytul}
             </TytulStrony>
             <LiniaNrKat nr={nrKat} />
-            {plan.opis && <p className="leading-relaxed" style={{ margin: 0 }}>{plan.opis}</p>}
-            <WidokObiektu plan={plan} ustawienia={ustawienia} zalogowany={poziom === 'bliscy'} osoby={osoby} />
-            <p className="text-[var(--tekst-etykieta)]" style={{ fontSize: 12, margin: 0 }}>
-                Rysunek uproszczony na podstawie zdjęć lotniczych i oględzin w terenie. Groby osób zmarłych w ciągu ostatnich {ustawienia.progLat} lat – bez napisów i nazwisk
-                {poziom === 'bliscy' ? ' (jesteś zalogowany – widzisz je)' : <> (widoczne <Link href={`/zaloguj?wroc=${encodeURIComponent(`/plany/${plan.slug}`)}`}>dla bliskich</Link>)</>}.
-            </p>
+            {plan.opis && <p className="przegladarka-opis">{plan.opis}</p>}
+            {/* VIEW-07: plan i karta obiektu linkują wzajemnie */}
+            {ob && <p className="przegladarka-opis karta-linia">karta obiektu: <Link href={`/obiekty/${ob.id}`} className="odn">{ob.nazwa} →</Link></p>}
+            <PrzegladarkaPlanu plan={plan} ustawienia={ustawienia} zalogowany={poziom === 'bliscy'} osoby={osoby} oPlanie={oPlanie} />
             {/* uwaga 16.11: „jak cytować” na każdej karcie, także planu */}
             <Tabela etykieta={`${plan.tytul} – jak cytować`}>
                 <CzescJakCytowac plik={plan.slug} dane={daneCytatu({ tytul: plan.tytul, sciezka: `/plany/${plan.slug}`, nrKat, rodzaj: 'plan' })} />
