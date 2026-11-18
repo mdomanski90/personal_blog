@@ -23,6 +23,8 @@ const FORMY_POKOLEN: [string, string, string] = ['pokolenie', 'pokolenia', 'poko
 export interface OpcjeObslugiDrzewa {
     /** karta osoby: zmiana liczby pokoleń / rodzeństwa = nowy adres strony (serwer rysuje drzewo od nowa) */
     zmien?: (p: ParametryDrzewa) => void
+    /** PK: otwarcie karty osoby z drzewa z przejściem strony (bez – zwykłe przejście odnośnika) */
+    otworz?: (href: string) => void
 }
 
 /** Po zmianie adresu drzewo na karcie powstaje od nowa – fokus wraca na ten sam przycisk paska. */
@@ -317,8 +319,18 @@ export function przygotuj(fig: HTMLElement, opcje: OpcjeObslugiDrzewa = {}): () 
         const z = (e.target as Element).closest<HTMLElement>('.dr-karta[data-id]')
         if (z && z.tabIndex !== 0) aktywna(z)
     }
+    // PK: klik albo Enter na osobie – karta osoby z przejściem strony (z Ctrl/⌘/Shift/środkowym przyciskiem – jak zwykły odnośnik)
+    const naKlik = (e: MouseEvent) => {
+        if (!opcje.otworz || e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return
+        const a = (e.target as Element).closest<HTMLAnchorElement>('a.dr-karta[href]')
+        if (!a || !przew.contains(a)) return
+        e.preventDefault()
+        if (fig.classList.contains('drzewo-pelne')) zamknij()
+        opcje.otworz(a.getAttribute('href')!)
+    }
     przew.addEventListener('keydown', naStrzalke)
     przew.addEventListener('focusin', naFokus)
+    przew.addEventListener('click', naKlik)
     ustawKarty()
 
     const klawisz = (e: KeyboardEvent) => {
@@ -352,6 +364,7 @@ export function przygotuj(fig: HTMLElement, opcje: OpcjeObslugiDrzewa = {}): () 
         przew.removeEventListener('pointerdown', dol)
         przew.removeEventListener('keydown', naStrzalke)
         przew.removeEventListener('focusin', naFokus)
+        przew.removeEventListener('click', naKlik)
         pasek.remove()
         podpis?.remove()
         delete fig.dataset.drzewoGotowe

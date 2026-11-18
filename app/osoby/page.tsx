@@ -61,6 +61,8 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
                     {ukryte > 0 && poziom === 'publiczne' && <> · dane {odmiana(ukryte, ['osoby', 'osób', 'osób'])} widzą tylko <Link href="/zaloguj?wroc=/osoby">zalogowani bliscy</Link></>}
                 </p>
             )}
+            {/* PK (uwaga 18.11): strona z całym drzewem – potomkowie najstarszej znanej pary */}
+            {wszystkie.length > 1 && <p><Link href="/osoby/drzewo" className="k-btn">całe drzewo →</Link></p>}
         </div>
     )
     return (

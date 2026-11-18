@@ -9,7 +9,7 @@ import { formatujEdtf } from '@/lib/edtf'
 import { obrzadekZdarzenia, stanOsob } from '@/lib/osoby/dane'
 import { drzewoHtml } from '@/lib/osoby/drzewo'
 import { parametryDrzewa } from '@/lib/osoby/drzewo-adres'
-import { adresAncestry, lataZycia, nazwaOsoby, OBRZADKI, RODZAJE_ZDARZEN, rokUrodzenia, rokZgonu, sortujZdarzenia, type Cytat, type Obrzadek, type Zdarzenie } from '@/lib/osoby/model'
+import { adresAncestry, dopiskiPoMezu, lataZycia, nazwaOsoby, OBRZADKI, RODZAJE_ZDARZEN, rokUrodzenia, rokZgonu, sortujZdarzenia, type Cytat, type Obrzadek, type Zdarzenie } from '@/lib/osoby/model'
 import { odmiana } from '@/lib/tekst'
 import { pochowkiOsoby } from '@/lib/plany/serwer'
 import { numerTekst } from '@/lib/plany/numeracja'
@@ -134,8 +134,12 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
     const funkcje = funkcjeOsoby(id, par)
     // prośba o zdjęcie tylko dla osób żyjących po 1900 r. (decyzja 16.11): ur. albo zm. po 1900 albo bez dat
     const po1900 = (rokZgonu(o) ?? rokUrodzenia(o) ?? 1901) > 1900
+    // PK (uwaga 18.11): nazwisko po mężu pod tytułem, jak w wynikach wyszukiwania („Kowalska (Kowalski)”) – także gdy karta męża
+    // jest niewidoczna (decyzja P2 17.11: ukryta jest jego karta, nie nazwisko żony); bez odnośnika
+    const poMezu = dopiskiPoMezu(s.drzewo, o)
     const podstawowe = [
         lataZycia(o),
+        poMezu.length > 0 && `po mężu: ${poMezu.join(', ')}`,
         o.przydomek && `${o.plec === 'K' ? 'zwana' : o.plec === 'M' ? 'zwany' : 'zwany(-a)'} „${o.przydomek}”`,
         o.inneNazwiska?.length && `${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}`,
     ].filter(Boolean).join(' · ')

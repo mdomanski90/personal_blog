@@ -39,6 +39,7 @@ export interface Miejsce {
 export const MIEJSCA: Miejsce[] = [
     // osoby
     { byt: 'osoba', gdzie: 'karta osoby', plik: 'app/osoby/[id]/page.tsx', wzorzec: 'karta', status: 'zgodne', uwaga: 'JW-2: Tabela/Czesc/W z Karta.tsx; rodzina jako pastylki osób; materiały archiwalne jako część tabeli.', adres: '/osoby/…' },
+    { byt: 'osoba', gdzie: 'całe drzewo', plik: 'app/osoby/drzewo/page.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'PK (18.11): rysunek drzewa z lib/osoby/drzewo.ts – ten sam co na karcie osoby (DrzewoKarty: pasek, strzałki, pełny ekran); wybór rodu – pastylki filtrów.', adres: '/osoby/drzewo' },
     { byt: 'osoba', gdzie: 'katalog osób', plik: 'app/osoby/ListaOsob.tsx', wzorzec: 'pastylki-osob', status: 'zgodne', uwaga: 'Litery jako grupy; filtry kręgów – pastylki filtrów pod tytułem.', adres: '/osoby' },
     { byt: 'osoba', gdzie: 'karta materiału – osoby', plik: 'app/archiwum/[slug]/page.tsx', wzorzec: 'pastylki-osob', status: 'zgodne', adres: '/archiwum/…' },
     { byt: 'osoba', gdzie: 'karta instytucji – osoby związane', plik: 'app/parafie/[slug]/page.tsx', wzorzec: 'pastylki-osob', status: 'zgodne', uwaga: 'P3 (PAR-06): pastylka szerokości tekstu tylko dla karty widocznej czytelnikowi, linia „źródło:”; reszta – samo imię i nazwisko.', adres: '/parafie/…' },

@@ -650,8 +650,9 @@ body {
 .drzewo .dr-K { background: var(--osoba-k-tlo); border: 1px solid var(--osoba-k-ramka); }
 .drzewo .dr-M { background: var(--osoba-m-tlo); border: 1px solid var(--osoba-m-ramka); }
 .drzewo .dr-U { background: var(--osoba-u-tlo); border: 1px solid var(--osoba-u-ramka); }
-/* osoba w środku: ciemna ramka 2 px + obwódka w kolorze akcentu (makieta 5, P4) – widoczna także bez koloru */
-.drzewo .dr-glowna { font-weight: 700; border: 2px solid var(--tekst); box-shadow: 0 0 0 3px var(--akcent); }
+/* osoba w środku: jedna ramka 2 px w kolorze akcentu (PK, uwaga 18.11: dawna ramka 2 px + obwódka 3 px – razem ok. 5 px – za gruba);
+   bez koloru rozpoznawalna po półgrubym napisie */
+.drzewo .dr-glowna { font-weight: 700; border: 2px solid var(--akcent); }
 .drzewo .dr-glowna .dr-lata { font-weight: 400; }
 .drzewo .dr-ukryta { background: #efece5; border: 1px dashed #c9c3b6; color: #6b665c; }
 .drzewo .dr-brak { color: #a39d91; border: 1px dashed #e2e0da; }
