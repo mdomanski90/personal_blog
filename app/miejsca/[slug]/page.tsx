@@ -42,7 +42,8 @@ type Parametry = { params: Promise<{ slug: string }> }
 export async function generateMetadata({ params }: Parametry): Promise<Metadata> {
     const { slug } = await params
     const m = await miejsce(slug, await poziomCzytelnika())
-    return { title: m ? `${m.nazwa} · miejsca · odniepamieci.pl` : 'odniepamieci.pl' }
+    // PD-19 (P5): pozycja niepubliczna (widoczna po zalogowaniu) – bez indeksowania
+    return { title: m ? `${m.nazwa} · miejsca · odniepamieci.pl` : 'odniepamieci.pl', robots: m && m.widocznosc !== 'publiczne' ? { index: false, follow: false } : undefined }
 }
 
 export default async function MiejsceStrona({ params }: Parametry) {

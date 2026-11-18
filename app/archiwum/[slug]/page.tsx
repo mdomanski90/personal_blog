@@ -155,6 +155,8 @@ export default async function MaterialStrona({ params }: Parametry) {
                 <W e="autor / wytwórca">{m.tworca}</W>
                 <W e="język">{m.jezyk}</W>
                 <W e="prawa">{m.prawa}</W>
+                {/* P5 (PD-05): manifest IIIF – tylko materiał publiczny ze skanami (inne przeglądarki archiwalne, np. Mirador) */}
+                <W e="udostępnianie">{m.widocznosc === 'publiczne' && m.strony.length > 0 && <a className="odn" href={`/archiwum/${m.id}/manifest.json`}>manifest IIIF – skany i publiczne objaśnienia</a>}</W>
                 <W e="przekazał(a)">{m.przekazal}</W>
                 <W e="opracował(a)">{m.opracowal}</W>
                 <WierszZglosil v={m.zglosil} />

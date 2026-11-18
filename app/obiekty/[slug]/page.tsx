@@ -44,7 +44,8 @@ type Parametry = { params: Promise<{ slug: string }> }
 export async function generateMetadata({ params }: Parametry): Promise<Metadata> {
     const { slug } = await params
     const o = await obiekt(slug, await poziomCzytelnika())
-    return { title: o ? `${o.nazwa} · odniepamieci.pl` : 'odniepamieci.pl' }
+    // PD-19 (P5): pozycja niepubliczna (widoczna po zalogowaniu) – bez indeksowania
+    return { title: o ? `${o.nazwa} · odniepamieci.pl` : 'odniepamieci.pl', robots: o && o.widocznosc !== 'publiczne' ? { index: false, follow: false } : undefined }
 }
 
 export default async function ObiektStrona({ params }: Parametry) {

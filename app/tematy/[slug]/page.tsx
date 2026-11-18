@@ -22,7 +22,8 @@ type Parametry = { params: Promise<{ slug: string }> }
 export async function generateMetadata({ params }: Parametry): Promise<Metadata> {
     const { slug } = await params
     const t = await temat(slug, await poziomCzytelnika())
-    return { title: t ? `${t.nazwa} · tematy · odniepamieci.pl` : 'odniepamieci.pl' }
+    // PD-19 (P5): pozycja niepubliczna (widoczna po zalogowaniu) – bez indeksowania
+    return { title: t ? `${t.nazwa} · tematy · odniepamieci.pl` : 'odniepamieci.pl', robots: t && t.widocznosc !== 'publiczne' ? { index: false, follow: false } : undefined }
 }
 
 // Karta tematu – wspólny układ kart, wariant bez obrazu: nagłówek na całą szerokość, tabela „w skrócie”, opis,

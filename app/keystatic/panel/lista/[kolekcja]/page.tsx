@@ -68,7 +68,7 @@ export default function ListaPanelu() {
         return null
     }
     const pokazPodglad = async () => {
-        const z = zmiana(); if (!z) return
+        const z = zmiana(); if (!z || trwa) return
         ustawTrwa(true)
         const r = await post<PodgladZmiany>(API, { akcja: 'podglad', kolekcja, slugi: [...zazn], zmiana: z })
         ustawTrwa(false)
@@ -143,7 +143,8 @@ export default function ListaPanelu() {
                         <option value="">{relacja.etykieta}: wybierz…</option>
                         {(d.cele[relacja.kolekcja] ?? []).map((c) => <option key={c.slug} value={c.slug}>{c.nazwa}</option>)}
                     </select>}
-                    <button type="button" className="pn-btn pn-btn-gl" disabled={trwa || !zmiana()} onClick={pokazPodglad}>podgląd zmiany…</button>
+                    {/* bez disabled w trakcie wczytywania – przycisk zachowuje fokus, okno zwraca go po zamknięciu (zasada 5.3) */}
+                    <button type="button" className="pn-btn pn-btn-gl" disabled={!zmiana()} aria-busy={trwa} onClick={pokazPodglad}>podgląd zmiany…</button>
                     <button type="button" className="pn-btn" onClick={() => ustawZazn(new Set())}>odznacz</button>
                 </div>
             )}
