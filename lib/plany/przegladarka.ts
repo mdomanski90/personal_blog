@@ -4,6 +4,7 @@
  * groby z ograniczonym napisem mają sam kształt i numer – nic z treści ukrytej nie przechodzi do liczb ani znaków (zasada 1.6).
  * Test: lib/plany/przegladarka.test.ts.
  */
+import { KROK_PRZYCISKU, klawiszPrzyblizenia } from '../przyblizenie'
 import { doSzukania, type Element, type Numer, type Plan } from './model'
 import { typGrobu, type TypElementu } from './typy'
 import { grobyKolejno } from './numeracja'
@@ -85,10 +86,11 @@ export function ruchKlawisza(klawisz: string, shift = false): RuchKlawisza {
     if (kier[klawisz]) return shift ? { przesun: kier[klawisz] } : { kolejny: klawisz === 'ArrowLeft' || klawisz === 'ArrowUp' ? -1 : 1 }
     switch (klawisz) {
         case 'Enter': return { szczegoly: true }
-        case '+': case '=': return { zoom: 1 / 1.4 }
-        case '-': case '_': return { zoom: 1.4 }
-        case '0': case 'Home': return { caly: true }
-        default: return null
+        default: {
+            // łatka po PK: + − 0 wspólne z całym drzewem (lib/przyblizenie.ts); zoom planu to mnożnik szerokości kadru
+            const a = klawiszPrzyblizenia(klawisz)
+            return a === 'przybliz' ? { zoom: 1 / KROK_PRZYCISKU } : a === 'oddal' ? { zoom: KROK_PRZYCISKU } : a === 'calosc' ? { caly: true } : null
+        }
     }
 }
 

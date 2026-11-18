@@ -6,7 +6,8 @@
 // znak „opisany” tylko z danych jawnych (CEM-09); plan historyczny / schemat bez interfejsu grobowego (PH-13).
 
 import * as React from 'react'
-import { Shrink } from 'lucide-react'
+import { PasekPanelu, useKolkoPrzyblizenia, useRama } from '../aplet/RamaPrzegladarki'
+import { KLAWISZE_PRZYBLIZENIA, KROK_PRZYCISKU, wskazowkaPrzyblizenia } from '@/lib/przyblizenie'
 import { punktyElementu, srodek, jednostka, type Element, type Numer, type Plan } from '@/lib/plany/model'
 import { elementyLegendy } from '@/lib/plany/ph3'
 import { numerKrotki, numerTekst, numeryPlanu } from '@/lib/plany/numeracja'
@@ -192,26 +193,30 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, osoby =
         r.cel = null
         r.start = undefined
     }
+    // CEM-27 (decyzja 18.11): kółko jak na całym drzewie – wspólna obsługa (RamaPrzegladarki, lib/przyblizenie.ts):
+    // samo kółko przybliża przy kursorze, Shift + kółko przesuwa w bok
+    useKolkoPrzyblizenia(() => svgRef.current, [], (czynnik, x, y) => {
+        const r = svgRef.current!.getBoundingClientRect()
+        const [px, py] = punkt(r.left + x, r.top + y)
+        zoom(1 / czynnik, px, py)
+    }, (d) => {
+        const r = svgRef.current!.getBoundingClientRect()
+        przerwij.current()
+        ustawVb(([x, y, w, h]) => [x + d * (w / Math.max(1, r.width)), y, w, h])
+    })
+    // przybliżenie w pasku ramy (− N% + i „cały plan”) – zamiast pływających przycisków na planie (odbiór 18.11)
+    const { zglosPrzyblizenie } = useRama()
+    const procent = Math.round((startowy[2] / vb[2]) * 100)
     React.useEffect(() => {
-        const s = svgRef.current
-        if (!s) return
-        // CEM-27 (decyzja 18.11): samo kółko przybliża przy kursorze, jak całe drzewo (wcześniej Ctrl + kółko);
-        // Shift + kółko przesuwa widok w bok
-        const kolko = (e: WheelEvent) => {
-            e.preventDefault()
-            if (e.shiftKey) {
-                const r = s.getBoundingClientRect()
-                const d = (e.deltaX || e.deltaY) * (e.deltaMode === 1 ? 16 : 1)
-                przerwij.current()
-                ustawVb(([x, y, w, h]) => [x + d * (w / Math.max(1, r.width)), y, w, h])
-                return
-            }
-            const [x, y] = punkt(e.clientX, e.clientY)
-            zoom(e.deltaY > 0 ? 1.15 : 1 / 1.15, x, y)
-        }
-        s.addEventListener('wheel', kolko, { passive: false })
-        return () => s.removeEventListener('wheel', kolko)
-    }, [zoom])
+        zglosPrzyblizenie({
+            procent,
+            przybliz: () => zoom(1 / KROK_PRZYCISKU, undefined, undefined, true),
+            oddal: () => zoom(KROK_PRZYCISKU, undefined, undefined, true),
+            calosc: () => plynnie(() => startowy),
+            etykietaCalosci: 'cały plan',
+        })
+    }, [procent, zoom, plynnie, startowy, zglosPrzyblizenie])
+    React.useEffect(() => () => zglosPrzyblizenie(null), [zglosPrzyblizenie])
 
     // CEM-13: wybór grobu podmienia adres (?grob=<id>) – link z paska przeglądarki prowadzi do tego grobu
     const wybierz = React.useCallback((id: string | null) => {
@@ -380,16 +385,13 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, osoby =
             {interfejs.grobowy && numery.size > 0 && (
                 <WierszPanelu e="numeracja">{`robocza, nie urzędowa${plan.zrodloNumeracji ? ` – ${plan.zrodloNumeracji}` : ''}`}</WierszPanelu>
             )}
-            <WierszPanelu e="klawiatura">← → – poprzedni i następny{interfejs.grobowy ? ' grób' : ' obiekt'} · Enter – szczegóły · Shift + strzałki – przesuń · + − – przybliż · 0 – cały plan</WierszPanelu>
+            <WierszPanelu e="klawiatura">← → – poprzedni i następny{interfejs.grobowy ? ' grób' : ' obiekt'} · Enter – szczegóły · Shift + strzałki – przesuń · {KLAWISZE_PRZYBLIZENIA}</WierszPanelu>
         </>
     )
 
     return (
         <>
-            <div className="szt-pasek plan-panel-pasek">
-                <b className="szt-jedna">{tytulCzesci}</b>
-                {zamknijPanel && <button type="button" className="plan-panel-x" onClick={zamknijPanel} aria-label="zamknij">×</button>}
-            </div>
+            <PasekPanelu tytul={tytulCzesci} zamknij={zamknijPanel} />
             <div ref={ramkaRef} className={`plan-ramka plan-aplet-mapa${plan.styl === 'atrament' ? ' pl-styl-atrament' : ''}`} onPointerLeave={() => ustawNad(null)}>
                 <WzoryProbek prefix={`${prefix}-sw`} />
                 <svg ref={svgRef} viewBox={vb.join(' ')} preserveAspectRatio="xMidYMid meet" role="application" tabIndex={0}
@@ -412,14 +414,8 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, osoby =
                 </svg>
                 {/* stan dla czytnika ekranu: wybrany element po ruchu klawiszami */}
                 <span id={`${prefix}-wybrany`} className="sr-only" aria-live="polite">{el ? `${opis(el)}${grobWybrany && numery.get(el.id) ? ` – ${numerTekst(numery.get(el.id))}` : ''}` : ''}</span>
-                <div className="plan-kontrolki plan-bez-druku" role="group" aria-label="przybliżenie">
-                    <button type="button" aria-label="przybliż" onClick={() => zoom(1 / 1.4, undefined, undefined, true)}>+</button>
-                    <button type="button" aria-label="oddal" onClick={() => zoom(1.4, undefined, undefined, true)}>−</button>
-                    {/* łatka po PK (odbiór 18.11): inny znak niż „pełny ekran ⤢” w pasku – strzałki do środka */}
-                    <button type="button" aria-label="cały plan" title="cały plan" onClick={() => plynnie(() => startowy)}><Shrink aria-hidden size={16} /></button>
-                </div>
                 {nad && <div className="plan-podpowiedz plan-bez-druku" style={/* styl-dynamiczny: położenie podpowiedzi przy kursorze */ { left: nad.x + 14, top: nad.y + 14 }}>{nad.tekst}</div>}
-                <div className="plan-wskazowka plan-bez-druku">{interfejs.grobowy ? 'najedź – nazwisko · kliknij – karta grobu' : 'najedź – nazwa · kliknij – opis obiektu'} · przeciągnij – przesuń · kółko – przybliż</div>
+                <div className="plan-wskazowka plan-bez-druku">{wskazowkaPrzyblizenia(interfejs.grobowy ? 'najedź – nazwisko · kliknij – karta grobu' : 'najedź – nazwa · kliknij – opis obiektu')}</div>
             </div>
             <div ref={panelRef} className="plan-aplet-panel">
                 <PanelPlanu tytul={tytulCzesci} zamknij={zamknijPanel} szukaj={szukaj} ustawSzukaj={(v) => { ustawSzukaj(v); if (el) wybierz(null) }} naSzukaj={() => { if (trafienia[0]) pokazElement(trafienia[0]) }}

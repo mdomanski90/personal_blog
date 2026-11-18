@@ -63,7 +63,7 @@ test('CEM-24: klawiatura planu i zakładek', () => {
     assert.deepEqual(ruchKlawisza('ArrowUp'), { kolejny: -1 })
     assert.deepEqual(ruchKlawisza('ArrowRight', true), { przesun: [0.15, 0] })
     assert.deepEqual(ruchKlawisza('Enter'), { szczegoly: true })
-    assert.deepEqual(ruchKlawisza('+'), { zoom: 1 / 1.4 })
+    assert.deepEqual(ruchKlawisza('+'), { zoom: 1 / 1.25 })
     assert.deepEqual(ruchKlawisza('0'), { caly: true })
     assert.equal(ruchKlawisza('a'), null)
     assert.deepEqual(przesunVB([0, 0, 100, 50], [0.15, -0.15]), [15, -7.5, 100, 50])

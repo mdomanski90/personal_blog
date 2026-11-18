@@ -1,12 +1,13 @@
 // PK (decyzja 18.11): płynne przybliżanie całego drzewa (+ − ⤢, kółko myszy) – skala widoku, nie tylko wielkość liter.
-// Skala to --dr-skala (CSS zoom planszy); przewinięcie poprawiane tak, by punkt pod kursorem został na miejscu. Czyste funkcje.
+// Czułość kółka i krok przycisków wspólne z planem (lib/przyblizenie.ts). Skala to --dr-skala (CSS zoom planszy); przewinięcie poprawiane tak, by punkt pod kursorem został na miejscu. Czyste funkcje.
+
+import { czynnikKolka } from '../przyblizenie'
 
 export const SKALA_MIN = 0.3
 export const SKALA_MAX = 2
 /** skala startowa całego drzewa (jak w makiecie zatwierdzonej 18.11) */
 export const SKALA_START = 0.8
-/** krok przycisków + / − */
-export const KROK_PRZYCISKU = 1.25
+export { KROK_PRZYCISKU } from '../przyblizenie'
 
 export const ogranicz = (s: number): number => Math.min(SKALA_MAX, Math.max(SKALA_MIN, Math.round(s * 1000) / 1000))
 
@@ -15,8 +16,7 @@ export const przewiniecie = (przew: number, kursor: number, s0: number, s1: numb
 
 /** Skala po obrocie kółka: deltaMode 1 = linie (Firefox), 2 = strony; gest szczypania na gładziku przychodzi z ctrlKey i małą deltą. */
 export function skalaZKolka(s: number, deltaY: number, deltaMode = 0, szczypanie = false): number {
-    const px = deltaY * (deltaMode === 1 ? 16 : deltaMode === 2 ? 400 : 1)
-    return ogranicz(s * Math.exp(-px * (szczypanie ? 0.01 : 0.0015)))
+    return ogranicz(s * czynnikKolka(deltaY, deltaMode, szczypanie))
 }
 
 /** Skala, przy której cała plansza mieści się w oknie drzewa (⤢). */

@@ -2105,10 +2105,6 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .plan-ramka svg:not(.pl-wzory-ukryte){display:block;width:100%;height:100%;user-select:none;cursor:grab}
 .plan-ramka svg:focus-visible{outline:2px solid var(--fokus);outline-offset:-3px}
 /* kontrolki mapy 40 px z tokenów (jedna grupa) */
-.plan-kontrolki{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;border:1px solid var(--krawedz-kontrolki);border-radius:var(--promien);overflow:hidden;background:var(--tlo-kontrolki)}
-.plan-kontrolki button{width:calc(40px * var(--font-scale,1));height:calc(40px * var(--font-scale,1));border:0;border-top:1px solid var(--linia-podzialu);background:transparent;color:var(--tekst);font:inherit;font-size:var(--rozmiar-tekst);cursor:pointer}
-.plan-kontrolki button:first-child{border-top:0}
-.plan-kontrolki button:hover{color:var(--akcent);background:var(--tlo-sekcji)}
 .plan-wskazowka{position:absolute;left:10px;bottom:8px;max-width:calc(100% - 20px);font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta)}
 
 /* PanelPlanu – tabela karty na wysokość mapy, przewijana wewnątrz */
@@ -2324,7 +2320,6 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .drzewo-aplet .drzewo .dr-glowna.dr-U:not(.dr-wybrana) { border-color: var(--osoba-u-ramka); }
 .drzewo .dr-karta.dr-wybrana { font-weight: 700; border: 2px solid var(--akcent); }
 .drzewo .dr-karta.dr-wybrana .dr-lata { font-weight: 400; }
-.drzewo-aplet .plan-kontrolki button svg, .plan-kontrolki button svg { display: block; margin: auto; }
 .drzewo-aplet .drzewo-aplet-obszar{min-width:0;overflow:hidden;position:relative}
 .drzewo-aplet .drzewo-aplet-drzewo,.drzewo-aplet .drzewo-aplet-drzewo>figure.drzewo{height:100%;margin:0}
 .drzewo-aplet figure.drzewo{display:flex;flex-direction:column;border:0;border-radius:0}
@@ -2337,24 +2332,27 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .drzewo-aplet .drzewo .dr-pokol{white-space:normal;line-height:1.25;padding-right:10px}
 .drzewo-aplet .drzewo:not(.drzewo-pelne) .dr-przewijanie{display:block}
 .drzewo-aplet .drzewo .dr-tekst,.drzewo-aplet .drzewo:not(.drzewo-pelne) .dr-tekst{display:none}
-.drzewo-aplet .dok-pasek-karta{flex-wrap:wrap;height:auto;min-height:46px;row-gap:6px;padding-top:6px;padding-bottom:6px}
-.drzewo-aplet .dok-pasek-prawa{display:flex;align-items:center;gap:8px;margin-left:auto}
-.drzewo-aplet .dok-grupa button svg{display:block}
+/* łatka po PK: wspólna rama przeglądarki (RamaPrzegladarki) – plan i całe drzewo: pasek zawija się zamiast ucinać,
+   przybliżenie w pasku (− N% + i „całość”), panel można schować */
+.plan-aplet .dok-pasek-karta{flex-wrap:wrap;height:auto;min-height:calc(46px * var(--font-scale,1));row-gap:6px;padding-top:6px;padding-bottom:6px}
+.plan-aplet .dok-pasek-lewa,.plan-aplet .dok-pasek-prawa{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+.plan-aplet .dok-pasek-prawa{margin-left:auto}
+.plan-aplet .dok-grupa button svg{display:block}
+.pasek-przyblizenie{align-items:center}
+.pasek-przyblizenie-txt{min-width:3.4em;padding:0 6px;text-align:center;font-size:var(--rozmiar-etykieta);font-variant-numeric:tabular-nums;white-space:nowrap}
+.plan-aplet--bez-panelu{grid-template-columns:minmax(0,1fr)}
+.plan-aplet--bez-panelu .plan-aplet-panel,.plan-aplet--bez-panelu .plan-panel-pasek{display:none}
+.plan-aplet--bez-panelu .plan-aplet-pasek{grid-column:1 / -1}
 .drzewo-aplet .plan-wskazowka{bottom:22px;z-index:7;background:var(--tlo-strony);padding:0 4px;border-radius:var(--promien-maly)}
-.drzewo-aplet--lista .drzewo-aplet-obszar{display:block!important;grid-column:1 / -1;height:auto}
-.drzewo-aplet--lista .plan-kontrolki,.drzewo-aplet--lista .plan-wskazowka{display:none}
-.drzewo-aplet--lista .drzewo:not(.drzewo-pelne) .dr-przewijanie{display:none}
-.drzewo-aplet--lista .drzewo:not(.drzewo-pelne) .dr-tekst{display:block;padding:16px}
-.drzewo-aplet--bez-panelu{grid-template-columns:minmax(0,1fr)}
-.drzewo-aplet--bez-panelu .plan-aplet-panel,.drzewo-aplet--bez-panelu .plan-panel-pasek{display:none}
-.drzewo-aplet--bez-panelu .plan-aplet-pasek{grid-column:1 / -1}
-.drzewo-aplet .dok-pasek-lewa{display:flex;align-items:center;gap:8px;min-width:0}
+.drzewo-aplet.plan-aplet--lista .drzewo-aplet-obszar{display:block!important;grid-column:1 / -1;height:auto}
+.drzewo-aplet.plan-aplet--lista .plan-wskazowka{display:none}
+.drzewo-aplet.plan-aplet--lista .drzewo:not(.drzewo-pelne) .dr-przewijanie{display:none}
+.drzewo-aplet.plan-aplet--lista .drzewo:not(.drzewo-pelne) .dr-tekst{display:block;padding:16px}
 .drzewo-krok{align-items:center}
 .drzewo-krok-txt{padding:0 6px;font-size:var(--rozmiar-etykieta);white-space:nowrap}
 .drzewo-pastylka{font:inherit;cursor:pointer}
 .drzewo-pastylka-poza{border-style:dashed}
 .odp .plan-panel .drzewo-pastylka{min-height:calc(32px * var(--font-scale,1));padding:0 12px;font-size:var(--rozmiar-etykieta)}
 @media (max-width:900px){
-  .drzewo-aplet .dok-pasek-karta{flex-wrap:wrap;height:auto;padding:6px 8px;row-gap:6px}
-  .drzewo-aplet .dok-pasek-lewa{flex-wrap:wrap;row-gap:6px}
+  .plan-aplet .dok-pasek-karta{padding:6px 8px}
 }

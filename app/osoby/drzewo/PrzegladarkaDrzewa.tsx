@@ -1,18 +1,18 @@
 'use client'
 
-// PK (decyzje właściciela 18.11): całe drzewo jako aplet przeglądarki – ta sama rama co plan cmentarza (.plan-aplet:
-// pasek nad drzewem, pasek nad panelem, drzewo | panel 380 px na wysokość apletu, pełny ekran ⤢, ≤900 px panel pod drzewem).
+// PK (decyzje właściciela 18.11): całe drzewo jako aplet przeglądarki. Łatka po PK: rama (pasek, pełny ekran, przybliżenie
+// w pasku, chowanie panelu, pasek panelu, kółko) wspólna z planem – app/components/aplet/RamaPrzegladarki.tsx.
 // Drzewo: suwaki w obu osiach, przeciąganie (łapka), płynne przybliżanie (− N% + i „całe drzewo w oknie” w pasku, kółko myszy, klawisze + − 0).
 // Kliknięcie osoby otwiera jej kartę w panelu (jak grób na planie) – środek drzewa zostaje. Panel: szukanie u góry, karta
 // wybranej osoby (podstawy: lata, urodzenie, zgon, rodzice, małżonek, dzieci, rodzeństwo); domyślnie otwarty, można schować.
 
 import * as React from 'react'
 import { Link, useTransitionRouter } from 'next-view-transitions'
-import { Shrink } from 'lucide-react'
 import { normalizuj, odmiana } from '@/lib/tekst'
 import { animuj, przewinO } from '@/lib/ruch'
-import { KROK_PRZYCISKU, SKALA_START, dopasowana, ogranicz, przewiniecie, skalaZKolka } from '@/lib/osoby/drzewo-zoom'
-import { ListaZakladek, atrybutyPanelu } from '@/app/components/Zakladki'
+import { SKALA_START, dopasowana, ogranicz, przewiniecie } from '@/lib/osoby/drzewo-zoom'
+import { KLAWISZE_PRZYBLIZENIA, KROK_PRZYCISKU, klawiszPrzyblizenia, wskazowkaPrzyblizenia } from '@/lib/przyblizenie'
+import RamaPrzegladarki, { PasekPanelu, useKolkoPrzyblizenia, useRama } from '@/app/components/aplet/RamaPrzegladarki'
 import PanelPlanu, { CalyPanelu, CzescPanelu, WierszPanelu } from '@/app/components/plan/PanelPlanu'
 import { przygotuj } from '@/app/components/DrzewaLinie'
 
@@ -21,7 +21,6 @@ export interface OsobaPanelu {
     rodzice: string[]; malzonkowie: string[]; dzieci: string[]; rodzenstwo: string[]; szukaj: string
 }
 type Zakladka = 'drzewo' | 'lista'
-const KLUCZ_PANELU = 'drzewo-panel'
 
 function czesciDrzewa(kontener: HTMLElement | null) {
     const fig = kontener?.querySelector<HTMLElement>('figure.drzewo') ?? null
@@ -41,29 +40,63 @@ function naSrodek(przew: HTMLElement, k: HTMLElement, gladko: boolean) {
     else przew.scrollBy(o)
 }
 
-export default function PrzegladarkaDrzewa({ html, osoby, od, rody, wstecz, naprzod, boczni, rodzenstwo }: {
+interface Pokolenia { w: number; n: number; ileR: number; wiecejW: boolean; wiecejN: boolean }
+interface Wlasciwosci {
     html: string; osoby: OsobaPanelu[]; od: string; rody: { id: string; nazwa: string; osob: number }[]
     wstecz: number; naprzod: number; boczni: boolean; rodzenstwo: boolean
-}) {
+}
+
+function useIdz() {
     const router = useTransitionRouter()
-    const mapa = React.useMemo(() => new Map(osoby.map((o) => [o.id, o])), [osoby])
+    return React.useCallback((zm: Record<string, string | null>) => {
+        const u = new URLSearchParams(window.location.search)
+        for (const [k, v] of Object.entries(zm)) { if (v === null) u.delete(k); else u.set(k, v) }
+        router.push(`/osoby/drzewo?${u.toString()}`, { scroll: false } as never)
+    }, [router])
+}
+
+export default function PrzegladarkaDrzewa(w: Wlasciwosci) {
+    const { boczni, rodzenstwo } = w
+    const idz = useIdz()
     const [zakl, ustawZakl] = React.useState<Zakladka>('drzewo')
-    const [panel, ustawPanel] = React.useState(true)
-    const [pelny, ustawPelny] = React.useState(false)
+    const [pokolenia, ustawPokolenia] = React.useState<Pokolenia>({ w: w.wstecz, n: w.naprzod, ileR: 0, wiecejW: false, wiecejN: false })
+    return (
+        <RamaPrzegladarki prefix="aplet-drzewo" etykietaPaska="przeglądanie drzewa" etykietaZakladek="widok drzewa" tytul="całe drzewo" klasa="drzewo-aplet"
+            zakladki={[{ id: 'drzewo', etykieta: 'drzewo' }, { id: 'lista', etykieta: 'lista pokoleń' }]} aktywna={zakl} ustawZakladke={ustawZakl} kluczPanelu="drzewo-panel"
+            lewa={(
+                <>
+                    <span className="dok-grupa drzewo-krok" role="group" aria-label="przodkowie">
+                        <button type="button" aria-label="mniej pokoleń przodków" disabled={pokolenia.w <= 0} onClick={() => idz({ wstecz: String(Math.max(0, pokolenia.w - 1)) })}>−</button>
+                        <span className="drzewo-krok-txt" title="pokolenia przodków">↑ {pokolenia.w}</span>
+                        <button type="button" aria-label="więcej pokoleń przodków" disabled={!pokolenia.wiecejW} onClick={() => idz({ wstecz: String(pokolenia.w + 1) })}>+</button>
+                    </span>
+                    <span className="dok-grupa drzewo-krok" role="group" aria-label="potomkowie">
+                        <button type="button" aria-label="mniej pokoleń potomków" disabled={pokolenia.n <= 0} onClick={() => idz({ naprzod: String(Math.max(0, pokolenia.n - 1)) })}>−</button>
+                        <span className="drzewo-krok-txt" title="pokolenia potomków">↓ {pokolenia.n}</span>
+                        <button type="button" aria-label="więcej pokoleń potomków" disabled={!pokolenia.wiecejN} onClick={() => idz({ naprzod: String(pokolenia.n + 1) })}>+</button>
+                    </span>
+                    <span className="dok-grupa" role="group" aria-label="krewni w widoku">
+                        <button type="button" aria-pressed={boczni} onClick={() => idz({ boczni: boczni ? '0' : null })}>rodziny rodziców</button>
+                        {pokolenia.ileR > 0 && <button type="button" aria-pressed={rodzenstwo} onClick={() => idz({ rodzenstwo: rodzenstwo ? '0' : null })}>rodzeństwo</button>}
+                    </span>
+                </>
+            )}>
+            <WidokDrzewa {...w} ustawPokolenia={ustawPokolenia} />
+        </RamaPrzegladarki>
+    )
+}
+
+function WidokDrzewa({ html, osoby, od, rody, ustawPokolenia }: Wlasciwosci & { ustawPokolenia: (p: Pokolenia) => void }) {
+    const idz = useIdz()
+    const { przelaczPanel, panel, zglosPrzyblizenie } = useRama()
+    const mapa = React.useMemo(() => new Map(osoby.map((o) => [o.id, o])), [osoby])
     const [wybrana, ustawWybrana] = React.useState(od)
     const [szukaj, ustawSzukaj] = React.useState('')
-    const ramka = React.useRef<HTMLDivElement>(null)
     const drzewoRef = React.useRef<HTMLDivElement>(null)
     const skala = React.useRef(SKALA_START)
     const [procent, ustawProcent] = React.useState(Math.round(SKALA_START * 100))
     const przerwij = React.useRef<() => void>(() => {})
     const [naDrzewie, ustawNaDrzewie] = React.useState<Set<string>>(new Set())
-    const [pokolenia, ustawPokolenia] = React.useState({ w: wstecz, n: naprzod, ileR: 0, wiecejW: false, wiecejN: false })
-    const prefix = 'aplet-drzewo'
-
-    // decyzja 18.11: panel domyślnie otwarty; schowanie zapamiętane w tej przeglądarce
-    React.useEffect(() => { try { if (localStorage.getItem(KLUCZ_PANELU) === '0') ustawPanel(false) } catch { /* bez pamięci */ } }, [])
-    const przelaczPanel = React.useCallback((v: boolean) => { ustawPanel(v); try { localStorage.setItem(KLUCZ_PANELU, v ? '1' : '0') } catch { /* bez pamięci */ } }, [])
 
     const elementy = () => czesciDrzewa(drzewoRef.current)
     // skala widoku: --dr-skala (CSS zoom planszy), punkt (cx, cy) okna drzewa zostaje na miejscu
@@ -111,18 +144,15 @@ export default function PrzegladarkaDrzewa({ html, osoby, od, rody, wstecz, napr
             ustawSzukaj('')
             przelaczPanel(true)
         }
-        // kółko przybliża przy kursorze; Shift + kółko – przewijanie w bok jak zwykle
-        const kolko = (e: WheelEvent) => {
-            if (e.shiftKey) return
-            e.preventDefault()
-            przerwij.current()
-            const r = przew.getBoundingClientRect()
-            ustawSkale(skalaZKolka(skala.current, e.deltaY, e.deltaMode, e.ctrlKey), e.clientX - r.left, e.clientY - r.top)
-        }
         fig.addEventListener('click', klik, true)
-        przew.addEventListener('wheel', kolko, { passive: false })
-        return () => { fig.removeEventListener('click', klik, true); przew.removeEventListener('wheel', kolko); przerwij.current(); sprzataj() }
-    }, [html, przelaczPanel, ustawSkale])
+        return () => { fig.removeEventListener('click', klik, true); przerwij.current(); sprzataj() }
+    }, [html, przelaczPanel, ustawSkale, ustawPokolenia])
+
+    // kółko – wspólna obsługa z planem: przybliża przy kursorze; Shift + kółko – przeglądarka przewija w bok sama
+    useKolkoPrzyblizenia(() => elementy().przew, [html], (czynnik, x, y) => {
+        przerwij.current()
+        ustawSkale(ogranicz(skala.current * czynnik), x, y)
+    })
 
     // wybrana osoba obwiedziona na drzewie i przewinięta do widoku, gdy jest poza oknem (bez przewijania strony)
     React.useEffect(() => {
@@ -136,32 +166,28 @@ export default function PrzegladarkaDrzewa({ html, osoby, od, rody, wstecz, napr
         if (b.left < a.left + 20 || b.right > a.right - 20 || b.top < a.top + 20 || b.bottom > a.bottom - 20) naSrodek(przew, k, true)
     }, [wybrana, panel])
 
-    // pełny ekran jak w przeglądarce planu
-    const zamknijPelny = React.useCallback(() => { ustawPelny(false); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}) }, [])
-    React.useEffect(() => {
-        if (!pelny) return undefined
-        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') zamknijPelny() }
-        const wyjscie = () => { if (!document.fullscreenElement) ustawPelny(false) }
-        document.addEventListener('keydown', esc)
-        document.addEventListener('fullscreenchange', wyjscie)
-        const o = document.body.style.overflow
-        document.body.style.overflow = 'hidden'
-        return () => { document.removeEventListener('keydown', esc); document.removeEventListener('fullscreenchange', wyjscie); document.body.style.overflow = o }
-    }, [pelny, zamknijPelny])
-
     // klawisze na drzewie: + − przybliżenie, 0 – całe drzewo w oknie (jak na planie)
     const klawisz = (e: React.KeyboardEvent) => {
         if (e.ctrlKey || e.metaKey || e.altKey) return
-        if (e.key === '+' || e.key === '=') { e.preventDefault(); plynnie(skala.current * KROK_PRZYCISKU) }
-        else if (e.key === '-' || e.key === '_') { e.preventDefault(); plynnie(skala.current / KROK_PRZYCISKU) }
-        else if (e.key === '0') { e.preventDefault(); caleWOknie() }
+        const a = klawiszPrzyblizenia(e.key)
+        if (!a) return
+        e.preventDefault()
+        if (a === 'przybliz') plynnie(skala.current * KROK_PRZYCISKU)
+        else if (a === 'oddal') plynnie(skala.current / KROK_PRZYCISKU)
+        else caleWOknie()
     }
 
-    const idz = (zm: Record<string, string | null>) => {
-        const u = new URLSearchParams(window.location.search)
-        for (const [k, v] of Object.entries(zm)) { if (v === null) u.delete(k); else u.set(k, v) }
-        router.push(`/osoby/drzewo?${u.toString()}`, { scroll: false } as never)
-    }
+    // przybliżenie w pasku ramy (− N% + i „całe drzewo w oknie”)
+    React.useEffect(() => {
+        zglosPrzyblizenie({
+            procent,
+            przybliz: () => plynnie(skala.current * KROK_PRZYCISKU),
+            oddal: () => plynnie(skala.current / KROK_PRZYCISKU),
+            calosc: caleWOknie,
+            etykietaCalosci: 'całe drzewo w oknie',
+        })
+    }, [procent, plynnie, caleWOknie, zglosPrzyblizenie])
+    React.useEffect(() => () => zglosPrzyblizenie(null), [zglosPrzyblizenie])
     const doSrodka = (id: string) => idz({ od: id })
 
     const sl = normalizuj(szukaj.trim()).split(/\s+/).filter(Boolean)
@@ -218,58 +244,16 @@ export default function PrzegladarkaDrzewa({ html, osoby, od, rody, wstecz, napr
                     </CalyPanelu>
                 </>
             )}
-            <WierszPanelu e="klawiatura">Tab – na drzewo · strzałki – rodzice, dzieci, rodzeństwo · Enter – karta w panelu · + − – przybliż · 0 – całe drzewo</WierszPanelu>
+            <WierszPanelu e="klawiatura">Tab – na drzewo · strzałki – rodzice, dzieci, rodzeństwo · Enter – karta w panelu · {KLAWISZE_PRZYBLIZENIA}</WierszPanelu>
         </>
     ) : null
 
     return (
-        <div ref={ramka} className={`plan-aplet przegladarka-aplet drzewo-aplet${zakl === 'lista' ? ' plan-aplet--lista drzewo-aplet--lista' : ''}${pelny ? ' plan-aplet--pelny' : ''}${panel ? '' : ' drzewo-aplet--bez-panelu'}`}
-            role={pelny ? 'dialog' : undefined} aria-modal={pelny ? true : undefined} aria-label={pelny ? 'całe drzewo – pełny ekran' : undefined}>
-            <div className="plan-aplet-pasek">
-                <div className="dok-pasek dok-pasek-karta" role="toolbar" aria-label="przeglądanie drzewa">
-                    <span className="dok-pasek-lewa">
-                        {pelny && <b className="dok-tytul">całe drzewo</b>}
-                        <ListaZakladek prefix={prefix} etykieta="widok drzewa" zakladki={[{ id: 'drzewo', etykieta: 'drzewo' }, { id: 'lista', etykieta: 'lista pokoleń' }]} aktywna={zakl} ustaw={ustawZakl} />
-                        <span className="dok-grupa drzewo-krok" role="group" aria-label="przodkowie">
-                            <button type="button" aria-label="mniej pokoleń przodków" disabled={pokolenia.w <= 0} onClick={() => idz({ wstecz: String(Math.max(0, pokolenia.w - 1)) })}>−</button>
-                            <span className="drzewo-krok-txt" title="pokolenia przodków">↑ {pokolenia.w}</span>
-                            <button type="button" aria-label="więcej pokoleń przodków" disabled={!pokolenia.wiecejW} onClick={() => idz({ wstecz: String(pokolenia.w + 1) })}>+</button>
-                        </span>
-                        <span className="dok-grupa drzewo-krok" role="group" aria-label="potomkowie">
-                            <button type="button" aria-label="mniej pokoleń potomków" disabled={pokolenia.n <= 0} onClick={() => idz({ naprzod: String(Math.max(0, pokolenia.n - 1)) })}>−</button>
-                            <span className="drzewo-krok-txt" title="pokolenia potomków">↓ {pokolenia.n}</span>
-                            <button type="button" aria-label="więcej pokoleń potomków" disabled={!pokolenia.wiecejN} onClick={() => idz({ naprzod: String(pokolenia.n + 1) })}>+</button>
-                        </span>
-                        <span className="dok-grupa" role="group" aria-label="krewni w widoku">
-                            <button type="button" aria-pressed={boczni} onClick={() => idz({ boczni: boczni ? '0' : null })}>rodziny rodziców</button>
-                            {pokolenia.ileR > 0 && <button type="button" aria-pressed={rodzenstwo} onClick={() => idz({ rodzenstwo: rodzenstwo ? '0' : null })}>rodzeństwo</button>}
-                        </span>
-                    </span>
-                    <span className="dok-pasek-prawa">
-                        {/* łatka po PK (odbiór 18.11): przybliżenie w pasku zamiast pływających przycisków na drzewie;
-                            „całe drzewo w oknie” innym znakiem niż „pełny ekran ⤢” (strzałki do środka) */}
-                        {zakl === 'drzewo' && <span className="dok-grupa drzewo-krok" role="group" aria-label="przybliżenie">
-                            <button type="button" aria-label="oddal" title="oddal (−)" onClick={() => plynnie(skala.current / KROK_PRZYCISKU)}>−</button>
-                            <span className="drzewo-krok-txt" aria-live="polite" aria-label={`przybliżenie ${procent}%`}>{procent}%</span>
-                            <button type="button" aria-label="przybliż" title="przybliż (+)" onClick={() => plynnie(skala.current * KROK_PRZYCISKU)}>+</button>
-                            <button type="button" aria-label="całe drzewo w oknie" title="całe drzewo w oknie (0)" onClick={caleWOknie}><Shrink aria-hidden size={16} /></button>
-                        </span>}
-                        <span className="dok-grupa">
-                            {!panel && <button type="button" onClick={() => przelaczPanel(true)}>panel ◂</button>}
-                            {pelny
-                                ? <button type="button" onClick={zamknijPelny} aria-label="zamknij pełny ekran" title="zamknij (Esc)"><span className="dok-etyk">zamknij </span>✕</button>
-                                : <button type="button" onClick={() => { ustawPelny(true); ramka.current?.requestFullscreen?.().catch(() => {}) }} aria-label="pełny ekran" title="pełny ekran"><span className="dok-etyk">pełny ekran </span>⤢</button>}
-                        </span>
-                    </span>
-                </div>
-            </div>
-            <div className="szt-pasek plan-panel-pasek">
-                <b className="szt-jedna">{tytulCzesci}</b>
-                <button type="button" className="plan-panel-x" onClick={() => przelaczPanel(false)} aria-label="schowaj panel" title="schowaj panel">▸</button>
-            </div>
-            <div {...atrybutyPanelu(prefix, zakl)} className="plan-aplet-mapa drzewo-aplet-obszar" onKeyDown={klawisz}>
+        <>
+            <PasekPanelu tytul={tytulCzesci} />
+            <div className="plan-aplet-mapa drzewo-aplet-obszar" onKeyDown={klawisz}>
                 <div ref={drzewoRef} className="ot-drzewo drzewo-aplet-drzewo" data-drzewo-wlasne="" dangerouslySetInnerHTML={{ __html: html }} />
-                <div className="plan-wskazowka">kliknij – karta w panelu · przeciągnij – przesuń · kółko – przybliż · Shift + kółko – w bok</div>
+                <div className="plan-wskazowka">{wskazowkaPrzyblizenia('kliknij – karta w panelu')}</div>
             </div>
             <div className="plan-aplet-panel">
                 <PanelPlanu tytul={tytulCzesci} szukaj={szukaj} ustawSzukaj={ustawSzukaj} naSzukaj={() => { if (wyniki[0]) wybierzWynik(wyniki[0].id) }}
@@ -278,6 +262,6 @@ export default function PrzegladarkaDrzewa({ html, osoby, od, rody, wstecz, napr
                     {tresc}
                 </PanelPlanu>
             </div>
-        </div>
+        </>
     )
 }
