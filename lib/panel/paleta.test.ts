@@ -26,3 +26,10 @@ test('paleta: polecenia z menu (także ukryte) i „+ nowa …”, wszystkie w g
     assert.ok(P.every((x) => x.grupa === 'polecenia' && x.href.startsWith('/keystatic')))
     assert.deepEqual(szukajWPalecie(P, 'ostatnie operacje').map((x) => x.href), ['/keystatic/panel/operacje'])
 })
+
+test('paleta wg planszy: polecenie z wpisanym tekstem i tryb „>”', async () => {
+    const { poleceniaZTekstem, tylkoPolecenia } = await import('./paleta')
+    assert.deepEqual(poleceniaZTekstem('Jan Przykładowy').map((x) => [x.t, x.href]), [['+ nowa osoba „Jan Przykładowy”', '/keystatic/osoby?nowa=Jan%20Przyk%C5%82adowy']])
+    assert.deepEqual(poleceniaZTekstem('> kop'), [])
+    assert.equal(tylkoPolecenia(' >kopie'), true)
+})

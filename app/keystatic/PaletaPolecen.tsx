@@ -6,7 +6,7 @@
 import * as React from 'react'
 import { Search, X } from 'lucide-react'
 import type { GrupaWgUstawien } from '@/lib/panel/menu'
-import { NOWE, poleceniaZMenu, szukajWPalecie, type PozycjaPalety as Poz } from '@/lib/panel/paleta'
+import { NOWE, poleceniaZMenu, poleceniaZTekstem, szukajWPalecie, tylkoPolecenia, type PozycjaPalety as Poz } from '@/lib/panel/paleta'
 
 type Wynik = Poz & { klucz: string }
 const GRUPY: [string, string][] = [['ostatnie', 'ostatnio edytowane'], ['osoby', 'osoby'], ['tresci', 'archiwum i treści'], ['plany', 'plany'], ['zgloszenia', 'zgłoszenia'], ['polecenia', 'polecenia']]
@@ -44,7 +44,9 @@ export default function PaletaPolecen({ menu, otwarta, onZamknij }: { menu: Grup
     }, [onZamknij])
 
     const wyniki: Wynik[] = React.useMemo(() => {
-        const L = q.trim() ? szukajWPalecie([...(indeks ?? []), ...polecenia], q) : [...ostatnie, ...polecenia.slice(0, NOWE.length)]
+        const pol = tylkoPolecenia(q), tekst = pol ? q.trimStart().slice(1) : q
+        const L = !tekst.trim() ? (pol ? polecenia : [...ostatnie, ...polecenia.slice(0, NOWE.length)])
+            : [...szukajWPalecie(pol ? polecenia : [...(indeks ?? []), ...polecenia], tekst), ...poleceniaZTekstem(q)]
         const wGrupach: Wynik[] = []
         for (const [g] of GRUPY) L.filter((x) => (x.grupa ?? 'tresci') === g).slice(0, NA_GRUPE).forEach((x, i) => wGrupach.push({ ...x, klucz: `${g}-${i}-${x.href}` }))
         return wGrupach
@@ -72,7 +74,7 @@ export default function PaletaPolecen({ menu, otwarta, onZamknij }: { menu: Grup
                 <Search aria-hidden />
                 <input ref={pole} type="search" role="combobox" aria-expanded="true" aria-controls="pn-paleta-wyniki" aria-autocomplete="list"
                     aria-activedescendant={wyniki[akt] ? `pn-pal-${akt}` : undefined} aria-label="szukaj: osoba, materiał, plan, numer katalogowy, polecenie"
-                    placeholder="szukaj: osoba, materiał, MA-0042, polecenie…" autoComplete="off" value={q} onChange={(e) => ustawQ(e.target.value)} onKeyDown={klawisz} />
+                    placeholder="szukaj: osoba, materiał, MA-0042 albo > polecenie" autoComplete="off" value={q} onChange={(e) => ustawQ(e.target.value)} onKeyDown={klawisz} />
                 <button type="button" className="pn-ikona-btn" aria-label="zamknij" title="zamknij (Esc)" onClick={() => ref.current?.close()}><X aria-hidden /></button>
             </div>
             <div id="pn-paleta-wyniki" role="listbox" aria-label="wyniki" className="pn-paleta-wyniki">
@@ -91,7 +93,7 @@ export default function PaletaPolecen({ menu, otwarta, onZamknij }: { menu: Grup
                                     <a key={w.klucz} id={`pn-pal-${i}`} href={w.href} role="option" aria-selected={i === akt} data-akt={i === akt}
                                         onMouseMove={() => ustawAkt(i)} onClick={(e) => { if (e.shiftKey && w.strona) { e.preventDefault(); otworz(w, true) } }}>
                                         <span className="pn-paleta-t">{w.t}</span>
-                                        <span className="pn-szary pn-paleta-typ">{[w.nr, w.typ, w.d].filter(Boolean).join(' · ')}</span>
+                                        <span className="pn-paleta-typ">{[w.typ, w.d, w.nr].filter(Boolean).join(' · ')}{i === akt && <span className="pn-paleta-podp"> · Enter {w.grupa === 'polecenia' ? 'otwórz' : 'edytuj'}{w.strona ? ' · ⇧Enter na stronie' : ''}</span>}</span>
                                     </a>
                                 )
                             })}
@@ -99,7 +101,7 @@ export default function PaletaPolecen({ menu, otwarta, onZamknij }: { menu: Grup
                     )
                 })}
             </div>
-            <div className="pn-paleta-stopka pn-maly" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd> wybór · <kbd>Enter</kbd> edytuj · <kbd>⇧ Enter</kbd> na stronie · <kbd>Esc</kbd> zamknij</div>
+            <div className="pn-paleta-stopka pn-maly" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd> wybór · <kbd>Enter</kbd> otwórz · <kbd>⇧ Enter</kbd> na stronie · MA-0042 – numer katalogowy · <kbd>&gt;</kbd> polecenia · <kbd>Esc</kbd> zamknij</div>
         </dialog>
     )
 }

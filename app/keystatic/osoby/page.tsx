@@ -21,6 +21,14 @@ export default function Osoby() {
     const [msg, ustawMsg] = React.useState('')
     const [q, ustawQ] = React.useState('')
     const [nowa, ustawNowa] = React.useState({ imiona: '', nazwisko: '', plec: 'U' })
+    // P6a wg planszy (Ctrl+K: „+ nowa osoba „…””): ?nowa=Imię Nazwisko wypełnia formularz nowej osoby (ostatnie słowo = nazwisko)
+    React.useEffect(() => {
+        const n = new URLSearchParams(window.location.search).get('nowa')?.trim()
+        if (!n) return
+        const sl = n.split(/\s+/)
+        ustawNowa((x) => ({ ...x, imiona: sl.length > 1 ? sl.slice(0, -1).join(' ') : '', nazwisko: sl[sl.length - 1] }))
+        window.setTimeout(() => document.getElementById('nowa-osoba-t')?.scrollIntoView({ block: 'center' }), 300)
+    }, [])
     const [plik, ustawPlik] = React.useState<{ nazwa: string; tekst: string } | null>(null)
     const [pods, ustawPods] = React.useState<Pods | null>(null)
     const [potw, ustawPotw] = React.useState('')

@@ -29,3 +29,14 @@ export function szukajWPalecie(L: Poz[], q: string): Poz[] {
     return [...pasuje.filter((x) => norm(x.t).startsWith(pocz) || norm(x.nr ?? '') === pocz), ...pasuje.filter((x) => !(norm(x.t).startsWith(pocz) || norm(x.nr ?? '') === pocz))]
 }
 
+
+/** Polecenia z wpisanym tekstem (plansza: „+ nowa osoba „Przyk…”” · utwórz). */
+export function poleceniaZTekstem(q: string): Poz[] {
+    const t = q.trim()
+    if (t.length < 2 || t.startsWith('>')) return []
+    const krotko = t.length > 28 ? `${t.slice(0, 27)}…` : t
+    return [{ t: `+ nowa osoba „${krotko}”`, typ: 'utwórz', href: `/keystatic/osoby?nowa=${encodeURIComponent(t)}`, grupa: 'polecenia' }]
+}
+
+/** „>” na początku – same polecenia (plansza: stopka „> polecenia”). */
+export const tylkoPolecenia = (q: string) => q.trimStart().startsWith('>')
