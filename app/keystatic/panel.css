@@ -84,6 +84,8 @@ body:has(.pn) { margin: 0; background: var(--pn-tlo); }
 .pn { font: 13.5px/1.45 var(--pn-font); color: var(--pn-tekst); background: var(--pn-tlo); min-height: 100dvh; -webkit-font-smoothing: antialiased; }
 .pn-glowna a, .pn-gora a, .pn-bok a, .pn-ikony a { color: var(--pn-akcent); text-decoration: none; }
 .pn-glowna a:hover { text-decoration: underline; }
+/* P5: odnośnik w zdaniu musi się odróżniać nie tylko kolorem (axe link-in-text-block) */
+.pn-glowna p a, .pn-glowna .pn-maly a, .pn-glowna li > span a, .pn-okno p a { text-decoration: underline; }
 .pn-glowna :focus-visible, .pn-gora :focus-visible, .pn-bok :focus-visible, .pn-ikony :focus-visible { outline: 2px solid var(--pn-wyp); outline-offset: 2px; }
 .pn-glowna h1 { margin: 0; font-size: 26px; line-height: 1.2; font-weight: 650; }
 .pn-glowna h2 { margin: 0; font-size: 15px; font-weight: 650; }
@@ -243,6 +245,8 @@ a.pn-ostrz:hover, a.pn-info:hover { background: var(--pn-hover); }
 .pn-tabela .pn-slug { font-family: var(--pn-mono); font-size: 12px; color: var(--pn-szary); }
 @media (pointer: coarse) { .pn-tabela input[type=checkbox] { width: 24px; height: 24px; } }
 .pn-ostrz-tekst { color: var(--pn-ostrz); font-weight: 600; }
+/* pasek akcji listy: przyklejony pod paskiem panelu, tło karty, zwykła obwódka (bez lewej krawędzi – zakaz 5.1d) */
+.pn-pasek-akcji { position: sticky; top: 56px; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--pn-wyp) 8%, var(--pn-karta)); border: 1px solid var(--pn-linia); box-shadow: 0 4px 14px var(--pn-cien); }
 .pn .pn-przewijane { max-height: 260px; overflow: auto; }
 
 /* ---------- Keystatic w stylu panelu (zmienne --kui-* nieudokumentowane – test zrzutów po aktualizacji) ---------- */

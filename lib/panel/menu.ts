@@ -13,7 +13,8 @@ export interface PozycjaMenu {
 }
 export interface GrupaMenu { klucz: string; nazwa: string; ikona: Ikona; href?: string; licznik?: PozycjaMenu['licznik']; pozycje: PozycjaMenu[] }
 
-const kol = (k: string) => `/keystatic/collection/${k}`
+// P5 (PNL-09): kolekcje otwierają listę panelu (kolumny w kolejności, filtry, zmiany zbiorcze); edycja pozycji – w Keystatic
+const kol = (k: string) => `/keystatic/panel/lista/${k}`
 const sin = (k: string) => `/keystatic/singleton/${k}`
 
 export const MENU: GrupaMenu[] = [

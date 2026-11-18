@@ -6,6 +6,8 @@ import { odmiana, useDane } from '../wspolne'
 import type { RaportKsiag } from '@/lib/ksiegi-raport'
 
 const KS = (id: string) => `/keystatic/collection/ksiegi/item/${encodeURIComponent(id)}`
+/** sama forma słowa po liczbie (1 księga, 2 księgi, 5 ksiąg) */
+const forma = (n: number, f: [string, string, string]) => odmiana(n, f).replace(/^\d+ /, '')
 
 export default function RaportKsiagPanel() {
     const { dane: r, blad } = useDane<RaportKsiag>('/api/keystatic/panel/raport-ksiag')
@@ -27,10 +29,10 @@ export default function RaportKsiagPanel() {
             {!r && !blad && <span className="pn-szary">liczę…</span>}
             {r && <>
                 <div className="pn-kafle">
-                    <div className="pn-kafel"><span className="pn-liczba">{r.ksiag}</span><span className="pn-maly">ksiąg, w tym {r.publicznych} publicznych</span></div>
-                    <div className="pn-kafel"><span className="pn-liczba">{roznic}</span><span className="pn-maly">{roznic === 1 ? 'różnica' : 'różnic'} między widokami</span></div>
-                    <div className="pn-kafel"><span className="pn-liczba">{bledy.length}</span><span className="pn-maly">błędów w danych</span></div>
-                    <div className="pn-kafel"><span className="pn-liczba">{doSprawdzenia.length}</span><span className="pn-maly">do sprawdzenia</span></div>
+                    <div className="pn-kafel"><span className="pn-liczba">{r.ksiag}</span><span className="pn-maly">{forma(r.ksiag, ['księga', 'księgi', 'ksiąg'])}, w tym publicznie: {r.publicznych}</span></div>
+                    <div className="pn-kafel"><span className="pn-liczba">{roznic}</span><span className="pn-maly">{forma(roznic, ['różnica', 'różnice', 'różnic'])} między widokami</span></div>
+                    <div className="pn-kafel"><span className="pn-liczba">{bledy.length}</span><span className="pn-maly">{forma(bledy.length, ['błąd', 'błędy', 'błędów'])} w danych</span></div>
+                    <div className="pn-kafel"><span className="pn-liczba">{doSprawdzenia.length}</span><span className="pn-maly">{forma(doSprawdzenia.length, ['uwaga', 'uwagi', 'uwag'])} do sprawdzenia</span></div>
                 </div>
                 <label className="pn-rzad"><input type="checkbox" checked={tylkoRoznice} onChange={(e) => ustawTylko(e.target.checked)} /> pokaż tylko różnice</label>
                 <section className="pn-karta" aria-labelledby="r-miejsca">

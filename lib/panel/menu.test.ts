@@ -12,7 +12,8 @@ test('każda kolekcja i singleton Keystatic ma pozycję w menu panelu (także ze
     const klucze = [...cfg.matchAll(/^ {4}(\w+): (collection|singleton)\(/gm)].map((m) => [m[1], m[2]] as const)
     assert.ok(klucze.length >= 18, `za mało kluczy w konfiguracji: ${klucze.length}`)
     const h = hrefy()
-    for (const [k, r] of klucze) assert.ok(h.includes(`/keystatic/${r}/${k}`), `brak w menu: ${r} ${k}`)
+    // P5: kolekcje przez listę panelu (/keystatic/panel/lista/<klucz>), singletony – wprost w Keystatic
+    for (const [k, r] of klucze) assert.ok(h.includes(`/keystatic/${r}/${k}`) || (r === 'collection' && h.includes(`/keystatic/panel/lista/${k}`)), `brak w menu: ${r} ${k}`)
 })
 
 test('klucze pozycji menu są niepowtarzalne', () => {
