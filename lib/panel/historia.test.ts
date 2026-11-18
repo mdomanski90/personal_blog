@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import {
     przedZapisemKeystatic, listaWersji, trescWersji, przywrocWersje, listaKoszaTresci, przywrocZKoszaTresci, usunZKoszaTresci,
-    doKosza, roznica, odczytajZadanie, relTresci, WERSJI_NA_PLIK, DNI_PLIKOW_W_KOSZU,
+    doKosza, roznica, odczytajZadanie, relTresci, DNI_PLIKOW_W_KOSZU, doUsuniecia, czasId, osHistorii, przywrocSprzedOperacji, koszRodzaju,
 } from './historia'
 import { listaOperacji, cofnijOperacje } from './operacje'
 
@@ -44,16 +44,34 @@ test('historia: zapis Keystatic zostawia poprzednią wersję; ten sam zapis drug
     } finally { await fs.rm(k, { recursive: true, force: true }) }
 })
 
-test(`historia: najwyżej ${WERSJI_NA_PLIK} wersji na plik`, async () => {
+test('historia: wszystko z 30 dni, starsze – najnowsza wersja z każdego tygodnia (plansza funkcji 4)', () => {
+    const teraz = Date.UTC(2026, 10, 18, 12)
+    const id = (dni: number, h = 0) => { const d = new Date(teraz - dni * 864e5 + h * 36e5); const z = (n: number, w = 2) => String(n).padStart(w, '0'); return `${d.getUTCFullYear()}${z(d.getUTCMonth() + 1)}${z(d.getUTCDate())}-${z(d.getUTCHours())}0000-00001-aaaa` }
+    const swieze = [id(1), id(1, 2), id(29)]
+    const stare = [id(40), id(40, 3), id(41), id(60)] // 40 i 41 dni temu: ten sam tydzień? – liczymy funkcją
+    const usun = doUsuniecia([...swieze, ...stare], teraz)
+    assert.ok(swieze.every((x) => !usun.includes(x)), 'z ostatnich 30 dni nic nie znika')
+    assert.ok(!usun.includes(id(60)) && !usun.includes(id(40, 3)), 'najnowsza w tygodniu zostaje')
+    assert.ok(usun.includes(id(40)), 'starsza z tego samego dnia znika')
+    assert.ok(czasId(id(1)).startsWith('2026-11-17'))
+})
+
+test('oś historii: zapisy Keystatic pole po polu + zmiana zbiorcza; przywróć sprzed operacji; kosz rodzaju', async () => {
     const k = await korzen()
     try {
-        for (let i = 0; i < WERSJI_NA_PLIK + 5; i++) {
-            const z = { additions: [{ path: 'content/obiekty/testowa-kapliczka.mdoc', contents: b64(`wersja ${i + 2}`) }], deletions: [] }
-            await przedZapisemKeystatic(z, { korzen: k }); await keystaticZapisuje(k, z)
-        }
-        const L = await listaWersji('obiekty/testowa-kapliczka.mdoc', k)
-        assert.equal(L.length, WERSJI_NA_PLIK)
-        assert.equal(await trescWersji('obiekty/testowa-kapliczka.mdoc', L[0].id, k), `wersja ${WERSJI_NA_PLIK + 5}`, 'najnowsza zostaje')
+        const z = { additions: [{ path: 'content/obiekty/testowa-kapliczka.mdoc', contents: b64('---\ntitle: Testowa kapliczka\n---\nOpis 2 zmieniony\n') }], deletions: [] }
+        await przedZapisemKeystatic(z, { korzen: k }); await keystaticZapisuje(k, z)
+        const { wykonajOperacje } = await import('./operacje')
+        await wykonajOperacje({ korzen: k, rodzaj: 'zbiorcza', opis: 'obiekty: widoczność publiczne (1)', zmiany: [{ plik: 'obiekty/testowa-kapliczka.mdoc', poprzedni: '---\ntitle: Testowa kapliczka\n---\nOpis 2 zmieniony\n', wynik: '---\ntitle: Testowa kapliczka\nvisibility: publiczne\n---\nOpis 2 zmieniony\n' }] })
+        const os = await osHistorii('obiekty/testowa-kapliczka.mdoc', { visibility: 'widoczność' }, k)
+        assert.deepEqual(os.map((x) => x.zrodlo), ['operacja', 'keystatic'])
+        assert.deepEqual(os[0].zmiany!.map((x) => x.etykieta), ['widoczność'])
+        const tresc = os[1].zmiany!.find((x) => x.pole === '__tresc')!
+        assert.deepEqual(tresc.fragmenty.filter((f) => f.t !== '=').map((f) => [f.t, f.s.trim()]), [['-', '1'], ['+', '2 zmieniony']], 'różnica słów w treści')
+        await przywrocSprzedOperacji('obiekty/testowa-kapliczka.mdoc', os[0].operacja!, { korzen: k })
+        assert.doesNotMatch((await czytaj(k, 'content/obiekty/testowa-kapliczka.mdoc'))!, /visibility/)
+        await doKosza(k, ['content/obiekty/testowa-kapliczka.mdoc'], 'obiekt'); await doKosza(k, ['content/zgloszenia/x.json'], 'zgłoszenie').catch(() => null)
+        assert.equal((await koszRodzaju('obiekty/inny.mdoc', k)).length, 1)
     } finally { await fs.rm(k, { recursive: true, force: true }) }
 })
 

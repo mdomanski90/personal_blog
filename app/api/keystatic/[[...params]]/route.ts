@@ -3,7 +3,7 @@ import config from '../../../../keystatic.config';
 import { poZapisieTresci } from '@/lib/katalog/dane';
 import { blokadaZapisu } from '@/lib/panel/operacje';
 import { odczytajZadanie, przedZapisemKeystatic } from '@/lib/panel/historia';
-import { opisPlikuZTytulem } from '@/lib/panel/historia-adresy';
+import { etykietyPol, opisPlikuZTytulem } from '@/lib/panel/historia-adresy';
 import { zapiszOstatnie } from '@/lib/panel/praca';
 import { brakPrawaZapisu, komunikatPrawa } from '@/lib/panel/prawa-zapisu';
 
@@ -24,17 +24,19 @@ export async function POST(req: Request) {
     const blokada = await blokadaZapisu();
     if (blokada) return tekst(blokada, 423);
     const zadanie = odczytajZadanie(await req.clone().json().catch(() => null));
+    let pola: Record<string, string[]> = {};
     if (zadanie) {
         const brak = await brakPrawaZapisu(process.cwd(), zadanie.additions.map((a) => a.path), zadanie.deletions.map((d) => d.path));
         if (brak.length) return tekst(komunikatPrawa(brak), 503);
-        const p = await przedZapisemKeystatic(zadanie, { opis: async (rel) => (await opisPlikuZTytulem(process.cwd(), rel.replace(/^content\//, ''))).nazwa });
+        const p = await przedZapisemKeystatic(zadanie, { opis: async (rel) => (await opisPlikuZTytulem(process.cwd(), rel.replace(/^content\//, ''))).nazwa, etykiety: etykietyPol });
         if (p.odrzuc) return tekst(p.odrzuc, 503);
         for (const o of p.ostrzezenia) console.error(`[historia] ${o}`);
+        pola = p.pola;
     }
     const r = await obsluga.POST(req);
     if (r.ok) {
         await poZapisieTresci();
-        if (zadanie) await zapiszOstatnie(zadanie.additions.map((a) => a.path).filter((x) => !zadanie.deletions.some((d) => d.path === x))).catch(() => {});
+        if (zadanie) await zapiszOstatnie(zadanie.additions.map((a) => a.path).filter((x) => !zadanie.deletions.some((d) => d.path === x)), process.cwd(), pola).catch(() => {});
     }
     return r;
 }

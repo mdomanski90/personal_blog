@@ -8,6 +8,7 @@ import { type LucideIcon, Archive, BookMarked, ChevronDown, ChevronRight, Ellips
 import { aktywna, menuWgUstawien, rodzajWidoku, stronaZAdresuKeystatic, type Ikona, type UstawieniaMenu } from '@/lib/panel/menu'
 import type { RodzajPlanu } from '@/lib/plany/metadane'
 import PaletaPolecen from './PaletaPolecen'
+import SzufladaHistorii from './SzufladaHistorii'
 
 const IKONY: Record<Ikona, LucideIcon> = {
     pulpit: House, zgloszenia: Inbox, opracowanie: ListTodo, tresci: FileText, archiwum: Archive, biblioteka: Library,
@@ -147,6 +148,8 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
     const [pokazWszystko, ustawPokazWszystko] = React.useState(false)
     const [rozwiniete, ustawRozwiniete] = React.useState<Set<string>>(() => new Set())
     const [paleta, ustawPalete] = React.useState(false)
+    const [historia, ustawHistorie] = React.useState(false)
+    const zamknijHistorie = React.useCallback(() => ustawHistorie(false), [])
     const zamknijPalete = React.useCallback(() => ustawPalete(false), [])
     const przyciskMenu = React.useRef<HTMLButtonElement>(null)
     const przyciskZwin = React.useRef<HTMLButtonElement>(null)
@@ -193,7 +196,7 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
         document.addEventListener('keydown', k)
         return () => document.removeEventListener('keydown', k)
     }, [szuflada])
-    React.useEffect(() => { ustawSzuflade(false) }, [sciezka])
+    React.useEffect(() => { ustawSzuflade(false); ustawHistorie(false) }, [sciezka])
     // Ctrl+K / ⌘K: paleta poleceń (poza polami edycji – w edytorze tekstu Ctrl+K to odnośnik)
     React.useEffect(() => {
         const k = (e: KeyboardEvent) => {
@@ -266,7 +269,7 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
                 <div className="pn-gora-prawa">
                     {zglPozycji > 0 && <a href="/keystatic/panel/zgloszenia" className="pn-btn pn-btn-maly pn-tylko-szeroki">zgłoszenia: {zglPozycji}</a>}
                     {naStronie && <a href={naStronie} target="_blank" rel="noreferrer" className="pn-btn pn-btn-maly pn-tylko-szeroki">na stronie ↗</a>}
-                    {maHistorie && <a href={`/keystatic/panel/historia?adres=${encodeURIComponent(sciezka)}`} className="pn-btn pn-btn-maly pn-tylko-szeroki">historia</a>}
+                    {maHistorie && <button type="button" className="pn-btn pn-btn-maly pn-tylko-szeroki" aria-expanded={historia} aria-controls="pn-hist-tytul" onClick={() => ustawHistorie((h) => !h)}>historia</button>}
                     <Przypnij sciezka={sciezka} />
                     <button type="button" className="pn-ikona-btn" aria-label="przełącz motyw (jasny / ciemny)" title="przełącz motyw (jasny / ciemny)" onClick={() => setTheme(ciemny ? 'light' : 'dark')}>
                         {!zamontowany ? <Moon aria-hidden className="pn-niewidoczne" /> : ciemny ? <Sun aria-hidden /> : <Moon aria-hidden />}
@@ -274,6 +277,7 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
                 </div>
             </header>
             <PaletaPolecen menu={menu} otwarta={paleta} onZamknij={zamknijPalete} />
+            {maHistorie && <SzufladaHistorii adres={sciezka} otwarta={historia} onZamknij={zamknijHistorie} />}
             <div className="pn-uklad">
                 {pelneMenu && (
                     <aside className="pn-bok" aria-label="menu panelu">

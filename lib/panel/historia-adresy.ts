@@ -75,9 +75,10 @@ export function kontrolaCzytnikiem(korzen: string, pliki: string[]): () => Promi
 const POJEDYNCZE: Record<string, string> = { posts: 'wpis', miejsca: 'miejsce', tematy: 'temat', obiekty: 'obiekt', materialy: 'materiał', zbiory: 'zbiór', publikacje: 'publikacja', parafie: 'instytucja', hasla: 'hasło', biogramy: 'biogram', zespoly: 'zespół', ksiegi: 'księga' }
 
 /** Jak opisPliku, ale z tytułem z treści pliku (pole title: tekst albo { name }) – „miejsce „Testowo”” zamiast identyfikatora. */
-export async function opisPlikuZTytulem(korzen: string, relC: string): Promise<{ nazwa: string; edycja: string | null }> {
+export async function opisPlikuZTytulem(korzen: string, relC: string): Promise<{ nazwa: string; edycja: string | null; rodzaj?: string; widocznosc?: string }> {
     const o = opisPliku(relC), w = wpisDlaPliku(relC)
     if (!w || 'singleton' in w) return o
+    const rodzaj = POJEDYNCZE[w.kolekcja] ?? w.kolekcja
     try {
         const { readFile } = await import('node:fs/promises')
         const { load } = await import('js-yaml')
@@ -85,7 +86,19 @@ export async function opisPlikuZTytulem(korzen: string, relC: string): Promise<{
         const naglowek = relC.endsWith('.json') ? null : relC.endsWith('.mdoc') || relC.endsWith('.md') ? (/^---\r?\n([\s\S]*?)\r?\n---/.exec(t)?.[1] ?? '') : t
         const d = (naglowek === null ? JSON.parse(t) : load(naglowek)) as Record<string, unknown> | null
         const tytul = typeof d?.title === 'string' ? d.title : d?.title && typeof d.title === 'object' && typeof (d.title as { name?: unknown }).name === 'string' ? (d.title as { name: string }).name : ''
-        if (tytul.trim()) return { ...o, nazwa: `${POJEDYNCZE[w.kolekcja] ?? w.kolekcja} „${tytul.trim().slice(0, 120)}”` }
+        const widocznosc = typeof d?.visibility === 'string' ? d.visibility : 'publiczne'
+        if (tytul.trim()) return { ...o, nazwa: `${rodzaj} „${tytul.trim().slice(0, 120)}”`, rodzaj, widocznosc }
+        return { ...o, rodzaj, widocznosc }
     } catch { /* plik nieczytelny – nazwa z identyfikatora */ }
-    return o
+    return { ...o, rodzaj }
+}
+
+/** Nazwy pól formularza Keystatic dla pliku (etykiety z konfiguracji) – „opis”, „źródła” zamiast kluczy. */
+export function etykietyPol(relC: string): Record<string, string> {
+    const w = wpisDlaPliku(relC)
+    if (!w) return {}
+    const k = ('singleton' in w ? singletony[w.singleton] : kolekcje[w.kolekcja]) as Konf & { schema?: Record<string, { label?: string }> }
+    const wyn: Record<string, string> = {}
+    for (const [pole, f] of Object.entries(k?.schema ?? {})) if (typeof f?.label === 'string') wyn[pole] = f.label.toLocaleLowerCase('pl')
+    return wyn
 }

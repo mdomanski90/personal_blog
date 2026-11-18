@@ -2,7 +2,7 @@
 // Decyzja właściciela 18.11: własne kopie w trasie zapisu (bez gita na VPS).
 //  • Keystatic (tryb local) nadpisuje plik bez kopii i usuwa przez fs.rm (keystatic-core-api-generic.node.js:199–209).
 //    Trasa app/api/keystatic/[[...params]]/route.ts woła `przedZapisemKeystatic` z treścią żądania PRZED zapisem Keystatic.
-//  • Wersja = poprzednia treść pliku tekstowego: content/_historia/<ścieżka w content>/<id> – 30 ostatnich na plik.
+//  • Wersja = poprzednia treść pliku tekstowego: content/_historia/<ścieżka w content>/<id> – wszystkie z 30 dni, starsze po jednej na tydzień.
 //  • Usunięcie → kopia do content/_kosz/<id>/ (manifest + pliki): teksty bez terminu, pliki binarne (obrazy, skany) 30 dni.
 //    Bez kopii w koszu usunięcie jest odrzucane (zasada 2.5); brak kopii wersji nie blokuje zwykłego zapisu (uwaga na pulpicie).
 //  • Przywrócenie wersji i pozycji z kosza = operacja P5 (lib/panel/operacje.ts): zapis atomowy, blokada, „cofnij”.
@@ -10,9 +10,11 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { zapewnijKatalog, katalogKopii, BrakKataloguKopii } from './katalogi'
-import { wykonajOperacje, type WynikOperacji } from './operacje'
+import { listaOperacji, wczytajManifest, wykonajOperacje, NAZWY_OPERACJI, type WynikOperacji } from './operacje'
+import { zmianyPol, type ZmianaPola } from './roznica-pol'
 
-export const WERSJI_NA_PLIK = 30
+/** Przechowywanie jak na planszy (PDF 18.11, funkcja 4): wszystkie wersje z ostatnich 30 dni, starsze – jedna na tydzień. */
+export const DNI_PELNEJ_HISTORII = 30
 export const DNI_PLIKOW_W_KOSZU = 30
 const TEKST = /\.(mdoc|md|yaml|yml|json)$/
 /** Katalogi, z których Keystatic może coś usunąć (treści i pliki z pól obrazów/plików – keystatic.config.ts). */
@@ -55,16 +57,26 @@ async function czytaj(p: string): Promise<Buffer | null> {
 // ---------- wersje ----------
 const katWersji = (korzen: string, relC: string) => path.join(/*turbopackIgnore: true*/ katalogKopii(korzen, '_historia'), ...relC.split('/'))
 
-/** Zapisuje poprzednią treść pliku jako wersję i przycina do WERSJI_NA_PLIK. */
+/** Zapisuje poprzednią treść pliku jako wersję i przycina historię (30 dni pełnych, starsze po jednej na tydzień). */
 export async function zapiszWersje(korzen: string, relC: string, tresc: Buffer | string): Promise<string> {
     await zapewnijKatalog(korzen, '_historia')
     const kat = katWersji(korzen, relC)
     await fs.mkdir(kat, { recursive: true, mode: 0o750 })
     const id = noweId()
     await fs.writeFile(path.join(kat, id), tresc, { flag: 'wx', mode: 0o640 })
-    const L = (await fs.readdir(kat)).filter((x) => ID.test(x)).sort()
-    for (const stary of L.slice(0, Math.max(0, L.length - WERSJI_NA_PLIK))) await fs.rm(path.join(kat, stary), { force: true })
+    for (const stary of doUsuniecia((await fs.readdir(kat)).filter((x) => ID.test(x)))) await fs.rm(path.join(kat, stary), { force: true })
     return id
+}
+
+/** Wersje do usunięcia: starsze niż 30 dni, poza najnowszą w każdym tygodniu (tydzień = 7 dni od 1970-01-05, poniedziałek). */
+export function doUsuniecia(ids: string[], teraz = Date.now()): string[] {
+    const granica = teraz - DNI_PELNEJ_HISTORII * 864e5
+    const tydzien = (t: number) => Math.floor((t - Date.UTC(1970, 0, 5)) / (7 * 864e5))
+    const zostaja = new Map<number, string>()
+    const stare = ids.filter((id) => Date.parse(czasId(id)) < granica)
+    for (const id of stare.sort()) zostaja.set(tydzien(Date.parse(czasId(id))), id) // sort rosnąco – zostaje najnowsza w tygodniu
+    const keep = new Set(zostaja.values())
+    return stare.filter((id) => !keep.has(id))
 }
 
 export interface Wersja { id: string; czas: string; bajty: number }
@@ -192,9 +204,10 @@ export function odczytajZadanie(j: unknown): ZadanieKeystatic | null {
  * Przed zapisem Keystatic: wersje zmienianych plików tekstowych i kopia usuwanych w koszu.
  * Zwraca komunikat, gdy zapis trzeba odrzucić (usunięcie bez kopii w koszu), inaczej null.
  */
-export async function przedZapisemKeystatic(z: ZadanieKeystatic, opcje: { korzen?: string; opis?: (rel: string) => string | Promise<string> } = {}): Promise<{ odrzuc: string | null; wersje: number; kosz: string | null; ostrzezenia: string[] }> {
+export async function przedZapisemKeystatic(z: ZadanieKeystatic, opcje: { korzen?: string; opis?: (rel: string) => string | Promise<string>; etykiety?: (relC: string) => Record<string, string> } = {}): Promise<{ odrzuc: string | null; wersje: number; kosz: string | null; ostrzezenia: string[]; pola: Record<string, string[]> }> {
     const korzen = opcje.korzen ?? process.cwd()
     const ostrzezenia: string[] = []
+    const pola: Record<string, string[]> = {}
     let wersje = 0
     const usuwane = new Set(z.deletions.map((d) => d.path))
     for (const a of z.additions) {
@@ -203,7 +216,11 @@ export async function przedZapisemKeystatic(z: ZadanieKeystatic, opcje: { korzen
         try {
             const teraz = await czytaj(path.join(/*turbopackIgnore: true*/ korzen, ...a.path.split('/')))
             if (teraz === null || teraz.length > MAKS_TEKSTU) continue
-            if (teraz.equals(Buffer.from(a.contents, 'base64url'))) continue
+            const nowa = Buffer.from(a.contents, 'base64url')
+            if (teraz.equals(nowa)) continue
+            // „wróć do pracy”: nazwy zmienionych pól (plansza: „miejsce · opis, źródła”)
+            const zm = zmianyPol(a.path, teraz.toString('utf8'), nowa.toString('utf8'), opcje.etykiety?.(relC) ?? {})
+            if (zm?.length) pola[a.path] = zm.map((x) => x.etykieta)
             await zapiszWersje(korzen, relC, teraz); wersje++
         } catch (e) { ostrzezenia.push(`${a.path}: ${e instanceof BrakKataloguKopii ? 'brak katalogu historii' : (e as Error).message}`) }
     }
@@ -215,10 +232,10 @@ export async function przedZapisemKeystatic(z: ZadanieKeystatic, opcje: { korzen
             const glowny = doKoszaSciezki.find((p) => TEKST.test(p)) ?? doKoszaSciezki[0]
             kosz = await doKosza(korzen, doKoszaSciezki, opcje.opis ? await opcje.opis(glowny) : glowny)
         } catch (e) {
-            return { odrzuc: e instanceof BrakKataloguKopii ? `Usunięcie wstrzymane: ${e.message}` : `Usunięcie wstrzymane – nie udało się zapisać kopii w koszu (${(e as Error).message}).`, wersje, kosz: null, ostrzezenia }
+            return { odrzuc: e instanceof BrakKataloguKopii ? `Usunięcie wstrzymane: ${e.message}` : `Usunięcie wstrzymane – nie udało się zapisać kopii w koszu (${(e as Error).message}).`, wersje, kosz: null, ostrzezenia, pola }
         }
     }
-    return { odrzuc: null, wersje, kosz, ostrzezenia }
+    return { odrzuc: null, wersje, kosz, ostrzezenia, pola }
 }
 
 // ---------- różnica wierszy ----------
@@ -257,4 +274,64 @@ export function roznica(z: string, na: string, kontekst = 3): WierszRoznicy[] {
     })
     if (pominiete) wyn.push({ t: '…', n: pominiete })
     return wyn
+}
+
+// ---------- oś historii jednego pliku (szuflada „historia”, plansza funkcji 4) ----------
+export interface WpisHistorii {
+    klucz: string; zrodlo: 'keystatic' | 'operacja'; czas: string; opis: string
+    zmiany: ZmianaPola[] | null; mozna: boolean; wersja?: string; operacja?: string
+}
+
+async function trescKopiiOperacji(korzen: string, id: string, nazwa: string | null): Promise<string | null> {
+    if (nazwa === null) return null
+    const b = await czytaj(path.join(/*turbopackIgnore: true*/ katalogKopii(korzen, '_operacje'), id, nazwa))
+    return b ? b.toString('utf8') : null
+}
+
+/**
+ * Wpisy historii pliku (najnowsze pierwsze): zapisy Keystatic (wersja = treść przed zapisem; zmiana = ta wersja → następna
+ * znana treść) i operacje dotykające pliku (zmiana zbiorcza, import, przywrócenie – kopie przed/po z content/_operacje).
+ * „Przywróć poprzednią” = treść sprzed danej zmiany.
+ */
+export async function osHistorii(relC: string, etykiety: Record<string, string>, korzen = process.cwd(), maks = 40): Promise<WpisHistorii[]> {
+    const wersje = (await listaWersji(relC, korzen)).slice(0, maks)
+    const teraz = await trescBiezaca(relC, korzen)
+    const plik = `content/${relC}`
+    const wyn: WpisHistorii[] = []
+    let nastepna = teraz
+    for (const w of wersje) {
+        const t = await trescWersji(relC, w.id, korzen)
+        wyn.push({ klucz: `k-${w.id}`, zrodlo: 'keystatic', czas: w.czas, opis: 'zapis w Keystatic', zmiany: zmianyPol(plik, t, nastepna, etykiety), mozna: t !== null && t !== teraz, wersja: w.id })
+        nastepna = t
+    }
+    for (const m of (await listaOperacji(korzen)).slice(0, 200)) {
+        const z = m.zmiany.find((x) => x.plik === relC)
+        if (!z || (m.stan !== 'zapisane' && m.stan !== 'dokonczone' && m.stan !== 'cofniete')) continue
+        const [przed, po] = await Promise.all([trescKopiiOperacji(korzen, m.id, z.przed), trescKopiiOperacji(korzen, m.id, z.po)])
+        const nazwa = NAZWY_OPERACJI[m.rodzaj] ?? m.rodzaj
+        wyn.push({ klucz: `o-${m.id}`, zrodlo: 'operacja', czas: m.zakonczono ?? m.utworzono, opis: m.cofa ? `${nazwa} (cofnięcie)` : nazwa,
+            zmiany: zmianyPol(plik, przed, po, etykiety), mozna: przed !== null && przed !== teraz, operacja: m.id })
+    }
+    return wyn.sort((a, b) => b.czas.localeCompare(a.czas)).slice(0, maks)
+}
+
+/** „Przywróć poprzednią” przy operacji: treść pliku sprzed operacji (kopia „przed”), jako nowa operacja do cofnięcia. */
+export async function przywrocSprzedOperacji(relC: string, opId: string, opcje: { korzen?: string; sprawdz?: () => Promise<void> } = {}): Promise<WynikOperacji> {
+    const korzen = opcje.korzen ?? process.cwd()
+    const m = await wczytajManifest(opId, korzen)
+    const z = m?.zmiany.find((x) => x.plik === relC)
+    if (!m || !z) throw new Error('Nie ma takiej operacji dla tego wpisu.')
+    const stara = await trescKopiiOperacji(korzen, m.id, z.przed)
+    if (stara === null) throw new Error('Przed tą operacją wpisu nie było – usuń go w Keystatic, jeśli trzeba.')
+    const teraz = await trescBiezaca(relC, korzen)
+    if (stara === teraz) throw new Error('Treść jest już taka jak przed tą operacją.')
+    if (teraz !== null) await zapiszWersje(korzen, relC, teraz)
+    return wykonajOperacje({ korzen, rodzaj: 'przywrocenie', opis: `przywrócenie sprzed „${m.opis.slice(0, 120)}”: ${relC}`,
+        zmiany: [{ plik: relC, poprzedni: teraz, wynik: stara }], sprawdz: opcje.sprawdz, szczegoly: { sprzedOperacji: opId } })
+}
+
+/** Kosz dla rodzaju treści pliku (ten sam katalog kolekcji) – sekcja „kosz treści” w szufladzie. */
+export async function koszRodzaju(relC: string, korzen = process.cwd()): Promise<PozycjaKoszaTresci[]> {
+    const kat = `content/${relC.split('/').slice(0, -1).join('/')}/`
+    return (await listaKoszaTresci(korzen)).filter((k) => k.pliki.some((p) => p.sciezka.startsWith(kat)))
 }
