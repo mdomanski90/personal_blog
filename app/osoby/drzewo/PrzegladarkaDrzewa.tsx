@@ -120,8 +120,11 @@ function WidokDrzewa({ html, osoby, od, rody, ustawPokolenia }: Wlasciwosci & { 
     const caleWOknie = React.useCallback(() => {
         const { fig, przew, plansza } = elementy()
         if (!fig || !przew || !plansza) return
-        const fs = Number.parseFloat(getComputedStyle(fig).getPropertyValue('--font-scale')) || 1
-        plynnie(dopasowana(przew.clientWidth, przew.clientHeight, Number.parseFloat(plansza.style.width) * fs, Number.parseFloat(plansza.style.height) * fs), 0, 0)
+        // kolumna nazw pokoleń ma stałą szerokość na ekranie – odjęta od okna; treść planszy w jej jednostkach × A±
+        const cs = getComputedStyle(fig)
+        const fs = Number.parseFloat(cs.getPropertyValue('--font-scale')) || 1
+        const lewa = (Number.parseFloat(cs.getPropertyValue('--dr-lewa')) || 0) * fs
+        plynnie(dopasowana(przew.clientWidth - lewa, przew.clientHeight, Number(plansza.dataset.szer) * fs, Number(plansza.dataset.wys) * fs), 0, 0)
     }, [plynnie])
 
     // drzewo z serwera: wspólna obsługa (strzałki, przeciąganie), własny pasek apletu zamiast paska drzewa

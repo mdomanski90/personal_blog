@@ -95,6 +95,11 @@ function krok(nazwa: string, akcja: 'wstecz' | 'naprzod', rodzaj: string) {
 
 /** Obsługa jednego drzewa. Eksport (DRZ-01, P3): karta osoby wywołuje ją sama przy każdym nowym drzewie (DrzewoKarty) –
  *  po zmianie liczby pokoleń drzewo jest wstawiane od nowa, a efekt strony uruchamia się tylko raz. */
+/** pełna szerokość kolumny nazw pokoleń na ekranie (przy A± = 1) i próg zwinięcia – część szerokości okna drzewa
+ *  (25 %: drzewo na karcie osoby ok. 700 px i całe drzewo ok. 1000 px zostają z pełnymi nazwami; telefon – skrót) */
+const SZER_POKOLEN = 164
+const PROG_POKOLEN = 0.25
+
 export function przygotuj(fig: HTMLElement, opcje: OpcjeObslugiDrzewa = {}): () => void {
     const przewOrg = fig.querySelector<HTMLElement>(':scope > .dr-przewijanie')
     if (!przewOrg || fig.dataset.drzewoGotowe) return () => {}
@@ -360,9 +365,20 @@ export function przygotuj(fig: HTMLElement, opcje: OpcjeObslugiDrzewa = {}): () 
     przew.addEventListener('pointerdown', dol)
     window.addEventListener('pointermove', ruch)
     window.addEventListener('pointerup', gora)
+    // łatka po PK (odbiór 18.11): kolumna nazw pokoleń zwija się do skrótu (↑2 / • / ↓1), gdy pełna zajęłaby ponad
+    // PROG_POKOLEN szerokości okna drzewa; pełna szerokość stała na ekranie (164 px × A±), nie rośnie z przybliżeniem
+    const zwinPokolenia = () => {
+        const fs = Number.parseFloat(getComputedStyle(fig).getPropertyValue('--font-scale')) || 1
+        fig.classList.toggle('dr-pokolenia-waskie', przew.clientWidth > 0 && SZER_POKOLEN * fs > PROG_POKOLEN * przew.clientWidth)
+    }
+    zwinPokolenia()
+    const obserwator = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(zwinPokolenia)
+    obserwator?.observe(przew)
     wysrodkuj(przew)
     document.fonts?.ready.then(() => wysrodkuj(przew)).catch(() => {})
     return () => {
+        obserwator?.disconnect()
+        fig.classList.remove('dr-pokolenia-waskie')
         document.removeEventListener('keydown', klawisz)
         document.removeEventListener('fullscreenchange', zmianaFs)
         window.removeEventListener('pointermove', ruch)

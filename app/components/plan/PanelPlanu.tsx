@@ -95,8 +95,10 @@ export function WynikiSzukania({ wyniki, wybrany, wybierz, opis, numery, pustoUw
 }
 
 // ---------- legenda (przełączniki typów) i legenda numerowana (PH-08) ----------
-export function LegendaTypow({ uzyte, prefix, wylaczone, przelacz, wszystkie, rodzina }: {
+/** groby – 18.11: dla typów grobowych liczby opisanych i bez opisu; pozycja legendy pokazuje wtedy obie próbki (jeden przycisk ukrywa cały typ) */
+export function LegendaTypow({ uzyte, prefix, wylaczone, przelacz, wszystkie, rodzina, groby }: {
     uzyte: { t: TypElementu; n: number }[]; prefix: string; wylaczone: Set<string>; przelacz: (id: string) => void; wszystkie: () => void; rodzina?: boolean
+    groby?: Map<string, { opisane: number; bezOpisu: number }>
 }) {
     if (!uzyte.length) return null
     return (
@@ -107,8 +109,21 @@ export function LegendaTypow({ uzyte, prefix, wylaczone, przelacz, wszystkie, ro
                     {uzyte.map(({ t, n }) => (
                         <li key={t.id}>
                             <button type="button" className="plan-panel-typ" onClick={() => przelacz(t.id)} aria-pressed={!wylaczone.has(t.id)}>
-                                <Probka typ={t} prefix={prefix} />
-                                <span>{t.nazwa.replace(/ \(.*\)$/, '')}{n > 1 && <span className="plan-panel-liczba"> · {n}</span>}</span>
+                                {groby?.get(t.id) ? (
+                                    <span className="plan-panel-typ-groby">
+                                        {([['opis', 'opisany', groby.get(t.id)!.opisane], ['bez', 'bez opisu', groby.get(t.id)!.bezOpisu]] as const).filter(([, , ile]) => ile > 0).map(([w, nazwa, ile]) => (
+                                            <span key={w} className="plan-panel-typ-wiersz">
+                                                <Probka typ={t} prefix={prefix} wariant={w} />
+                                                <span>{t.nazwa.replace(/ \(.*\)$/, '')} {nazwa}<span className="plan-panel-liczba"> · {ile}</span></span>
+                                            </span>
+                                        ))}
+                                    </span>
+                                ) : (
+                                    <>
+                                        <Probka typ={t} prefix={prefix} />
+                                        <span>{t.nazwa.replace(/ \(.*\)$/, '')}{n > 1 && <span className="plan-panel-liczba"> · {n}</span>}</span>
+                                    </>
+                                )}
                             </button>
                         </li>
                     ))}

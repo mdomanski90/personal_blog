@@ -351,7 +351,7 @@ export interface OpcjeRysunku {
     podklady?: { p: Podklad; adres: string; krycie?: number }[]
     /** w edytorze: ukryte warstwy */
     ukryteWarstwy?: Set<string>
-    /** etap 3 · CEM-09: groby opisane (z danych jawnych – lib/plany/przegladarka.ts opisany()) – krótka kreska w kolorze obwódki grobu */
+    /** etap 3 · CEM-09 / 18.11: groby opisane (z danych jawnych – lib/plany/przegladarka.ts opisany()) – pełne wypełnienie; pozostałe groby jasne z przerywanym obrysem */
     opisane?: Set<string>
     edycja?: boolean
 }
@@ -487,7 +487,7 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
         const waga = (e: Element) => (e.g.k === 'w' || e.g.k === 'r' ? -pole(punktyElementu(e.g)) : e.g.k === 'l' ? 1 : 2)
         const L = [...(wg.get(w) ?? [])].sort((a, b) => waga(a) - waga(b))
         if (!L.length) return null
-        const linie: Linia[] = [], inne: React.ReactNode[] = [], napisyGrobow: React.ReactNode[] = []
+        const linie: Linia[] = [], inne: React.ReactNode[] = []
         for (const e of L) {
             const t = typy.get(e.typ)!
             const g = e.g, id = e.id
@@ -538,18 +538,15 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
                     break
                 case 'grob': {
                     const wyb = o.wybrane?.has(id), wyr = o.wyroznione?.has(id), rodz = o.rodzina?.has(id)
-                    // CEM-09: znak „opisany” – kreska równoległa do pierwszego boku, bliżej niego (na dole grobu w typowym rysunku)
-                    if (o.opisane?.has(id) && pts.length >= 3) {
-                        const [a, b] = pts, [sx, sy] = srodek(g), dl = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1
-                        const dx = (b[0] - a[0]) / dl, dy = (b[1] - a[1]) / dl, L = Math.min(dl * 0.3, u * 0.5)
-                        const mx = sx + ((a[0] + b[0]) / 2 - sx) * 0.5, my = sy + ((a[1] + b[1]) / 2 - sy) * 0.5
-                        napisyGrobow.push(<line key={'op' + id} x1={mx - dx * L} y1={my - dy * L} x2={mx + dx * L} y2={my + dy * L} className="pl-opisany" style={/* styl-dynamiczny: grubość z jednostki planu */ { strokeWidth: Math.max(u * 0.07, 0.4) }} />)
-                    }
+                    // 18.11 („opisane pełne”, zastępuje kreskę CEM-09): opisany – pełne, ciemniejsze wypełnienie i wyraźny obrys;
+                    // bez opisu – jasne wypełnienie i cienki przerywany obrys (różnica nie tylko kolorem). Bez podziału, gdy plan go nie pokazuje.
+                    const podzial = !!o.opisane, opis = podzial && !!o.opisane?.has(id)
                     inne.push(
                         <polygon key={id} {...dane} points={P(pts)} style={/* styl-dynamiczny: rysunek SVG – grubości i kreski z jednostki planu, kolory z tokenów --pl-* wg typu elementu */ {
-                            fill: wyb || wyr ? v('akcent-tlo') : rodz ? v('rodzina-tlo') : e.stan === 'nie-istnieje' ? 'transparent' : v('grob'),
-                            stroke: wyb || wyr ? v('akcent') : rodz ? v('rodzina') : v('grob-obw'), strokeWidth: wyb ? u * 0.12 : wyr || rodz ? u * 0.1 : Math.max(u * 0.03, 0.5),
-                            strokeDasharray: e.stan === 'nie-istnieje' ? `${u * 0.1} ${u * 0.08}` : undefined,
+                            fill: wyb || wyr ? v('akcent-tlo') : rodz ? v('rodzina-tlo') : e.stan === 'nie-istnieje' ? 'transparent' : v(opis ? 'grob-opis' : 'grob'),
+                            stroke: wyb || wyr ? v('akcent') : rodz ? v('rodzina') : v(opis ? 'grob-opis-obw' : 'grob-obw'),
+                            strokeWidth: wyb ? u * 0.12 : wyr || rodz ? u * 0.1 : opis ? Math.max(u * 0.06, 0.8) : Math.max(u * 0.03, 0.5),
+                            strokeDasharray: e.stan === 'nie-istnieje' ? `${u * 0.1} ${u * 0.08}` : podzial && !opis && !wyb && !wyr && !rodz ? `${u * 0.08} ${u * 0.06}` : undefined,
                             opacity: o.rodzina && !rodz && !wyb ? 0.35 : undefined,
                         }} />,
                     )
@@ -581,7 +578,6 @@ export function RysunekPlanu({ plan, o }: { plan: Plan; o: OpcjeRysunku }) {
         return (
             <g key={w} data-warstwa={w}>
                 {inne}
-                {napisyGrobow.length > 0 && <g pointerEvents="none" data-znak="opisany">{napisyGrobow}</g>}
                 {linie.length > 0 && <SiecDrog linie={linie} u={u} />}
                 {linie.filter((l) => !['droga', 'polna', 'alejka', 'ulica'].includes(l.rys)).map((l) => <g key={'l' + l.e.id}><LiniaInna l={l} u={u} /></g>)}
                 {/* szersze, niewidoczne pasy do klikania w linie */}

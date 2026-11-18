@@ -15,7 +15,8 @@ export function WzoryProbek({ prefix }: { prefix: string }) {
     )
 }
 
-export function Probka({ typ, prefix, w = 26, h = 18 }: { typ: TypElementu; prefix: string; w?: number; h?: number }) {
+/** wariant – 18.11: próbka grobu opisanego (pełna) albo bez opisu (jasna, przerywany obrys) */
+export function Probka({ typ, prefix, w = 26, h = 18, wariant }: { typ: TypElementu; prefix: string; w?: number; h?: number; wariant?: 'opis' | 'bez' }) {
     const okr: React.CSSProperties = { fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
     const lin = (stroke: string, sw: number, dash?: string, pod?: [string, number], cap: 'round' | 'butt' = 'round') => (
         <>
@@ -56,7 +57,11 @@ export function Probka({ typ, prefix, w = 26, h = 18 }: { typ: TypElementu; pref
             break
         case 'budynek': tresc = <rect x={w / 2 - 5} y="2" width="10" height={h - 4} className="pl-f-bud" />; break
         case 'gosp': tresc = <rect x="2" y={h / 2 - 3} width={w - 4} height="6" className="pl-f-gosp" />; break
-        case 'grob': tresc = <><rect x="6" y="2" width="5.5" height={h - 4} className="pl-p-grob" /><rect x="14.5" y="2" width="5.5" height={h - 4} className="pl-p-grob" /></>; break
+        case 'grob': {
+            const k = wariant === 'opis' ? 'pl-p-grob-opis' : wariant === 'bez' ? 'pl-p-grob-bez' : 'pl-p-grob'
+            tresc = <><rect x="6" y="2" width="5.5" height={h - 4} className={k} /><rect x="14.5" y="2" width="5.5" height={h - 4} className={k} /></>
+            break
+        }
         case 'droga': tresc = lin(v('droga'), 4, undefined, [v('droga-obw'), 6]); break
         case 'alejka': tresc = lin(v('alejka'), 4, undefined, [v('alejka-obw'), 5.6]); break
         case 'polna': tresc = lin(v('polna'), 1.3, '4.5 2.5', [v('polna-tlo'), 5]); break

@@ -83,6 +83,18 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, osoby =
     // CEM-08/09: liczby pustego panelu i znak „opisany” – z planu dla czytelnika (dane jawne)
     const stan = React.useMemo(() => stanPlanu(plan, typy, new Set(Object.keys(osoby))), [plan, typy, osoby])
     const opisane = React.useMemo(() => new Set(plan.elementy.filter((e) => typGrobu(typy.get(e.typ)) && opisany(e)).map((e) => e.id)), [plan, typy])
+    // 18.11: legenda grobów rozdzielona na opisane i bez opisu (tylko gdy plan pokazuje ten podział)
+    const grobyLegendy = React.useMemo(() => {
+        if (!interfejs.grobowy) return undefined
+        const m = new Map<string, { opisane: number; bezOpisu: number }>()
+        for (const e of plan.elementy) {
+            if (!typGrobu(typy.get(e.typ))) continue
+            const r = m.get(e.typ) ?? { opisane: 0, bezOpisu: 0 }
+            if (opisane.has(e.id)) r.opisane++; else r.bezOpisu++
+            m.set(e.typ, r)
+        }
+        return m
+    }, [plan, typy, opisane, interfejs.grobowy])
     const kwatery = React.useMemo(() => kwateryPlanu(plan, typy, numery), [plan, typy, numery])
     const doOdczytania = React.useMemo(() => (interfejs.grobowy ? napisyDoOdczytania(plan, typy) : []), [plan, typy, interfejs.grobowy])
     const el = wybrany ? elementy.get(wybrany) ?? null : null
@@ -375,7 +387,7 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, osoby =
                 </>
             )}
             <LegendaNumerowana elementy={numerowane} typy={typy} pokaz={(e) => pokazElement(e)} wybrany={wybrany} />
-            <LegendaTypow uzyte={uzyte} prefix={`${prefix}-sw`} wylaczone={wylaczone} rodzina={!!rodzina}
+            <LegendaTypow uzyte={uzyte} prefix={`${prefix}-sw`} wylaczone={wylaczone} rodzina={!!rodzina} groby={grobyLegendy}
                 przelacz={(id) => ustawWylaczone((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })} wszystkie={() => ustawWylaczone(new Set())} />
             {plan.podklady.length > 0 && (
                 <CalyPanelu><label className="plan-panel-wybor"><input type="checkbox" checked={podklad} onChange={(e) => ustawPodklad(e.target.checked)} /> podkład pod rysunkiem</label></CalyPanelu>

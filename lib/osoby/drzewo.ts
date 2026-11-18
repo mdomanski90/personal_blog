@@ -361,8 +361,17 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
         return new Tag('ul', { class: 'dr-grupa', 'aria-label': nazwyPokolen(pierwszy + i) }, karty.map((k) => new Tag('li', {}, [kartaT(k)])))
     })
     const wys = n * WIERSZ
-    const plansza = new Tag('div', { class: 'dr-plansza', style: `--wc:${Math.ceil(szer)}px;width:${LEWA + Math.ceil(szer) + PRAWA}px;height:${wys}px` }, [
-        ...Array.from({ length: n }, (_, i) => new Tag('div', { class: `dr-wiersz${i === n - 1 ? ' dr-ostatni' : ''}`, style: `top:${i * WIERSZ}px`, 'aria-hidden': 'true' }, [new Tag('span', { class: 'dr-pokol' }, [nazwyPokolen(pierwszy + i)])])),
+    // łatka po PK (odbiór 18.11): kolumna nazw pokoleń ma stałą szerokość na ekranie (nie rośnie z przybliżeniem –
+    // --dr-lewa dzielone przez --dr-skala w CSS); gdy zajęłaby za dużo okna, zwija się do skrótu (↑2, •, ↓1) – DrzewaLinie.
+    // data-szer / data-wys: rozmiar treści w jednostkach planszy (dopasowanie „całe drzewo w oknie”).
+    const plansza = new Tag('div', { class: 'dr-plansza', 'data-szer': String(Math.ceil(szer) + PRAWA), 'data-wys': String(wys), style: `--wc:${Math.ceil(szer)}px;width:calc(var(--dr-lewa, ${LEWA}px) / var(--dr-skala, 1) + ${Math.ceil(szer) + PRAWA}px);height:${wys}px` }, [
+        ...Array.from({ length: n }, (_, i) => {
+            const g = rM - (pierwszy + i)
+            const pelna = nazwyPokolen(pierwszy + i)
+            return new Tag('div', { class: `dr-wiersz${i === n - 1 ? ' dr-ostatni' : ''}`, style: `top:${i * WIERSZ}px`, 'aria-hidden': 'true' }, [
+                new Tag('span', { class: 'dr-pokol', title: pelna }, [new Tag('span', { class: 'dr-pokol-pelna' }, [pelna]), new Tag('span', { class: 'dr-pokol-skrot' }, [g > 0 ? `↑${g}` : g < 0 ? `↓${-g}` : '•'])]),
+            ])
+        }),
         new Tag('div', { class: 'dr-tresc', style: `width:${Math.ceil(szer)}px;height:${wys}px` }, [
             new Tag('svg', { class: 'dr-linie', width: String(Math.ceil(szer)), height: String(wys), viewBox: `0 0 ${Math.ceil(szer)} ${wys}`, 'aria-hidden': 'true' }, [new Tag('path', { d: sciezki.join('') }, []), ...(podzial !== null ? [new Tag('path', { class: 'dr-podzial', d: `M${ox(podzial)} ${oy(pierwszy * WIERSZ + 26)}V${oy(yGory(rM - 1) - 6)}` }, [])] : [])]),
             ...pokolenia,
