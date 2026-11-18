@@ -27,7 +27,7 @@
     "@keystatic/core": "^0.6.10",
     "@keystatic/next": "^5.0.4",
     "@markdoc/markdoc": "^0.5.4",
-    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-dropdown-menu": "^2.2.1",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
