@@ -1504,6 +1504,11 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 .spis-ramka.sd-zwiniety:not(.sd-pokaz) .spis-dzialow li:not(:has(>a[aria-current])){display:none}
 .spis-ramka.sd-zwiniety.sd-pokaz{flex-direction:column;align-items:stretch}
 .spis-ramka.sd-zwiniety.sd-pokaz .sd-wiecej{align-self:flex-end}
+/* ustalenie z planszy 17.11: zwinięty spis – wybrany dział w szerokości jednej kolumny rozwiniętego spisu (2 kolumny, odstęp 40 px); telefon bez zmian */
+@media (min-width:641px){
+  .spis-ramka.sd-zwiniety:not(.sd-pokaz) .spis-dzialow,
+  body:has(.k-filtry-ramka[open]) .spis-ramka:not(.sd-pokaz) .spis-dzialow{flex:0 1 calc((100% - 40px) / 2)}
+}
 /* opisy działów pod spisem biblioteki */
 
 /* ============================================ */
