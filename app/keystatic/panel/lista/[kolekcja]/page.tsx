@@ -19,7 +19,8 @@ async function post<T>(url: string, body: unknown): Promise<{ ok: boolean; dane:
 }
 
 export default function ListaPanelu() {
-    const { kolekcja } = useParams<{ kolekcja: string }>()
+    // useParams bywa typowane jako „| null” (zależnie od środowiska budowy – na VPS tsc to wymaga); jak w panel/materialy/[id]
+    const kolekcja = useParams<{ kolekcja: string }>()?.kolekcja ?? ''
     const { dane: d, blad, odswiez } = useDane<DaneListy>(`${API}?kolekcja=${encodeURIComponent(kolekcja)}`)
     const [q, ustawQ] = React.useState('')
     const [filtry, ustawFiltry] = React.useState<Record<string, string>>({})

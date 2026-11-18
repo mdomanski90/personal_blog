@@ -55,3 +55,12 @@ test('panel nie ładuje się na stronach publicznych: arkusz importowany tylko w
     assert.doesNotMatch(czytaj('app/layout.tsx'), /panel\.css/)
     assert.doesNotMatch(czytaj('app/globals.css'), /panel\.css/)
 })
+
+test('łatka P5: useParams w panelu zawsze z ?. – na VPS typ zwraca „| null” i next build przerywał wdrożenie (TS2339)', () => {
+    const pliki = ['app/keystatic/panel/lista/[kolekcja]/page.tsx', 'app/keystatic/panel/materialy/[id]/page.tsx', 'app/keystatic/panel/materialy/[id]/objasnienia/page.tsx']
+    for (const p of pliki) {
+        const kod = czytaj(p)
+        for (const m of kod.matchAll(/useParams<[^>]*>\(\)(.{0,2})/g)) assert.equal(m[1], '?.', `${p}: useParams bez „?.”`)
+        assert.doesNotMatch(kod, /const \{[^}]*\} = useParams/, `${p}: destrukturyzacja wyniku useParams`)
+    }
+})
