@@ -123,19 +123,25 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
     const wszystkie = new Map<string, Awaited<ReturnType<typeof rekordy>>>()
     const nieczytelne = new Map<string, { plik: string; powod: string }[]>()
     for (const k of KOLEKCJE) { const pom: { plik: string; powod: string }[] = []; wszystkie.set(k, await rekordy(k, pom)); nieczytelne.set(k, pom) }
-    // SLW-04 (P3): słownik – także walidacja pól tak jak przy czytaniu strony (np. rodzaj spoza listy)
+    // SLW-04 (P3) → P5: każda kolekcja – walidacja pól tak jak przy czytaniu strony (np. rodzaj spoza listy, zły slug);
+    // strona taki wpis pomija (lib/kolekcja-odporna.ts), panel go pokazuje
     try {
         const { createReader } = await import('@keystatic/core/reader')
         const { wczytajOdpornie } = await import('../kolekcja-odporna')
         const cfg = (await import('../../keystatic.config')).default
-        const r = createReader(process.cwd(), cfg) as unknown as { collections: { hasla: { list: () => Promise<string[]>; read: (s: string) => Promise<unknown> } } }
-        for (const b of (await wczytajOdpornie(r.collections.hasla)).bledy) if (prawidloweId(b.slug)) nieczytelne.get('hasla')!.push({ plik: b.slug, powod: b.blad.replace(/^Error:\s*/, '').slice(0, 200) })
-    } catch { /* brak kolekcji albo konfiguracji – bez dodatkowej kontroli */ }
+        const r = createReader(process.cwd(), cfg) as unknown as { collections: Record<string, { list: () => Promise<string[]>; read: (s: string) => Promise<unknown> } | undefined> }
+        for (const k of KOLEKCJE) {
+            const kol = r.collections[k]
+            if (!kol) continue
+            const juz = new Set(nieczytelne.get(k)!.map((x) => x.plik.replace(/\.(mdoc|yaml|yml|json)$/, '')))
+            for (const b of (await wczytajOdpornie(kol)).bledy) if (b.slug !== '*' && !juz.has(b.slug)) nieczytelne.get(k)!.push({ plik: b.slug, powod: b.blad.replace(/^Error:\s*/, '').slice(0, 200) })
+        }
+    } catch { /* brak konfiguracji – bez dodatkowej kontroli */ }
     for (const [kolekcja, lista] of nieczytelne) lista.forEach((x, i) => {
         const id = key(kolekcja, x.plik, 'wpis-nieczytelny', i)
         const dec = stany.decyzje[id]
         wynik.push({ id, kolekcja, rekord: x.plik, tytul: x.plik, regula: 'wpis-nieczytelny', opis: `Wpis pominięty na stronie: ${x.powod}`,
-            wskazowka: kolekcja === 'hasla' ? 'Popraw wpis (identyfikator tylko małe litery bez polskich znaków, cyfry i łącznik; pola z listy). Pozostałe hasła słownika działają normalnie.' : 'Popraw nazwę pliku albo zawartość wpisu – do tego czasu strona go nie pokazuje.',
+            wskazowka: 'Popraw wpis w Keystatic (identyfikator tylko małe litery bez polskich znaków, cyfry i łącznik; pola z listy). Do tego czasu strona go nie pokazuje – pozostałe pozycje działają normalnie.',
             edytuj: `/keystatic/collection/${kolekcja}`, stan: dec?.stan ?? 'aktywne', notatka: dec?.notatka ?? '' })
     })
     const istnieje = new Map([...wszystkie].map(([k, l]) => [k, new Set(l.map((r) => r.slug))]))

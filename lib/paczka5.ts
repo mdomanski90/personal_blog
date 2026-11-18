@@ -1,6 +1,7 @@
 /** Paczka 5: współdzielone zasoby i filtrowanie; korzysta z tego samego lib/szukanie co wyszukiwarka globalna. */
 import * as React from 'react'
 import { createReader } from '@keystatic/core/reader'
+import { odpornyCzytnik } from './kolekcja-odporna'
 import type { Node } from '@markdoc/markdoc'
 import keystaticConfig from '../keystatic.config'
 import { materialy, lataMaterialu, widoczne, type Widocznosc, type Material } from './archiwum'
@@ -9,7 +10,8 @@ import { normalizuj, porownajPl } from './tekst'
 import { pasuje, przygotujZapytanie } from './szukanie'
 import { stronicuj } from './stronicowanie'
 
-const reader = createReader(process.cwd(), keystaticConfig)
+// P5: jeden błędny wpis nie wyłącza stron czytających kolekcję (lib/kolekcja-odporna.ts)
+const reader = odpornyCzytnik(createReader(process.cwd(), keystaticConfig))
 const cache: <T extends (...a: never[]) => unknown>(fn: T) => T =
   (React as unknown as { cache?: <T>(fn: T) => T }).cache ?? ((fn) => fn)
 

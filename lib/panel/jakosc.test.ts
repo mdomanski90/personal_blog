@@ -140,3 +140,17 @@ test('SLW-04 (P3): błędny wpis słownika widoczny w panelu jakości (dawniej p
         assert.ok(w.every((u) => u.kolekcja === 'hasla'))
     } finally { process.chdir(przed); await fs.rm(tmp, { recursive: true, force: true }) }
 })
+
+test('P5: błędny wpis w każdej kolekcji (np. obiekt z rodzajem spoza listy) widoczny w panelu jakości', async () => {
+    const przed = process.cwd()
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'odniepamieci-p5-jakosc-'))
+    try {
+        process.chdir(tmp)
+        await fs.mkdir('content/obiekty', { recursive: true })
+        await fs.writeFile('content/obiekty/obj-dobry.mdoc', '---\ntitle: Dobry\ntype: kapliczka\nexists: true\nvisibility: publiczne\n---\nOpis.\n')
+        await fs.writeFile('content/obiekty/obj-zly.mdoc', '---\ntitle: Zły\ntype: rodzaj-spoza-listy\nexists: true\nvisibility: publiczne\n---\nOpis.\n')
+        const w = (await uwagiJakosci()).filter((u) => u.regula === 'wpis-nieczytelny')
+        assert.deepEqual(w.map((u) => [u.kolekcja, u.rekord]), [['obiekty', 'obj-zly']])
+        assert.match(w[0].opis, /Wpis pominięty na stronie/)
+    } finally { process.chdir(przed); await fs.rm(tmp, { recursive: true, force: true }) }
+})

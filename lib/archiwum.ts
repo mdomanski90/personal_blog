@@ -10,7 +10,7 @@ import { kluczSortowania } from './edtf'
 import { naHtml, naTekst, rozdzielZrodla, zajawka, type KontekstTresci, type MaterialWstawki } from './markdoc'
 import { RODZAJE_MATERIALOW } from './materialy'
 import { formatujEdtf, zakresIso } from './edtf'
-import { wczytajOdpornie, type BladWpisu } from './kolekcja-odporna'
+import { odpornyCzytnik, wczytajOdpornie, type BladWpisu } from './kolekcja-odporna'
 import { bezNawiasow, fragment, ODNOSNIK, slownikOdnosnikow, wzorzecWzmianek, znajdzWzmianki, type Cel, type Fragment, type PozycjaSieci, type RodzajCelu, type Rozwiaz } from './odnosniki'
 import { porownajPl } from './tekst'
 import { adresStrony, stronyMaterialu } from './strony-materialow'
@@ -23,7 +23,8 @@ import { adresHasla } from './slownik'
 import { szukajIndeksowo, type DokumentSzukania, type Wynik } from './indeks-szukania'
 import { ksiegaDotyczyMiejsca } from './ksiegi-powiazania'
 
-const reader = createReader(process.cwd(), keystaticConfig)
+// P5: jeden błędny wpis nie wyłącza stron czytających kolekcję (lib/kolekcja-odporna.ts)
+const reader = odpornyCzytnik(createReader(process.cwd(), keystaticConfig))
 
 // React.cache (jeden odczyt na żądanie) działa w Next.js; w skryptach (eksport) go nie ma – wtedy bez pamięci.
 const cache: <T extends (...a: never[]) => unknown>(fn: T) => T =
