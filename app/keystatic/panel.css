@@ -407,3 +407,12 @@ html.kui-scheme--dark, .pn .kui-scheme--dark {
 .pn-diff-do { background: var(--pn-do-tlo); color: var(--pn-do); }
 .pn-diff-do .pn-diff-znak { color: var(--pn-do); }
 .pn-diff > .pn-diff-zw { display: block; color: var(--pn-szary); font-family: var(--pn-font); font-size: 12px; padding: 2px 10px; background: var(--pn-karta); }
+/* do opracowania (P6a): kolejka przewijana, tytuł uwagi, spis reguł */
+.pn-kolejka { max-height: min(70vh, 750px); overflow-y: auto; }
+.pn-lista-bez-znakow { list-style: none; margin: 0; padding: 0; }
+.pn-lamanie { overflow-wrap: anywhere; }
+.pn-tytul-uwagi { font-size: 19px; margin: 0; }
+.pn-rozsuniete { justify-content: space-between; }
+.pn-link-btn { border: 0; background: none; padding: 0; font: inherit; color: var(--pn-akcent); cursor: pointer; text-decoration: underline; }
+.pn-reguly > summary { cursor: pointer; }
+.pn-reguly[open] > summary { margin-bottom: 10px; }

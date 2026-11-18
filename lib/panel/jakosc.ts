@@ -7,7 +7,13 @@ import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import matter from 'gray-matter'
 import { wczytajPrzekierowania, celPrzekierowania, RODZAJE_PRZEKIEROWAN, type Przekierowanie } from '../przekierowania'
-import { normalizuj } from '../tekst'
+import { normalizuj, odmiana } from '../tekst'
+import { zakresIso } from '../edtf'
+import { duplikaty, numeryPlanu, numerTekst, powtorzoneNazwyKwater } from '../plany/numeracja'
+import { napisyDoOdczytania } from '../plany/przegladarka'
+import { katalog } from '../plany/typy'
+import { wczytajUstawienia } from '../plany/dane'
+import type { Plan } from '../plany/model'
 import { odczytajLata } from '../ksiegi'
 import { objasnieniaMaterialu } from '../objasnienia'
 import { stronyMaterialu } from '../strony-materialow'
@@ -15,11 +21,16 @@ import { typPliku } from '../pliki'
 import { brakiMaterialu, brakiObiektu, OPISY_PANELU, zrodlaWTekscie } from '../wspoltworz-reguly'
 
 export type StanUwagi = 'aktywne' | 'odlozone' | 'ignorowane'
+export type WagaUwagi = 'blad' | 'brak' | 'wskazowka'
 export type UwagaJakosci = {
     id: string; kolekcja: string; rekord: string; tytul: string; regula: string
     opis: string; wskazowka: string; edytuj: string; stan: StanUwagi; notatka: string
+    /** P6a: waga reguły (spis REGULY_JAKOSCI) i termin odłożenia (ISO) */
+    waga?: WagaUwagi; do?: string
 }
-type Decyzja = { stan: Exclude<StanUwagi, 'aktywne'>; notatka: string; data: string }
+/** P6a (P6-D-02, decyzja 18.11): „odłóż” na 7 albo 30 dni – potem alert wraca; dawna decyzja bez terminu = 30 dni od daty decyzji. */
+type Decyzja = { stan: Exclude<StanUwagi, 'aktywne'>; notatka: string; data: string; do?: string }
+export const DNI_ODLOZENIA = [7, 30] as const
 type Pamiec = { wersja: 1; decyzje: Record<string, Decyzja> }
 const REGULY = [
     'bez-opisu', 'brak-wspolrzednych', 'brak-zrodla-opisu', 'przynaleznosc-bez-dat',
@@ -32,8 +43,47 @@ const REGULY = [
     // WSP-02 (etap R): braki pokazywane publicznie w „współtwórz” – jedna definicja w lib/wspoltworz-reguly.ts
     'brak-transkrypcji', 'brak-tlumaczenia', 'zdjecie-do-rozpoznania', 'brak-zdjecia-obiektu',
     // SLW-04 (P3): wpis, którego strona nie odczyta (zły identyfikator pliku, błąd składni, wartość spoza listy) – dawniej pomijany po cichu
-    'wpis-nieczytelny'
+    'wpis-nieczytelny',
+    // P6a (ADM-09, D-P6-08): duplikaty, daty nielogiczne, numery grobów, napisy do odczytania na planach
+    'mozliwy-duplikat', 'niepoprawna-data', 'powtorzony-numer-grobu', 'powtorzona-nazwa-kwatery', 'napisy-do-odczytania',
 ] as const
+export type RegulaJakosci = typeof REGULY[number]
+
+/**
+ * P6a (D-P6-08/09): spis reguł – waga, zakres i uzasadnienie. „Wskazówka” to brak, który bywa naturalny (np. autor nieustalony) –
+ * domyślnie schowana w kolejce. Test pilnuje, żeby każda reguła miała tu wpis.
+ */
+export const REGULY_JAKOSCI: Record<RegulaJakosci, { nazwa: string; waga: WagaUwagi; zakres: string; uzasadnienie: string }> = {
+    'wpis-nieczytelny': { nazwa: 'wpis nieczytelny dla strony', waga: 'blad', zakres: 'wszystkie kolekcje', uzasadnienie: 'Strona pomija taki wpis – czytelnik go nie zobaczy.' },
+    'relacja-do-nieistniejacego': { nazwa: 'powiązanie do nieistniejącego wpisu', waga: 'blad', zakres: 'pola powiązań, elementy planów', uzasadnienie: 'Odnośnik prowadzi donikąd albo powiązanie znika z karty.' },
+    'przekierowanie-bledne': { nazwa: 'błędne przekierowanie', waga: 'blad', zakres: 'tabela przekierowań', uzasadnienie: 'Stary adres nadal daje „nie znaleziono”.' },
+    'nieodczytane-lata': { nazwa: 'lata księgi nieodczytane', waga: 'blad', zakres: 'księgi i tomy', uzasadnienie: 'Księga wypada z filtra i paska lat.' },
+    'niepoprawna-data': { nazwa: 'data nielogiczna', waga: 'blad', zakres: 'pola dat (EDTF)', uzasadnienie: 'Rok z przyszłości albo koniec przed początkiem – oś czasu i sortowanie pokażą bzdurę (zapis, którego strona nie odczyta, to „wpis nieczytelny”).' },
+    'powtorzony-numer-grobu': { nazwa: 'powtórzony numer grobu', waga: 'blad', zakres: 'plany cmentarzy', uzasadnienie: 'Dwa groby z tym samym numerem – czytelnik nie wie, który to; nowe powtórzenia odrzuca już zapis planu.' },
+    'powtorzona-nazwa-kwatery': { nazwa: 'powtórzona nazwa kwatery', waga: 'blad', zakres: 'plany cmentarzy', uzasadnienie: 'Numery grobów w dwóch kwaterach wyglądają tak samo.' },
+    'bez-opisu': { nazwa: 'brak opisu', waga: 'brak', zakres: 'miejsca, obiekty, wpisy, tematy, zbiory, biogramy, instytucje', uzasadnienie: 'Karta bez opisu mówi czytelnikowi niewiele.' },
+    'brak-wspolrzednych': { nazwa: 'brak współrzędnych', waga: 'brak', zakres: 'miejsca (wsie, miasta, folwarki), obiekty', uzasadnienie: 'Bez współrzędnych pozycja nie pojawi się na mapie.' },
+    'brak-miejscowosci': { nazwa: 'obiekt bez miejscowości', waga: 'brak', zakres: 'obiekty', uzasadnienie: 'Obiekt nie pojawi się na karcie miejscowości.' },
+    'brak-siedziby': { nazwa: 'brak siedziby instytucji', waga: 'brak', zakres: 'instytucje', uzasadnienie: 'Instytucja nie pojawi się przy miejscowości.' },
+    'brak-pochodzenia': { nazwa: 'brak pochodzenia', waga: 'brak', zakres: 'materiały, zbiory', uzasadnienie: 'Źródło musi być wyraźnie podane (zasada 5.4).' },
+    'brak-praw': { nazwa: 'brak informacji o prawach', waga: 'brak', zakres: 'materiały', uzasadnienie: 'Bez praw nie wiadomo, czy materiał można pokazać.' },
+    'brak-lat': { nazwa: 'brak lat i tomów', waga: 'brak', zakres: 'księgi', uzasadnienie: 'Księga bez lat nie trafi do filtra lat.' },
+    'brak-archiwum': { nazwa: 'brak miejsca przechowywania', waga: 'brak', zakres: 'księgi, zespoły', uzasadnienie: 'Czytelnik nie wie, gdzie szukać oryginału.' },
+    'brak-sygnatury': { nazwa: 'brak sygnatury', waga: 'brak', zakres: 'księgi', uzasadnienie: 'Bez sygnatury księgi nie da się zamówić w archiwum.' },
+    'brak-definicji': { nazwa: 'hasło bez definicji', waga: 'brak', zakres: 'słownik', uzasadnienie: 'Hasło bez znaczenia nic nie wyjaśnia.' },
+    'brak-instytucji': { nazwa: 'brak instytucji', waga: 'brak', zakres: 'materiały', uzasadnienie: 'Materiał nie trafi na kartę instytucji.' },
+    'brak-transkrypcji': { nazwa: 'brak odczytu', waga: 'brak', zakres: 'materiały ze skanem', uzasadnienie: 'Pismo odręczne bez odczytu jest dla wielu nieczytelne (także „współtwórz”).' },
+    'brak-tlumaczenia': { nazwa: 'brak tłumaczenia', waga: 'brak', zakres: 'materiały w obcym języku', uzasadnienie: 'Tekst po rosyjsku, łacinie, niemiecku – bez tłumaczenia mało kto skorzysta.' },
+    'zdjecie-do-rozpoznania': { nazwa: 'zdjęcie do rozpoznania', waga: 'brak', zakres: 'zdjęcia w materiałach', uzasadnienie: 'Bez opisu, kto i gdzie – zdjęcie traci wartość źródła.' },
+    'brak-zdjecia-obiektu': { nazwa: 'obiekt bez zdjęcia', waga: 'brak', zakres: 'obiekty istniejące', uzasadnienie: 'Zdjęcie potwierdza stan obiektu.' },
+    'napisy-do-odczytania': { nazwa: 'napisy do odczytania', waga: 'brak', zakres: 'plany cmentarzy', uzasadnienie: 'Groby ze zdjęciem nagrobka i bez odczytanego napisu (jedna uwaga na plan, jak w „współtwórz”).' },
+    'brak-zrodla-opisu': { nazwa: 'opis bez źródła', waga: 'wskazowka', zakres: 'miejsca', uzasadnienie: 'Źródło pomaga ocenić opis – bywa nieznane.' },
+    'przynaleznosc-bez-dat': { nazwa: 'okres przynależności nieustalony', waga: 'wskazowka', zakres: 'miejsca → parafie', uzasadnienie: 'Daty często nieznane – nie zgadujemy.' },
+    'brak-autora': { nazwa: 'brak autora', waga: 'wskazowka', zakres: 'publikacje', uzasadnienie: 'Autor bywa nieustalony.' },
+    'brak-roku': { nazwa: 'brak roku wydania', waga: 'wskazowka', zakres: 'publikacje', uzasadnienie: 'Rok bywa nieznany.' },
+    'brak-linku': { nazwa: 'brak adresu publikacji', waga: 'wskazowka', zakres: 'publikacje', uzasadnienie: 'Link jest opcjonalny – wiele publikacji nie ma wersji online.' },
+    'mozliwy-duplikat': { nazwa: 'możliwy duplikat', waga: 'wskazowka', zakres: 'kolekcje z tytułem', uzasadnienie: 'Ta sama nazwa w dwóch wpisach – bywa słuszna (np. dwie wsie „Wola”), dlatego tylko wskazówka.' },
+}
 const KOLEKCJE = ['posts', 'miejsca', 'tematy', 'obiekty', 'materialy', 'zbiory', 'publikacje', 'parafie', 'hasla', 'biogramy', 'zespoly', 'ksiegi'] as const
 const DB = () => path.join(process.cwd(), 'content', '_panel', 'jakosc.json')
 const base = () => path.join(process.cwd(), 'content')
@@ -50,7 +100,7 @@ const nazwa = (x: unknown): string => {
     return ''
 }
 const pole = (d: Record<string, unknown>, ...k: string[]) => k.some(x => ma(d[x]))
-const key = (kolekcja: string, rekord: string, regula: string, pozycja?: number) => `${kolekcja}:${rekord}:${regula}${pozycja !== undefined ? `:${pozycja}` : ''}`
+const key = (kolekcja: string, rekord: string, regula: string, pozycja?: number | string) => `${kolekcja}:${rekord}:${regula}${pozycja !== undefined ? `:${pozycja}` : ''}`
 const prawidloweId = (s: string) => /^[a-z0-9][a-z0-9_-]{0,130}$/.test(s)
 
 async function pamiec(): Promise<Pamiec> {
@@ -117,8 +167,27 @@ export function wartosciPola(d: Record<string, unknown>, sciezka: string): strin
     return typeof v === 'string' && v.trim() ? [v] : []
 }
 
+/** Decyzja dla alertu: klucz stały, dawny klucz z pozycją (sprzed P6a) albo klucz ze starym identyfikatorem (tabela przekierowań). */
+function znajdzDecyzje(stany: Pamiec, klucze: string[], migracje: Map<string, string>): Decyzja | undefined {
+    const [nowy, ...dawne] = klucze
+    if (stany.decyzje[nowy]) return stany.decyzje[nowy]
+    for (const k of dawne) if (k !== nowy && stany.decyzje[k]) { migracje.set(k, nowy); return stany.decyzje[k] }
+    return undefined
+}
+/** Stan alertu z decyzji: odłożenie po terminie wraca do kolejki. */
+function zDecyzji(dec: Decyzja | undefined, teraz = Date.now()): { stan: StanUwagi; notatka: string; do?: string } {
+    if (!dec) return { stan: 'aktywne', notatka: '' }
+    if (dec.stan === 'odlozone') {
+        const termin = dec.do ?? new Date(Date.parse(dec.data) + 30 * 864e5).toISOString()
+        if (!(Date.parse(termin) > teraz)) return { stan: 'aktywne', notatka: dec.notatka }
+        return { stan: 'odlozone', notatka: dec.notatka, do: termin }
+    }
+    return { stan: dec.stan, notatka: dec.notatka }
+}
+
 export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
     const stany = await pamiec()
+    const migracje = new Map<string, string>()
     const wynik: UwagaJakosci[] = []
     const wszystkie = new Map<string, Awaited<ReturnType<typeof rekordy>>>()
     const nieczytelne = new Map<string, { plik: string; powod: string }[]>()
@@ -138,26 +207,50 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
         }
     } catch { /* brak konfiguracji – bez dodatkowej kontroli */ }
     for (const [kolekcja, lista] of nieczytelne) lista.forEach((x, i) => {
-        const id = key(kolekcja, x.plik, 'wpis-nieczytelny', i)
-        const dec = stany.decyzje[id]
+        // P6a: klucz bez pozycji na liście (dawniej „:i” – decyzja przeskakiwała na inny wpis, gdy przybył nowy błąd)
+        const id = key(kolekcja, x.plik, 'wpis-nieczytelny')
         wynik.push({ id, kolekcja, rekord: x.plik, tytul: x.plik, regula: 'wpis-nieczytelny', opis: `Wpis pominięty na stronie: ${x.powod}`,
             wskazowka: 'Popraw wpis w Keystatic (identyfikator tylko małe litery bez polskich znaków, cyfry i łącznik; pola z listy). Do tego czasu strona go nie pokazuje – pozostałe pozycje działają normalnie.',
-            edytuj: `/keystatic/collection/${kolekcja}`, stan: dec?.stan ?? 'aktywne', notatka: dec?.notatka ?? '' })
+            edytuj: `/keystatic/collection/${kolekcja}`, ...zDecyzji(znajdzDecyzje(stany, [id, key(kolekcja, x.plik, 'wpis-nieczytelny', i)], migracje)) })
     })
     const istnieje = new Map([...wszystkie].map(([k, l]) => [k, new Set(l.map((r) => r.slug))]))
     const przekierowania = await wczytajPrzekierowania()
+    // P6a (P6-15): po zmianie identyfikatora decyzja idzie za wpisem – stare identyfikatory z tabeli przekierowań
+    const stareId = new Map<string, string[]>()
+    for (const w of przekierowania) {
+        const kol = KOLEKCJA_RODZAJU[w.rodzaj], cel = celPrzekierowania(przekierowania, w.rodzaj, w.stary)
+        if (kol && cel) stareId.set(`${kol}:${cel}`, [...(stareId.get(`${kol}:${cel}`) ?? []), w.stary])
+    }
+    // P6a (ADM-09): możliwe duplikaty – ta sama nazwa (bez wielkości liter i znaków) w jednej kolekcji
+    const tytulyKolekcji = new Map<string, Map<string, string[]>>()
+    for (const [k, l] of wszystkie) {
+        const m = new Map<string, string[]>()
+        for (const r of l) { const t = normalizuj(nazwa(r.d.title) || nazwa(r.d.name)); if (t) m.set(t, [...(m.get(t) ?? []), r.slug]) }
+        tytulyKolekcji.set(k, m)
+    }
     for (const kolekcja of KOLEKCJE) {
         const lista = wszystkie.get(kolekcja)!
         for (const r of lista) {
             const d = r.d
             const tytul = nazwa(d.title) || nazwa(d.name) || r.slug
             const maOpis = Boolean(r.tekst.trim()) || pole(d, 'description', 'content', 'meaning')
-            const dodaj = (regula: typeof REGULY[number], opis: string, wskazowka: string, pozycja?: number) => {
+            // P6a: `pozycja` – stała część klucza z treści (np. wskazany identyfikator), `dawna` – pozycja z klucza sprzed P6a (przeniesienie decyzji)
+            const dodaj = (regula: RegulaJakosci, opis: string, wskazowka: string, pozycja?: string, dawna?: number) => {
                 const id = key(kolekcja, r.slug, regula, pozycja)
-                const dec = stany.decyzje[id]
+                const klucze = [id, ...(dawna !== undefined ? [key(kolekcja, r.slug, regula, dawna)] : []),
+                    ...(stareId.get(`${kolekcja}:${r.slug}`) ?? []).flatMap((st) => [key(kolekcja, st, regula, pozycja), ...(dawna !== undefined ? [key(kolekcja, st, regula, dawna)] : [])])]
                 wynik.push({ id, kolekcja, rekord: r.slug, tytul, regula, opis, wskazowka,
                     edytuj: `/keystatic/collection/${kolekcja}/item/${encodeURIComponent(r.slug)}`,
-                    stan: dec?.stan ?? 'aktywne', notatka: dec?.notatka ?? '' })
+                    ...zDecyzji(znajdzDecyzje(stany, klucze, migracje)) })
+            }
+            const tt = normalizuj(tytul === r.slug ? '' : tytul)
+            const ten = tt ? tytulyKolekcji.get(kolekcja)?.get(tt) ?? [] : []
+            for (const inny of ten) if (inny !== r.slug)
+                dodaj('mozliwy-duplikat', `Ta sama nazwa co „${inny}”`, 'Jeśli to ta sama rzecz – połącz wpisy (z przekierowaniem starego adresu). Jeśli różne – zignoruj albo doprecyzuj nazwę.', inny)
+            if (typeof d.temporal === 'string' && d.temporal.trim()) {
+                const z = zakresIso(d.temporal), rok = new Date().getUTCFullYear()
+                if (z?.od && z.do && z.od > z.do) dodaj('niepoprawna-data', `Data „${d.temporal}”: koniec przed początkiem`, 'Popraw kolejność lat w polu daty.', 'temporal')
+                else if (z?.od && +z.od.slice(0, 4) > rok) dodaj('niepoprawna-data', `Data „${d.temporal}” jest z przyszłości`, 'Sprawdź rok – literówka?', 'temporal')
             }
             if (['miejsca', 'obiekty', 'posts', 'tematy', 'zbiory', 'biogramy'].includes(kolekcja) && !maOpis)
                 dodaj('bez-opisu', 'Brak opisu', 'Dodaj opis albo świadomie zignoruj, jeżeli informacji nie ustalono.')
@@ -169,7 +262,7 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
                     if (p && typeof p === 'object') {
                         const x = p as Record<string, unknown>
                         if (ma(x.parish) && !ma(x.from) && !ma(x.to))
-                            dodaj('przynaleznosc-bez-dat', 'Nieustalony okres przynależności', 'Nie zgaduj dat. Możesz oznaczyć je jako nieznane i zignorować tę uwagę.', i)
+                            dodaj('przynaleznosc-bez-dat', `Nieustalony okres przynależności (${String(x.parish)})`, 'Nie zgaduj dat. Możesz oznaczyć je jako nieznane i zignorować tę uwagę.', String(x.parish), i)
                     }
                 })
             }
@@ -209,10 +302,10 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
                 // CAT-07: to, czego odczytajLata nie rozumie, nie wchodzi do filtra lat ani paska lat – redakcja ma o tym wiedzieć
                 const wskazowkaLat = 'Zapisz lata jako „1826–1875, 1880” (rok albo zakres, po przecinku) albo zignoruj, jeśli lat nie da się ustalić.'
                 const zle = odczytajLata(typeof d.years === 'string' ? d.years : '').nieodczytane
-                if (zle.length) dodaj('nieodczytane-lata', `Lata księgi nieodczytane przez katalog: ${zle.map((x) => `„${x}”`).join(', ')}`, wskazowkaLat, 1000)
+                if (zle.length) dodaj('nieodczytane-lata', `Lata księgi nieodczytane przez katalog: ${zle.map((x) => `„${x}”`).join(', ')}`, wskazowkaLat, `ksiega:${normalizuj(zle.join(' '))}`, 1000)
                 if (Array.isArray(d.volumes)) d.volumes.forEach((t, i) => {
                     const zleTomu = t && typeof t === 'object' && typeof (t as Record<string, unknown>).years === 'string' ? odczytajLata((t as Record<string, string>).years).nieodczytane : []
-                    if (zleTomu.length) dodaj('nieodczytane-lata', `Lata tomu ${i + 1} nieodczytane przez katalog: ${zleTomu.map((x) => `„${x}”`).join(', ')}`, wskazowkaLat, 1001 + i)
+                    if (zleTomu.length) dodaj('nieodczytane-lata', `Lata tomu ${i + 1} nieodczytane przez katalog: ${zleTomu.map((x) => `„${x}”`).join(', ')}`, wskazowkaLat, `tom:${normalizuj(zleTomu.join(' '))}`, 1001 + i)
                 })
             }
             for (const [sciezka, cel] of POWIAZANIA[kolekcja] ?? []) {
@@ -223,7 +316,7 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
                     const rodzaj = RODZAJ_KOLEKCJI[cel], nowy = rodzaj ? celPrzekierowania(przekierowania, rodzaj, id) : null
                     const pole_ = NAZWY_POL[sciezka.split('[')[0]] ?? sciezka
                     dodaj('relacja-do-nieistniejacego', `Powiązanie „${pole_}” wskazuje „${id}”, którego nie ma`,
-                        nowy ? `W przekierowaniach: „${id}” → „${nowy}”. Wybierz nowy wpis w tym polu.` : 'Identyfikator zmieniono albo wpis usunięto. Wybierz właściwy wpis w tym polu albo usuń powiązanie.', i + 100 * (POWIAZANIA[kolekcja].findIndex((x) => x[0] === sciezka)))
+                        nowy ? `W przekierowaniach: „${id}” → „${nowy}”. Wybierz nowy wpis w tym polu.` : 'Identyfikator zmieniono albo wpis usunięto. Wybierz właściwy wpis w tym polu albo usuń powiązanie.', `${sciezka}:${id}`, i + 100 * (POWIAZANIA[kolekcja].findIndex((x) => x[0] === sciezka)))
                 })
             }
             if (kolekcja === 'hasla' && !pole(d,'meaning')) dodaj('brak-definicji','Hasło bez definicji','Uzupełnij znaczenie słowa.')
@@ -232,31 +325,39 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
     }
     // PH3 (decyzja 16.11): elementy planów – powiązania [[…]] i podstawa (materiał, objaśnienie) wskazujące nieistniejące pozycje
     const cele = kluczeCelow(wszystkie, await osobyIstniejace())
+    const typyPlanow = katalog(await wczytajUstawienia().catch(() => undefined))
     for (const plan of await planyDoKontroli()) {
         for (const u of uwagiPlanu(plan, {
             cel: (t) => cele.has(kluczCelu(t)),
             material: (id) => istnieje.get('materialy')!.has(id),
             objasnienie: (mat, id) => objasnieniaMaterialu(mat).some((o) => o.id === id),
         }, przekierowania, (rodzaj, id) => istnieje.get(KOLEKCJA_RODZAJU[rodzaj])?.has(id) ?? false)) {
-            const dec = stany.decyzje[u.id]
-            wynik.push({ ...u, stan: dec?.stan ?? 'aktywne', notatka: dec?.notatka ?? '' })
+            wynik.push({ ...u, ...zDecyzji(znajdzDecyzje(stany, [u.id], migracje)) })
         }
+        for (const u of uwagiNumeracji(plan, typyPlanow)) wynik.push({ ...u, ...zDecyzji(znajdzDecyzje(stany, [u.id], migracje)) })
     }
     // tabela przekierowań: nowy musi istnieć, stary nie może istnieć (inaczej przekierowanie nigdy nie zadziała)
     przekierowania.forEach((w, i) => {
         const kol = KOLEKCJA_RODZAJU[w.rodzaj]
         const zbior = kol ? istnieje.get(kol) : undefined
         if (!zbior) return
-        const id = key('przekierowania', w.stary || String(i), 'przekierowanie-bledne', i)
+        const id = key('przekierowania', w.stary || String(i), 'przekierowanie-bledne', w.rodzaj)
         const dodaj = (opis: string, wskazowka: string) => {
-            const dec = stany.decyzje[id]
             wynik.push({ id, kolekcja: 'przekierowania', rekord: w.stary, tytul: `${RODZAJE_PRZEKIEROWAN[w.rodzaj as keyof typeof RODZAJE_PRZEKIEROWAN]?.etykieta ?? w.rodzaj}: ${w.stary} → ${w.nowy}`, regula: 'przekierowanie-bledne', opis, wskazowka,
-                edytuj: '/keystatic/singleton/przekierowania', stan: dec?.stan ?? 'aktywne', notatka: dec?.notatka ?? '' })
+                edytuj: '/keystatic/singleton/przekierowania', ...zDecyzji(znajdzDecyzje(stany, [id, key('przekierowania', w.stary || String(i), 'przekierowanie-bledne', i)], migracje)) })
         }
         const cel = celPrzekierowania(przekierowania, w.rodzaj, w.stary)
         if (zbior.has(w.stary)) dodaj('Stary identyfikator nadal istnieje', 'Przekierowanie nie zadziała, dopóki wpis o starym identyfikatorze istnieje. Usuń wpis z tabeli albo zmień identyfikator.')
         else if (!cel || !zbior.has(cel)) dodaj('Nowy identyfikator nie istnieje', 'Wpisz identyfikator istniejącego wpisu – inaczej stary adres nadal da „nie znaleziono”.')
     })
+    // P6a: decyzje zapisane pod dawnym kluczem (pozycja, stary identyfikator) – przeniesione raz, przy pierwszym odczycie
+    if (migracje.size) {
+        const db = await pamiec()
+        let zmiana = false
+        for (const [stary, nowy] of migracje) if (db.decyzje[stary] && !db.decyzje[nowy]) { db.decyzje[nowy] = db.decyzje[stary]; delete db.decyzje[stary]; zmiana = true }
+        if (zmiana) await zapiszPamiec(db).catch(() => { /* brak prawa zapisu – decyzje działają dalej przez dawny klucz */ })
+    }
+    for (const u of wynik) u.waga = REGULY_JAKOSCI[u.regula as RegulaJakosci]?.waga ?? 'brak'
     return wynik.sort((a,b) => a.kolekcja.localeCompare(b.kolekcja,'pl') || a.tytul.localeCompare(b.tytul,'pl') || a.regula.localeCompare(b.regula,'pl'))
 }
 
@@ -266,14 +367,21 @@ export async function zignorowaneUwagi(): Promise<Set<string>> {
     return new Set(Object.entries(p.decyzje).filter(([, d]) => d.stan === 'ignorowane').map(([k]) => k))
 }
 
-/** Akcja tylko dla istniejącego ostrzeżenia, aby nie dało się zapisać arbitralnego klucza. */
-export async function stanUwagi(id: string, stan: StanUwagi, notatka: string): Promise<boolean> {
-    if (id.length > 260 || !['aktywne', 'odlozone','ignorowane'].includes(stan)) return false
+/** Akcja tylko dla istniejącego ostrzeżenia, aby nie dało się zapisać arbitralnego klucza. `dni` – termin odłożenia (7 albo 30). */
+export async function stanUwagi(id: string, stan: StanUwagi, notatka: string, dni: number = 30): Promise<boolean> {
+    if (id.length > 300 || !['aktywne', 'odlozone','ignorowane'].includes(stan)) return false
+    if (stan === 'odlozone' && !(DNI_ODLOZENIA as readonly number[]).includes(dni)) return false
     const aktualne = await uwagiJakosci()
     if (!aktualne.some(x => x.id === id)) return false
     const db = await pamiec()
+    const teraz = new Date()
     if (stan === 'aktywne') delete db.decyzje[id]
-    else db.decyzje[id] = { stan, notatka: notatka.slice(0,800), data: new Date().toISOString() }
+    else db.decyzje[id] = { stan, notatka: notatka.slice(0,800), data: teraz.toISOString(), ...(stan === 'odlozone' ? { do: new Date(teraz.getTime() + dni * 864e5).toISOString() } : {}) }
+    await zapiszPamiec(db)
+    return true
+}
+
+async function zapiszPamiec(db: Pamiec): Promise<void> {
     const plik = DB()
     await fs.mkdir(path.dirname(plik), { recursive: true, mode: 0o750 })
     const tmp = `${plik}.${randomBytes(6).toString('hex')}.tmp`
@@ -281,7 +389,6 @@ export async function stanUwagi(id: string, stan: StanUwagi, notatka: string): P
         await fs.writeFile(tmp, JSON.stringify(db, null, 2)+'\n', { mode: 0o640, flag: 'wx' })
         await fs.rename(tmp, plik)
     } finally { await fs.unlink(tmp).catch(() => {}) }
-    return true
 }
 
 // ---------- PH3: elementy planów (decyzja właściciela 16.11, ankieta 17.11 – tylko plany) ----------
@@ -321,7 +428,7 @@ async function osobyIstniejace(): Promise<{ id: string; nazwa: string }[]> {
     return wyn
 }
 
-type ElementDoKontroli = { id: string; typ?: string; nazwa?: string; powiazania?: unknown; podstawa?: unknown }
+type ElementDoKontroli = { id: string; typ?: string; nazwa?: string; powiazania?: unknown; podstawa?: unknown; oznaczenie?: unknown; zdjecia?: unknown; napis?: string; ograniczony?: boolean; nieznanePolozenie?: boolean }
 export type PlanDoKontroli = { slug: string; tytul: string; elementy: ElementDoKontroli[] }
 
 async function planyDoKontroli(): Promise<PlanDoKontroli[]> {
@@ -342,6 +449,25 @@ async function planyDoKontroli(): Promise<PlanDoKontroli[]> {
 }
 
 const RODZAJE_CELU = ['miejsca', 'tematy', 'obiekty', 'wpisy', 'archiwum'] as const
+
+/**
+ * P6a (ADM-09): numeracja i napisy planu – powtórzone numery grobów i nazwy kwater (nowe powtórzenia odrzuca już zapis planu –
+ * lib/plany/numeracja.ts:83, dawne zostają do poprawy) oraz jedna uwaga „napisy do odczytania” na plan (jak WSP-06 w „współtwórz”).
+ */
+export function uwagiNumeracji(plan: PlanDoKontroli, typy: ReturnType<typeof katalog>): Omit<UwagaJakosci, 'stan' | 'notatka'>[] {
+    const p = plan as unknown as Pick<Plan, 'elementy'>
+    const wyn: Omit<UwagaJakosci, 'stan' | 'notatka'>[] = []
+    const edytuj = (el?: string) => `/keystatic/plany/${encodeURIComponent(plan.slug)}${el ? `?el=${encodeURIComponent(el)}` : ''}`
+    const nr = numeryPlanu(p)
+    for (const [k, ids] of duplikaty(p)) wyn.push({ id: `plany:${plan.slug}:powtorzony-numer-grobu:${k}`, kolekcja: 'plany', rekord: plan.slug, tytul: plan.tytul, regula: 'powtorzony-numer-grobu',
+        opis: `Ten sam numer (${numerTekst(nr.get(ids[0])) || k}) mają ${odmiana(ids.length, ['grób', 'groby', 'grobów'])}`, wskazowka: 'W edytorze planu nadaj jednemu z grobów inny numer („przenumeruj kwaterę” albo ręcznie).', edytuj: edytuj(ids[0]) })
+    for (const n of powtorzoneNazwyKwater(p)) wyn.push({ id: `plany:${plan.slug}:powtorzona-nazwa-kwatery:${normalizuj(n)}`, kolekcja: 'plany', rekord: plan.slug, tytul: plan.tytul, regula: 'powtorzona-nazwa-kwatery',
+        opis: `Nazwa kwatery „${n}” użyta więcej niż raz`, wskazowka: 'Zmień nazwę jednej z kwater – numery grobów w obu wyglądają teraz tak samo.', edytuj: edytuj() })
+    const doOdczytu = napisyDoOdczytania(p, typy).length
+    if (doOdczytu > 0) wyn.push({ id: `plany:${plan.slug}:napisy-do-odczytania`, kolekcja: 'plany', rekord: plan.slug, tytul: plan.tytul, regula: 'napisy-do-odczytania',
+        opis: `${odmiana(doOdczytu, ['grób ma', 'groby mają', 'grobów ma'])} zdjęcie nagrobka bez odczytanego napisu`, wskazowka: 'Odczytaj napisy w edytorze planu (filtr „bez napisu”) albo poproś o pomoc w „współtwórz”.', edytuj: edytuj() })
+    return wyn
+}
 
 /**
  * Uwagi dla jednego planu (czysta funkcja – testy). Osobno: powiązanie [[…]] z kartą, materiał podstawy, objaśnienie podstawy

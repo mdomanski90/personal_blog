@@ -3,7 +3,8 @@ import test from 'node:test'
 import os from 'node:os'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { uwagiJakosci, stanUwagi, uwagiPlanu } from './jakosc'
+import { uwagiJakosci, stanUwagi, uwagiPlanu, uwagiNumeracji, REGULY_JAKOSCI } from './jakosc'
+import { katalog } from '../plany/typy'
 
 test('P6: kolejkowanie, trwałe ignorowanie i automatyczne domknięcie ostrzeżenia', async () => {
     const przed = process.cwd()
@@ -16,7 +17,7 @@ test('P6: kolejkowanie, trwałe ignorowanie i automatyczne domknięcie ostrzeże
         await fs.writeFile('content/materialy/zdjecie.yaml', `title: Fotografia\ntype: zdjecie\nsource: Archiwum rodzinne\n`)
         let wynik = await uwagiJakosci()
         assert.ok(wynik.some(x => x.id === 'miejsca:proba:brak-wspolrzednych'))
-        assert.ok(wynik.some(x => x.id === 'miejsca:proba:przynaleznosc-bez-dat:0'))
+        assert.ok(wynik.some(x => x.id === 'miejsca:proba:przynaleznosc-bez-dat:parafia-a'), 'P6a: klucz z identyfikatora parafii, nie z pozycji')
         assert.ok(!wynik.some(x => x.id === 'miejsca:proba:bez-opisu'), 'treść Markdoc liczy się jako opis')
         assert.ok(wynik.some(x => x.id === 'materialy:zdjecie:brak-praw'))
         const id = 'miejsca:proba:brak-wspolrzednych'
@@ -153,4 +154,93 @@ test('P5: błędny wpis w każdej kolekcji (np. obiekt z rodzajem spoza listy) w
         assert.deepEqual(w.map((u) => [u.kolekcja, u.rekord]), [['obiekty', 'obj-zly']])
         assert.match(w[0].opis, /Wpis pominięty na stronie/)
     } finally { process.chdir(przed); await fs.rm(tmp, { recursive: true, force: true }) }
+})
+
+// ---------- P6a ----------
+async function wKatalogu(f: () => Promise<void>) {
+    const przed = process.cwd(), tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'odniepamieci-p6a-'))
+    try { process.chdir(tmp); await f() } finally { process.chdir(przed); await fs.rm(tmp, { recursive: true, force: true }) }
+}
+
+test('P6a: decyzja pod dawnym kluczem (pozycja) przeniesiona na stały klucz; nie przeskakuje na inny alert po zmianie kolejności', async () => {
+    await wKatalogu(async () => {
+        for (const k of ['miejsca', 'parafie', '_panel']) await fs.mkdir(`content/${k}`, { recursive: true })
+        await fs.writeFile('content/miejsca/proba.mdoc', `---\ntitle: Próba\ntype: wies\ncoordinates: '52.1, 22.4'\nparishes:\n  - parish: parafia-a\n  - parish: parafia-b\n---\nOpis.\n`)
+        // dawny klucz „:1” = druga parafia (parafia-b)
+        await fs.writeFile('content/_panel/jakosc.json', JSON.stringify({ wersja: 1, decyzje: { 'miejsca:proba:przynaleznosc-bez-dat:1': { stan: 'ignorowane', notatka: 'n', data: '2026-11-15T10:00:00Z' } } }))
+        let w = await uwagiJakosci()
+        assert.equal(w.find((x) => x.id === 'miejsca:proba:przynaleznosc-bez-dat:parafia-b')?.stan, 'ignorowane')
+        assert.equal(w.find((x) => x.id === 'miejsca:proba:przynaleznosc-bez-dat:parafia-a')?.stan, 'aktywne')
+        const db = JSON.parse(await fs.readFile('content/_panel/jakosc.json', 'utf8'))
+        assert.deepEqual(Object.keys(db.decyzje), ['miejsca:proba:przynaleznosc-bez-dat:parafia-b'], 'przeniesione raz, przy odczycie')
+        // zmiana kolejności parafii – decyzja zostaje przy parafii-b (dawniej przeskoczyłaby na parafię-a)
+        await fs.writeFile('content/miejsca/proba.mdoc', `---\ntitle: Próba\ntype: wies\ncoordinates: '52.1, 22.4'\nparishes:\n  - parish: parafia-b\n  - parish: parafia-a\n---\nOpis.\n`)
+        w = await uwagiJakosci()
+        assert.equal(w.find((x) => x.id === 'miejsca:proba:przynaleznosc-bez-dat:parafia-b')?.stan, 'ignorowane')
+        assert.equal(w.find((x) => x.id === 'miejsca:proba:przynaleznosc-bez-dat:parafia-a')?.stan, 'aktywne')
+    })
+})
+
+test('P6a: zmiana identyfikatora z przekierowaniem – decyzja idzie za wpisem (P6-15)', async () => {
+    await wKatalogu(async () => {
+        for (const k of ['miejsca', '_panel']) await fs.mkdir(`content/${k}`, { recursive: true })
+        await fs.writeFile('content/miejsca/nowa.mdoc', `---\ntitle: Nowa\ntype: wies\n---\nOpis.\n`)
+        await fs.writeFile('content/_panel/przekierowania.json', JSON.stringify({ wpisy: [{ rodzaj: 'miejsca', stary: 'stara', nowy: 'nowa' }] }))
+        await fs.writeFile('content/_panel/jakosc.json', JSON.stringify({ wersja: 1, decyzje: { 'miejsca:stara:brak-wspolrzednych': { stan: 'ignorowane', notatka: 'brak GPS', data: '2026-11-15T10:00:00Z' } } }))
+        const w = await uwagiJakosci()
+        assert.equal(w.find((x) => x.id === 'miejsca:nowa:brak-wspolrzednych')?.stan, 'ignorowane')
+        assert.equal(w.filter((x) => x.regula === 'brak-wspolrzednych').length, 1, 'bez duplikatu po zmianie nazwy')
+    })
+})
+
+test('P6a: „odłóż” na 7 / 30 dni – po terminie alert wraca; dawna decyzja bez terminu = 30 dni od daty', async () => {
+    await wKatalogu(async () => {
+        for (const k of ['miejsca', '_panel']) await fs.mkdir(`content/${k}`, { recursive: true })
+        await fs.writeFile('content/miejsca/a.mdoc', `---\ntitle: A\ntype: wies\n---\nOpis.\n`)
+        await fs.writeFile('content/miejsca/b.mdoc', `---\ntitle: B\ntype: wies\n---\nOpis.\n`)
+        const stare = new Date(Date.now() - 40 * 864e5).toISOString()
+        await fs.writeFile('content/_panel/jakosc.json', JSON.stringify({ wersja: 1, decyzje: { 'miejsca:b:brak-wspolrzednych': { stan: 'odlozone', notatka: '', data: stare } } }))
+        assert.equal(await stanUwagi('miejsca:a:brak-wspolrzednych', 'odlozone', '', 10), false, 'tylko 7 albo 30 dni')
+        assert.equal(await stanUwagi('miejsca:a:brak-wspolrzednych', 'odlozone', '', 7), true)
+        const w = await uwagiJakosci()
+        const a = w.find((x) => x.id === 'miejsca:a:brak-wspolrzednych')!
+        assert.equal(a.stan, 'odlozone')
+        assert.ok(Math.abs(Date.parse(a.do!) - Date.now() - 7 * 864e5) < 60_000)
+        assert.equal(w.find((x) => x.id === 'miejsca:b:brak-wspolrzednych')?.stan, 'aktywne', 'odłożone 40 dni temu bez terminu – wróciło')
+    })
+})
+
+test('P6a: możliwy duplikat (wskazówka), data z przyszłości (błąd), wagi z katalogu reguł', async () => {
+    await wKatalogu(async () => {
+        await fs.mkdir('content/tematy', { recursive: true })
+        await fs.writeFile('content/tematy/wola-a.mdoc', `---\ntitle: Wola\ntemporal: '2999'\n---\nOpis.\n`)
+        await fs.writeFile('content/tematy/wola-b.mdoc', `---\ntitle: WOLA\n---\nOpis.\n`)
+        const w = await uwagiJakosci()
+        const dup = w.filter((x) => x.regula === 'mozliwy-duplikat')
+        assert.deepEqual(dup.map((x) => x.id).sort(), ['tematy:wola-a:mozliwy-duplikat:wola-b', 'tematy:wola-b:mozliwy-duplikat:wola-a'])
+        assert.ok(dup.every((x) => x.waga === 'wskazowka'))
+        const d = w.find((x) => x.regula === 'niepoprawna-data')!
+        assert.deepEqual([d.rekord, d.waga], ['wola-a', 'blad'])
+        assert.ok(w.every((x) => x.waga), 'każdy alert ma wagę')
+    })
+})
+
+test('P6a: plan – powtórzony numer grobu, powtórzona nazwa kwatery, napisy do odczytania (jedna uwaga na plan)', () => {
+    const typy = katalog()
+    const grob = [...typy.values()].find((t) => (t as { grob?: boolean }).grob || /grob/.test((t as { id: string }).id))!
+    const g = (id: string, o: Record<string, unknown>) => ({ id, typ: (grob as { id: string }).id, ...o })
+    const plan = { slug: 'testowo', tytul: 'Testowo', elementy: [
+        { id: 'k1', typ: 'kwatera', nazwa: 'A' }, { id: 'k2', typ: 'kwatera', nazwa: 'a' },
+        g('g1', { oznaczenie: { kwatera: 'k1', rzad: '1', miejsce: '1' }, zdjecia: [{ plik: 'x.jpg' }] }),
+        g('g2', { oznaczenie: { kwatera: 'k1', rzad: '1', miejsce: '1' }, zdjecia: [{ plik: 'y.jpg' }], napis: 'Śp. Testowy' }),
+        g('g3', { zdjecia: [{ plik: 'z.jpg' }], ograniczony: true }),
+    ] }
+    const u = uwagiNumeracji(plan, typy)
+    assert.deepEqual(u.map((x) => x.regula).sort(), ['napisy-do-odczytania', 'powtorzona-nazwa-kwatery', 'powtorzony-numer-grobu'])
+    assert.match(u.find((x) => x.regula === 'napisy-do-odczytania')!.opis, /^1 grób ma/, 'grób z ograniczonym napisem się nie liczy')
+    assert.match(u.find((x) => x.regula === 'powtorzony-numer-grobu')!.edytuj, /\?el=g1$/)
+})
+
+test('P6a: spis reguł – każda reguła ma nazwę, wagę, zakres i uzasadnienie', () => {
+    for (const [k, r] of Object.entries(REGULY_JAKOSCI)) assert.ok(r.nazwa && r.zakres && r.uzasadnienie && ['blad', 'brak', 'wskazowka'].includes(r.waga), k)
 })
