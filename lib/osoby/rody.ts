@@ -1,5 +1,5 @@
-// PK (uwaga właściciela 18.11): strona „całe drzewo” (/osoby/drzewo) – drzewo potomków najstarszej znanej pary.
-// Przy kilku niepowiązanych częściach drzewa („rody”) – wybór rodu. Liczone tylko z osób widocznych dla czytelnika
+// PK (uwagi właściciela 18.11): strona „całe drzewo” (/osoby/drzewo) – osoba w środku i rody (osobne części drzewa,
+// w panelu jako „inne części drzewa”). Liczone tylko z osób widocznych dla czytelnika
 // (zasada 1.5/1.6: liczby i korzenie bez śladów osób ukrytych). Czyste funkcje – bez plików.
 import { lataZycia, nazwaOsoby, rokUrodzenia, type Drzewo } from './model'
 
@@ -51,5 +51,19 @@ export function rodyDrzewa(d: Drzewo, widac: (id: string) => boolean): Rod[] {
     return wyn.sort((a, b) => b.osob - a.osob || a.nazwa.localeCompare(b.nazwa, 'pl'))
 }
 
-/** Ród z adresu (?od=<id korzenia>), inaczej największy. Nieznany albo niewidoczny id = największy ród. */
-export const wybranyRod = (rody: Rod[], od: string | null | undefined): Rod | null => rody.find((r) => r.korzen === od) ?? rody[0] ?? null
+/**
+ * Osoba w środku całego drzewa (decyzja 18.11): z adresu (?od=, każda widoczna osoba), inaczej osoba z połowy najdłuższej
+ * linii potomków korzenia największego rodu – widać od niej i przodków, i potomków. Nieznany albo niewidoczny id = domyślna.
+ */
+export function osobaWSrodku(d: Drzewo, rody: Rod[], widac: (id: string) => boolean, od: string | null | undefined): string | null {
+    if (od && d.osoby.has(od) && widac(od)) return od
+    if (!rody[0]) return null
+    const dzieci = (x: string) => [...d.rodziny.values()].filter((f) => f.maz === x || f.zona === x).flatMap((f) => f.dzieci).filter((c) => d.osoby.has(c) && widac(c))
+    const linia = (x: string, byli: Set<string>): string[] => {
+        byli.add(x)
+        const dalej = dzieci(x).filter((c) => !byli.has(c)).map((c) => linia(c, byli)).sort((a, b) => b.length - a.length)[0] ?? []
+        return [x, ...dalej]
+    }
+    const l = linia(rody[0].korzen, new Set())
+    return l[Math.floor((l.length - 1) / 2)]
+}

@@ -9,8 +9,8 @@ import PoleSzukania from '../components/PoleSzukania'
 import { normalizuj, odmiana } from '@/lib/tekst'
 import { PastylkaFiltra, PastylkaOsoby, RzadFiltrow } from '@/app/components/Wzorce'
 
-/** Ile pierwszych liter katalogu jest rozwiniętych na starcie (uwaga właściciela 16.11: A i B). */
-const ROZWINIETE_LITERY = 2
+/** Ile pierwszych liter katalogu jest rozwiniętych na starcie – decyzja 18.11: żadna (wcześniej, 16.11: A i B). */
+const ROZWINIETE_LITERY = 0
 
 export interface OsobaNaLiscie { id: string; nazwa: string; plec: string; opis: string; biogram?: string; litera: string; szukaj: string }
 export interface KragNaLiscie { id: string; nazwa: string; opis: string; ile: number }
@@ -50,7 +50,7 @@ export default function ListaOsob({ osoby, kregi, krag, poczatek, wstep }: { oso
             {osoby.length > 0 && lista.length === 0 && <p className="text-[var(--tekst-opis)]">Nikogo tu nie ma{szuka ? ' dla tego wyszukiwania' : ''} – spróbuj „wszyscy”.</p>}
             <div className="osoby-litery">
                 {[...grupy].map(([litera, os], i) => (
-                    // przy wyszukiwaniu wszystkie litery z wynikami otwarte; bez – pierwsza
+                    // przy wyszukiwaniu wszystkie litery z wynikami otwarte; bez – wszystkie zwinięte
                     <details key={`${litera}-${szuka ? 's' : 'n'}`} className="osoba-litera" open={szuka || i < ROZWINIETE_LITERY}>
                         <summary><b>{litera}</b> <span className="text-[var(--tekst-opis)]">· {odmiana(os.length, ['osoba', 'osoby', 'osób'])}</span></summary>
                         <div className="rozwin-tresc">

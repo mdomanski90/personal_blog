@@ -1,6 +1,8 @@
 // Drzewo osoby jako HTML (Markdoc Tag) – na karcie osoby i we wpisach (znacznik {% drzewo %}).
 // Na komputerze: przodkowie nad osobą, potomkowie pod nią, pokolenia w wierszach; na telefonie drzewo tekstowe.
 // Osoba, której czytelnik nie może zobaczyć (żyjąca, „dla bliskich”), to szara karta bez danych.
+// Opcja „boczni” (strona /osoby/drzewo): rodzeństwo ojca na lewo, matki na prawo – z małżonkami i dziećmi (kuzynostwo),
+// dzieci rodzeństwa osoby, krewni boczni bez wypełnienia, plakietki krewnych poza widokiem, podział „rodzina ojca / matki”.
 
 import Markdoc from '@markdoc/markdoc'
 import type { Widocznosc } from '../archiwum'
@@ -29,6 +31,8 @@ export interface OpcjeDrzewa {
     /** na karcie osoby: drzewo jest wierszem tabeli (bez własnej ramki, przycisk pełnego ekranu w nagłówku) */
     wTabeli?: boolean
     idFigury?: string
+    /** PK (całe drzewo, decyzja 18.11): rodzeństwo rodziców z małżonkami i kuzynostwem, bratankowie, plakietki ukrytych krewnych */
+    boczni?: boolean
 }
 
 // ---------- układ drzewa ----------
@@ -41,7 +45,7 @@ const KW = 124, KH = 60, MALZ = 22, RODZ = 12, GRUPA = 28, WIERSZ = 100, GORA = 
 const LEWA = 164, PRAWA = 16
 
 interface KartaU { id: string | null; glowna?: boolean; x: number; r: number; /** małżonek tej osoby z drzewa (dla czytnika: „żona: …”) */ partner?: string; /** drugi z pary rodziców w rzędzie przodków – tylko dla strzałek (VIEW-06) */ para?: string }
-interface Jedn { karty: KartaU[]; x: number; szer: number }
+interface Jedn { karty: KartaU[]; x: number; szer: number; pad?: number }
 interface Grupa { jedn: Jedn[]; ideal: number; x: number; szer: number }
 
 const nowaJedn = (ids: (string | null)[], r: number, glowna?: string): Jedn => ({
@@ -67,7 +71,7 @@ function rozmiesc(grupy: Grupa[]) {
         let x = g.x
         for (const j of g.jedn) {
             j.x = x
-            j.karty.forEach((k, i) => { k.x = x + i * (KW + MALZ) })
+            j.karty.forEach((k, i) => { k.x = x + (j.pad ?? 0) + i * (KW + MALZ) })
             x += j.szer + RODZ
         }
     }
@@ -98,24 +102,104 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
     const rodzinaGl = rodzice(id)
     const rodzenstwo = op.zakres === 'rodzenstwo' && rodzinaGl ? rodzinaGl.dzieci.filter(jest) : [id]
     if (!rodzenstwo.includes(id)) rodzenstwo.push(id)
-    const jednM = rodzenstwo.map((c) => (c === id ? jednOsoby(id, rM, id) : nowaJedn([c], rM)))
+    const boczni = !!op.boczni && wstecz > 0 && !!rodzinaGl && (jest(rodzinaGl.maz) || jest(rodzinaGl.zona))
+    const boczna = new Set<string>()
+    const jednM = rodzenstwo.map((c) => (c === id ? jednOsoby(id, rM, id) : boczni ? jednOsoby(c, rM) : nowaJedn([c], rM)))
     const wiersze: Grupa[][] = []
-    wiersze[rM] = [nowaGrupa(jednM, 0)]
-    rozmiesc(wiersze[rM])
     const kartaOsoby = (j: Jedn, x: string) => j.karty.find((k) => k.id === x)!
+    // krewny boczny z małżonkami; po lewej stronie (rodzina ojca) małżonek na zewnątrz, krew przy krwi
+    const jednBoczna = (x: string, r: number, lewa: boolean) => {
+        const sp = widac(x) ? malzenstwa(x).map((f) => (f.maz === x ? f.zona : f.maz)).filter(jest) : []
+        const j = nowaJedn(lewa ? [...sp].reverse().concat(x) : [x, ...sp], r)
+        for (const k of j.karty) { if (k.id !== x) k.partner = x; if (k.id) boczna.add(k.id) }
+        return j
+    }
+    const szerGrupy = (js: Jedn[]) => js.reduce((a, j) => a + j.szer, 0) + Math.max(0, js.length - 1) * RODZ
+    const zarezerwuj = (j: Jedn, w: number) => { if (w > j.szer) { j.pad = (w - j.szer) / 2; j.szer = w } }
+    const rodzenstwoZ = (x: string | undefined) => { const f = x && jest(x) && widac(x) ? rodzice(x) : undefined; return f ? f.dzieci.filter(jest).filter((c) => c !== x) : [] }
+    const ojciec = rodzinaGl?.maz && jest(rodzinaGl.maz) ? rodzinaGl.maz : undefined
+    const matka = rodzinaGl?.zona && jest(rodzinaGl.zona) ? rodzinaGl.zona : undefined
 
     // linie: łączniki par, zejścia do dzieci
     const laczniki: { x1: number; x2: number; y: number; m: number; rok: string }[] = []
     const zejscia: { sx: number; sy: number; r: number; dzieci: number[] }[] = []
     const yGory = (r: number) => r * WIERSZ + GORA
     const ySrodka = (r: number) => r * WIERSZ + GORA + KH / 2
+    function lacznikiJednB(j: Jedn, x: string, r: number) {
+        const ko = kartaOsoby(j, x)
+        for (const f of malzenstwa(x)) {
+            const sp = f.maz === x ? f.zona : f.maz
+            const ks = sp ? j.karty.find((k) => k.id === sp) : undefined
+            if (!ks) continue
+            const [l, p] = ks.x < ko.x ? [ks, ko] : [ko, ks]
+            laczniki.push({ x1: l.x + KW, x2: p.x, y: ySrodka(r), m: (l.x + KW + p.x) / 2, rok: rokSlubu(f) })
+        }
+    }
 
     // przodkowie: rząd po rzędzie w górę; para nad dzieckiem (albo dziećmi – rodzeństwo)
     let dzieciNizej: { rodzina: NonNullable<ReturnType<typeof rodzice>>; karty: KartaU[] }[] = []
-    if (wstecz > 0 && rodzinaGl && (jest(rodzinaGl.maz) || jest(rodzinaGl.zona))) {
-        dzieciNizej = [{ rodzina: rodzinaGl, karty: jednM.map((j) => j.karty.find((k) => k.id === id) ?? j.karty[0]) }]
+    const kartaKrwi = (j: Jedn) => j.karty.find((k) => k.id && !k.partner) ?? j.karty[0]
+    let podzial: number | null = null
+        let g0 = 1
+    if (boczni && rodzinaGl) {
+        // PK: rząd rodziców budowany najpierw – rodzeństwo ojca na lewo, rodzeństwo matki na prawo, każde z miejscem na swoje dzieci
+        const r = rM - 1
+        const kuzyni = new Map<Jedn, { f: NonNullable<ReturnType<typeof rodzice>>; jedn: Jedn[] }[]>()
+        const rodzenstwoRodzica = (x: string | undefined, lewa: boolean) => rodzenstwoZ(x).map((c) => {
+            const j = jednBoczna(c, r, lewa)
+            const rodz = widac(c) ? malzenstwa(c).filter((f) => f.dzieci.some(jest)).map((f) => ({ f, jedn: f.dzieci.filter(jest).map((d) => jednBoczna(d, rM, lewa)) })) : []
+            kuzyni.set(j, rodz)
+            zarezerwuj(j, szerGrupy(rodz.flatMap((q) => q.jedn)))
+            return j
+        })
+        const jo = rodzenstwoRodzica(ojciec, true), jm = rodzenstwoRodzica(matka, false)
+        const jr = nowaJedn([ojciec, matka].filter(jest) as string[], r)
+        if (jr.karty[1]?.id && jr.karty[0].id) jr.karty[1].para = jr.karty[0].id
+        zarezerwuj(jr, szerGrupy(jednM))
+        wiersze[r] = [nowaGrupa([...jo, jr, ...jm], 0)]
+        rozmiesc(wiersze[r])
+        const [a, b] = jr.karty
+        const odRodz = b ? (a.x + KW + b.x) / 2 : srodek(a)
+        if (b) { laczniki.push({ x1: a.x + KW, x2: b.x, y: ySrodka(r), m: odRodz, rok: rokSlubu(rodzinaGl) }); podzial = odRodz }
+        // rząd osoby: kuzynostwo pod rodzicami, rodzeństwo osoby pod rodzicami osoby
+        const grupyM: Grupa[] = []
+        const zejsciaM: { sx: number; sy: number; js: Jedn[] }[] = []
+        for (const j of [...jo, jr, ...jm]) {
+            if (j === jr) { grupyM.push(nowaGrupa(jednM, odRodz)); zejsciaM.push({ sx: odRodz, sy: b ? ySrodka(r) : yGory(r) + KH, js: jednM }); continue }
+            const krew = kartaKrwi(j)
+            for (const { f, jedn } of kuzyni.get(j) ?? []) {
+                const sp = f.maz === krew.id ? f.zona : f.maz
+                const ks = sp ? j.karty.find((q) => q.id === sp) : undefined
+                const sx = ks ? (ks.x < krew.x ? ks.x + KW + MALZ / 2 : ks.x - MALZ / 2) : srodek(krew)
+                grupyM.push(nowaGrupa(jedn, sx))
+                zejsciaM.push({ sx, sy: ks ? ySrodka(r) : yGory(r) + KH, js: jedn })
+            }
+            lacznikiJednB(j, krew.id!, r)
+        }
+        wiersze[rM] = grupyM
+        rozmiesc(wiersze[rM])
+        for (const z of zejsciaM) {
+            zejscia.push({ sx: z.sx, sy: z.sy, r, dzieci: z.js.map((j) => srodek(z.js === jednM ? (j.karty.find((k) => k.id === id) ?? kartaKrwi(j)) : kartaKrwi(j))) })
+            if (z.js !== jednM) for (const j of z.js) lacznikiJednB(j, kartaKrwi(j).id!, rM)
+        }
+        for (const j of jednM) if (!j.karty.some((k) => k.id === id)) lacznikiJednB(j, kartaKrwi(j).id!, rM)
+        // dalej w górę: dziadkowie nad rodzicem i jego rodzeństwem
+        for (const [x, js] of [[ojciec, jo], [matka, jm]] as const) {
+            const f = x && widac(x) ? rodzice(x) : undefined
+            if (!x || !f || !(jest(f.maz) || jest(f.zona))) continue
+            const kx = jr.karty.find((k) => k.id === x)!
+            const karty = [kx, ...js.map(kartaKrwi)].sort((p, q) => p.x - q.x)
+            dzieciNizej.push({ rodzina: f, karty })
+        }
+        g0 = 2
+    } else {
+        wiersze[rM] = [nowaGrupa(jednM, 0)]
+        rozmiesc(wiersze[rM])
+        if (wstecz > 0 && rodzinaGl && (jest(rodzinaGl.maz) || jest(rodzinaGl.zona))) {
+            dzieciNizej = [{ rodzina: rodzinaGl, karty: jednM.map((j) => j.karty.find((k) => k.id === id) ?? j.karty[0]) }]
+        }
     }
-    for (let g = 1; g <= wstecz && dzieciNizej.length; g++) {
+    for (let g = g0; g <= wstecz && dzieciNizej.length; g++) {
         const r = rM - g
         const pary = dzieciNizej.map((d) => ({ d, j: nowaJedn([d.rodzina.maz, d.rodzina.zona].filter(jest), r) }))
         for (const { j } of pary) if (j.karty[1]?.id && j.karty[0].id) j.karty[1].para = j.karty[0].id
@@ -143,6 +227,7 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
     // potomkowie: rząd po rzędzie w dół; dzieci każdej pary pod jej łącznikiem
     const jGl = jednM.find((j) => j.karty.some((k) => k.id === id))!
     let osobyLinii: { k: KartaU; j: Jedn }[] = [{ k: kartaOsoby(jGl, id), j: jGl }]
+    if (boczni) osobyLinii = jednM.map((j) => ({ k: j === jGl ? kartaOsoby(jGl, id) : kartaKrwi(j), j })).sort((a, b) => a.k.x - b.k.x)
     // łączniki par w wierszu osoby
     const lacznikiJedn = (j: Jedn, x: string, r: number) => {
         const ko = kartaOsoby(j, x)
@@ -171,7 +256,8 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
                 const od = ks
                     ? { sx: ks.x < k.x ? ks.x + KW + MALZ / 2 : ks.x - MALZ / 2, sy: ySrodka(r - 1) }
                     : { sx: srodek(k), sy: yGory(r - 1) + KH }
-                const jedn = dzieci.map((c) => jednOsoby(c, r))
+                const bratankowie = boczni && d === 1 && x !== id
+                const jedn = dzieci.map((c) => (bratankowie ? jednBoczna(c, r, false) : jednOsoby(c, r)))
                 grupy.push({ g: nowaGrupa(jedn, od.sx), od, dzieci: jedn.map((jj, i) => ({ k: kartaOsoby(jj, dzieci[i]), j: jj })) })
             }
         }
@@ -182,7 +268,7 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
             zejscia.push({ sx: x.od.sx, sy: x.od.sy, r: r - 1, dzieci: x.dzieci.map((c) => srodek(c.k)) })
             for (const c of x.dzieci) lacznikiJedn(c.j, c.k.id!, r)
         }
-        osobyLinii = grupy.flatMap((x) => x.dzieci)
+        osobyLinii = grupy.flatMap((x) => x.dzieci).filter((c) => !boczna.has(c.k.id ?? ''))
     }
 
     const wiecejNaprzod = osobyLinii.some(({ k }) => !!k.id && widac(k.id) && malzenstwa(k.id).some((f) => f.dzieci.some(jest)))
@@ -218,17 +304,43 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
 
     const nazwyPokolen = (r: number): string => {
         const g = rM - r
+        if (boczni && g === 0) return 'rodzeństwo, kuzynostwo'
+        if (boczni && g === 1) return 'rodzice, wujostwo'
+        if (boczni && g === -1) return 'dzieci, dzieci rodzeństwa'
         if (g === 0) return wiersze[rM][0].jedn.some((j) => j.karty.length > 1) ? 'małżeństwo' : op.zakres === 'rodzenstwo' && jednM.length > 1 ? 'rodzeństwo' : 'osoba'
         if (g > 0) return ['rodzice', 'dziadkowie', 'pradziadkowie', 'prapradziadkowie'][g - 1] ?? `${g}. pokolenie ↑`
         return ['dzieci', 'wnuki', 'prawnuki', 'praprawnuki'][-g - 1] ?? `${-g}. pokolenie ↓`
     }
+    // PK: krewni poza widokiem – plakietki przy karcie (↑ rodzice, +N rodzeństwo, ↓N dzieci)
+    const pokazane = new Set(wiersze.flatMap((w) => (w ?? []).flatMap((g) => g.jedn.flatMap((j) => j.karty.map((k) => k.id ?? undefined)))).filter(jest))
+    const ukryci = (x: string) => {
+        if (!boczni || !widac(x)) return { g: false, b: 0, d: 0, opis: '' }
+        const f = rodzice(x)
+        const g = !!f && [f.maz, f.zona].some((q) => jest(q) && !pokazane.has(q))
+        const b = f ? f.dzieci.filter(jest).filter((c) => c !== x && !pokazane.has(c)).length : 0
+        const d = new Set(malzenstwa(x).flatMap((m) => m.dzieci).filter(jest).filter((c) => !pokazane.has(c))).size
+        const opis = [g && 'rodzice', b && `rodzeństwo ${b}`, d && `dzieci ${d}`].filter(Boolean).join(', ')
+        return { g, b, d, opis }
+    }
+    const plakietki = wiersze.flatMap((w) => (w ?? []).flatMap((gr) => gr.jedn.flatMap((j) => j.karty))).flatMap((k) => {
+        if (!k.id) return []
+        const u = ukryci(k.id)
+        const t: T[] = []
+        const st = (cls: string, x: number, y: number, txt: string) => new Tag('span', { class: `dr-pl ${cls}`, style: `left:${ox(x)}px;top:${oy(y)}px`, 'aria-hidden': 'true' }, [txt])
+        if (u.g) t.push(st('dr-pl-g', srodek(k), yGory(k.r), '↑'))
+        if (u.b) t.push(st('dr-pl-b', k.x + KW - 6, yGory(k.r), `+${u.b}`))
+        // ↓N tylko u krewnego z krwi poniżej przodków (u przodków ukryte dzieci to „+N” przy ich dziecku; u małżonka – przy współmałżonku)
+        if (u.d && !k.partner && (k.r >= rM || boczna.has(k.id))) t.push(st('dr-pl-d', srodek(k), yGory(k.r) + KH, `↓${u.d}`))
+        return t
+    })
     const kartaT = (k: KartaU): T => {
         const styl = `left:${ox(k.x)}px;top:${oy(yGory(k.r))}px`
         const p = k.id ? s.drzewo.osoby.get(k.id) : undefined
         if (!p) return new Tag('span', { class: 'dr-karta dr-brak', style: styl }, ['?'])
         if (!widac(p.id)) return new Tag('span', { class: 'dr-karta dr-ukryta', style: styl, title: 'dane tej osoby widzą tylko zalogowani bliscy' }, [new Tag('span', { class: 'dr-imie' }, ['widoczne dla zalogowanych'])])
         const pp = k.partner ? s.drzewo.osoby.get(k.partner) : undefined
-        const dopisek = k.glowna ? ', ta osoba' : pp ? `, ${p.plec === 'K' ? 'żona' : p.plec === 'M' ? 'mąż' : 'małżonek'}: ${nazwaOsoby(pp)}` : ''
+        const ukr = ukryci(p.id)
+        const dopisek = (k.glowna ? ', ta osoba' : pp ? `, ${p.plec === 'K' ? 'żona' : p.plec === 'M' ? 'mąż' : 'małżonek'}: ${nazwaOsoby(pp)}` : '') + (ukr.opis ? `; poza widokiem: ${ukr.opis}` : '')
         const tresc = [new Tag('span', { class: 'dr-imie' }, [nazwaOsoby(p)]), new Tag('span', { class: 'dr-lata' }, [lataZycia(p)]), ...(dopisek ? [new Tag('span', { class: 'dr-sr' }, [dopisek])] : [])]
         const tytul = `${nazwaOsoby(p)}${lataZycia(p) ? ` (${lataZycia(p)})` : ''}`
         // opis karty dla strzałek (VIEW-06): rząd, położenie, rodzice widoczni w drzewie, rodzina pochodzenia, małżonek
@@ -241,7 +353,7 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
         }
         return k.glowna
             ? new Tag('span', { class: `dr-karta dr-${p.plec} dr-glowna`, style: styl, tabindex: '0', title: tytul, ...nawig }, tresc)
-            : new Tag('a', { class: `dr-karta dr-${p.plec}`, href: `/osoby/${p.id}`, style: styl, title: tytul, ...nawig }, tresc)
+            : new Tag('a', { class: `dr-karta dr-${p.plec}${boczna.has(p.id) ? ' dr-boczna' : ''}`, href: `/osoby/${p.id}`, style: styl, title: tytul, ...nawig }, tresc)
     }
     // karty pogrupowane w pokolenia (lista z nazwą pokolenia – czytnik ekranu czyta drzewo pokolenie po pokoleniu)
     const pokolenia = Array.from({ length: n }, (_, i) => {
@@ -252,8 +364,13 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
     const plansza = new Tag('div', { class: 'dr-plansza', style: `--wc:${Math.ceil(szer)}px;width:${LEWA + Math.ceil(szer) + PRAWA}px;height:${wys}px` }, [
         ...Array.from({ length: n }, (_, i) => new Tag('div', { class: `dr-wiersz${i === n - 1 ? ' dr-ostatni' : ''}`, style: `top:${i * WIERSZ}px`, 'aria-hidden': 'true' }, [new Tag('span', { class: 'dr-pokol' }, [nazwyPokolen(pierwszy + i)])])),
         new Tag('div', { class: 'dr-tresc', style: `width:${Math.ceil(szer)}px;height:${wys}px` }, [
-            new Tag('svg', { class: 'dr-linie', width: String(Math.ceil(szer)), height: String(wys), viewBox: `0 0 ${Math.ceil(szer)} ${wys}`, 'aria-hidden': 'true' }, [new Tag('path', { d: sciezki.join('') }, [])]),
+            new Tag('svg', { class: 'dr-linie', width: String(Math.ceil(szer)), height: String(wys), viewBox: `0 0 ${Math.ceil(szer)} ${wys}`, 'aria-hidden': 'true' }, [new Tag('path', { d: sciezki.join('') }, []), ...(podzial !== null ? [new Tag('path', { class: 'dr-podzial', d: `M${ox(podzial)} ${oy(pierwszy * WIERSZ + 26)}V${oy(yGory(rM - 1) - 6)}` }, [])] : [])]),
             ...pokolenia,
+            ...plakietki,
+            ...(podzial !== null ? [
+                new Tag('span', { class: 'dr-strona dr-strona-l', style: `left:${ox(podzial)}px;top:${oy(pierwszy * WIERSZ)}px` }, [`rodzina ojca${ojciec ? ` · ${s.drzewo.osoby.get(ojciec)?.nazwisko ?? ''}` : ''}`]),
+                new Tag('span', { class: 'dr-strona dr-strona-p', style: `left:${ox(podzial)}px;top:${oy(pierwszy * WIERSZ)}px` }, [`rodzina matki${matka ? ` · ${s.drzewo.osoby.get(matka)?.nazwisko ?? ''}` : ''}`]),
+            ] : []),
             ...laczniki.map((l) => new Tag('span', { class: 'dr-slub', style: `left:${ox(l.m)}px;top:${oy(l.y)}px`, 'aria-hidden': 'true', ...(l.rok ? { title: `ślub ${l.rok}` } : {}) }, ['⚭'])),
         ]),
     ])
@@ -297,6 +414,14 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
         ...(lp ? [new Tag('p', { class: 'dr-t-naglowek' }, ['przodkowie']), lp] : []),
         ...(rodzT.length ? [new Tag('p', { class: 'dr-t-naglowek' }, ['rodzeństwo']), new Tag('ul', {}, rodzT.map((c) => new Tag('li', {}, [pozycja(c, s.drzewo.osoby.get(c)?.plec === 'K' ? 'siostra' : 'brat')])))] : []),
         ...(lpot ? [new Tag('p', { class: 'dr-t-naglowek' }, ['potomkowie']), lpot] : []),
+        ...(boczni ? ([[ojciec, 'rodzeństwo ojca'], [matka, 'rodzeństwo matki']] as const).flatMap(([x, nagl]) => {
+            const r = rodzenstwoZ(x)
+            if (!r.length) return []
+            return [new Tag('p', { class: 'dr-t-naglowek' }, [nagl]), new Tag('ul', {}, r.map((c) => {
+                const dalej = widac(c) ? listaPot(c, 1) : null
+                return new Tag('li', {}, [pozycja(c, s.drzewo.osoby.get(c)?.plec === 'K' ? 'ciotka' : x === ojciec ? 'stryj' : 'wuj'), ...(dalej ? [dalej] : [])])
+            }))]
+        }) : []),
     ])
     return new Tag('figure', {
         class: `drzewo${op.wTabeli ? ' dr-w-tabeli' : ''}`, 'data-osoba': id, ...(op.idFigury ? { id: op.idFigury } : {}),

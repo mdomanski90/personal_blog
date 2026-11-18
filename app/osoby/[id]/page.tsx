@@ -262,7 +262,8 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
 
                 {html && (
                     <>
-                        <Naglowek tytul="drzewo" />
+                        {/* PK (decyzja 18.11): z karty osoby do całego drzewa z tą osobą w środku */}
+                        <Naglowek tytul="drzewo"><Link href={`/osoby/drzewo?od=${encodeURIComponent(id)}`} className="odn">całe drzewo →</Link></Naglowek>
                         <DrzewoKarty html={html} />
                     </>
                 )}

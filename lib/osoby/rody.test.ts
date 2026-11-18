@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import type { Drzewo, Osoba, Rodzina } from './model'
-import { rodyDrzewa, wybranyRod } from './rody'
+import { osobaWSrodku, rodyDrzewa } from './rody'
 import { DOMYSLNE_CALEGO_DRZEWA, parametryDrzewa, zastosujParametryDrzewa } from './drzewo-adres'
 
 const os = (id: string, nazwisko: string, plec: 'M' | 'K', ur?: string): Osoba => ({ id, imiona: id, nazwisko, plec, zyje: 'nie', widocznosc: 'auto', wersja: 1, zdarzenia: ur ? [{ id: `${id}-u`, rodzaj: 'urodzenie', data: ur }] : [] } as Osoba)
@@ -35,17 +35,19 @@ test('osoba niewidoczna nie jest korzeniem ani nie wchodzi do liczby (zasada 1.6
     assert.equal(wszystko[0].osob, 7)
 })
 
-test('wybór rodu z adresu: znany korzeń – ten ród; nieznany albo ukryty – największy', () => {
-    const r = rodyDrzewa(drzewo(), widac)
-    assert.equal(wybranyRod(r, 'c1')?.korzen, 'c1')
-    assert.equal(wybranyRod(r, 'ukryty')?.korzen, 'pra')
-    assert.equal(wybranyRod(r, undefined)?.korzen, 'pra')
-    assert.equal(wybranyRod([], 'x'), null)
+test('osoba w środku: z adresu (każda widoczna), inaczej połowa najdłuższej linii największego rodu; ukryta = domyślna', () => {
+    const d = drzewo(), r = rodyDrzewa(d, widac)
+    assert.equal(osobaWSrodku(d, r, widac, 'c1'), 'c1')
+    assert.equal(osobaWSrodku(d, r, widac, 'synowa'), 'synowa')
+    assert.equal(osobaWSrodku(d, r, widac, undefined), 'syn', 'linia pra → syn → wnuk, środek: syn')
+    assert.equal(osobaWSrodku(d, r, widac, 'ukryty'), 'syn')
+    assert.equal(osobaWSrodku(d, r, widac, 'nieznany'), 'syn')
+    assert.equal(osobaWSrodku(d, [], widac, undefined), null)
 })
 
-test('całe drzewo: domyślnie 0 pokoleń w górę i wszystkie w dół; powrót do 2 w górę zostaje w adresie', () => {
-    assert.deepEqual(parametryDrzewa({}, DOMYSLNE_CALEGO_DRZEWA), { wstecz: 0, naprzod: 15, zakres: 'malzonkowie' })
-    const q = zastosujParametryDrzewa(new URLSearchParams('od=pra'), { wstecz: 2, naprzod: 15, zakres: 'malzonkowie' }, DOMYSLNE_CALEGO_DRZEWA)
+test('całe drzewo: domyślnie 5 pokoleń w górę i 5 w dół; zmiana na 2 w górę zostaje w adresie', () => {
+    assert.deepEqual(parametryDrzewa({}, DOMYSLNE_CALEGO_DRZEWA), { wstecz: 5, naprzod: 5, zakres: 'malzonkowie' })
+    const q = zastosujParametryDrzewa(new URLSearchParams('od=pra'), { wstecz: 2, naprzod: 5, zakres: 'malzonkowie' }, DOMYSLNE_CALEGO_DRZEWA)
     assert.equal(q.toString(), 'od=pra&wstecz=2')
     assert.equal(zastosujParametryDrzewa(new URLSearchParams(), { wstecz: 2, naprzod: 2, zakres: 'malzonkowie' }).toString(), '', 'karta osoby bez zmian')
 })

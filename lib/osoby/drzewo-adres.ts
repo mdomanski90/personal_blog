@@ -9,10 +9,10 @@ export const DOMYSLNE_NAPRZOD = 2
 
 export type ZakresKarty = 'malzonkowie' | 'rodzenstwo'
 export interface ParametryDrzewa { wstecz: number; naprzod: number; zakres: ZakresKarty }
-/** Wartości domyślne pokoleń – na karcie osoby 2/2; na stronie „całe drzewo” (PK, /osoby/drzewo) 0 w górę i wszystkie w dół. */
+/** Wartości domyślne pokoleń – na karcie osoby 2/2; na stronie „całe drzewo” (PK, /osoby/drzewo) 5 w górę i 5 w dół. */
 export interface DomyslnePokolenia { wstecz: number; naprzod: number }
 export const DOMYSLNE_KARTY: DomyslnePokolenia = { wstecz: DOMYSLNE_WSTECZ, naprzod: DOMYSLNE_NAPRZOD }
-export const DOMYSLNE_CALEGO_DRZEWA: DomyslnePokolenia = { wstecz: 0, naprzod: MAKS_POKOLEN }
+export const DOMYSLNE_CALEGO_DRZEWA: DomyslnePokolenia = { wstecz: 5, naprzod: 5 }
 
 const liczba = (v: string | null | undefined, domyslna: number): number => {
     if (v == null || !/^-?\d+$/.test(v.trim())) return domyslna

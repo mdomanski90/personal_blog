@@ -1,16 +1,16 @@
-// PK (uwaga właściciela 18.11): „całe drzewo” – potomkowie najstarszej znanej pary, ten sam rysunek, pasek i pełny ekran co na karcie osoby.
-// Przy kilku niepowiązanych częściach drzewa – wybór rodu (?od=<osoba>). Liczby i korzenie tylko z osób widocznych dla czytelnika.
+// PK (uwagi i decyzje właściciela 18.11): „całe drzewo” w układzie przeglądarki planu – aplet do 1600 px: drzewo osoby
+// w środku z rodzinami ojca i matki (5 pokoleń w górę i w dół, rodzeństwo), panel z szukaniem i kartą wybranej osoby.
+// Osoba w środku z adresu (?od=), domyślnie z połowy najdłuższej linii największego rodu. Tylko osoby widoczne dla czytelnika.
 import type { Metadata } from 'next'
-import { Link } from 'next-view-transitions'
 import { poziomCzytelnika, widoczne } from '@/lib/archiwum'
 import { stanOsob } from '@/lib/osoby/dane'
 import { drzewoHtml } from '@/lib/osoby/drzewo'
 import { DOMYSLNE_CALEGO_DRZEWA, parametryDrzewa } from '@/lib/osoby/drzewo-adres'
-import { rodyDrzewa, wybranyRod } from '@/lib/osoby/rody'
-import { odmiana } from '@/lib/tekst'
-import { PastylkaFiltra, RzadFiltrow } from '@/app/components/Wzorce'
-import DrzewoKarty from '../../components/DrzewoKarty'
+import { lataZycia, nazwaOsoby, nazwaOsobyKatalog, zdarzenie } from '@/lib/osoby/model'
+import { osobaWSrodku, rodyDrzewa } from '@/lib/osoby/rody'
+import { normalizuj } from '@/lib/tekst'
 import { Strona, TytulStrony } from '../../components/Uklad'
+import PrzegladarkaDrzewa, { type OsobaPanelu } from './PrzegladarkaDrzewa'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'całe drzewo · osoby · odniepamieci.pl' }
@@ -19,31 +19,42 @@ export default async function CaleDrzewo({ searchParams }: { searchParams: Promi
     const sp = await searchParams
     const poziom = await poziomCzytelnika()
     const s = await stanOsob()
-    const rody = rodyDrzewa(s.drzewo, (x) => widoczne(s.widocznosc(x), poziom))
-    const rod = wybranyRod(rody, sp.od)
-    const html = rod ? drzewoHtml(s, rod.korzen, { ...parametryDrzewa(sp, DOMYSLNE_CALEGO_DRZEWA), wTabeli: true, idFigury: 'cale-drzewo' }, poziom) : ''
-    const adres = (id: string) => `/osoby/drzewo?od=${encodeURIComponent(id)}`
+    const widac = (x: string) => widoczne(s.widocznosc(x), poziom)
+    const rody = rodyDrzewa(s.drzewo, widac)
+    const od = osobaWSrodku(s.drzewo, rody, widac, sp.od)
+    const p = parametryDrzewa(sp, DOMYSLNE_CALEGO_DRZEWA)
+    const zakres = sp.rodzenstwo === '0' ? 'malzonkowie' as const : 'rodzenstwo' as const
+    const boczni = sp.boczni !== '0'
+    const html = od ? drzewoHtml(s, od, { ...p, zakres, wTabeli: true, idFigury: 'cale-drzewo', boczni }, poziom) : ''
+
+    // dane panelu i szukania – tylko osoby widoczne dla czytelnika (zasada 1.5)
+    const jest = (x: string | undefined): x is string => !!x && s.drzewo.osoby.has(x) && widac(x)
+    const opisZd = (o: Parameters<typeof zdarzenie>[0], ...r: Parameters<typeof zdarzenie>[1][]) => {
+        const z = zdarzenie(o, ...r)
+        return z ? [z.data, z.miejsce?.split(',')[0]].filter(Boolean).join(', ') : ''
+    }
+    const osoby: OsobaPanelu[] = [...s.drzewo.osoby.values()].filter((x) => widac(x.id)).map((x) => {
+        const rel = s.relacje.get(x.id)
+        const fr = rel?.rodzice[0]
+        const miejsce = zdarzenie(x, 'urodzenie', 'chrzest')?.miejsce?.split(',')[0] ?? ''
+        return {
+            id: x.id, nazwa: nazwaOsoby(x), katalog: nazwaOsobyKatalog(x), plec: x.plec, lata: lataZycia(x),
+            ur: opisZd(x, 'urodzenie', 'chrzest'), zm: opisZd(x, 'zgon', 'pogrzeb'),
+            rodzice: fr ? [fr.maz, fr.zona].filter(jest) : [],
+            malzonkowie: (rel?.malzenstwa ?? []).map((f) => (f.maz === x.id ? f.zona : f.maz)).filter(jest),
+            dzieci: (rel?.malzenstwa ?? []).flatMap((f) => f.dzieci).filter(jest),
+            rodzenstwo: fr ? fr.dzieci.filter((c) => c !== x.id).filter(jest) : [],
+            szukaj: normalizuj(`${x.imiona} ${x.nazwisko} ${(x.inneNazwiska ?? []).join(' ')} ${lataZycia(x)} ${miejsce}`),
+        }
+    })
+    const o = od ? s.drzewo.osoby.get(od)! : null
     return (
-        <Strona uklad="pelna">
+        <Strona uklad="przegladarka">
             <TytulStrony sciezka={[{ tekst: 'osoby', href: '/osoby' }]}>całe drzewo</TytulStrony>
-            <div className="wstep-dzialu-tekst">
-                <p className="tekst-opis-maly text-[var(--tekst-opis)]">
-                    {rod
-                        ? <>Potomkowie najstarszej znanej pary: <Link href={`/osoby/${rod.korzen}`}>{rod.nazwa}</Link>{rod.lata && ` (${rod.lata})`}. Przodków małżonków zobaczysz na ich kartach – kliknij osobę na drzewie.</>
-                        : 'Drzewo nie zostało jeszcze wczytane albo żadna jego część nie jest widoczna publicznie.'}
-                </p>
-            </div>
-            {rody.length > 1 && (
-                <div className="katalog-filtry">
-                    <RzadFiltrow etykieta="ród – osobne części drzewa">
-                        {rody.map((r) => (
-                            <PastylkaFiltra key={r.korzen} href={adres(r.korzen)} aktywny={r.korzen === rod?.korzen} title={odmiana(r.osob, ['osoba', 'osoby', 'osób'])} liczba={r.osob}>{r.nazwa}</PastylkaFiltra>
-                        ))}
-                    </RzadFiltrow>
-                </div>
-            )}
-            {/* ramka jak tabela karty osoby – pasek drzewa widoczny także poza pełnym ekranem (P4) */}
-            {html && <div className="osoba-tabela"><DrzewoKarty html={html} domyslne={DOMYSLNE_CALEGO_DRZEWA} /></div>}
+            <p className="przegladarka-opis">Wszystkie powiązania między osobami w jednym widoku: przodkowie ze strony ojca (po lewej) i matki (po prawej), rodzeństwo rodziców z rodzinami, kuzynostwo, rodzeństwo i potomkowie. Kliknij osobę – jej karta otworzy się w panelu obok; drzewo przesuwasz suwakami albo przeciągając.</p>
+            {o && <PrzegladarkaDrzewa key={`${od}-${boczni}-${zakres}-${p.wstecz}-${p.naprzod}`} html={html} osoby={osoby} od={o.id}
+                rody={rody.length > 1 ? rody.map((r) => ({ id: r.korzen, nazwa: r.nazwa, osob: r.osob })) : []}
+                wstecz={p.wstecz} naprzod={p.naprzod} boczni={boczni} rodzenstwo={zakres === 'rodzenstwo'} />}
         </Strona>
     )
 }

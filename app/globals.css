@@ -662,7 +662,7 @@ body {
 .dark .drzewo .dr-wiersz:nth-child(odd) { background: #161b26; }
 .dark .drzewo .dr-pokol, .dark .drzewo .dr-lata { color: #a8a296; }
 .dark .drzewo .dr-linie path { stroke: #8b93a0; }
-.dark .drzewo .dr-ukryta { background: var(--osoba-u-tlo); border-color: var(--osoba-u-ramka); }
+.dark .drzewo .dr-ukryta { background: var(--osoba-u-tlo); border-color: var(--osoba-u-ramka); color: var(--tekst-etykieta); } /* PK: w ciemnym napis „widoczne dla zalogowanych” miał jasny kolor (kontrast 2,5) */
 .dark .drzewo .dr-slub { background: #232220; border-color: #8b93a0; color: #c9c3b7; }
 .drzewo { position: relative; }
 /* wersja tekstowa drzewa – tylko na telefonie; na komputerze czytnik i klawiatura korzystają z wersji graficznej */
@@ -2306,4 +2306,45 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
   input[type=range]{min-height:44px}
   label:has(>input[type=checkbox]),label:has(>input[type=radio]){display:inline-flex;align-items:center;gap:8px;min-height:44px}
   a.lista-tytul,a.osoba-link,a.sd-podgrupa-naglowek{display:inline-flex;align-items:center;min-height:44px}
+}
+/* ===== PK · CAŁE DRZEWO (/osoby/drzewo, decyzje 18.11) =====
+   Układ drzewa: rodziny ojca (lewa) i matki (prawa), krewni boczni bez wypełnienia, plakietki krewnych poza widokiem.
+   Strona w ramie przeglądarki planu (.plan-aplet): drzewo | panel osoby; płynne przybliżanie (+ − ⤢, kółko), suwaki, łapka. */
+.drzewo .dr-boczna { background: transparent; }
+.drzewo .dr-pl { position: absolute; z-index: 2; transform: translate(-50%, -50%); min-width: 18px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px; background: var(--tlo-kontrolki); border: 1px solid var(--krawedz-kontrolki); font-size: 10.5px; line-height: 14px; text-align: center; color: var(--tekst-opis); pointer-events: none; white-space: nowrap; } /* skala-wyjatek: zoom = --font-scale na .dr-plansza */
+.drzewo .dr-linie path.dr-podzial { stroke-dasharray: 4 5; stroke-width: 1; }
+.drzewo .dr-strona { position: absolute; z-index: 2; font-size: 12px; line-height: 18px; color: var(--tekst-opis); white-space: nowrap; } /* skala-wyjatek: zoom = --font-scale na .dr-plansza */
+.drzewo .dr-strona-l { transform: translateX(calc(-100% - 10px)); }
+.drzewo .dr-strona-p { transform: translateX(10px); }
+.drzewo .dr-karta.dr-wybrana { outline: 2px solid var(--akcent); outline-offset: 3px; }
+.drzewo-aplet .drzewo-aplet-obszar{min-width:0;overflow:hidden;position:relative}
+.drzewo-aplet .drzewo-aplet-drzewo,.drzewo-aplet .drzewo-aplet-drzewo>figure.drzewo{height:100%;margin:0}
+.drzewo-aplet figure.drzewo{display:flex;flex-direction:column;border:0;border-radius:0}
+.drzewo-aplet .dr-narzedzia,.drzewo-aplet .dr-podpis{display:none}
+.drzewo-aplet .drzewo .dr-przewijanie{flex:1;min-height:0;overflow:scroll}
+.drzewo-aplet .dr-przewijanie::-webkit-scrollbar{width:14px;height:14px}
+.drzewo-aplet .dr-przewijanie::-webkit-scrollbar-track{background:var(--tlo-sekcji)}
+.drzewo-aplet .dr-przewijanie::-webkit-scrollbar-thumb{background:var(--tekst-etykieta);border-radius:7px;border:3px solid var(--tlo-sekcji)}
+.drzewo-aplet .dr-przewijanie::-webkit-scrollbar-corner{background:var(--tlo-sekcji)}
+.drzewo-aplet .drzewo .dr-pokol{white-space:normal;line-height:1.25;padding-right:10px}
+.drzewo-aplet .drzewo:not(.drzewo-pelne) .dr-przewijanie{display:block}
+.drzewo-aplet .drzewo .dr-tekst,.drzewo-aplet .drzewo:not(.drzewo-pelne) .dr-tekst{display:none}
+.drzewo-aplet .plan-kontrolki{right:24px;z-index:7}
+.drzewo-aplet .plan-wskazowka{bottom:22px;z-index:7;background:var(--tlo-strony);padding:0 4px;border-radius:var(--promien-maly)}
+.drzewo-aplet--lista .drzewo-aplet-obszar{display:block!important;grid-column:1 / -1;height:auto}
+.drzewo-aplet--lista .plan-kontrolki,.drzewo-aplet--lista .plan-wskazowka{display:none}
+.drzewo-aplet--lista .drzewo:not(.drzewo-pelne) .dr-przewijanie{display:none}
+.drzewo-aplet--lista .drzewo:not(.drzewo-pelne) .dr-tekst{display:block;padding:16px}
+.drzewo-aplet--bez-panelu{grid-template-columns:minmax(0,1fr)}
+.drzewo-aplet--bez-panelu .plan-aplet-panel,.drzewo-aplet--bez-panelu .plan-panel-pasek{display:none}
+.drzewo-aplet--bez-panelu .plan-aplet-pasek{grid-column:1 / -1}
+.drzewo-aplet .dok-pasek-lewa{display:flex;align-items:center;gap:8px;min-width:0}
+.drzewo-krok{align-items:center}
+.drzewo-krok-txt{padding:0 6px;font-size:var(--rozmiar-etykieta);white-space:nowrap}
+.drzewo-pastylka{font:inherit;cursor:pointer}
+.drzewo-pastylka-poza{border-style:dashed}
+.odp .plan-panel .drzewo-pastylka{min-height:calc(32px * var(--font-scale,1));padding:0 12px;font-size:var(--rozmiar-etykieta)}
+@media (max-width:900px){
+  .drzewo-aplet .dok-pasek-karta{flex-wrap:wrap;height:auto;padding:6px 8px;row-gap:6px}
+  .drzewo-aplet .dok-pasek-lewa{flex-wrap:wrap;row-gap:6px}
 }

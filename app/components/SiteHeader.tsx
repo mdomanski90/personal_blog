@@ -17,6 +17,11 @@ const PODMENU: Record<string, { href: string; tekst: string }[]> = {
         { href: '/parafie', tekst: 'instytucje' },
         { href: '/obiekty', tekst: 'obiekty' },
     ],
+    // PK (decyzja 18.11): osoby z podmenu – lista osób i całe drzewo
+    '/osoby': [
+        { href: '/osoby', tekst: 'wszystkie osoby' },
+        { href: '/osoby/drzewo', tekst: 'całe drzewo' },
+    ],
     // P7D-1: kolejność jak w spisie działów archiwum (I–VIII)
     '/archiwum': [
         { href: '/archiwum', tekst: 'wszystkie materiały' },
