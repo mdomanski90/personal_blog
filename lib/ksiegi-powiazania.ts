@@ -28,3 +28,16 @@ export function ksiegaDotyczyMiejsca(k: KsiegaPowiazania, m: MiejscePowiazania):
         nakladaSie(k.zakresy, p.od, p.do),
     )
 }
+
+/**
+ * Grupa księgi na karcie miejscowości (P5, REL-07: jedna reguła dla karty i raportu ksiąg): instytucja, z którą wieś była
+ * związana, inaczej instytucja główna, inaczej pierwsza dodatkowa; bez żadnej instytucji – „nieustalona-instytucja”.
+ * `null` = instytucja spoza listy parafii/urzędów (zerwana relacja) – karta księgi nie pokazuje, raport ją wskazuje.
+ */
+export function grupaNaKarcie(k: Pick<KsiegaPowiazania, 'parafia' | 'instytucje'>, m: MiejscePowiazania, znaneInstytucje: ReadonlySet<string>): string | null {
+    const instytucje = k.instytucje ?? []
+    const rel = instytucje.find((id) => m.parafie.some((z) => z.parafia === id))
+    const instytucja = rel || k.parafia || instytucje[0]
+    if (instytucja && znaneInstytucje.has(instytucja)) return instytucja
+    return instytucje.length === 0 && !k.parafia ? 'nieustalona-instytucja' : null
+}

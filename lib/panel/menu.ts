@@ -40,6 +40,7 @@ export const MENU: GrupaMenu[] = [
         { klucz: 'ksiegi', nazwa: 'księgi metrykalne', href: kol('ksiegi') },
         { klucz: 'zespoly', nazwa: 'zespoły archiwalne', href: kol('zespoly') },
         { klucz: 'ksiegi-import', nazwa: 'import ksiąg · CSV/XLSX', href: '/keystatic/panel/ksiegi-import' },
+        { klucz: 'raport-ksiag', nazwa: 'raport ksiąg', href: '/keystatic/panel/raport-ksiag' },
     ] },
     { klucz: 'slownik', nazwa: 'słownik', ikona: 'slownik', pozycje: [
         { klucz: 'hasla', nazwa: 'słownik (pojęcia i gwara)', href: kol('hasla') },

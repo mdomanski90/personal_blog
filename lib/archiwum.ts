@@ -21,7 +21,7 @@ import { typPliku } from './pliki'
 import { zakresyLat, scalZakresy, zakresyTekst, KOLEJNOSC_KSIAG } from './ksiegi'
 import { adresHasla } from './slownik'
 import { szukajIndeksowo, type DokumentSzukania, type Wynik } from './indeks-szukania'
-import { ksiegaDotyczyMiejsca } from './ksiegi-powiazania'
+import { grupaNaKarcie, ksiegaDotyczyMiejsca } from './ksiegi-powiazania'
 
 // P5: jeden błędny wpis nie wyłącza stron czytających kolekcję (lib/kolekcja-odporna.ts)
 const reader = odpornyCzytnik(createReader(process.cwd(), keystaticConfig))
@@ -401,16 +401,15 @@ export async function ksiegiDlaMiejsca(m: Miejsce, poziom: Widocznosc): Promise<
     const wszystkiePar = await wszystkieParafie()
     const pasujace = (await ksiegi(poziom)).filter((k) => ksiegaDotyczyMiejsca(k, m))
     const grupy = new Map<string, { parafia: Parafia; od: number | null; do: number | null; ksiegi: Ksiega[] }>()
+    const znane = new Set(wszystkiePar.map((p) => p.id))
     for (const k of pasujace) {
-        const rel = k.instytucje.find((id) => m.parafie.some((z) => z.parafia === id))
-        const instytucja = rel || k.parafia || k.instytucje[0]
-        const parafia = wszystkiePar.find((p) => p.id === instytucja) ?? (
-            k.instytucje.length === 0 ? {
-                id: 'nieustalona-instytucja', nazwa: 'instytucja nieustalona', wyznanie: '',
-                siedziba: null, czas: '', diecezja: '', sameAs: null, opis: '', zrodla: [], osoby: [],
-            } : null
-        )
-        if (!parafia) continue // zerwane relacje wymagają poprawy w Keystatic
+        // jedna reguła z raportem ksiąg w panelu (REL-07); zerwana relacja → księgi nie ma na karcie, raport ją wskazuje
+        const idGrupy = grupaNaKarcie(k, m, znane)
+        if (!idGrupy) continue
+        const parafia = wszystkiePar.find((p) => p.id === idGrupy) ?? {
+            id: 'nieustalona-instytucja', nazwa: 'instytucja nieustalona', wyznanie: '',
+            siedziba: null, czas: '', diecezja: '', sameAs: null, opis: '', zrodla: [], osoby: [],
+        }
         let grupa = grupy.get(parafia.id)
         if (!grupa) {
             const relacja = m.parafie.find((p) => p.parafia === parafia.id)

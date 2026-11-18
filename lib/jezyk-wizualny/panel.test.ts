@@ -15,7 +15,7 @@ const PLIKI_RAMY = [
     'app/keystatic/osoby/page.tsx', 'app/keystatic/osoby/[id]/EdytorOsoby.tsx', 'app/keystatic/osoby/wspolne.ts', 'app/keystatic/plany/page.tsx',
     'lib/panel/menu.ts',
     // P5
-    'app/keystatic/panel/okno.tsx', 'app/keystatic/panel/operacje/page.tsx', 'app/keystatic/panel/ksiegi-import/page.tsx',
+    'app/keystatic/panel/okno.tsx', 'app/keystatic/panel/operacje/page.tsx', 'app/keystatic/panel/ksiegi-import/page.tsx', 'app/keystatic/panel/raport-ksiag/page.tsx',
 ]
 const blokTokenow = (sel: string) => /^(\.pn|\.dark \.pn)$/.test(sel) || /kui-scheme--/.test(sel)
 
