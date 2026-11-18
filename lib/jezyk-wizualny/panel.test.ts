@@ -16,6 +16,8 @@ const PLIKI_RAMY = [
     'lib/panel/menu.ts',
     // P5
     'app/keystatic/panel/okno.tsx', 'app/keystatic/panel/operacje/page.tsx', 'app/keystatic/panel/ksiegi-import/page.tsx', 'app/keystatic/panel/raport-ksiag/page.tsx', 'app/keystatic/panel/lista/[kolekcja]/page.tsx',
+    // P6a
+    'lib/panel/katalogi.ts',
 ]
 const blokTokenow = (sel: string) => /^(\.pn|\.dark \.pn)$/.test(sel) || /kui-scheme--/.test(sel)
 

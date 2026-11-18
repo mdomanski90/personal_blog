@@ -1,6 +1,7 @@
 // P5 (IMP-08/09, PNL-09): wspólny mechanizm „podgląd + cofnij” dla operacji na wielu plikach treści –
 // import ksiąg, import drzewa (GEDCOM) i zmiany zbiorcze z listy panelu.
-//  • blokada `content/.operacja.lock` – jedna operacja naraz; respektuje ją też zapis z Keystatic (route.ts),
+//  • blokada `content/_operacje/.blokada` – jedna operacja naraz; respektuje ją też zapis z Keystatic (route.ts);
+//    P6a (KOREKTA P5): dawniej `content/.operacja.lock` – usługa nie ma prawa zapisu w samym content/ (Krok 0 P6),
 //  • przed pierwszym zapisem: kontrola, że każdy plik ma treść z podglądu (inaczej „zmieniony w międzyczasie”),
 //  • kopia: `content/_operacje/<id>/` – manifest.json, `przed/<n>` i `po/<n>` (decyzja właściciela 18.11: w content/,
 //    więc wchodzi do kopii całości; 30 ostatnich operacji),
@@ -12,6 +13,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
+import { zapewnijKatalog } from './katalogi'
 
 export type RodzajOperacji = 'import-ksiag' | 'import-drzewa' | 'zbiorcza' | 'odtworzenie'
 export const NAZWY_OPERACJI: Record<RodzajOperacji, string> = { 'import-ksiag': 'import ksiąg', 'import-drzewa': 'import drzewa (GEDCOM)', zbiorcza: 'zmiana zbiorcza', odtworzenie: 'odtworzenie z kopii' }
@@ -33,7 +35,7 @@ export interface Manifest {
 
 export const ZACHOWAJ_OPERACJI = 30
 const KAT = '_operacje'
-const BLOKADA = '.operacja.lock'
+const BLOKADA = path.join(KAT, '.blokada')
 const ID = /^\d{8}-\d{6}-\d{5}-[a-f0-9]{4}$/
 
 const tresc = (korzen: string) => path.join(/*turbopackIgnore: true*/ korzen, 'content')
@@ -91,7 +93,7 @@ export async function blokadaZapisu(korzen = process.cwd()): Promise<string | nu
 
 async function zablokuj(korzen: string, m: Pick<Manifest, 'id' | 'rodzaj' | 'opis'>) {
     const kat = path.join(tresc(korzen), BLOKADA)
-    await fs.mkdir(tresc(korzen), { recursive: true })
+    await zapewnijKatalog(korzen, '_operacje')
     try { await fs.mkdir(kat) } catch (e) {
         if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e
         const b = await stanBlokady(korzen)

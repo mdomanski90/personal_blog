@@ -105,8 +105,8 @@ async function przerwana(k: string) {
     const pm = path.join(k, 'content', '_operacje', w.id!, 'manifest.json')
     const m = JSON.parse(await fs.readFile(pm, 'utf8')); m.stan = 'przygotowane'; await fs.writeFile(pm, JSON.stringify(m))
     await fs.writeFile(path.join(k, 'content', 'obiekty', 'b.mdoc'), 'B1') // drugi plik nie zdążył się zapisać
-    await fs.mkdir(path.join(k, 'content', '.operacja.lock'))
-    await fs.writeFile(path.join(k, 'content', '.operacja.lock', 'info.json'), JSON.stringify({ id: w.id, czas: '', rodzaj: 'import-drzewa', opis: 'import drzewa – test' }))
+    await fs.mkdir(path.join(k, 'content', '_operacje', '.blokada'), { recursive: true })
+    await fs.writeFile(path.join(k, 'content', '_operacje', '.blokada', 'info.json'), JSON.stringify({ id: w.id, czas: '', rodzaj: 'import-drzewa', opis: 'import drzewa – test' }))
     return w.id!
 }
 
@@ -133,7 +133,7 @@ test('awaria procesu: martwa blokada wstrzymuje zapis i operacje; „dokończ”
 })
 
 test('ścieżki: tylko wewnątrz content/, bez „..”, plików ukrytych i katalogu kopii operacji', () => {
-    for (const zla of ['../x', 'obiekty/../../x', '/etc/passwd', '_operacje/x/manifest.json', '.operacja.lock/info.json', 'obiekty//a', 'a\\b'])
+    for (const zla of ['../x', 'obiekty/../../x', '/etc/passwd', '_operacje/x/manifest.json', '_operacje/.blokada/info.json', 'obiekty//a', 'a\\b'])
         assert.throws(() => sciezkaTresci('/tmp/k', zla), Error, zla)
     assert.equal(sciezkaTresci('/tmp/k', 'obiekty/a.mdoc'), '/tmp/k/content/obiekty/a.mdoc')
 })

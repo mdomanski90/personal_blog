@@ -1,6 +1,7 @@
 // Panel administracyjny (/keystatic/panel): podsumowanie, wyszukiwarka, zgłoszenia, kosz, stan serwera.
 // Tylko odczyt plików strony i drobne zapisy w content/ (stan zgłoszeń, przywracanie z kosza).
 import { wczytajZnacznik } from './kopia'
+import { brakujaceKatalogi } from './katalogi'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -261,6 +262,8 @@ export async function podsumowanie() {
     const dniOdKopii = serwer.kopia ? (Date.now() - Date.parse(serwer.kopia)) / 864e5 : Infinity
     if (!serwer.kopia) uwagi.push({ tekst: 'brak kopii zapasowej poza serwerem', ostrz: true, href: '/keystatic/panel/system' })
     else if (dniOdKopii > 3) uwagi.push({ tekst: `ostatnia kopia zapasowa ${Math.floor(dniOdKopii)} dni temu`, ostrz: true, href: '/keystatic/panel/system' })
+    const brak = await brakujaceKatalogi()
+    if (brak.length) uwagi.push({ tekst: `brak katalogu ${brak.map((k) => `content/${k}`).join(', ')} z prawem zapisu – operacje, historia i kosz nie działają (komenda: kopie → ostatnie operacje)`, ostrz: true, href: '/keystatic/panel/operacje' })
     if (serwer.restart) uwagi.push({ tekst: 'serwer czeka na restart (aktualizacje systemu)', ostrz: true, href: '/keystatic/panel/system' })
     if (serwer.dysk && serwer.dysk.wolne / serwer.dysk.calosc < 0.15) uwagi.push({ tekst: 'mało miejsca na dysku', ostrz: true, href: '/keystatic/panel/system' })
     for (const p of plany) if (p.geo < 2) uwagi.push({ tekst: `plan „${p.tytul}” bez punktów geo – nie ma go na mapie ani trybu „w terenie”`, ostrz: false, href: KS.plan(p.slug) })

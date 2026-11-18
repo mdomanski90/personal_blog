@@ -29,7 +29,7 @@ function liczby(o: Pick<Op, 'utworzone' | 'zmienione' | 'usuniete'>) {
 }
 
 export default function Operacje() {
-    const { dane, blad, odswiez } = useDane<{ operacje: Op[]; blokada: Blokada }>(API)
+    const { dane, blad, odswiez } = useDane<{ operacje: Op[]; blokada: Blokada; katalogi?: { brak: string[]; komenda: string } | null }>(API)
     const [kom, ustawKom] = React.useState('')
     const [podglad, ustawPodglad] = React.useState<Podglad | null>(null)
     const [reszta, ustawReszta] = React.useState(false)
@@ -66,6 +66,14 @@ export default function Operacje() {
                 <span className="pn-maly">Importy i zmiany zbiorcze – każdą można cofnąć. Kopie zmienianych plików leżą w treściach (content/_operacje, {odmiana(30, ['ostatnia', 'ostatnie', 'ostatnich'])} operacji) i trafiają do kopii zapasowej.</span>
             </header>
             {blad && <p className="pn-kom pn-bez-marginesu">{blad}</p>}
+            {dane?.katalogi && (
+                <div className="pn-ostrz" role="alert">
+                    <div className="pn-kol">
+                        <span>Serwer nie może pisać w {dane.katalogi.brak.map((k) => `content/${k}`).join(', ')} – importy, zmiany zbiorcze, historia wersji i kosz treści nie zadziałają. Jednorazowo na serwerze (zmienia prawa):</span>
+                        <code className="pn-kod">{dane.katalogi.komenda}</code>
+                    </div>
+                </div>
+            )}
             {kom && <p className="pn-info pn-bez-marginesu" role="status">{kom}</p>}
             {b && !b.martwa && <p className="pn-info pn-bez-marginesu" role="status">Trwa: {b.opis}. Zapis w Keystatic poczeka, aż się skończy.</p>}
             {b?.martwa && przerwane.length === 0 && (

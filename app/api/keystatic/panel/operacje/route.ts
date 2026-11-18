@@ -3,6 +3,7 @@ import {
     cofnijOperacje, listaOperacji, podgladCofniecia, rozstrzygnijPrzerwana, skrotOperacji, stanBlokady, zdejmijMartwaBlokade,
 } from '@/lib/panel/operacje'
 import { uniewaznij } from '@/lib/osoby/dane'
+import { brakujaceKatalogi, KOMENDA_KATALOGOW } from '@/lib/panel/katalogi'
 
 // P5: ostatnie operacje (import ksiąg, import drzewa, zmiany zbiorcze) – lista, podgląd cofnięcia, cofnij, przerwane po awarii.
 // GET – lista + stan blokady; GET ?podglad=<id> – co zmieni „cofnij”.
@@ -14,8 +15,8 @@ export async function GET(req: Request) {
     const b = brakDostepu(req); if (b) return b
     const id = new URL(req.url).searchParams.get('podglad')
     if (id) return Response.json(await podgladCofniecia(id), { headers: BEZ_CACHE })
-    const [L, blokada] = await Promise.all([listaOperacji(), stanBlokady()])
-    return Response.json({ operacje: L.map(skrotOperacji), blokada }, { headers: BEZ_CACHE })
+    const [L, blokada, brak] = await Promise.all([listaOperacji(), stanBlokady(), brakujaceKatalogi()])
+    return Response.json({ operacje: L.map(skrotOperacji), blokada, katalogi: brak.length ? { brak, komenda: KOMENDA_KATALOGOW } : null }, { headers: BEZ_CACHE })
 }
 
 export async function POST(req: Request) {
