@@ -1,16 +1,17 @@
 // Import Keystatic: zbiorcza księga i tomy. Dane archiwum pozostają w content/ksiegi.
 // Bez publikacji nowych ksiąg, bez usuwania tomów i bez zamiany wypełnionych pól na puste.
+// P5: zapis przez wspólny mechanizm operacji (lib/panel/operacje.ts) – blokada, kopia w content/_operacje, „cofnij” w panelu;
+// IMP-10: kolumny spoza formatu nie giną – trafiają do uwag księgi / tomu.
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import readExcelFile from 'read-excel-file/node'
 import * as yaml from 'js-yaml'
 import { RODZAJE_KSIAG, DOSTEP_KSIAG, WYZNANIA_PARAFII, zakresyLat, scalZakresy, zakresyTekst } from '@/lib/ksiegi'
-import { wykonajPartie, type ZmianaImportu } from './zapis-importu'
+import { wykonajOperacje, type ZmianaPliku } from './operacje'
 import { parafie, zespolyArchiwalne } from '@/lib/archiwum'
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-const ROOT = () => path.join(process.cwd(), 'content', 'ksiegi')
-const BACKUP = () => process.env.ODNIEPAMIECI_IMPORT_BACKUP_DIR || '/var/lib/odniepamieci/import-ksiegi-backup'
+const ROOT = (korzen = process.cwd()) => path.join(/*turbopackIgnore: true*/ korzen, 'content', 'ksiegi')
 const MAX_FILE = 5 * 1024 * 1024
 const MAX_KSIEGI = 500, MAX_TOMY = 8000
 
@@ -107,6 +108,21 @@ const polaExtra = [
     ['nazwa_zespolu_swa', 'nazwa zespołu SWA'],
 ] as const
 
+// IMP-10: kolumny znane formatowi; pozostałe zachowujemy w uwagach (z nazwą kolumny), zamiast je pomijać.
+const KOLUMNY_KSIEGI = new Set<string>([
+    'ksiega_id', 'nazwa', 'powiazane_parafie_id', 'parafia_id', 'wyznania_ktorych_dotyczy', 'zespol_archiwalny_id', 'rodzaje_aktow',
+    'dostep', 'skany_url', 'miejscowosci_id', 'notatka_robocza', 'lata', 'braki_i_uwagi_do_lat', 'jezyk', 'przechowywane_w',
+    'zespol_i_sygnatura', 'indeks_url', ...polaExtra.map(([k]) => k),
+])
+const KOLUMNY_TOMU = new Set<string>(['ksiega_id', 'rok_lub_lata', 'tytul_jednostki', 'liczba_skanow', 'skany_tomu_url', 'sygnatura_tomu', 'uwagi_tomu', 'status_linku', 'zrodlo_zespol_url', 'kolejnosc'])
+/** Niepuste wartości z kolumn spoza formatu jako „kolumna: wartość”. */
+export function kolumnyDodatkowe(w: Wiersz, znane: ReadonlySet<string>): string[] {
+    return Object.entries(w).filter(([k, v]) => k && !znane.has(k) && v).map(([k, v]) => `${k}: ${v}`)
+}
+export function nieznaneKolumny(wiersze: Wiersz[], znane: ReadonlySet<string>): string[] {
+    return [...new Set(wiersze.flatMap((w) => Object.keys(w)).filter((k) => k && !znane.has(k)))]
+}
+
 function tomZCsv(w: Wiersz) {
     const years = w.rok_lub_lata || ''
     if (!/^\d{4}(?:\s*[–—-]\s*\d{4})?$/.test(years)) throw new Error(`Tom ${w.sygnatura_tomu || ''}: niepoprawne „rok lub lata”: ${years || '(puste)'}`)
@@ -117,7 +133,7 @@ function tomZCsv(w: Wiersz) {
     const scanCount = skany === '' ? null : Number(skany) // 0 to informacja, a nie brak danych
     if (scanCount === 0 && scans) throw new Error(`Tom ${w.sygnatura_tomu}: liczba skanów wynosi 0, ale podano link do skanów — popraw sprzeczne dane.`)
     const digitization: Tom['digitization'] = scanCount === 0 ? 'brak' : scanCount !== null && scanCount > 0 || scans ? 'online' : 'nieustalone'
-    const info = [w.uwagi_tomu, w.status_linku ? `Status linku: ${w.status_linku}` : '', w.zrodlo_zespol_url ? `Źródło: ${w.zrodlo_zespol_url}` : ''].filter(Boolean).join('\n')
+    const info = [w.uwagi_tomu, w.status_linku ? `Status linku: ${w.status_linku}` : '', w.zrodlo_zespol_url ? `Źródło: ${w.zrodlo_zespol_url}` : '', ...kolumnyDodatkowe(w, KOLUMNY_TOMU)].filter(Boolean).join('\n')
     return { years, identifier: w.sygnatura_tomu || '', scans, gaps: info, title: tytul, scanCount, digitization }
 }
 function slugCheck(id: string) {
@@ -140,6 +156,9 @@ export async function odczytajImport(f: FormData): Promise<Zestaw> {
         grupy.set(w.ksiega_id, [...(grupy.get(w.ksiega_id) ?? []), w])
     }
     const znane = new Set<string>(), uwagi: string[] = []
+    const obceK = nieznaneKolumny(ksiegi, KOLUMNY_KSIEGI), obceT = nieznaneKolumny(tomy, KOLUMNY_TOMU)
+    if (obceK.length) uwagi.push(`Kolumny ksiąg spoza formatu (zachowane w uwagach księgi): ${obceK.join(', ')}.`)
+    if (obceT.length) uwagi.push(`Kolumny tomów spoza formatu (zachowane w uwagach tomu): ${obceT.join(', ')}.`)
     const parafieZnane = await parafie()
     const zespolyZnane = new Set((await zespolyArchiwalne()).map((x) => x.id))
     const znaneIdParafii = new Set(parafieZnane.map((p) => p.id))
@@ -178,7 +197,8 @@ export async function odczytajImport(f: FormData): Promise<Zestaw> {
         const spatial = (w.miejscowosci_id || '').split('|').map((x) => x.trim()).filter(Boolean)
         if (spatial.some((s) => !SLUG.test(s))) throw new Error(`${id}: niepoprawny identyfikator miejscowości.`)
         const pomoc = polaExtra.map(([pole, etykieta]) => w[pole] ? `${etykieta}: ${w[pole]}` : '').filter(Boolean).join('\n')
-        const notes = [w.notatka_robocza, pomoc].filter(Boolean).join('\n\n')
+        const dodatkowe = kolumnyDodatkowe(w, KOLUMNY_KSIEGI)
+        const notes = [w.notatka_robocza, pomoc, dodatkowe.length ? `inne kolumny arkusza:\n${dodatkowe.join('\n')}` : ''].filter(Boolean).join('\n\n')
         const tomyWiersze = grupy.get(id) ?? []
         const vol = tomyWiersze.sort((a, b) => Number(a.kolejnosc || 0) - Number(b.kolejnosc || 0)).map(tomZCsv)
         const sig = new Set<string>()
@@ -223,14 +243,14 @@ function dopelnij(stare: Record<string, unknown>, nowe: Ksiega): Record<string, 
 }
 // Wiele ksiąg ma ręcznie nadane slugi odmienne od ID z arkusza. Wyszukujemy
 // również ich sygnatury, żeby importer nie utworzył niechcący drugiego wpisu.
-async function istniejaceSygnatury() {
+async function istniejaceSygnatury(korzen = process.cwd()) {
     const m = new Map<string, string[]>()
     let pliki: string[] = []
-    try { pliki = await fs.readdir(ROOT()) } catch (e) {
+    try { pliki = await fs.readdir(ROOT(korzen)) } catch (e) {
         if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e
     }
     for (const nazwa of pliki.filter((f) => f.endsWith('.yaml'))) {
-        const zaw = toObj(yaml.load(await fs.readFile(path.join(ROOT(), nazwa), 'utf8')))
+        const zaw = toObj(yaml.load(await fs.readFile(path.join(ROOT(korzen), nazwa), 'utf8')))
         const sygnatura = String(zaw.identifier ?? '').trim()
         if (!sygnatura) continue
         m.set(sygnatura, [...(m.get(sygnatura) ?? []), nazwa.slice(0, -5)])
@@ -238,8 +258,8 @@ async function istniejaceSygnatury() {
     return m
 }
 
-async function odczytajObecne(id: string) {
-    const plik = path.join(ROOT(), `${id}.yaml`)
+async function odczytajObecne(id: string, korzen = process.cwd()) {
+    const plik = path.join(ROOT(korzen), `${id}.yaml`)
     try { return { plik, tekst: await fs.readFile(plik, 'utf8') } }
     catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return { plik, tekst: null }; throw e }
 }
@@ -273,23 +293,23 @@ export async function podgladImportu(z: Zestaw) {
 
 export async function zapiszImport(
     z: Zestaw, tryb: 'pomin' | 'dopelnij', potwierdzoneKolizje = false,
-    widocznosc: 'ja' | 'bliscy' | 'publiczne' = 'ja', zmienIstniejace = false, potwierdzPublikacje = false,
+    widocznosc: 'ja' | 'bliscy' | 'publiczne' = 'ja', zmienIstniejace = false, potwierdzPublikacje = false, korzen = process.cwd(),
 ) {
     if (!['ja', 'bliscy', 'publiczne'].includes(widocznosc)) throw new Error('Niepoprawna widoczność.')
     if (widocznosc === 'publiczne' && !potwierdzPublikacje) throw new Error('Publikacja całego importu wymaga osobnego potwierdzenia.')
     // Brak ustalonej instytucji jest dozwolony; nie wymuszamy historycznie błędnego przypisania.
-    const istniejeSig = await istniejaceSygnatury()
+    const istniejeSig = await istniejaceSygnatury(korzen)
     if (!potwierdzoneKolizje) for (const r of z.rekordy) {
-        const obecny = await odczytajObecne(r.id)
+        const obecny = await odczytajObecne(r.id, korzen)
         const idy = (istniejeSig.get(r.ksiega.identifier) ?? []).filter((id) => id !== r.id)
         if (obecny.tekst === null && r.ksiega.identifier && idy.length)
             throw new Error(`Księga o sygnaturze ${r.ksiega.identifier} już istnieje pod identyfikatorem: ${idy.join(', ')}. Dopasuj ID w arkuszu albo świadomie potwierdź utworzenie odrębnego wpisu.`)
     }
-    const zapisy: { id: string; plik: string; poprzedni: string | null; wynik: string }[] = []
-    let pominiete = 0
+    const zapisy: ZmianaPliku[] = []
+    let pominiete = 0, nowe = 0
     // Cała paczka jest sprawdzana przed pierwszym zapisem.
     for (const r of z.rekordy) {
-        const { plik, tekst: poprzedni } = await odczytajObecne(r.id)
+        const { tekst: poprzedni } = await odczytajObecne(r.id, korzen)
         if (poprzedni !== null && tryb === 'pomin' && !zmienIstniejace) { pominiete++; continue }
         const zawartosc = poprzedni == null
             ? { ...r.ksiega, visibility: widocznosc }
@@ -299,9 +319,13 @@ export async function zapiszImport(
         // Kontrola odczytu przed zapisaniem: nigdy nie podmieniamy pliku pustym YAML-em.
         toObj(yaml.load(wynik))
         if (poprzedni === wynik) { pominiete++; continue }
-        zapisy.push({ id: r.id, plik, poprzedni, wynik })
+        if (poprzedni === null) nowe++
+        zapisy.push({ plik: `ksiegi/${r.id}.yaml`, poprzedni, wynik })
     }
-    const wynik = await wykonajPartie(zapisy as ZmianaImportu[], ROOT(), BACKUP())
-    return { dodane: wynik.dodane, uzupelnione: wynik.uzupelnione, pominiete, backup: wynik.backup }
-
+    const w = await wykonajOperacje({
+        korzen, rodzaj: 'import-ksiag', zmiany: zapisy, prawa: { tryb: 0o640, grupaKatalogu: true },
+        opis: `import ksiąg: ${nowe} nowych, ${zapisy.length - nowe} uzupełnionych (widoczność nowych: ${widocznosc})`,
+        szczegoly: { nowe, uzupelnione: zapisy.length - nowe, pominiete, widocznosc, zmienIstniejace, tryb },
+    })
+    return { dodane: w.utworzone, uzupelnione: w.zmienione, pominiete, operacja: w.id }
 }

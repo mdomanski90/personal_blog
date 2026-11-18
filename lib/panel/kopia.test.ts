@@ -74,3 +74,21 @@ test('kopia na serwerze: zapis przez .part, zostaje 5 najnowszych własnych arch
     assert.ok(!pliki.includes('odniepamieci-kopia-20200101-000000.tar.gz'))
     assert.ok((await wczytajZnacznik(root)).serwer?.plik)
 })
+
+test('P5: import drzewa – blokada bez kopii poza serwerem z ostatnich 24 h', async () => {
+    const { brakSwiezejKopii } = await import('./kopia')
+    const fss = await import('node:fs')
+    const k = fss.mkdtempSync(path.join(os.tmpdir(), 'kopia-24h-'))
+    try {
+        assert.match((await brakSwiezejKopii(k))!, /pobierz kopię/)
+        fss.mkdirSync(path.join(k, 'content', '_panel'), { recursive: true })
+        const teraz = Date.parse('2026-11-18T18:00:00Z')
+        const zapisz = (czas: string) => fss.writeFileSync(path.join(k, 'content', '_panel', 'kopia.json'), JSON.stringify({ komputer: { czas, bajty: 1 }, serwer: { czas: '2026-11-18T17:00:00Z', bajty: 1, plik: '/x' } }))
+        zapisz('2026-11-18T08:00:00Z')
+        assert.equal(await brakSwiezejKopii(k, 24, teraz), null)
+        zapisz('2026-11-17T17:00:00Z')
+        assert.match((await brakSwiezejKopii(k, 24, teraz))!, /starsza niż 24/)
+        fss.writeFileSync(path.join(k, 'content', '_panel', 'kopia.json'), JSON.stringify({ serwer: { czas: '2026-11-18T17:59:00Z', bajty: 1, plik: '/x' } }))
+        assert.match((await brakSwiezejKopii(k, 24, teraz))!, /pobierz kopię/, 'kopia na serwerze się nie liczy – musi być poza serwerem')
+    } finally { fss.rmSync(k, { recursive: true, force: true }) }
+})

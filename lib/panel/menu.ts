@@ -65,6 +65,7 @@ export const MENU: GrupaMenu[] = [
         { klucz: 'szablony', nazwa: 'mapa szablonów', href: '/keystatic/panel/szablony' },
         { klucz: 'wzorce', nazwa: 'wzorce języka wizualnego', href: '/keystatic/panel/wzorce' },
         { klucz: 'system', nazwa: 'kopie, eksport, ustawienia', href: '/keystatic/panel/system' },
+        { klucz: 'operacje', nazwa: 'ostatnie operacje', href: '/keystatic/panel/operacje' },
     ] },
 ]
 

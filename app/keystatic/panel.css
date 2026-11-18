@@ -214,6 +214,34 @@ a.pn-ostrz:hover, a.pn-info:hover { background: var(--pn-hover); }
 .pn-us { background: var(--pn-us-tlo); color: var(--pn-us); text-decoration: line-through; }
 .pn-do { background: var(--pn-do-tlo); color: var(--pn-do); }
 .pn details > summary { cursor: pointer; }
+/* ---------- P5: okno potwierdzenia (natywny <dialog>), operacje, listy z zaznaczaniem ---------- */
+.pn-okno { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 64px); box-sizing: border-box; padding: 0; border: 1px solid var(--pn-linia); border-radius: 10px; background: var(--pn-karta); color: var(--pn-tekst); font: 13.5px/1.45 var(--pn-font); box-shadow: 0 16px 48px var(--pn-cien); }
+.pn-okno::backdrop { background: var(--pn-zaslona); }
+.pn-okno :focus-visible { outline: 2px solid var(--pn-wyp); outline-offset: 2px; }
+.pn-okno-gora { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 10px 6px 18px; }
+.pn-okno-gora h2 { margin: 0; font-size: 15px; font-weight: 650; }
+.pn-okno-tresc { padding: 4px 18px 14px; overflow: auto; max-height: calc(100dvh - 200px); }
+.pn-okno-stopka { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--pn-linia2); }
+.pn-wiersz-op { align-items: center; flex-wrap: nowrap; }
+@media (max-width: 640px) { .pn-wiersz-op { flex-wrap: wrap; } }
+.pn-okno ul { margin: 0; padding-left: 18px; }
+.pn-plik { display: block; width: min(100%, 560px); height: auto; padding: 6px 8px; }
+.pn-pelna { width: 100%; }
+.pn-waskie-500 { max-width: 500px; }
+/* tabela panelu: jedna obwódka, linie między wierszami (wiersze to bloki – zasada 5.2a) */
+.pn-tabela-ramka { overflow-x: auto; border: 1px solid var(--pn-linia); border-radius: 8px; background: var(--pn-pole); }
+.pn-tabela { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pn-tabela-szeroka { min-width: 850px; }
+.pn-tabela th { position: sticky; top: 0; z-index: 1; text-align: left; font-weight: 600; font-size: 12.5px; color: var(--pn-szary); background: var(--pn-karta); padding: 8px 10px; border-bottom: 1px solid var(--pn-linia); white-space: nowrap; }
+.pn-tabela td { padding: 8px 10px; border-bottom: 1px solid var(--pn-linia2); vertical-align: top; }
+.pn-tabela tbody tr:last-child td { border-bottom: 0; }
+.pn-tabela tbody tr:hover { background: var(--pn-hover); }
+.pn-tabela tr[aria-selected=true] { background: color-mix(in srgb, var(--pn-wyp) 12%, var(--pn-pole)); }
+.pn-tabela .pn-kol-zazn { width: 36px; padding-right: 0; }
+.pn-tabela input[type=checkbox] { width: 16px; height: 16px; margin: 2px 0 0; }
+.pn-tabela th button { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+.pn-tabela .pn-slug { font-family: var(--pn-mono); font-size: 12px; color: var(--pn-szary); }
+@media (pointer: coarse) { .pn-tabela input[type=checkbox] { width: 24px; height: 24px; } }
 .pn .pn-przewijane { max-height: 260px; overflow: auto; }
 
 /* ---------- Keystatic w stylu panelu (zmienne --kui-* nieudokumentowane – test zrzutów po aktualizacji) ---------- */

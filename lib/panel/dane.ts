@@ -153,7 +153,7 @@ async function plikiTresci(kat: string, glebokosc = 3, wyn: { p: string; czas: n
     let wpisy: fs.Dirent[] = []
     try { wpisy = await fs.promises.readdir(kat, { withFileTypes: true }) } catch { return wyn }
     for (const w of wpisy) {
-        if (w.name.startsWith('.') || w.name === '_kosz' || w.name.endsWith('.tmp')) continue
+        if (w.name.startsWith('.') || w.name === '_kosz' || w.name === '_operacje' || w.name.endsWith('.tmp')) continue
         const p = path.join(kat, w.name)
         if (w.isDirectory()) { if (glebokosc > 0) await plikiTresci(p, glebokosc - 1, wyn) }
         else { try { wyn.push({ p, czas: (await fs.promises.stat(p)).mtimeMs }) } catch { /* zniknął */ } }

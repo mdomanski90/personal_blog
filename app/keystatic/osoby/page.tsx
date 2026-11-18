@@ -26,6 +26,9 @@ export default function Osoby() {
     const [potw, ustawPotw] = React.useState('')
     const [pracuje, ustawPracuje] = React.useState(false)
     const [pokazOstrz, ustawPokazOstrz] = React.useState(false)
+    // P5: import tylko po świeżej kopii poza serwerem (≤ 24 h) – komunikat z API, null = kopia jest
+    const [kopia, ustawKopia] = React.useState<string | null>(null)
+    const [operacja, ustawOperacje] = React.useState<string | null>(null)
 
     const wczytaj = React.useCallback(() => {
         fetch('/api/keystatic/osoby').then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then(ustaw)
@@ -48,7 +51,13 @@ export default function Osoby() {
         ustawPracuje(true)
         const r = await wyslij('/api/keystatic/osoby', { akcja: 'podglad', gedcom: tekst })
         ustawPracuje(false)
-        if (r.ok) { ustawPods(r.j.podsumowanie as Pods); ustawZmarlych(new Set()); ustawMsg('') } else ustawMsg(r.j.blad ?? 'błąd')
+        if (r.ok) { ustawPods(r.j.podsumowanie as Pods); ustawKopia((r.j.kopia as string | null) ?? null); ustawZmarlych(new Set()); ustawMsg(''); ustawOperacje(null) } else ustawMsg(r.j.blad ?? 'błąd')
+    }
+    /** Po pobraniu kopii (pobieranie w przeglądarce) – ponowny podgląd sprawdza, czy kopia już jest zapisana na serwerze. */
+    const sprawdzKopie = async () => {
+        if (!plik) return
+        const r = await wyslij('/api/keystatic/osoby', { akcja: 'podglad', gedcom: plik.tekst })
+        if (r.ok) ustawKopia((r.j.kopia as string | null) ?? null)
     }
     const [zmarli, ustawZmarlych] = React.useState<Set<string>>(new Set())
     const przelaczZmarlego = (id: string) => ustawZmarlych((z) => { const n = new Set(z); if (n.has(id)) n.delete(id); else n.add(id); return n })
@@ -57,7 +66,8 @@ export default function Osoby() {
         ustawPracuje(true)
         const r = await wyslij('/api/keystatic/osoby', { akcja: 'import', gedcom: plik.tekst, plik: plik.nazwa, potwierdzenie: potw, zmarli: [...zmarli] })
         ustawPracuje(false)
-        if (r.ok) { ustawMsg(`Zapisano drzewo: ${(r.j.podsumowanie as Pods).osoby} osób.`); ustawPlik(null); ustawPods(null); wczytaj() } else ustawMsg(r.j.blad ?? 'błąd')
+        if (r.ok) { ustawMsg(`Zapisano drzewo: ${(r.j.podsumowanie as Pods).osoby} osób.`); ustawOperacje((r.j.operacja as string | null) ?? null); ustawPlik(null); ustawPods(null); wczytaj() }
+        else { ustawMsg(r.j.blad ?? 'błąd'); if (r.status === 409 && r.j.kopia) ustawKopia(String(r.j.kopia)) }
     }
     const dodaj = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -157,6 +167,7 @@ export default function Osoby() {
                 )}
                 <label className="pn-btn pn-samo">{plik ? `plik: ${plik.nazwa}` : 'wybierz plik .ged'}<input type="file" accept=".ged,.gedcom,text/plain" hidden onChange={(e) => e.target.files?.[0] && wybierzPlik(e.target.files[0])} /></label>
                 {pracuje && <span className="pn-szary" role="status">przetwarzam…</span>}
+                {operacja && <p className="pn-info pn-bez-marginesu" role="status"><span>Import zapisany jako operacja – możesz go cofnąć w <a href="/keystatic/panel/operacje">ostatnich operacjach</a> (wróci drzewo sprzed importu).</span></p>}
                 {pods && (
                     <div className="pn-kol pn-ramka">
                         <b>podgląd importu (nic jeszcze nie zapisano)</b>
@@ -191,8 +202,19 @@ export default function Osoby() {
                         <details><summary>miejsca dopasowane do miejscowości strony: {pods.miejscaDopasowane.length}</summary><div className="pn-kol pn-maly">{pods.miejscaDopasowane.map((m) => <span key={m.tekst}>{m.tekst} → <b>{m.miejsce}</b> ({m.ile})</span>)}</div></details>
                         <details><summary>miejsca bez dopasowania (zostaną jako tekst): {pods.miejscaNiedopasowane.length}</summary><div className="pn-kol pn-maly">{pods.miejscaNiedopasowane.slice(0, 200).map((m) => <span key={m.tekst}>{m.tekst} ({m.ile})</span>)}</div></details>
                         {pods.pominieteZnaczniki.length > 0 && <span className="pn-maly">pominięte pola Ancestry: {pods.pominieteZnaczniki.join(', ')}</span>}
-                        {dane?.import && <label className="pn-rzad">Drzewo jest już wczytane. Żeby je zastąpić (obecne dane trafią do kosza; osoby dodane w panelu, np. z planów cmentarzy, zostaną), wpisz <b>ZASTĄP</b>: <input className="pn-in pn-waskie" value={potw} onChange={(e) => ustawPotw(e.target.value)} aria-label="potwierdzenie: ZASTĄP" /></label>}
-                        <button type="button" onClick={zapiszImport} disabled={pracuje || (!!dane?.import && potw !== 'ZASTĄP')} className="pn-btn pn-btn-gl pn-samo">zapisz drzewo na stronie</button>
+                        {dane?.import && <label className="pn-rzad">Drzewo jest już wczytane. Żeby je zastąpić (obecne dane da się przywrócić przyciskiem „cofnij” w ostatnich operacjach; osoby dodane w panelu, np. z planów cmentarzy, zostaną), wpisz <b>ZASTĄP</b>: <input className="pn-in pn-waskie" value={potw} onChange={(e) => ustawPotw(e.target.value)} aria-label="potwierdzenie: ZASTĄP" /></label>}
+                        {kopia && (
+                            <div className="pn-ostrz" role="alert">
+                                <div className="pn-kol">
+                                    <span><b>Najpierw kopia.</b> {kopia}</span>
+                                    <span className="pn-rzad">
+                                        <a className="pn-btn pn-btn-gl" href="/api/keystatic/panel/kopia?tryb=pobierz">pobierz kopię teraz</a>
+                                        <button type="button" className="pn-btn" onClick={sprawdzKopie}>kopia pobrana – sprawdź</button>
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                        <button type="button" onClick={zapiszImport} disabled={pracuje || !!kopia || (!!dane?.import && potw !== 'ZASTĄP')} className="pn-btn pn-btn-gl pn-samo">zapisz drzewo na stronie</button>
                     </div>
                 )}
             </section>

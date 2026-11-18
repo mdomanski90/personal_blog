@@ -4,7 +4,7 @@ import * as React from 'react'
 type Parafia = { id: string; nazwa: string; wyznanie: string }
 type Wpis = { id: string; nazwa: string; lata: string; przyklad: { url: string | null; etykieta: string }; parafia: string; parafiaNazwa: string; instytucjeDodatkowe: string[]; wyznania: string[]; tomy: number; stan: string; kolizje: string[] }
 type Podglad = { wpisy: Wpis[]; uwagi: string[] }
-type Wynik = { dodane: number; uzupelnione: number; pominiete: number; backup: string | null }
+type Wynik = { dodane: number; uzupelnione: number; pominiete: number; operacja: string | null }
 
 const API = '/api/keystatic/panel/ksiegi-import'
 
@@ -78,52 +78,51 @@ export default function ImportKsiag() {
     }
 
     return <>
-        <header style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <header className="pn-kol pn-kol-wasko">
             <h1>import ksiąg metrykalnych</h1>
-            <span className="pn-szary" style={{ fontSize: 12 }}>Zespoły i tomy · CSV / XLSX · zapis do Keystatic</span>
+            <span className="pn-maly">Zespoły i tomy · CSV / XLSX · zapis do Keystatic jako jedna operacja – z kopią i przyciskiem „cofnij”</span>
         </header>
-        <section className="pn-karta" style={{ gap: 12 }}>
+        <section className="pn-karta">
             <h2>1. wybierz dane</h2>
-            <p className="pn-maly" style={{ margin: 0 }}>Wczytaj jeden XLSX z arkuszami „Zespoły” i „Tomy” albo dwa CSV: księgi i tomy. Arkusze dodatkowe są pomijane. Plik nie trafia do publicznego archiwum.</p>
-            <label>plik XLSX
-                <input className="pn-in" style={{ display: 'block', width: 'min(100%,560px)', padding: 8 }} type="file" accept=".xlsx" onChange={(e) => zmianaPliku(e.target.files?.[0] ?? null, 'xlsx')} />
+            <p className="pn-maly pn-bez-marginesu">Wczytaj jeden XLSX z arkuszami „Zespoły” i „Tomy” albo dwa CSV: księgi i tomy. Arkusze dodatkowe są pomijane; kolumny spoza formatu trafiają do uwag księgi lub tomu. Plik nie trafia do publicznego archiwum.</p>
+            <label className="pn-pole">plik XLSX
+                <input className="pn-in pn-plik" type="file" accept=".xlsx" onChange={(e) => zmianaPliku(e.target.files?.[0] ?? null, 'xlsx')} />
             </label>
             <span className="pn-maly">— albo —</span>
-            <label>księgi CSV (wymagany)
-                <input className="pn-in" style={{ display: 'block', width: 'min(100%,560px)', padding: 8 }} type="file" accept=".csv,text/csv" onChange={(e) => zmianaPliku(e.target.files?.[0] ?? null, 'ksiegi')} />
+            <label className="pn-pole">księgi CSV (wymagany)
+                <input className="pn-in pn-plik" type="file" accept=".csv,text/csv" onChange={(e) => zmianaPliku(e.target.files?.[0] ?? null, 'ksiegi')} />
             </label>
-            <label>tomy CSV (opcjonalny, jeśli nie ma zweryfikowanych jednostek)
-                <input className="pn-in" style={{ display: 'block', width: 'min(100%,560px)', padding: 8 }} type="file" accept=".csv,text/csv" onChange={(e) => zmianaPliku(e.target.files?.[0] ?? null, 'tomy')} />
+            <label className="pn-pole">tomy CSV (opcjonalny, jeśli nie ma zweryfikowanych jednostek)
+                <input className="pn-in pn-plik" type="file" accept=".csv,text/csv" onChange={(e) => zmianaPliku(e.target.files?.[0] ?? null, 'tomy')} />
             </label>
             <div className="pn-rzad"><button className="pn-btn" type="button" onClick={() => wykonaj('podglad')} disabled={trwa || (!xlsx && !ksiegi)}>{trwa ? 'sprawdzam…' : 'sprawdź plik i pokaż podgląd →'}</button></div>
         </section>
-        {blad && <p className="pn-ostrz" role="alert" style={{ margin: 0 }}>{blad}</p>}
+        {blad && <p className="pn-ostrz pn-bez-marginesu" role="alert">{blad}</p>}
         {wynik && <section className="pn-karta" aria-live="polite">
             <h2>import zakończony</h2>
-            <p style={{ margin: 0 }}>Nowe: <b>{wynik.dodane}</b> · uzupełnione: <b>{wynik.uzupelnione}</b> · pominięte: <b>{wynik.pominiete}</b>.</p>
-            {wynik.backup && <p className="pn-maly" style={{ margin: 0 }}>Kopia poprzednich wersji: {wynik.backup}</p>}
-            <a className="pn-btn" style={{ alignSelf: 'flex-start' }} href="/keystatic/collection/ksiegi">otwórz księgi w Keystatic →</a>
+            <p className="pn-bez-marginesu">Nowe: <b>{wynik.dodane}</b> · uzupełnione: <b>{wynik.uzupelnione}</b> · pominięte: <b>{wynik.pominiete}</b>.</p>
+            {wynik.operacja && <p className="pn-maly pn-bez-marginesu">Import da się cofnąć w <a href="/keystatic/panel/operacje">ostatnich operacjach</a> – nowe księgi znikną, uzupełnione wrócą do poprzedniej wersji.</p>}
+            <a className="pn-btn pn-samo" href="/keystatic/panel/lista/ksiegi">otwórz listę ksiąg →</a>
         </section>}
-        {podglad && <section className="pn-karta" style={{ gap: 16 }}>
+        {podglad && <section className="pn-karta">
             <h2>2. podgląd i powiązanie z parafiami</h2>
-            <p className="pn-maly" style={{ margin: 0 }}>Sprawdź okres, próbkę skanów i przypisanie parafii przed zapisem. Widoczność całej grupy wybierzesz niżej. Ręcznie uzupełnione dane istniejących ksiąg nie będą nadpisywane.</p>
-            {podglad.uwagi.length > 0 && <div className="pn-kom" role="status" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {podglad.uwagi.map((u, i) => <span key={i}>{u}</span>)}
-            </div>}
-            <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 850, fontSize: 12.5 }}>
-                    <thead><tr style={{ textAlign: 'left', borderBottom: '1px solid var(--linia)' }}><th style={{ padding: 9 }}>księga</th><th>lata</th><th>podgląd jednostki</th><th>tomy</th><th>status</th><th style={{ minWidth: 250 }}>instytucja główna / powiązane</th></tr></thead>
-                    <tbody>{podglad.wpisy.map((w) => <tr key={w.id} style={{ borderBottom: '1px solid var(--linia2)' }}>
-                        <td style={{ padding: '10px 9px' }}><b>{w.nazwa}</b><br /><span className="pn-maly">{w.id}</span></td>
-                        <td style={{ minWidth: 118, fontWeight: 600 }}>{w.lata}</td>
-                        <td style={{ minWidth: 145 }}>{w.przyklad.url ? <a className="odn" href={w.przyklad.url} target="_blank" rel="noopener noreferrer">{w.przyklad.etykieta} ↗</a> : <span className="pn-maly">{w.przyklad.etykieta}</span>}</td>
-                        <td>{w.tomy}</td><td>{w.stan === 'nowa' ? 'nowa' : 'już istnieje'}{w.kolizje.length > 0 && <div className="pn-ostrz" style={{ marginTop: 4 }}>Możliwy duplikat sygnatury! Istnieje: {w.kolizje.join(', ')}</div>}</td>
-                        <td style={{ padding: '10px 0' }}>
-                            <select className="pn-in" style={{ width: '100%' }} value={mapa[w.id] ?? w.parafia} onChange={(e) => ustawParafieDla(w.id, e.target.value)} aria-label={`Parafia dla ${w.nazwa}`}>
+            <p className="pn-maly pn-bez-marginesu">Sprawdź okres, próbkę skanów i przypisanie parafii przed zapisem. Widoczność całej grupy wybierzesz niżej. Ręcznie uzupełnione dane istniejących ksiąg nie będą nadpisywane.</p>
+            {podglad.uwagi.length > 0 && <div className="pn-kom" role="status"><div className="pn-kol pn-kol-wasko">{podglad.uwagi.map((u, i) => <span key={i}>{u}</span>)}</div></div>}
+            <div className="pn-tabela-ramka">
+                <table className="pn-tabela pn-tabela-szeroka">
+                    <thead><tr><th scope="col">księga</th><th scope="col">lata</th><th scope="col">podgląd jednostki</th><th scope="col">tomy</th><th scope="col">status</th><th scope="col">instytucja główna / powiązane</th></tr></thead>
+                    <tbody>{podglad.wpisy.map((w) => <tr key={w.id}>
+                        <td><b>{w.nazwa}</b><br /><span className="pn-maly">{w.id}</span></td>
+                        <td className="pn-bez-zawijania"><b>{w.lata}</b></td>
+                        <td>{w.przyklad.url ? <a href={w.przyklad.url} target="_blank" rel="noopener noreferrer">{w.przyklad.etykieta} ↗</a> : <span className="pn-maly">{w.przyklad.etykieta}</span>}</td>
+                        <td>{w.tomy}</td>
+                        <td>{w.stan === 'nowa' ? 'nowa' : 'już istnieje'}{w.kolizje.length > 0 && <div className="pn-ostrz">Możliwy duplikat sygnatury! Istnieje: {w.kolizje.join(', ')}</div>}</td>
+                        <td>
+                            <select className="pn-in pn-pelna" value={mapa[w.id] ?? w.parafia} onChange={(e) => ustawParafieDla(w.id, e.target.value)} aria-label={`Parafia dla ${w.nazwa}`}>
                                 <option value="">— instytucja nieustalona —</option>
                                 {parafie.map((p) => <option key={p.id} value={p.id}>{p.nazwa} ({p.wyznanie})</option>)}
                             </select>
-                            {(w.instytucjeDodatkowe.length > 0 || w.wyznania.length > 0) && <div className="pn-maly" style={{ marginTop: 4 }}>
+                            {(w.instytucjeDodatkowe.length > 0 || w.wyznania.length > 0) && <div className="pn-maly">
                                 {w.instytucjeDodatkowe.length > 0 && <>Instytucje powiązane: {w.instytucjeDodatkowe.map((id) => parafie.find((p) => p.id === id)?.nazwa ?? id).join(' · ')}. </>}
                                 {w.wyznania.length > 0 && <>Wyznania: {w.wyznania.join(', ')}.</>}
                             </div>}
@@ -133,34 +132,33 @@ export default function ImportKsiag() {
                 </table>
             </div>
             {parafie.length === 0 && <div className="pn-kom">W panelu nie ma jeszcze parafii/urzędów. Księgi z nieustalonym wytwórcą można zachować i uzupełnić później w Keystatic.</div>}
-            {podglad.wpisy.some((w) => w.kolizje.length) && <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, color: 'var(--ostrz)' }}><input type="checkbox" checked={potwierdzDuplikaty} onChange={(e) => ustawPotwierdzDuplikaty(e.target.checked)} />Rozumiem ryzyko duplikatów sygnatur: chcę mimo to utworzyć odrębne księgi. Bezpieczniej poprawić „ksiega_id” na istniejący identyfikator w arkuszu.</label>}
+            {podglad.wpisy.some((w) => w.kolizje.length) && <label className="pn-rzad pn-rzad-gora"><input type="checkbox" checked={potwierdzDuplikaty} onChange={(e) => ustawPotwierdzDuplikaty(e.target.checked)} /><span>Rozumiem ryzyko duplikatów sygnatur: chcę mimo to utworzyć odrębne księgi. Bezpieczniej poprawić „ksiega_id” na istniejący identyfikator w arkuszu.</span></label>}
             <h2>3. bezpieczny zapis</h2>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>Jak potraktować księgi, które już istnieją?
-                <select className="pn-in" value={tryb} onChange={(e) => ustawTryb(e.target.value as 'pomin' | 'dopelnij')} style={{ maxWidth: 500 }}>
+            <label className="pn-pole">Jak potraktować księgi, które już istnieją?
+                <select className="pn-in pn-waskie-500" value={tryb} onChange={(e) => ustawTryb(e.target.value as 'pomin' | 'dopelnij')}>
                     <option value="pomin">pomiń istniejące (domyślnie)</option>
                     <option value="dopelnij">uzupełnij wyłącznie puste pola i brakujące tomy</option>
                 </select>
             </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 5, maxWidth: 440 }}>
-                    Widoczność CAŁEJ importowanej grupy nowych ksiąg
-                    <select className="pn-in" value={widocznosc} onChange={(e) => { ustawWidocznosc(e.target.value as 'ja' | 'bliscy' | 'publiczne'); ustawPotwierdzPublikacje(false) }}>
+            <div className="pn-kol">
+                <label className="pn-pole">Widoczność CAŁEJ importowanej grupy nowych ksiąg
+                    <select className="pn-in pn-waskie-500" value={widocznosc} onChange={(e) => { ustawWidocznosc(e.target.value as 'ja' | 'bliscy' | 'publiczne'); ustawPotwierdzPublikacje(false) }}>
                         <option value="ja">tylko ja (domyślnie)</option>
                         <option value="bliscy">dla bliskich</option>
                         <option value="publiczne">publiczne — dla wszystkich</option>
                     </select>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <label className="pn-rzad pn-rzad-gora">
                     <input type="checkbox" checked={zmienIstniejace} onChange={(e) => ustawZmienIstniejace(e.target.checked)} />
-                    Zastosuj tę widoczność również do ksiąg, które już istnieją. Pozostałe uzupełnione informacje zachowaj.
+                    <span>Zastosuj tę widoczność również do ksiąg, które już istnieją. Pozostałe uzupełnione informacje zachowaj.</span>
                 </label>
-                {widocznosc === 'publiczne' && <label className="pn-ostrz" style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                {widocznosc === 'publiczne' && <label className="pn-ostrz">
                     <input type="checkbox" checked={potwierdzPublikacje} onChange={(e) => ustawPotwierdzPublikacje(e.target.checked)} />
-                    Potwierdzam, że sprawdziłem księgi i chcę opublikować całą wybraną grupę, tak by była widoczna dla wszystkich odwiedzających.
+                    <span>Potwierdzam, że sprawdziłem księgi i chcę opublikować całą wybraną grupę, tak by była widoczna dla wszystkich odwiedzających.</span>
                 </label>}
             </div>
-            <p className="pn-maly" style={{ margin: 0 }}>Import nie usuwa tomów ani innych rekordów. Przed uzupełnieniem istniejących ksiąg zapisuje kopię ich YAML na serwerze. Dane pomocnicze (np. liczby skanów) trafią do uwag, ponieważ obecny edytor nie ma na nie osobnych pól.</p>
-            <button type="button" className="pn-btn pn-btn-gl" onClick={() => wykonaj('zapisz')} disabled={trwa || (podglad.wpisy.some((w) => w.kolizje.length) && !potwierdzDuplikaty) || (widocznosc === 'publiczne' && !potwierdzPublikacje)} style={{ alignSelf: 'flex-start' }}>
+            <p className="pn-maly pn-bez-marginesu">Import nie usuwa tomów ani innych rekordów. Kopia poprzednich wersji trafia do ostatnich operacji – stamtąd cofniesz cały import jednym przyciskiem. Dane pomocnicze (np. liczby skanów) trafią do uwag, ponieważ obecny edytor nie ma na nie osobnych pól.</p>
+            <button type="button" className="pn-btn pn-btn-gl pn-samo" onClick={() => wykonaj('zapisz')} disabled={trwa || (podglad.wpisy.some((w) => w.kolizje.length) && !potwierdzDuplikaty) || (widocznosc === 'publiczne' && !potwierdzPublikacje)}>
                 {trwa ? 'zapisuję…' : `importuj ${podglad.wpisy.length} ksiąg →`}
             </button>
         </section>}

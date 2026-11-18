@@ -32,7 +32,7 @@ export function wczytajRejestr(): Rejestr | null {
 /**
  * Rejestr zapisują dwa konta: usługa strony (nadanie po zapisie w panelu, umask 0077) i konto wdrożenia (skrypt
  * kat:nadaj, krok --auto przy budowie). Plik dostaje grupę katalogu i prawa rw dla grupy – jak pliki ksiąg
- * (lib/panel/zapis-importu.ts); bez tego jedno konto nie odczyta pliku drugiego (lekcja 16.11: EACCES na VPS).
+ * (lib/panel/operacje.ts – prawa „grupaKatalogu”); bez tego jedno konto nie odczyta pliku drugiego (lekcja 16.11: EACCES na VPS).
  */
 function dostepDlaGrupy(plik: string) {
     const kat = fs.statSync(path.dirname(plik))

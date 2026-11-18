@@ -13,7 +13,7 @@ type System = {
     omeka: { nazwa: string; bajty: number; czas: string }[]
     plany: { slug: string; tytul: string }[]
 }
-const RODZ = { plan: 'plan', osoba: 'osoba', rodzina: 'rodzina', import: 'kopia sprzed importu', plik: 'plik planu' }
+const RODZ = { plan: 'plan', osoba: 'osoba', rodzina: 'rodzina', import: 'kopia sprzed importu (sprzed P5 – przywracanie ręczne)', plik: 'plik planu' }
 
 function czasDzialania(s: number) {
     const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60)
@@ -100,6 +100,7 @@ function Kopie({ kopia, wczytano }: { kopia: string | null; wczytano: boolean })
                 </div>
             </div>
             {kom && <span className="pn-maly" role="status">{kom}</span>}
+            <span className="pn-maly">Importy i zmiany zbiorcze mają własne kopie zmienianych plików i przycisk „cofnij” – w <a href="/keystatic/panel/operacje">ostatnich operacjach</a>.</span>
             <details className="pn-maly">
                 <summary>jak sprawdzić i przywrócić kopię</summary>
                 <p>Sprawdzenie: <code>tar -tzf odniepamieci-kopia-….tar.gz | head</code> – lista plików bez błędu. Przywracanie zawsze najpierw do pustego katalogu: <code>mkdir /tmp/test-kopii &amp;&amp; tar -xzf plik.tar.gz -C /tmp/test-kopii</code>, porównanie z bieżącymi danymi, dopiero potem świadoma podmiana wybranych plików.</p>

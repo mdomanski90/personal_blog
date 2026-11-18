@@ -7,6 +7,7 @@ import { czyPoprawnaEdtf, rokPoczatku } from '@/lib/edtf'
 import { doSprawdzeniaZycia, miejscaDoDopasowania, ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
 import { porownajPl } from '@/lib/tekst'
 import { zNadaniemNumerow } from '@/lib/katalog/dane'
+import { brakSwiezejKopii } from '@/lib/panel/kopia'
 
 // Panel osób: lista, import z GEDCOM (podgląd i zapis, jednorazowy), nowa osoba.
 export const dynamic = 'force-dynamic'
@@ -41,7 +42,10 @@ async function zapiszPOST(req: Request) {
             if (!/^\s*0\s+HEAD/m.test(tekst.slice(0, 2000))) return Response.json({ blad: 'To nie wygląda na plik GEDCOM (brak nagłówka „0 HEAD”).' }, { status: 400 })
             const reczne = idOsobRecznych((await stanOsob()).drzewo)
             const wynik = importujGedcom(tekst, await miejscaDoDopasowania(), reczne)
-            if (d.akcja === 'podglad') return Response.json({ podsumowanie: wynik.podsumowanie, zachowaneReczne: reczne.size })
+            // P5: import drzewa tylko po świeżej kopii poza serwerem (decyzja właściciela 18.11) – w podglądzie jako ostrzeżenie
+            const kopia = await brakSwiezejKopii()
+            if (d.akcja === 'podglad') return Response.json({ podsumowanie: wynik.podsumowanie, zachowaneReczne: reczne.size, kopia })
+            if (kopia) return Response.json({ blad: kopia, kopia }, { status: 409 })
             const slad = await sladImportu()
             if (slad && d.potwierdzenie !== 'ZASTĄP') return Response.json({ blad: `Drzewo zostało już wczytane (${new Date(slad.data).toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' })}). Ponowny import zastąpiłby zmiany z panelu – wpisz ZASTĄP, jeśli naprawdę tego chcesz.` }, { status: 409 })
             const p = wynik.podsumowanie
@@ -49,7 +53,7 @@ async function zapiszPOST(req: Request) {
             const zmarli = new Set<string>((Array.isArray(d.zmarli) ? d.zmarli : []).map(String))
             for (const id of zmarli) { const o = wynik.drzewo.osoby.get(id); if (o) o.zyje = 'nie' }
             const zachowane = await zapiszImport(wynik.drzewo, { data: new Date().toISOString(), plik: String(d.plik ?? '').slice(0, 200), podsumowanie: { osoby: p.osoby, rodziny: p.rodziny, zdarzenia: p.zdarzenia, zrodla: p.zrodla, cytaty: p.cytaty, multimedia: p.multimedia } })
-            return Response.json({ podsumowanie: p, zapisano: true, zachowane })
+            return Response.json({ podsumowanie: p, zapisano: true, zachowane, operacja: zachowane.operacja })
         }
         // szybkie oznaczenie z listy „czy jeszcze żyją?”: nie żyje / żyje (lista zawiera wtedy tylko osoby „tak” 105+)
         if (d?.akcja === 'zyje') {

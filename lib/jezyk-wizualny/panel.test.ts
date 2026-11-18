@@ -9,11 +9,13 @@ import { skanujCss, skanujTsx } from './skaner'
 const ROOT = process.cwd()
 const czytaj = (p: string) => fs.readFileSync(path.join(ROOT, p), 'utf8')
 const CSS = 'app/keystatic/panel.css'
-/** Pliki ramy i ekranów przerobionych w PK – zero stylów w miejscu z kolorem/rozmiarem i zero hex (pozostałe ekrany – przy P5/P6). */
+/** Pliki ramy i ekranów przerobionych w PK i P5 – zero stylów w miejscu z kolorem/rozmiarem i zero hex (pozostałe ekrany – przy P6). */
 const PLIKI_RAMY = [
     'app/keystatic/layout.tsx', 'app/keystatic/RamaPanelu.tsx', 'app/keystatic/panel/wspolne.tsx', 'app/keystatic/panel/page.tsx',
     'app/keystatic/osoby/page.tsx', 'app/keystatic/osoby/[id]/EdytorOsoby.tsx', 'app/keystatic/osoby/wspolne.ts', 'app/keystatic/plany/page.tsx',
     'lib/panel/menu.ts',
+    // P5
+    'app/keystatic/panel/okno.tsx', 'app/keystatic/panel/operacje/page.tsx', 'app/keystatic/panel/ksiegi-import/page.tsx',
 ]
 const blokTokenow = (sel: string) => /^(\.pn|\.dark \.pn)$/.test(sel) || /kui-scheme--/.test(sel)
 

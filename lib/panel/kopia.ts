@@ -166,3 +166,16 @@ export async function kopieNaSerwerze(korzen = process.cwd()): Promise<{ nazwa: 
         return Promise.all(n.map(async (x) => { const s = await fs.stat(path.join(/*turbopackIgnore: true*/ z.katalog!, x)); return { nazwa: x, bajty: s.size, czas: s.mtime.toISOString() } }))
     } catch { return [] }
 }
+
+/**
+ * P5 (decyzja właściciela 18.11): import drzewa tylko po świeżej kopii poza serwerem (pobranej na komputer).
+ * Zwraca null, gdy kopia z ostatnich `godzin` jest, inaczej komunikat dla panelu.
+ */
+export async function brakSwiezejKopii(korzen = process.cwd(), godzin = 24, teraz = Date.now()): Promise<string | null> {
+    const z = await wczytajZnacznik(korzen)
+    const czas = z.komputer?.czas ? Date.parse(z.komputer.czas) : NaN
+    if (Number.isFinite(czas) && teraz - czas <= godzin * 3600_000 && teraz >= czas) return null
+    return Number.isFinite(czas)
+        ? `Ostatnia kopia na komputerze jest starsza niż ${godzin} godziny (${new Date(czas).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })}). Pobierz kopię teraz, potem wczytaj drzewo.`
+        : 'Przed wczytaniem drzewa pobierz kopię na komputer (przycisk obok) – bez niej import jest zablokowany.'
+}

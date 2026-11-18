@@ -6,6 +6,7 @@ import path from 'node:path'
 import { importujGedcom } from './gedcom'
 import { idOsobRecznych, polaczZRecznymi, wczytajDrzewo, zapiszImport, zapiszOsobe, zapiszRodzine } from './dane'
 import { poprawOsobe, poprawRodzine, type Drzewo } from './model'
+import { cofnijOperacje, wczytajManifest } from '../panel/operacje'
 
 // osoby zmyślone; cały test w katalogu tymczasowym (dane.ts liczy ścieżki od process.cwd())
 const kat = fs.mkdtempSync(path.join(os.tmpdir(), 'osoby-reczne-'))
@@ -53,15 +54,21 @@ test('ponowny import zapisuje drzewo z GEDCOM i zachowuje kartę utworzoną z gr
     await zapiszOsobe(osoba('maria-zgrobu-1890', { imiona: 'Maria', nazwisko: 'Zgrobu', uwagi: ['karta utworzona z planu'] }))
     await zapiszRodzine(poprawRodzine({ id: 'r7', zona: 'maria-zgrobu-1890', maz: 'jan-testowy-1860', dzieci: [], zdarzenia: [], wersja: 0 }))
     const przed = await wczytajDrzewo()
-    const zach = await zapiszImport(importujGedcom(GED, [], idOsobRecznych(przed)).drzewo, { data: '2026-11-16', plik: 'b.ged', podsumowanie: { osoby: 2, rodziny: 1, zdarzenia: 1, zrodla: 0, cytaty: 0, multimedia: 0 } })
+    const plikiPrzed = fs.readdirSync(path.join(kat, 'content', 'osoby')).sort()
+    const { operacja, ...zach } = await zapiszImport(importujGedcom(GED, [], idOsobRecznych(przed)).drzewo, { data: '2026-11-16', plik: 'b.ged', podsumowanie: { osoby: 2, rodziny: 1, zdarzenia: 1, zrodla: 0, cytaty: 0, multimedia: 0 } })
     assert.deepEqual(zach, { osoby: 1, rodziny: 1, rodzinyPominiete: 0 })
     const po = await wczytajDrzewo()
     assert.equal(po.osoby.get('maria-zgrobu-1890')?.imiona, 'Maria')
     assert.ok(po.osoby.has('jan-testowy-1860') && po.osoby.has('anna-probna'))
     assert.equal(po.rodziny.get('r7')?.maz, 'jan-testowy-1860', 'rodzina dopisana w panelu łączy kartę z osobą z GEDCOM')
-    assert.ok(fs.readdirSync(path.join(kat, 'content', 'osoby', '_kosz')).some((x) => x.startsWith('przed-importem-')), 'kopia sprzed importu')
+    // P5: kopia sprzed importu = operacja w content/_operacje (wcześniej katalog w _kosz bez przycisku przywróć)
+    assert.equal((await wczytajManifest(operacja!))!.rodzaj, 'import-drzewa')
     // import bez zarezerwowanych identyfikatorów kolidowałby z kartą z panelu → błąd, drzewo bez zmian
     const kolizja = importujGedcom(['0 HEAD', '0 @I5@ INDI', '1 NAME Maria /Zgrobu/', '1 BIRT', '2 DATE 1890', '0 TRLR'].join('\n'), []).drzewo
     await assert.rejects(zapiszImport(kolizja, { data: 'x', plik: 'c.ged', podsumowanie: { osoby: 1, rodziny: 0, zdarzenia: 0, zrodla: 0, cytaty: 0, multimedia: 0 } }), /przerwano/)
-    assert.ok((await wczytajDrzewo()).osoby.has('anna-probna'), 'nic nie przeniesiono do kosza')
+    assert.ok((await wczytajDrzewo()).osoby.has('anna-probna'), 'nic nie zmieniono')
+    // „cofnij” w panelu: drzewo wraca do stanu sprzed drugiego importu, bit w bit
+    await cofnijOperacje(operacja!)
+    assert.deepEqual(fs.readdirSync(path.join(kat, 'content', 'osoby')).sort(), plikiPrzed)
+    assert.equal(JSON.parse(fs.readFileSync(path.join(kat, 'content', 'osoby', '_import.json'), 'utf8')).plik, 'a.ged')
 })

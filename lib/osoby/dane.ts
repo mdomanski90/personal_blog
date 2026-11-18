@@ -62,8 +62,16 @@ export const uniewaznij = () => { pamiec = null }
 
 export class Konflikt extends Error {}
 
+/** P5: w trakcie operacji (np. import drzewa) albo po jej przerwaniu zapis ręczny jest wstrzymany – jak w Keystatic. */
+async function sprawdzBlokade() {
+    const { blokadaZapisu } = await import('../panel/operacje')
+    const b = await blokadaZapisu()
+    if (b) throw new Konflikt(b)
+}
+
 export async function zapiszOsobe(o: Osoba, wersjaWczytana?: number): Promise<Osoba> {
     if (!ID_OSOBY.test(o.id)) throw new Error('zły identyfikator osoby')
+    await sprawdzBlokade()
     const plik = path.join(KATALOG(), `${o.id}.json`)
     if (wersjaWczytana != null) {
         try {
@@ -80,6 +88,7 @@ export async function zapiszOsobe(o: Osoba, wersjaWczytana?: number): Promise<Os
 
 export async function zapiszRodzine(f: Rodzina): Promise<Rodzina> {
     if (!ID_RODZINY.test(f.id)) throw new Error('zły identyfikator rodziny')
+    await sprawdzBlokade()
     const p = poprawRodzine({ ...f, wersja: (f.wersja ?? 0) + 1, zmieniono: new Date().toISOString() })
     const { id: _id, ...bezId } = p
     await zapiszAtomowo(path.join(RODZINY(), `${f.id}.json`), JSON.stringify(bezId, null, 1))
@@ -162,32 +171,53 @@ export function polaczZRecznymi(stare: Drzewo, nowe: Drzewo): { drzewo: Drzewo; 
     return { drzewo: { osoby, rodziny, zrodla: nowe.zrodla }, zachowane }
 }
 
-/** Zapis całego drzewa z importu. Poprzednie dane (jeśli są) idą do content/osoby/_kosz/<czas>/; osoby dodane w panelu zostają. */
-export async function zapiszImport(nowe: Drzewo, slad: SladImportu): Promise<ZachowaneReczne> {
+/**
+ * Zapis całego drzewa z importu (P5): jedna operacja z lib/panel/operacje.ts – blokada, kopia poprzednich plików
+ * w content/_operacje, zapis atomowy, przy błędzie cofnięcie całości, potem „cofnij” w panelu. Osoby dodane w panelu
+ * zostają (polaczZRecznymi). Dotyczy plików content/osoby/*.json (osoby, _zrodla.json, _import.json) i _rodziny/*.json;
+ * inne pliki i katalogi (np. _kosz) bez zmian. Pliki identyczne z poprzednimi nie są przepisywane.
+ */
+export async function zapiszImport(nowe: Drzewo, slad: SladImportu, korzen = process.cwd()): Promise<ZachowaneReczne & { operacja: string | null }> {
+    const { wykonajOperacje } = await import('../panel/operacje')
     uniewaznij()
-    const { drzewo: d, zachowane } = polaczZRecznymi(await wczytajDrzewo(), nowe)
-    const kat = KATALOG()
-    let pliki: string[] = []
-    try { pliki = await fs.promises.readdir(kat) } catch { /* pusty */ }
-    const stare = pliki.filter((p) => p.endsWith('.json') || p === '_rodziny')
-    if (stare.length) {
-        const kosz = path.join(kat, '_kosz', `przed-importem-${Date.now()}`)
-        await fs.promises.mkdir(kosz, { recursive: true })
-        for (const p of stare) await fs.promises.rename(path.join(kat, p), path.join(kosz, p))
+    const kat = path.join(/*turbopackIgnore: true*/ korzen, 'content', 'osoby')
+    const stare = korzen === process.cwd() ? await wczytajDrzewo() : await wczytajDrzewoZ(kat)
+    const { drzewo: d, zachowane } = polaczZRecznymi(stare, nowe)
+    const docelowe = new Map<string, string>()
+    for (const o of d.osoby.values()) { const { id, ...bez } = o; docelowe.set(`osoby/${id}.json`, JSON.stringify(bez, null, 1)) }
+    for (const f of d.rodziny.values()) { const { id, ...bez } = f; docelowe.set(`osoby/_rodziny/${id}.json`, JSON.stringify(bez, null, 1)) }
+    docelowe.set('osoby/_zrodla.json', JSON.stringify([...d.zrodla.values()], null, 1))
+    docelowe.set('osoby/_import.json', JSON.stringify(slad, null, 1))
+    const obecne = new Map<string, string>()
+    const czytajKat = async (k: string, rel: string, filtr: (n: string) => boolean) => {
+        let n: string[] = []
+        try { n = await fs.promises.readdir(/*turbopackIgnore: true*/ k) } catch { return }
+        for (const x of n.filter(filtr)) {
+            const p = path.join(/*turbopackIgnore: true*/ k, x)
+            try { if ((await fs.promises.stat(p)).isFile()) obecne.set(`${rel}/${x}`, await fs.promises.readFile(p, 'utf8')) } catch { /* zniknął */ }
+        }
     }
-    await fs.promises.mkdir(RODZINY(), { recursive: true })
-    for (const o of d.osoby.values()) {
-        const { id, ...bez } = o
-        await fs.promises.writeFile(path.join(kat, `${id}.json`), JSON.stringify(bez, null, 1))
-    }
-    for (const f of d.rodziny.values()) {
-        const { id, ...bez } = f
-        await fs.promises.writeFile(path.join(RODZINY(), `${id}.json`), JSON.stringify(bez, null, 1))
-    }
-    await zapiszAtomowo(path.join(kat, '_zrodla.json'), JSON.stringify([...d.zrodla.values()], null, 1))
-    await zapiszAtomowo(path.join(kat, '_import.json'), JSON.stringify(slad, null, 1))
-    uniewaznij()
-    return zachowane
+    await czytajKat(kat, 'osoby', (n) => n.endsWith('.json') && (!n.startsWith('_') || n === '_zrodla.json' || n === '_import.json'))
+    await czytajKat(path.join(kat, '_rodziny'), 'osoby/_rodziny', (n) => n.endsWith('.json'))
+    const pliki = new Set([...obecne.keys(), ...docelowe.keys()])
+    const zmiany = [...pliki].sort().map((plik) => ({ plik, poprzedni: obecne.get(plik) ?? null, wynik: docelowe.get(plik) ?? null }))
+    try {
+        const w = await wykonajOperacje({
+            korzen, rodzaj: 'import-drzewa', zmiany,
+            opis: `import drzewa z pliku ${slad.plik || '(bez nazwy)'}: ${slad.podsumowanie.osoby} osób, ${slad.podsumowanie.rodziny} rodzin`,
+            szczegoly: { plik: slad.plik, ...slad.podsumowanie, zachowaneReczne: zachowane.osoby },
+        })
+        return { ...zachowane, operacja: w.id }
+    } finally { uniewaznij() }
+}
+
+/** Odczyt drzewa z innego katalogu (testy na danych syntetycznych). */
+async function wczytajDrzewoZ(kat: string): Promise<Drzewo> {
+    const osoby = await czytajKatalog<Osoba>(kat, poprawOsobe)
+    const rodziny = await czytajKatalog<Rodzina>(path.join(kat, '_rodziny'), poprawRodzine)
+    let zrodla: Zrodlo[] = []
+    try { zrodla = JSON.parse(await fs.promises.readFile(path.join(kat, '_zrodla.json'), 'utf8')) } catch { /* brak */ }
+    return { osoby, rodziny, zrodla: new Map(zrodla.map((z) => [z.id, z])) }
 }
 
 // ---------- widok dla czytelnika ----------
