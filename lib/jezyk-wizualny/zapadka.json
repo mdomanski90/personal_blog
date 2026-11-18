@@ -11,18 +11,15 @@
     "app/components/InfoZMapa.tsx": {
       "styl": 8
     },
-    "app/components/LegendaMapy.tsx": {
-      "styl": 6
-    },
     "app/components/Logowanie.tsx": {
       "styl": 2
     },
     "app/components/MapaKarty.tsx": {
-      "styl": 6
+      "styl": 1
     },
     "app/components/MapaMiejsc.tsx": {
-      "styl": 38,
-      "hex": 21
+      "styl": 8,
+      "hex": 20
     },
     "app/components/MapaMiejscLeniwa.tsx": {
       "styl": 3
@@ -53,7 +50,7 @@
       "styl": 1
     },
     "app/globals.css": {
-      "hex": 253
+      "hex": 229
     },
     "app/parafie/page.tsx": {
       "styl": 1

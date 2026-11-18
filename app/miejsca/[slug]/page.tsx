@@ -26,6 +26,7 @@ import MapaKarty from '../../components/MapaKarty'
 import Zgloszenie from '../../components/Zgloszenie'
 import { brakiDoPomocy } from '@/lib/wspoltworz-dane'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
+import LegendaMapy from '../../components/LegendaMapy'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import Powiazania, { czesciPowiazan } from '../../components/Powiazania'
 import { TabelaKsiag } from '../../components/Ksiegi'
@@ -97,6 +98,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     const ktx = await kontekstTresci(poziom)
     // ankieta 2 (17.11): nad tabelą osobne pole wstępu (pisane ręcznie); bez pola – nic, bez skrótu historii
     const lead = m.wstep
+    const rodzajeNaMapie = [...new Set(punkty.filter((p) => p.typ === 'obiekt').map((p) => p.rodzaj))]
     const mapa = !(m.wspolrzedne || (m.rodzaj === 'gmina' && punkty.length > 0)) ? null : m.rodzaj === 'gmina'
         ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} wysokosc="100%" obrys={{ url: '/granice/gminy-okolic.geojson', nazwa: m.nazwa.replace(/^gmina /i, '') }} wyroznione={[...idsGminy]} />
         : <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={m.wspolrzedne ?? undefined} wysokosc="100%" />
@@ -125,7 +127,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
     // JW-2 (makiety v2): lead → podstawowe → pełna historia → w terenie, księgi → powiązane, źródła; mapa i spis treści w pasku bocznym
     return (
         <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'miejsca', href: '/miejsca' }, ...przodkowie.map((p) => ({ tekst: p.nazwa, href: `/miejsca/${p.id}` }))]} akcje={<><CopyLinkButton sciezka={`/miejsca/${m.id}`} /><PrzyciskDrukuj /><PrzyciskDrukujCalosc rodzaj="miejsce" id={m.id} /></>} naglowek={naglowek}
-            bok={mapa ? <MapaKarty mapa={mapa} wysokosc={300} podpis="mapa okolicy" /> : undefined} spis={<SpisTresci pozycje={spis} />}>
+            bok={mapa ? <MapaKarty mapa={mapa} wysokosc={300} podpis="mapa okolicy" legenda={<LegendaMapy rodzajeObiektow={rodzajeNaMapie} />} /> : undefined} spis={<SpisTresci pozycje={spis} />}>
             <Tabela etykieta={`${m.nazwa} – dane`}>
                 <Czesc tytul="podstawowe" />
                 <WierszNrKat nr={nrKat} />

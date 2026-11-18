@@ -5,7 +5,6 @@ import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import { Strona, TytulStrony } from '../components/Uklad'
 import MapaMiejscLeniwa from '../components/MapaMiejscLeniwa'
-import LegendaMapy from '../components/LegendaMapy'
 import SpisMiejsc from '../components/SpisMiejsc'
 
 export const dynamic = 'force-dynamic'
@@ -37,7 +36,6 @@ export default async function Miejsca() {
                         {bez === miejscowosci.length ? 'żadna miejscowość nie ma jeszcze współrzędnych.' : `${bez} z ${miejscowosci.length} miejscowości nie ma jeszcze współrzędnych.`}
                     </p>
                 )}
-                <LegendaMapy rodzajeObiektow={[...new Set(ob.filter((o) => o.wspolrzedne).map((o) => o.rodzaj))]} />
             </div>
             <SpisMiejsc grupy={await miejscaWedlugObszarow(poziom)} liczniki={liczniki} />
         </Strona>

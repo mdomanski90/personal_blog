@@ -21,6 +21,7 @@ import { PrzyciskDrukuj } from '../../components/Druk'
 import MapaKarty from '../../components/MapaKarty'
 import Powiazania, { czesciPowiazan } from '../../components/Powiazania'
 import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
+import LegendaMapy from '../../components/LegendaMapy'
 import CopyLinkButton from '../../components/CopyLinkButton'
 import ListaPlanow from '../../components/plan/ListaPlanow'
 import { planDlaCzytelnika, planyDlaCzytelnika } from '@/lib/plany/serwer'
@@ -74,6 +75,7 @@ export default async function ObiektStrona({ params }: Parametry) {
     const lead = zajawka(o.opis, 240, ktx.rozwiaz)
     const foto = o.zdjecia[0]
     const podpisFoto = foto ? [foto.podpis, foto.data, foto.autor && `fot. ${foto.autor}`].filter(Boolean).join(' · ') : ''
+    const rodzajeNaMapie = [...new Set(punkty.filter((p) => p.typ === 'obiekt').map((p) => p.rodzaj))]
     const mapa = o.wspolrzedne ? <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} srodek={o.wspolrzedne} przyblizenie={glowny ? 16 : 14} wysokosc="100%" /> : undefined
     const nrKat = numerKat('obiekt', o.id)
     const wyst = await wystapieniaKarty('obiekt', o.id)
@@ -157,7 +159,7 @@ export default async function ObiektStrona({ params }: Parametry) {
         // bez zdjęcia: podgląd planu i mapa położenia (dawniej zakładka „mapa” w osadzonym planie – PD-02)
         <>
             {podgladPlanu}
-            {mapa && <MapaKarty mapa={mapa} wysokosc={300} podpis="położenie" />}
+            {mapa && <MapaKarty mapa={mapa} wysokosc={300} podpis="położenie" legenda={<LegendaMapy rodzajeObiektow={rodzajeNaMapie} />} />}
         </>
     ) : undefined
 

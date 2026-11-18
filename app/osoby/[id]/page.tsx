@@ -8,6 +8,7 @@ import { bezNawiasow } from '@/lib/odnosniki'
 import { formatujEdtf } from '@/lib/edtf'
 import { obrzadekZdarzenia, stanOsob } from '@/lib/osoby/dane'
 import { drzewoHtml } from '@/lib/osoby/drzewo'
+import { parametryDrzewa } from '@/lib/osoby/drzewo-adres'
 import { adresAncestry, lataZycia, nazwaOsoby, OBRZADKI, RODZAJE_ZDARZEN, rokUrodzenia, rokZgonu, sortujZdarzenia, type Cytat, type Obrzadek, type Zdarzenie } from '@/lib/osoby/model'
 import { odmiana } from '@/lib/tekst'
 import { pochowkiOsoby } from '@/lib/plany/serwer'
@@ -52,7 +53,7 @@ function Obrz({ o, wywnioskowany }: { o: Obrzadek; wywnioskowany: boolean }) {
 const Naglowek = Czesc
 
 
-export default async function KartaOsoby({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ wstecz?: string }> }) {
+export default async function KartaOsoby({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ wstecz?: string; naprzod?: string; rodzenstwo?: string }> }) {
     const { id } = await params
     const sp = await searchParams
     const poziom = await poziomCzytelnika()
@@ -114,8 +115,8 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
         ...wszystkie.filter((z) => z.cytaty?.length).map((z) => ({ e: etykietaZdarzenia(z), z: zrodlaZ(z.cytaty!) })),
         ...(o.cytaty?.length ? [{ e: 'osoba', z: zrodlaZ(o.cytaty) }] : []),
     ]
-    const wstecz = sp.wstecz === '1' || sp.wstecz === '3' ? Number(sp.wstecz) : 2
-    const html = drzewoHtml(s, id, { wstecz, naprzod: 2, zakres: 'malzonkowie', wTabeli: true, idFigury: 'drzewo-osoby' }, poziom)
+    // VIEW-05: liczba pokoleń i rodzeństwo żyją w adresie (?wstecz=&naprzod=&rodzenstwo=1) – pasek nad drzewem zmienia adres
+    const html = drzewoHtml(s, id, { ...parametryDrzewa(sp), wTabeli: true, idFigury: 'drzewo-osoby' }, poziom)
     const tytul = nazwaOsoby(o)
     const rodzenstwo = rel.rodzice.flatMap((f) => f.dzieci).filter((c) => c !== id)
     const ileDzieci = rel.malzenstwa.reduce((a, f) => a + f.dzieci.length, 0)
@@ -257,13 +258,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
 
                 {html && (
                     <>
-                        <Naglowek tytul="drzewo">
-                            <span className="ot-seg" role="group" aria-label="pokolenia w górę">
-                                <span className="ot-seg-podpis">pokolenia w górę</span>
-                                {[1, 2, 3].map((n) => <Link key={n} href={`/osoby/${id}?wstecz=${n}#${idCzesci('drzewo')}`} aria-current={wstecz === n ? 'true' : undefined} scroll={false}>{n}</Link>)}
-                            </span>
-                            <button type="button" className="ot-przycisk" data-drzewo-pelny="drzewo-osoby">pełny ekran ⤢</button>
-                        </Naglowek>
+                        <Naglowek tytul="drzewo" />
                         <DrzewoKarty html={html} />
                     </>
                 )}

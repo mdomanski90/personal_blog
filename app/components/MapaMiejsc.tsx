@@ -4,7 +4,7 @@
 // Tarcze są warstwą mapy: zawsze widoczne, a podpisy chowają się same, gdy brakuje miejsca
 // (miasta mają pierwszeństwo, nazwy świątyń pojawiają się dopiero po przybliżeniu).
 
-import { useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { LngLatBounds, Map as MapaGL, MercatorCoordinate, NavigationControl, Popup, setWorkerUrl, type GeoJSONSource, type GeoJSONSourceSpecification, type SymbolLayerSpecification } from 'maplibre-gl'
@@ -15,6 +15,15 @@ import type { PlanNaMapie } from '@/lib/plany/serwer'
 import { GRUPY_OBIEKTOW, grupaObiektu, tarczaMiejsca, tarczaObiektu } from '@/lib/tarcze'
 import { ileObiektow, rozsun } from '@/lib/mapa-rozsuwanie'
 import { czasRuchu, krzywa } from '@/lib/ruch'
+import { LOCALE_PL } from '@/lib/mapa-locale'
+import { podkladyDoPokazania, zrodloPodkladu, type Podklad } from '@/lib/podklady'
+import { KontekstMapyKarty } from './KontekstMapyKarty'
+import LegendaMapy from './LegendaMapy'
+
+/** Atlas historyczny Polski XVI w. (IH PAN): granice z lat 1520 i 1600 – wiersz „podkład” traktuje je jako jeden wybór */
+const ROKI_ATLASU = [1520, 1600]
+const ZRODLO_DZIS = 'podkład: mapa dzisiejsza – © współtwórcy OpenStreetMap (ODbL), kafelki OpenFreeMap'
+const ZRODLO_ATLASU = 'podkład: mapa dzisiejsza – © współtwórcy OpenStreetMap (ODbL); granice XVI w. – Atlas historyczny Polski XVI w., IH PAN (CC BY 4.0), tylko warstwy wektorowe'
 
 export interface PunktMapy {
     id: string
@@ -104,6 +113,7 @@ export default function MapaMiejsc({
     const kontener = useRef<HTMLDivElement>(null)
     const mapa = useRef<MapaGL | null>(null)
     const router = useRouter()
+    const karta = useContext(KontekstMapyKarty)
     const routerRef = useRef(router)
     routerRef.current = router
     const { resolvedTheme } = useTheme()
@@ -127,6 +137,14 @@ export default function MapaMiejsc({
     const [zoom, setZoom] = useState(srodek ? przyblizenie : 10)
     const [rok, setRok] = useState<number | null>(null)
     const [panel, setPanel] = useState<{ nazwa: string; href: string; plany: { slug: string; tytul: string }[] } | null>(null)
+    // PD-11: podkłady poza „dziś” i Atlasem (np. WIG) – z public/podklady/podklady.json, tylko z wpisaną licencją; dziś lista jest pusta
+    const [podklady, setPodklady] = useState<Podklad[]>([])
+    const [wigId, setWigId] = useState<string | null>(null)
+    const wig = podklady.find((x) => x.id === wigId) ?? null
+    const wigRef = useRef<Podklad | null>(wig)
+    wigRef.current = wig
+    const pokazPodkladRef = useRef<() => void>(() => {})
+    const rodzajeObiektow = [...new Set(punkty.filter((p) => p.typ === 'obiekt').map((p) => p.rodzaj))]
     const rokRef = useRef(rok)
     const odswiezNapisyRef = useRef<() => void>(() => {})
     const pokazOkresRef = useRef<(r: number | null) => void>(() => {})
@@ -144,8 +162,10 @@ export default function MapaMiejsc({
             zoom: srodek ? przyblizenie : 10,
             attributionControl: { compact: true },
             cooperativeGestures: true,
+            locale: LOCALE_PL,
         })
-        m.addControl(new NavigationControl({ showCompass: false }), 'top-left')
+        // mała mapa karty (MapaKarty) rysuje własną grupę „+ − ⤢” w prawym górnym rogu; pozostałe mapy – kontrolki MapLibre
+        if (!karta) m.addControl(new NavigationControl({ showCompass: false }), 'top-left')
         // informacja o źródle mapy domyślnie zwinięta (ikonka ⓘ); MapLibre rozwija ją przy starcie
         const zwin = () => kontener.current?.querySelectorAll('.maplibregl-ctrl-attrib.maplibregl-compact-show').forEach((e) => { e.classList.remove('maplibregl-compact-show'); e.removeAttribute('open') })
         m.once('load', zwin)
@@ -244,6 +264,7 @@ export default function MapaMiejsc({
                 for (const w of warstwyOkresu(ciemnyRef.current)) {
                     m.addLayer({ ...w, layout: { ...w.layout, visibility: rokRef.current ? 'visible' : 'none' } } as typeof w)
                 }
+                pokazPodklad()
                 pokazOkres(rokRef.current)
             }
             if (m.getLayer('granice')) m.setLayoutProperty('granice', 'visibility', !rokRef.current || rokRef.current >= 1999 ? 'visible' : 'none')
@@ -427,6 +448,18 @@ export default function MapaMiejsc({
                 .catch(() => {})
         }
         pokazOkresRef.current = pokazOkres
+        // podkład rastrowy (np. WIG) pod granicami okresu i tarczami; bez wybranego podkładu – tylko sprzątanie
+        const pokazPodklad = () => {
+            try {
+                if (m.getLayer('podklad-wig')) m.removeLayer('podklad-wig')
+                if (m.getSource('podklad-zrodlo')) m.removeSource('podklad-zrodlo')
+                const x = wigRef.current
+                if (!x) return
+                m.addSource('podklad-zrodlo', { type: 'raster', tiles: [x.kafelki], tileSize: 256, attribution: `podkład: ${x.zrodlo}`, ...(x.minzoom != null ? { minzoom: x.minzoom } : {}), ...(x.maxzoom != null ? { maxzoom: x.maxzoom } : {}) })
+                m.addLayer({ id: 'podklad-wig', type: 'raster', source: 'podklad-zrodlo' }, m.getLayer('okres-tlo') ? 'okres-tlo' : undefined)
+            } catch { /* styl w trakcie wczytywania – podkład dojdzie po style.load */ }
+        }
+        pokazPodkladRef.current = pokazPodklad
         if (granice) m.on('idle', odswiezNapisy)
         odswiezNapisyRef.current = () => {
             ostatnieNapisy = ''
@@ -520,6 +553,17 @@ export default function MapaMiejsc({
     }, [pokazPlany])
 
     useEffect(() => {
+        if (!granice) return
+        let wazne = true
+        fetch('/podklady/podklady.json').then((r) => (r.ok ? r.json() : [])).then((l) => { if (wazne) setPodklady(podkladyDoPokazania(l)) }).catch(() => {})
+        return () => { wazne = false }
+    }, [granice])
+
+    useEffect(() => {
+        pokazPodkladRef.current()
+    }, [wigId, podklady])
+
+    useEffect(() => {
         const m = mapa.current
         if (!m || !granice) return
         pokazOkresRef.current(rok)
@@ -533,12 +577,17 @@ export default function MapaMiejsc({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rok])
 
+    const atlas = rok !== null && ROKI_ATLASU.includes(rok)
+    // wiersz „podkład”: dziś (OpenStreetMap) · [WIG, gdy ma licencję] · Atlas IH PAN – XVI w. (= granice 1520/1600)
+    const wybierzDzis = () => { setWigId(null); if (atlas) setRok(null) }
+    const wybierzAtlas = () => { setWigId(null); setRok(ROKI_ATLASU[1]) }
+    const zrodloLegendy = wig ? zrodloPodkladu(wig) : atlas ? ZRODLO_ATLASU : ZRODLO_DZIS
     const przelacz = (g: string) => setWybrane((a) => (a.includes(g) ? a.filter((x) => x !== g) : [...a, g]))
 
     // wysokość w procentach (np. mapa wypełniająca kolumnę obok metryczki): całość wypełnia rodzica, mapa bierze resztę miejsca
     const wypelnij = typeof wysokosc === 'string'
     return (
-        <div className="flex flex-col" style={{ gap: 6, height: wypelnij ? wysokosc : undefined }}>
+        <div className="flex flex-col gap-1.5" style={wypelnij ? { height: wysokosc } : undefined}>
             {/* JW-11: filtry mapy jako pastylki (.szukaj-filtr) – jak w katalogach */}
             {(grupy.length > 0 || (planyGeo?.length ?? 0) > 0) && (
                 <div className="mapa-filtry filtry-rzad">
@@ -565,16 +614,34 @@ export default function MapaMiejsc({
             className="border border-[var(--linia-podzialu)] w-full mapa-wektor"
             style={wypelnij ? { flex: 1, minHeight: 0, borderRadius: '8px', overflow: 'hidden' } : { height: wysokosc, borderRadius: '8px', overflow: 'hidden' }}
             />
+            {karta && (
+                <div className="k-grupa mapa-sterowanie" role="group" aria-label="sterowanie mapą">
+                    <button type="button" aria-label="przybliż mapę" title="przybliż mapę" onClick={() => mapa.current?.zoomIn()}>+</button>
+                    <button type="button" aria-label="oddal mapę" title="oddal mapę" onClick={() => mapa.current?.zoomOut()}>−</button>
+                    <button type="button" aria-label={karta.pelny ? 'zamknij pełny ekran' : 'mapa na cały ekran'} title={karta.pelny ? 'zamknij pełny ekran (Esc)' : 'mapa na cały ekran'} onClick={karta.przelacz}>{karta.pelny ? '⤡' : '⤢'}</button>
+                </div>
+            )}
             {panel && <PanelPlanu panel={panel} zamknij={() => setPanel(null)} />}
             {/* P7C-1 (JV-18): krótki podpis źródeł zawsze widoczny (wymóg ODbL OpenStreetMap i CC BY IH PAN); pełny – pod ⓘ */}
             <p className="mapa-zrodla">
                 © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://openfreemap.org">OpenFreeMap</a>
                 {obrys && <> · gmina: PRG GUGiK</>}
+                {wig && <> · podkład: {wig.zrodlo}</>}
                 {granice && rok && <> · granice: <a href="https://www.openhistoricalmap.org/copyright">OHM</a>{rok <= 1600 && <>, <a href="https://data.atlasfontium.pl/layers/geonode:powiaty">IH PAN</a> CC BY</>}</>}
             </p>
             </div>
             {granice && (
                 <div className="mapa-granice">
+                    <div className="filtry-rzad">
+                        <span className="filtry-podpis">podkład:</span>
+                        <div className="filtry-rzad" role="group" aria-label="podkład mapy">
+                            <button type="button" aria-pressed={!wig && !atlas} onClick={wybierzDzis} className="szukaj-filtr lowercase whitespace-nowrap">dziś (OpenStreetMap)</button>
+                            {podklady.map((x) => (
+                                <button key={x.id} type="button" aria-pressed={wigId === x.id} onClick={() => setWigId(x.id)} title={zrodloPodkladu(x)} className="szukaj-filtr lowercase whitespace-nowrap">{x.etykieta}</button>
+                            ))}
+                            <button type="button" aria-pressed={!wig && atlas} onClick={wybierzAtlas} title="granice Korony i ziem podlaskich z Atlasu historycznego Polski XVI w. (IH PAN, CC BY 4.0)" className="szukaj-filtr lowercase whitespace-nowrap">Atlas IH PAN – XVI w.</button>
+                        </div>
+                    </div>
                     <div className="filtry-rzad">
                         <span className="filtry-podpis">granice historyczne:</span>
                         <div className="filtry-rzad" role="group" aria-label="granice historyczne – rok">
@@ -596,16 +663,16 @@ export default function MapaMiejsc({
                         </div>
                     </div>
                     {rok && (
-                        <p style={{ margin: 0 }}>
+                        <p className="m-0">
                             <span className="font-bold">{LATA_GRANIC.find((l) => l.rok === rok)?.etykieta ?? Math.floor(rok)}</span>{' '}
                             <span className="text-[var(--tekst-opis)]">{LATA_GRANIC.find((l) => l.rok === rok)?.opis ?? ''}</span>
                         </p>
                     )}
                     {rok && (
-                        <div className="flex flex-wrap items-center text-[var(--tekst-opis)]" style={{ gap: '4px 14px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
+                        <div className="mapa-legenda-rzad">
                             {LEGENDA_PANSTW.map((p) => (
-                                <span key={p.nazwa} className="inline-flex items-center" style={{ gap: 5 }}>
-                                    <span aria-hidden="true" style={{ width: 12, height: 12, borderRadius: 3, background: p.kolor, opacity: 0.45, border: `1px solid ${p.kolor}` }} />
+                                <span key={p.nazwa} className="mapa-legenda-poz">
+                                    <span aria-hidden="true" className="mapa-legenda-kolor" style={{ background: p.kolor, borderColor: p.kolor }} />
                                     {p.nazwa}
                                 </span>
                             ))}
@@ -613,17 +680,17 @@ export default function MapaMiejsc({
                         </div>
                     )}
                     {rok && (
-                        <div className="flex flex-wrap items-center text-[var(--tekst-opis)]" style={{ gap: '4px 14px', fontSize: 'calc(12px * var(--font-scale, 1))' }}>
-                            <span className="inline-flex items-center" style={{ gap: 5 }}>
+                        <div className="mapa-legenda-rzad">
+                            <span className="mapa-legenda-poz">
                                 <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="2.6" /></svg>
                                 granica państwa
                             </span>
-                            <span className="inline-flex items-center" style={{ gap: 5 }}>
+                            <span className="mapa-legenda-poz">
                                 <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="1.4" strokeDasharray="5 3" opacity="0.85" /></svg>
                                 województwo / departament / gubernia (różne odcienie)
                             </span>
                             {czyZiemie(rok) && (
-                                <span className="inline-flex items-center" style={{ gap: 5 }}>
+                                <span className="mapa-legenda-poz">
                                     <svg aria-hidden="true" width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#9a3b22" strokeWidth="1.1" strokeDasharray="2.5 2.5" opacity="0.8" /></svg>
                                     ziemia (drohicka, mielnicka, bielska – wg Atlasu historycznego Polski XVI w.)
                                 </span>
@@ -632,10 +699,11 @@ export default function MapaMiejsc({
                         </div>
                     )}
                     {rok && (
-                        <p className="text-[var(--tekst-etykieta)] lowercase" style={{ fontSize: 'calc(12px * var(--font-scale, 1))' }}>
+                        <p className="mapa-legenda-uwaga lowercase">
                             granice: OpenHistoricalMap (CC0) – dane społeczności, nie zawsze kompletne dla każdego roku; Korona i ziemie podlaskie w XVI w. – Atlas historyczny Polski XVI w., IH PAN (CC BY 4.0). Granice z obu źródeł dopasowane do siebie i uproszczone.
                         </p>
                     )}
+                    <LegendaMapy otwarta rodzajeObiektow={rodzajeObiektow} zrodlo={zrodloLegendy} />
                 </div>
             )}
         </div>
@@ -651,20 +719,19 @@ function PanelPlanu({ panel, zamknij }: { panel: { nazwa: string; href: string; 
     }, [zamknij])
     return (
         <div className="mapa-panel-planu border border-[var(--linia-podzialu)] bg-[var(--tlo-strony)]" role="dialog" aria-label={`plany: ${panel.nazwa}`}>
-            <style>{`.mapa-panel-planu{position:absolute;top:10px;right:10px;bottom:10px;width:min(300px,calc(100% - 20px));overflow:auto;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:14px;box-shadow:0 4px 18px rgb(0 0 0 / .14);z-index:5}@media (max-width:640px){.mapa-panel-planu{top:auto;left:0;right:0;bottom:0;width:auto;max-height:75%;border-radius:12px 12px 0 0}}`}</style>
-            <div className="flex items-start justify-between" style={{ gap: 8 }}>
-                <div className="flex flex-col" style={{ gap: 2 }}>
-                    <b style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>{panel.nazwa}</b>
-                    <a href={panel.href} style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>strona miejsca →</a>
+            <div className="mapa-panel-glowa">
+                <div>
+                    <b>{panel.nazwa}</b>
+                    <a href={panel.href}>strona miejsca →</a>
                 </div>
-                <button type="button" onClick={zamknij} aria-label="zamknij" className="text-[var(--tekst-etykieta)]" style={{ fontSize: 'calc(20px * var(--font-scale, 1))', lineHeight: 1, background: 'none', border: 0, cursor: 'pointer' }}>×</button>
+                <button type="button" onClick={zamknij} aria-label="zamknij" className="mapa-panel-zamknij">×</button>
             </div>
             {panel.plany.map((p) => (
-                <a key={p.slug} href={`/plany/${p.slug}`} className="flex flex-col !no-underline text-current" style={{ gap: 6 }}>
+                <a key={p.slug} href={`/plany/${p.slug}`} className="mapa-panel-plan">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/plany/${p.slug}/podglad.svg`} alt={`podgląd: ${p.tytul}`} loading="lazy" style={{ width: '100%', borderRadius: 6, border: '1px solid var(--linia-podzialu)', background: '#f6f3ec', aspectRatio: '4 / 3', objectFit: 'contain' }} />
-                    <span style={{ fontSize: 'calc(13px * var(--font-scale, 1))' }}>{p.tytul}</span>
-                    <span className="border border-[var(--linia-podzialu)] rounded-[7px] w-fit" style={{ fontSize: 'calc(13px * var(--font-scale, 1))', padding: '3px 10px' }}>otwórz plan →</span>
+                    <img src={`/plany/${p.slug}/podglad.svg`} alt={`podgląd: ${p.tytul}`} loading="lazy" />
+                    <span>{p.tytul}</span>
+                    <span className="k-btn k-btn--s w-fit">otwórz plan →</span>
                 </a>
             ))}
         </div>

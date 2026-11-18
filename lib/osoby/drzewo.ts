@@ -6,6 +6,9 @@ import Markdoc from '@markdoc/markdoc'
 import type { Widocznosc } from '../archiwum'
 import { lataZycia, nazwaOsoby } from './model'
 import type { StanOsob } from './dane'
+import { MAKS_POKOLEN } from './drzewo-adres'
+
+export { MAKS_POKOLEN }
 
 const { Tag } = Markdoc
 
@@ -33,13 +36,11 @@ export interface OpcjeDrzewa {
 // etykiety na karcie osoby). Para stoi obok siebie, łącznik z ⚭ pośrodku; od łącznika kreska do dzieci tej pary.
 // Wszystko liczone tu, na serwerze: położenie kart i linie (SVG) – przeglądarka tylko przewija i powiększa.
 
-/** najwięcej pokoleń w jedną stronę (doczytywanie na pełnym ekranie) */
-export const MAKS_POKOLEN = 15
 // karta 124×60 (do trzech wierszy imienia i nazwiska), w wierszu 100 px – środek karty na wysokości 50
 const KW = 124, KH = 60, MALZ = 22, RODZ = 12, GRUPA = 28, WIERSZ = 100, GORA = 20
 const LEWA = 164, PRAWA = 16
 
-interface KartaU { id: string | null; glowna?: boolean; x: number; r: number; /** małżonek tej osoby z drzewa (dla czytnika: „żona: …”) */ partner?: string }
+interface KartaU { id: string | null; glowna?: boolean; x: number; r: number; /** małżonek tej osoby z drzewa (dla czytnika: „żona: …”) */ partner?: string; /** drugi z pary rodziców w rzędzie przodków – tylko dla strzałek (VIEW-06) */ para?: string }
 interface Jedn { karty: KartaU[]; x: number; szer: number }
 interface Grupa { jedn: Jedn[]; ideal: number; x: number; szer: number }
 
@@ -117,6 +118,7 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
     for (let g = 1; g <= wstecz && dzieciNizej.length; g++) {
         const r = rM - g
         const pary = dzieciNizej.map((d) => ({ d, j: nowaJedn([d.rodzina.maz, d.rodzina.zona].filter(jest), r) }))
+        for (const { j } of pary) if (j.karty[1]?.id && j.karty[0].id) j.karty[1].para = j.karty[0].id
         wiersze[r] = pary.map(({ d, j }) => {
             const xs = d.karty.map(srodek)
             return nowaGrupa([j], (Math.min(...xs) + Math.max(...xs)) / 2)
@@ -229,9 +231,17 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
         const dopisek = k.glowna ? ', ta osoba' : pp ? `, ${p.plec === 'K' ? 'żona' : p.plec === 'M' ? 'mąż' : 'małżonek'}: ${nazwaOsoby(pp)}` : ''
         const tresc = [new Tag('span', { class: 'dr-imie' }, [nazwaOsoby(p)]), new Tag('span', { class: 'dr-lata' }, [lataZycia(p)]), ...(dopisek ? [new Tag('span', { class: 'dr-sr' }, [dopisek])] : [])]
         const tytul = `${nazwaOsoby(p)}${lataZycia(p) ? ` (${lataZycia(p)})` : ''}`
+        // opis karty dla strzałek (VIEW-06): rząd, położenie, rodzice widoczni w drzewie, rodzina pochodzenia, małżonek
+        const fr = widac(p.id) ? rodzice(p.id) : undefined
+        const nawig = {
+            'data-id': p.id, 'data-rzad': String(k.r), 'data-x': String(Math.round(k.x)),
+            'data-rodzice': fr ? [fr.maz, fr.zona].filter(jest).join(' ') : '',
+            'data-rodzina': fr ? `${fr.maz ?? ''}+${fr.zona ?? ''}` : '',
+            'data-partner': k.partner ?? k.para ?? '',
+        }
         return k.glowna
-            ? new Tag('span', { class: `dr-karta dr-${p.plec} dr-glowna`, style: styl, tabindex: '0', title: tytul }, tresc)
-            : new Tag('a', { class: `dr-karta dr-${p.plec}`, href: `/osoby/${p.id}`, style: styl, title: tytul }, tresc)
+            ? new Tag('span', { class: `dr-karta dr-${p.plec} dr-glowna`, style: styl, tabindex: '0', title: tytul, ...nawig }, tresc)
+            : new Tag('a', { class: `dr-karta dr-${p.plec}`, href: `/osoby/${p.id}`, style: styl, title: tytul, ...nawig }, tresc)
     }
     // karty pogrupowane w pokolenia (lista z nazwą pokolenia – czytnik ekranu czyta drzewo pokolenie po pokoleniu)
     const pokolenia = Array.from({ length: n }, (_, i) => {
@@ -291,6 +301,8 @@ export function drzewoOsoby(s: StanOsob, id: string, op: OpcjeDrzewa, poziom: Wi
     return new Tag('figure', {
         class: `drzewo${op.wTabeli ? ' dr-w-tabeli' : ''}`, 'data-osoba': id, ...(op.idFigury ? { id: op.idFigury } : {}),
         'data-wstecz': String(wstecz), 'data-naprzod': String(naprzod), 'data-zakres': op.zakres,
+        // ile pokoleń naprawdę widać (N na przyciskach = pokolenia pokazane, nie zamówione)
+        'data-pokolen-wstecz': String(rM - pierwszy), 'data-pokolen-naprzod': String(ostatni - rM),
         'data-wiecej-wstecz': wiecejWstecz ? '1' : '0', 'data-wiecej-naprzod': wiecejNaprzod ? '1' : '0',
         // ile rodzeństwa osoby jest w drzewie (przycisk „pokaż rodzeństwo” na pełnym ekranie)
         'data-rodzenstwo': String(rodzinaGl ? rodzinaGl.dzieci.filter((c) => c !== id && jest(c)).length : 0),
