@@ -84,8 +84,9 @@ export function skanujTsx(kod: string, plik = 'plik.tsx'): Naruszenie[] {
 
 const SELEKTORY_TOKENOW = new Set([':root', '.dark', 'html.dark', 'html:not(.dark)', '@theme', '@theme inline'])
 
-/** Naruszenia w arkuszu CSS: kolor hex poza deklaracją tokenu w bloku tokenów. */
-export function skanujCss(css: string): Naruszenie[] {
+/** Naruszenia w arkuszu CSS: kolor hex poza deklaracją tokenu w bloku tokenów.
+ *  `blokTokenow` – własna reguła rozpoznawania bloku tokenów (PK: arkusz panelu ma tokeny w `.pn` i `.dark .pn`). */
+export function skanujCss(css: string, blokTokenow: (selektor: string) => boolean = (s) => SELEKTORY_TOKENOW.has(s)): Naruszenie[] {
     // komentarze → spacje (zachowane końce linii, więc numery linii się zgadzają)
     const czysty = css.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
     const wyn: Naruszenie[] = []
@@ -98,7 +99,7 @@ export function skanujCss(css: string): Naruszenie[] {
         const dw = tekst.indexOf(':')
         if (dw < 0 || !stos.length) return
         const prop = tekst.slice(0, dw).trim()
-        const token = prop.startsWith('--') && SELEKTORY_TOKENOW.has(stos[stos.length - 1])
+        const token = prop.startsWith('--') && blokTokenow(stos[stos.length - 1])
         if (token) return
         for (const m of tekst.matchAll(HEX)) wyn.push({ rodzaj: 'hex', co: m[0], linia: liniaW(od + (m.index ?? 0)) })
     }

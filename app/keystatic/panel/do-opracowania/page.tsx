@@ -76,7 +76,7 @@ export default function DoOpracowania() {
                 </select></label>
                 <label className="pn-maly" style={{flex:'1 1 220px'}}>wyszukaj rekord<br/><input className="pn-in" type="search" value={q} onChange={e=>{ustawQ(e.target.value);ustawId('')}} style={{width:'100%'}} placeholder="tytuł, rodzaj braku…" /></label>
             </div>
-            <div className="pn-siatka" style={{gridTemplateColumns:'minmax(220px, .9fr) minmax(300px, 1.2fr)',alignItems:'start'}}>
+            <div className="pn-siatka pn-siatka-kolejka">
                 <section className="pn-karta" aria-label="lista ostrzeżeń" style={{maxHeight:'min(70vh,750px)',overflowY:'auto'}}>
                     <div className="pn-rzad" style={{justifyContent:'space-between'}}><h2>kolejka</h2><span className="pn-szary">{wynik.length} pozycji</span></div>
                     {!wynik.length && <p className="pn-maly">Nie ma ostrzeżeń spełniających wybrane filtry.</p>}

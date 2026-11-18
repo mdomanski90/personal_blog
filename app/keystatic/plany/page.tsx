@@ -1,13 +1,15 @@
 'use client'
-// Panel planów: lista, nowy plan, import pliku planu; zgłoszenia czytelników – w panelu (/keystatic/panel/zgloszenia).
+// Panel planów: lista (PK: filtr po rodzaju – ?rodzaj=), nowy plan, import pliku planu; zgłoszenia czytelników – w panelu (/keystatic/panel/zgloszenia).
 import * as React from 'react'
+import { RODZAJE_PLANU, type RodzajPlanu } from '@/lib/plany/metadane'
 
-type Wiersz = { slug: string; tytul: string; widocznosc: string; miejsce?: string; obiekt?: string; elementow: number; zmieniono: string }
+type Wiersz = { slug: string; tytul: string; rodzaj: RodzajPlanu; widocznosc: string; miejsce?: string; obiekt?: string; elementow: number; zmieniono: string }
 type ZgPlanu = { id: string; stan?: string }
 type ZgStrony = { id: string; stan?: string }
 
 const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
 const WID: Record<string, string> = { ja: 'szkic', bliscy: 'dla bliskich', publiczne: 'publiczny' }
+const NAGLOWKI: Record<RodzajPlanu, string> = { cmentarz: 'plany cmentarzy', historyczny: 'plany historyczne', schemat: 'schematy i szkice' }
 
 export default function Plany() {
     const [dane, ustaw] = React.useState<{ plany: Wiersz[]; miejsca: { id: string; nazwa: string }[] } | null>(null)
@@ -17,6 +19,8 @@ export default function Plany() {
     const [tytul, ustawTytul] = React.useState('')
     const [miejsce, ustawMiejsce] = React.useState('')
     const [nadpisz, ustawNadpisz] = React.useState(false)
+    const [rodzaj, ustawRodzaj] = React.useState<RodzajPlanu | ''>('')
+    React.useEffect(() => { const r = new URLSearchParams(location.search).get('rodzaj'); ustawRodzaj(r && r in RODZAJE_PLANU ? (r as RodzajPlanu) : '') }, [])
     const wczytaj = React.useCallback(() => {
         fetch('/api/keystatic/plany').then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then(ustaw).catch((s) => ustawMsg(s === 401 ? 'Brak dostępu – panel planów działa tylko za hasłem panelu (nginx).' : 'Nie udało się wczytać listy planów.'))
         fetch('/api/keystatic/plany/zgloszenia').then((r) => r.json()).then(ustawZgP).catch(() => {})
@@ -63,42 +67,60 @@ export default function Plany() {
         wczytaj()
     }
     const czekaZg = [...zgP, ...zgS].filter((z) => !z.stan || z.stan === 'nowe' || z.stan === 'odlozone').length
-    const pole: React.CSSProperties = { font: 'inherit', fontSize: 14, height: 30, padding: '0 8px', border: '1px solid #d6d1c6', borderRadius: 7, background: 'transparent', color: 'inherit' }
-    const btn: React.CSSProperties = { ...pole, cursor: 'pointer', background: 'var(--muted, #f2f0eb)' }
+    const widoczne = (dane?.plany ?? []).filter((p) => !rodzaj || p.rodzaj === rodzaj)
+    const ile = (r: RodzajPlanu) => (dane?.plany ?? []).filter((p) => p.rodzaj === r).length
     return (
-        <div style={{ maxWidth: 860, margin: '0 auto', padding: '28px 20px 60px', fontFamily: 'var(--font-jetbrains), monospace', display: 'flex', flexDirection: 'column', gap: 18, fontSize: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 10 }}>
-                <h1 style={{ fontSize: 22, margin: 0 }}>plany obiektów</h1>
-                <span style={{ display: 'flex', gap: 14 }}><a href="/keystatic/panel">← panel</a><a href="/keystatic/plany/typy">katalog typów →</a><a href="/keystatic">panel treści →</a></span>
-            </div>
-            {msg && <p style={{ margin: 0, padding: '8px 10px', borderRadius: 7, background: '#fef3c7', color: '#78350f' }}>{msg}</p>}
-            <section style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {dane?.plany.length === 0 && <p style={{ color: '#6b665c', margin: 0 }}>Nie ma jeszcze planów.</p>}
-                {dane?.plany.map((p) => (
-                    <div key={p.slug} style={{ display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap', borderBottom: '1px solid #e7e2d8', padding: '6px 0' }}>
-                        <a href={`/keystatic/plany/${p.slug}`} style={{ fontWeight: 700 }}>{p.tytul}</a>
-                        <span style={{ color: '#6b665c', fontSize: 12 }}>{WID[p.widocznosc] ?? p.widocznosc} · {p.elementow} elementów · zmieniono {new Date(p.zmieniono).toLocaleString('pl-PL')}</span>
-                        <span style={{ flex: 1 }} />
-                        {p.widocznosc !== 'ja' && <a href={`/plany/${p.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>na stronie ↗</a>}
-                        <button onClick={() => usunPlan(p)} style={{ ...btn, height: 26, fontSize: 12, background: 'none' }}>do kosza</button>
-                    </div>
+        <>
+            <header className="pn-naglowek">
+                <h1>{rodzaj ? NAGLOWKI[rodzaj] : 'plany'} {dane && <span className="pn-szary">· {widoczne.length}</span>}</h1>
+                <span className="pn-rzad">
+                    <a className="pn-btn" href="/keystatic/plany/typy">typy na planach →</a>
+                    <a className="pn-btn pn-btn-gl" href="#nowy-plan">+ plan</a>
+                </span>
+            </header>
+            <nav className="pn-seg pn-samo" aria-label="rodzaj planu">
+                <a href="/keystatic/plany" aria-current={!rodzaj ? 'page' : undefined}>wszystkie {dane && <span className="pn-szary">{dane.plany.length}</span>}</a>
+                {(Object.keys(RODZAJE_PLANU) as RodzajPlanu[]).map((r) => (
+                    <a key={r} href={`/keystatic/plany?rodzaj=${r}`} aria-current={rodzaj === r ? 'page' : undefined}>{NAGLOWKI[r]} {dane && <span className="pn-szary">{ile(r)}</span>}</a>
                 ))}
+            </nav>
+            {msg && <p className="pn-kom" role="status">{msg}</p>}
+            <section className="pn-karta" aria-label="lista planów">
+                {dane && widoczne.length === 0 && <p className="pn-szary pn-bez-marginesu">{rodzaj ? `Nie ma jeszcze planów tego rodzaju (${RODZAJE_PLANU[rodzaj]}).` : 'Nie ma jeszcze planów.'}</p>}
+                {widoczne.length > 0 && (
+                    <div className="pn-wiersze">
+                        {widoczne.map((p) => (
+                            <div key={p.slug} className="pn-wiersz">
+                                <a href={`/keystatic/plany/${p.slug}`}><b>{p.tytul}</b></a>
+                                <span className="pn-maly">{RODZAJE_PLANU[p.rodzaj]} · {WID[p.widocznosc] ?? p.widocznosc} · {p.elementow} elementów · zmieniono {new Date(p.zmieniono).toLocaleString('pl-PL')}</span>
+                                <span className="pn-prawo pn-rzad">
+                                    {p.widocznosc !== 'ja' && <a href={`/plany/${p.slug}`} target="_blank" rel="noreferrer" className="pn-btn pn-btn-maly">na stronie ↗</a>}
+                                    <button type="button" onClick={() => usunPlan(p)} className="pn-btn pn-btn-maly">do kosza</button>
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </section>
-            <form onSubmit={nowy} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <b style={{ width: '100%' }}>nowy plan</b>
-                <input required value={tytul} onChange={(e) => ustawTytul(e.target.value)} placeholder="tytuł, np. cmentarz w Mszannie" style={{ ...pole, flex: '1 1 260px' }} />
-                <select value={miejsce} onChange={(e) => ustawMiejsce(e.target.value)} style={pole}><option value="">miejscowość…</option>{dane?.miejsca.map((m) => <option key={m.id} value={m.id}>{m.nazwa}</option>)}</select>
-                <button type="submit" style={btn}>utwórz</button>
-                {tytul && <span style={{ color: '#6b665c', fontSize: 12, width: '100%' }}>adres: /plany/{slugify(tytul)}</span>}
+            <form onSubmit={nowy} className="pn-karta" id="nowy-plan" aria-labelledby="nowy-plan-t">
+                <h2 id="nowy-plan-t">nowy plan</h2>
+                <div className="pn-rzad">
+                    <input required className="pn-in pn-rosnie" value={tytul} onChange={(e) => ustawTytul(e.target.value)} placeholder="tytuł, np. cmentarz w Mszannie" aria-label="tytuł planu" />
+                    <select className="pn-in" value={miejsce} onChange={(e) => ustawMiejsce(e.target.value)} aria-label="miejscowość"><option value="">miejscowość…</option>{dane?.miejsca.map((m) => <option key={m.id} value={m.id}>{m.nazwa}</option>)}</select>
+                    <button type="submit" className="pn-btn pn-btn-gl">utwórz</button>
+                </div>
+                {tytul && <span className="pn-maly">adres: /plany/{slugify(tytul)} · rodzaj planu ustawisz w edytorze (zakładka „plan”)</span>}
             </form>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <b style={{ width: '100%' }}>import pliku planu</b>
-                <label style={{ ...btn, display: 'inline-flex', alignItems: 'center' }}>wybierz plik .plan.json<input type="file" accept=".json" hidden onChange={(e) => e.target.files?.[0] && importuj(e.target.files[0])} /></label>
-                <label style={{ fontSize: 13 }}><input type="checkbox" checked={nadpisz} onChange={(e) => ustawNadpisz(e.target.checked)} /> zastąp istniejący plan o tym samym adresie</label>
-            </div>
-            <p style={{ margin: 0 }}>
+            <section className="pn-karta" aria-labelledby="import-planu-t">
+                <h2 id="import-planu-t">import pliku planu</h2>
+                <div className="pn-rzad">
+                    <label className="pn-btn">wybierz plik .plan.json<input type="file" accept=".json" hidden onChange={(e) => e.target.files?.[0] && importuj(e.target.files[0])} /></label>
+                    <label className="pn-rzad"><input type="checkbox" checked={nadpisz} onChange={(e) => ustawNadpisz(e.target.checked)} /> zastąp istniejący plan o tym samym adresie</label>
+                </div>
+            </section>
+            <p className="pn-bez-marginesu">
                 <a href="/keystatic/panel/zgloszenia">zgłoszenia czytelników{czekaZg ? ` – czeka ${czekaZg}` : ''} →</a>
             </p>
-        </div>
+        </>
     )
 }

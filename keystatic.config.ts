@@ -5,6 +5,7 @@ import { identyfikatorZNazwy } from './lib/tekst';
 import { NAZWY_OBIEKTOW, WYZNANIA } from './lib/tarcze';
 import { RODZAJE_MATERIALOW } from './lib/materialy';
 import { ADRES_PLIKOW, KATALOG_PLIKOW } from './lib/pliki';
+import { MENU, pozycjeDoUstawien, STRONA_PUBLICZNA } from './lib/panel/menu';
 import { WYZNANIA_PARAFII, RODZAJE_KSIAG, DOSTEP_KSIAG } from './lib/ksiegi';
 
 // Model danych: claude/odniepamieci-model-danych.md (projekt „own www”).
@@ -168,19 +169,23 @@ const zrodlaKarty = () =>
     itemLabel: (p) => (p.value || 'źródło').slice(0, 80),
   })
 
-export default config({
+const konfiguracja = config({
   storage: {
     kind: 'local',
   },
+  // PK: interfejs Keystatic po polsku (tam, gdzie Keystatic ma tłumaczenie)
+  locale: 'pl-PL',
   ui: {
     brand: { name: 'odniepamieci.pl' },
+    // PK: te same grupy co menu panelu (lib/panel/menu.ts); zespoły i ustawienia dopisane (wcześniej tylko w Keystatic albo nigdzie)
     navigation: {
       'Treści': ['posts', 'miejsca', 'obiekty', 'tematy', 'biogramy'],
       'Archiwum': ['materialy', 'zbiory'],
       'Biblioteka': ['publikacje'],
-      'Księgi metrykalne': ['parafie', 'ksiegi'],
+      'Księgi metrykalne': ['parafie', 'ksiegi', 'zespoly'],
       'Słownik': ['hasla'],
-      'Strony': ['stronaGlowna', 'wstepyDzialow', 'oProjekcie', 'przekierowania', 'kregiStopka'],
+      'Strony': ['stronaGlowna', 'wstepyDzialow', 'oProjekcie'],
+      'Narzędzia': ['przekierowania', 'kregiStopka', 'menuPanelu'],
     },
   },
   collections: {
@@ -779,5 +784,32 @@ export default config({
         content: opisMarkdoc('Treść', 'o-projekcie'),
       },
     }),
+    // PK: menu panelu w danych (zasada 2.7) – ukrywanie pozycji i kolejność grup; domyślne menu: lib/panel/menu.ts
+    menuPanelu: singleton({
+      label: 'Menu panelu',
+      path: 'content/_panel/menu-panelu',
+      format: { data: 'json' },
+      schema: {
+        ukryte: fields.multiselect({
+          label: 'Ukryte pozycje',
+          description: 'Zaznaczone pozycje znikają z menu panelu (przycisk „pokaż wszystko” na dole menu pokazuje je na chwilę). Pulpitu i tego ustawienia nie da się ukryć.',
+          options: pozycjeDoUstawien(),
+        }),
+        kolejnosc: fields.array(
+          fields.select({ label: 'Grupa', options: MENU.map((g) => ({ value: g.klucz, label: g.nazwa })), defaultValue: MENU[0].klucz }),
+          { label: 'Kolejność grup', description: 'Puste – kolejność domyślna. Grupy niewymienione trafiają na koniec w domyślnej kolejności.', itemLabel: (p) => MENU.find((g) => g.klucz === p.value)?.nazwa ?? p.value },
+        ),
+      },
+    }),
   },
 });
+
+// PK: „na stronie ↗” w pasku pozycji Keystatic – adres strony publicznej z jednego miejsca (lib/panel/menu.ts)
+for (const [klucz, k] of Object.entries(konfiguracja.collections ?? {}) as [string, { previewUrl?: string }][]) {
+  if (STRONA_PUBLICZNA[klucz]) k.previewUrl = STRONA_PUBLICZNA[klucz];
+}
+for (const [klucz, k] of Object.entries(konfiguracja.singletons ?? {}) as [string, { previewUrl?: string }][]) {
+  if (STRONA_PUBLICZNA[klucz]) k.previewUrl = STRONA_PUBLICZNA[klucz];
+}
+
+export default konfiguracja;

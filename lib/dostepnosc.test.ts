@@ -72,7 +72,8 @@ test('UX-09: „przejdź do treści” zawsze prowadzi do <main id="tresc">, tak
 })
 
 test('UX-09 (panel, ADM-04): panel ma skip link i <main id> jako cel', () => {
-    const p = czytaj('app/keystatic/panel/layout.tsx')
+    // PK: rama panelu dla całego /keystatic (pasek, menu) – app/keystatic/RamaPanelu.tsx
+    const p = czytaj('app/keystatic/RamaPanelu.tsx')
     assert.match(p, /href="#panel-tresc"/)
     assert.match(p, /<main[^>]*id="panel-tresc"/)
 })
@@ -124,8 +125,9 @@ test('VIEW-01/03: pełny ekran skanu – pułapka fokusu, klik w tło, role dial
 })
 
 test('ADM-04: panel – stan zwinięcia zapamiętany, fokus przeniesiony po schowaniu i pokazaniu menu', () => {
-    const p = czytaj('app/keystatic/panel/layout.tsx')
+    const p = czytaj('app/keystatic/RamaPanelu.tsx')
     assert.match(p, /KLUCZ_SCHOWANY|odniepamieci-panel-menu/)
     assert.match(p, /aria-expanded/)
-    assert.match(p, /pokazRef|przyciskPokaz/)
+    assert.match(p, /przyciskRozwin/)
+    assert.match(p, /przyciskZwin/)
 })

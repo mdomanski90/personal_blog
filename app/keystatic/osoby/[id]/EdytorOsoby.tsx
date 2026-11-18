@@ -1,9 +1,9 @@
 'use client'
-// Edytor osoby w panelu: dane, zdarzenia (z obrządkiem i chrzestnymi), rodzina, źródła, notatki, ostrzeżenia.
+// Edytor osoby w panelu (PK: w ramie panelu, klasy z app/keystatic/panel.css): dane, zdarzenia (z obrządkiem i chrzestnymi), rodzina, źródła, notatki, ostrzeżenia.
 import * as React from 'react'
 import { formatujEdtf, czyPoprawnaEdtf } from '@/lib/edtf'
 import { OBRZADKI, RODZAJE_ZDARZEN, ZDARZENIA_Z_OBRZADKIEM, adresAncestry, noweIdZdarzenia, sortujZdarzenia, type Obrzadek, type Osoba, type RodzajZdarzenia, type Rodzina, type Zdarzenie, type Zrodlo } from '@/lib/osoby/model'
-import { btn, pole, wyslij } from '../wspolne'
+import { wyslij } from '../wspolne'
 
 type Skrot = { id: string; nazwa: string; imiona: string; nazwisko: string; plec: string; lata: string; miejsce: string; zyje: boolean; widocznosc: string }
 type Dane = {
@@ -21,13 +21,10 @@ type Dane = {
 }
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
-const sek: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #e7e2d8', paddingTop: 14 }
-const maly: React.CSSProperties = { color: '#6b665c', fontSize: 12 }
-const kolorPlci = (p?: string) => (p === 'K' ? '#f1d9e2' : p === 'M' ? '#d5e3f3' : '#e7e2d8')
 
 function LinkOsoby({ o }: { o: Skrot | null | undefined }) {
-    if (!o) return <span style={maly}>—</span>
-    return <a href={`/keystatic/osoby/${o.id}`} style={{ background: kolorPlci(o.plec), padding: '1px 6px', borderRadius: 5, color: 'inherit', textDecoration: 'none' }}>{o.nazwa} <span style={maly}>{o.lata}</span></a>
+    if (!o) return <span className="pn-maly">—</span>
+    return <a href={`/keystatic/osoby/${o.id}`} className="pn-osoba">{o.nazwa} <span className="pn-maly">{o.lata}</span></a>
 }
 
 /** Wybór osoby z drzewa (podpowiedzi) albo utworzenie nowej o wpisanym imieniu i nazwisku. */
@@ -40,18 +37,22 @@ function WyborOsoby({ wszystkie, bez, onWybor, onNowa, etykieta }: { wszystkie: 
         const slowa = t.split(/\s+/)
         return wszystkie.filter((o) => !bez.includes(o.id) && slowa.every((s) => norm(`${o.nazwa} ${o.lata} ${o.miejsce}`).includes(s))).slice(0, 8)
     }, [q, wszystkie, bez])
-    if (!otwarte) return <button onClick={() => ustawOtwarte(true)} style={{ ...btn, height: 26, fontSize: 12, alignSelf: 'flex-start' }}>+ {etykieta}</button>
+    if (!otwarte) return <button type="button" onClick={() => ustawOtwarte(true)} className="pn-btn pn-btn-maly pn-samo">+ {etykieta}</button>
     const czesci = q.trim().split(/\s+/)
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, border: '1px solid #e7e2d8', borderRadius: 8, padding: 8 }}>
-            <div style={{ display: 'flex', gap: 6 }}>
-                <input autoFocus value={q} onChange={(e) => ustawQ(e.target.value)} placeholder={`${etykieta}: wpisz imię i nazwisko`} style={{ ...pole, flex: 1 }} />
-                <button onClick={() => { ustawOtwarte(false); ustawQ('') }} style={{ ...btn, height: 30 }} aria-label="zamknij">×</button>
+        <div className="pn-kol pn-ramka">
+            <div className="pn-rzad">
+                <input autoFocus className="pn-in pn-rosnie" value={q} onChange={(e) => ustawQ(e.target.value)} placeholder={`${etykieta}: wpisz imię i nazwisko`} aria-label={etykieta} />
+                <button type="button" onClick={() => { ustawOtwarte(false); ustawQ('') }} className="pn-btn" aria-label="zamknij">×</button>
             </div>
-            {wyniki.map((o) => <button key={o.id} onClick={() => { onWybor(o.id); ustawOtwarte(false); ustawQ('') }} style={{ ...btn, textAlign: 'left', height: 'auto', padding: '4px 8px', background: 'none' }}>{o.nazwa} <span style={maly}>{o.lata} {o.miejsce}</span></button>)}
+            {wyniki.length > 0 && (
+                <div className="pn-wiersze">
+                    {wyniki.map((o) => <button type="button" key={o.id} onClick={() => { onWybor(o.id); ustawOtwarte(false); ustawQ('') }} className="pn-wiersz pn-wiersz-btn">{o.nazwa} <span className="pn-maly">{o.lata} {o.miejsce}</span></button>)}
+                </div>
+            )}
             {onNowa && q.trim().length > 1 && (
-                <button onClick={() => { onNowa(czesci.length > 1 ? czesci.slice(0, -1).join(' ') : czesci[0], czesci.length > 1 ? czesci[czesci.length - 1] : ''); ustawOtwarte(false); ustawQ('') }} style={{ ...btn, textAlign: 'left', height: 'auto', padding: '4px 8px' }}>
-                    + nowa osoba: <b>{q.trim()}</b> <span style={maly}>(ostatnie słowo = nazwisko)</span>
+                <button type="button" onClick={() => { onNowa(czesci.length > 1 ? czesci.slice(0, -1).join(' ') : czesci[0], czesci.length > 1 ? czesci[czesci.length - 1] : ''); ustawOtwarte(false); ustawQ('') }} className="pn-btn pn-samo">
+                    + nowa osoba: <b>{q.trim()}</b> <span className="pn-maly">(ostatnie słowo = nazwisko)</span>
                 </button>
             )}
         </div>
@@ -70,55 +71,55 @@ function EdycjaZdarzenia({ z, zmien, usun, miejsca, zParafii, wszystkie, osoby, 
     }
     const ob = z.obrzadek ? OBRZADKI[z.obrzadek] : null
     return (
-        <div style={{ border: '1px solid #e7e2d8', borderRadius: 8, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap', cursor: 'pointer' }} onClick={() => ustawRozwin((x) => !x)}>
+        <div className="pn-kol pn-ramka">
+            <button type="button" className="pn-zdarzenie-nagl" aria-expanded={rozwin} onClick={() => ustawRozwin((x) => !x)}>
                 <b>{z.rodzaj === 'inne' ? z.nazwa || 'zdarzenie' : RODZAJE_ZDARZEN[z.rodzaj]}</b>
                 <span>{z.data ? formatujEdtf(z.data) : z.dataTekst ?? ''}</span>
-                <span style={maly}>{z.miejsce}</span>
-                {(ob || zParafii) && <span style={{ fontSize: 11, padding: '0 5px', borderRadius: 4, color: '#fff', background: (ob ?? OBRZADKI[zParafii!]).kolor, opacity: ob ? 1 : 0.6 }}>{ob ? ob.nazwa : `${OBRZADKI[zParafii!].nazwa}? (z parafii)`}</span>}
-                {z.chrzestni?.length ? <span style={maly}>chrzestni: {z.chrzestni.length}</span> : null}
-                <span style={{ flex: 1 }} /><span style={maly}>{rozwin ? '▲' : '▼'}</span>
-            </div>
+                <span className="pn-maly">{z.miejsce}</span>
+                {(ob || zParafii) && <span className={`pn-tag${ob ? '' : ' pn-tag-przypuszczenie'}`}><span className="pn-znak-koloru" style={{ background: (ob ?? OBRZADKI[zParafii!]).kolor } /* styl-dynamiczny: kolor obrządku z danych (lib/osoby/model.ts) */} aria-hidden="true" />{ob ? ob.nazwa : `${OBRZADKI[zParafii!].nazwa}? (z parafii)`}</span>}
+                {z.chrzestni?.length ? <span className="pn-maly">chrzestni: {z.chrzestni.length}</span> : null}
+                <span className="pn-prawo pn-maly" aria-hidden="true">{rozwin ? '▲' : '▼'}</span>
+            </button>
             {rozwin && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>rodzaj</span>
-                        <select value={z.rodzaj} onChange={(e) => zmien({ ...z, rodzaj: e.target.value as RodzajZdarzenia })} style={pole}>{rodzajeDozwolone.map((r) => <option key={r} value={r}>{RODZAJE_ZDARZEN[r]}</option>)}</select></label>
-                    {(z.rodzaj === 'inne' || z.nazwa) && <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>nazwa</span><input value={z.nazwa ?? ''} onChange={(e) => zmien({ ...z, nazwa: e.target.value || undefined })} style={pole} /></label>}
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>data (np. 1862-03-05, 1862, 1862~, ../1900)</span>
-                        <input value={z.data ?? ''} onChange={(e) => zmien({ ...z, data: e.target.value.trim() || undefined, ...(e.target.value ? { dataTekst: undefined } : {}) })} style={{ ...pole, borderColor: dataOk ? '#d6d1c6' : '#dc2626' }} placeholder={z.dataTekst ? `z Ancestry: ${z.dataTekst}` : ''} />
-                        <span style={{ ...maly, color: dataOk ? '#6b665c' : '#dc2626' }}>{z.data ? (dataOk ? formatujEdtf(z.data) : 'nieczytelna data') : z.dataTekst ? `w Ancestry: „${z.dataTekst}”` : ''}</span></label>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>miejsce {z.miejsceId && '· połączone z miejscowością'}</span>
-                        <input list="miejsca-strony" value={z.miejsce ?? ''} onChange={(e) => zmienMiejsce(e.target.value)} style={pole} /></label>
+                <div className="pn-formularz">
+                    <label className="pn-pole"><span>rodzaj</span>
+                        <select value={z.rodzaj} onChange={(e) => zmien({ ...z, rodzaj: e.target.value as RodzajZdarzenia })} className="pn-in">{rodzajeDozwolone.map((r) => <option key={r} value={r}>{RODZAJE_ZDARZEN[r]}</option>)}</select></label>
+                    {(z.rodzaj === 'inne' || z.nazwa) && <label className="pn-pole"><span>nazwa</span><input value={z.nazwa ?? ''} onChange={(e) => zmien({ ...z, nazwa: e.target.value || undefined })} className="pn-in" /></label>}
+                    <label className="pn-pole"><span>data (np. 1862-03-05, 1862, 1862~, ../1900)</span>
+                        <input value={z.data ?? ''} onChange={(e) => zmien({ ...z, data: e.target.value.trim() || undefined, ...(e.target.value ? { dataTekst: undefined } : {}) })} className="pn-in" aria-invalid={!dataOk} placeholder={z.dataTekst ? `z Ancestry: ${z.dataTekst}` : ''} />
+                        <span className={dataOk ? 'pn-maly' : 'pn-maly pn-blad'}>{z.data ? (dataOk ? formatujEdtf(z.data) : 'nieczytelna data') : z.dataTekst ? `w Ancestry: „${z.dataTekst}”` : ''}</span></label>
+                    <label className="pn-pole"><span>miejsce {z.miejsceId && '· połączone z miejscowością'}</span>
+                        <input list="miejsca-strony" value={z.miejsce ?? ''} onChange={(e) => zmienMiejsce(e.target.value)} className="pn-in" /></label>
                     {ZDARZENIA_Z_OBRZADKIEM.includes(z.rodzaj) && (
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>obrządek</span>
-                            <select value={z.obrzadek ?? ''} onChange={(e) => zmien({ ...z, obrzadek: (e.target.value || undefined) as Obrzadek | undefined })} style={pole}>
+                        <label className="pn-pole"><span>obrządek</span>
+                            <select value={z.obrzadek ?? ''} onChange={(e) => zmien({ ...z, obrzadek: (e.target.value || undefined) as Obrzadek | undefined })} className="pn-in">
                                 <option value="">{zParafii ? `z parafii: ${OBRZADKI[zParafii].nazwa}` : '— nie wiadomo'}</option>
                                 {Object.entries(OBRZADKI).map(([k, v]) => <option key={k} value={k}>{v.nazwa}</option>)}
                             </select></label>
                     )}
                     {z.rodzaj === 'chrzest' && (
-                        <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            <span style={maly}>chrzestni</span>
+                        <div className="pn-kol pn-caly">
+                            <span className="pn-maly">chrzestni</span>
                             {(z.chrzestni ?? []).map((c, i) => (
-                                <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <input value={c.tekst} onChange={(e) => zmien({ ...z, chrzestni: z.chrzestni!.map((x, j) => (j === i ? { ...x, tekst: e.target.value } : x)) })} style={{ ...pole, flex: '1 1 200px' }} />
-                                    {c.osoba ? <><LinkOsoby o={osoby[c.osoba] ?? wszystkie.find((x) => x.id === c.osoba)} /><button onClick={() => zmien({ ...z, chrzestni: z.chrzestni!.map((x, j) => (j === i ? { tekst: x.tekst } : x)) })} style={{ ...btn, height: 26, fontSize: 12 }}>odłącz</button></>
+                                <div key={i} className="pn-rzad">
+                                    <input value={c.tekst} onChange={(e) => zmien({ ...z, chrzestni: z.chrzestni!.map((x, j) => (j === i ? { ...x, tekst: e.target.value } : x)) })} className="pn-in pn-rosnie" aria-label="chrzestny" />
+                                    {c.osoba ? <><LinkOsoby o={osoby[c.osoba] ?? wszystkie.find((x) => x.id === c.osoba)} /><button onClick={() => zmien({ ...z, chrzestni: z.chrzestni!.map((x, j) => (j === i ? { tekst: x.tekst } : x)) })} className="pn-btn pn-btn-maly">odłącz</button></>
                                         : <WyborOsoby wszystkie={wszystkie} bez={[]} etykieta="połącz z osobą" onWybor={(id) => zmien({ ...z, chrzestni: z.chrzestni!.map((x, j) => (j === i ? { ...x, osoba: id } : x)) })} />}
-                                    <button onClick={() => zmien({ ...z, chrzestni: z.chrzestni!.filter((_, j) => j !== i) })} style={{ ...btn, height: 26, fontSize: 12, background: 'none' }} aria-label="usuń chrzestnego">×</button>
+                                    <button onClick={() => zmien({ ...z, chrzestni: z.chrzestni!.filter((_, j) => j !== i) })} className="pn-btn pn-btn-maly" aria-label="usuń chrzestnego">×</button>
                                 </div>
                             ))}
-                            <button onClick={() => zmien({ ...z, chrzestni: [...(z.chrzestni ?? []), { tekst: '' }] })} style={{ ...btn, height: 26, fontSize: 12, alignSelf: 'flex-start' }}>+ chrzestny</button>
+                            <button onClick={() => zmien({ ...z, chrzestni: [...(z.chrzestni ?? []), { tekst: '' }] })} className="pn-btn pn-btn-maly pn-samo">+ chrzestny</button>
                         </div>
                     )}
-                    <label style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>opis</span>
-                        <textarea value={z.opis ?? ''} onChange={(e) => zmien({ ...z, opis: e.target.value || undefined })} rows={2} style={{ ...pole, height: 'auto', padding: 6 }} /></label>
+                    <label className="pn-pole pn-caly"><span>opis</span>
+                        <textarea value={z.opis ?? ''} onChange={(e) => zmien({ ...z, opis: e.target.value || undefined })} rows={2} className="pn-in" /></label>
                     {z.cytaty?.length ? (
-                        <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <span style={maly}>źródła</span>
+                        <div className="pn-kol pn-caly">
+                            <span className="pn-maly">źródła</span>
                             {z.cytaty.map((c, i) => <Cytat key={i} c={c} zrodla={zrodla} usun={() => zmien({ ...z, cytaty: z.cytaty!.filter((_, j) => j !== i) })} />)}
                         </div>
                     ) : null}
-                    <button onClick={usun} style={{ ...btn, height: 26, fontSize: 12, background: 'none', justifySelf: 'start', color: '#b91c1c' }}>usuń zdarzenie</button>
+                    <button type="button" onClick={usun} className="pn-btn pn-btn-maly pn-samo pn-blad">usuń zdarzenie</button>
                 </div>
             )}
         </div>
@@ -129,11 +130,11 @@ function Cytat({ c, zrodla, usun }: { c: NonNullable<Zdarzenie['cytaty']>[number
     const z = c.zrodlo ? zrodla[c.zrodlo] : null
     const a = adresAncestry(c.apid)
     return (
-        <span style={{ fontSize: 12, display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
+        <span className="pn-rzad pn-maly">
             <span>{z?.tytul ?? 'źródło'}{c.strona && ` – ${c.strona}`}</span>
             {a && <a href={a} target="_blank" rel="noreferrer">rekord w Ancestry ↗</a>}
             {c.www && <a href={c.www} target="_blank" rel="noreferrer">link ↗</a>}
-            <button onClick={usun} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#a39d91' }} aria-label="usuń źródło">×</button>
+            <button type="button" onClick={usun} className="pn-btn pn-btn-maly" aria-label="usuń źródło">×</button>
         </span>
     )
 }
@@ -185,58 +186,65 @@ export default function EdytorOsoby({ id }: { id: string }) {
         await wczytaj()
     }
 
-    if (!dane || !o) return <div style={{ padding: 30, fontFamily: 'var(--font-jetbrains), monospace' }}>{msg || 'wczytuję…'}</div>
+    if (!dane || !o) return <p className="pn-szary" role="status">{msg || 'wczytuję…'}</p>
     const wszyscyBezMnie = dane.wszystkie
     const rodzajeOsoby = (Object.keys(RODZAJE_ZDARZEN) as RodzajZdarzenia[]).filter((r) => r !== 'slub' && r !== 'rozwod')
     const zyje = o.zyje === 'auto' ? dane.zyjeAuto : o.zyje === 'tak'
     const rodzina = dane.rodzice[0]
 
     return (
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: '20px 20px 80px', fontFamily: 'var(--font-jetbrains), monospace', display: 'flex', flexDirection: 'column', gap: 16, fontSize: 14 }}>
+        <>
             <datalist id="miejsca-strony">{miejsca.map((m) => <option key={m.id} value={m.nazwa} />)}</datalist>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap', position: 'sticky', top: 0, background: 'var(--background, #fbfaf7)', padding: '8px 0', zIndex: 2, borderBottom: '1px solid #e7e2d8' }}>
-                <a href="/keystatic/osoby">← osoby</a>
-                <h1 style={{ fontSize: 20, margin: 0 }}>{`${o.imiona} ${o.nazwisko}`.trim() || 'bez imienia'}</h1>
-                <span style={maly}>{zyje ? 'żyjąca' : 'nie żyje'}</span>
-                <span style={{ flex: 1 }} />
-                {msg && <span style={{ fontSize: 12, color: msg === 'zapisano' ? '#15803d' : '#b45309' }}>{msg}</span>}
-                {dane.biogram
-                    ? <a href={`/keystatic/collection/biogramy/item/${id}`} style={{ fontSize: 12 }}>biogram →</a>
-                    : <button onClick={async () => { const r = await fetch(`/api/keystatic/osoby/${id}/biogram`, { method: 'POST' }); const d = await r.json().catch(() => null); if (d?.adres) location.href = d.adres; else ustawMsg(d?.blad ?? 'nie udało się założyć biogramu') }} style={{ ...btn, height: 26, fontSize: 12 }} title="biogram w Keystatic – pokaże się na karcie osoby">napisz biogram →</button>}
-                <a href={`/osoby/${id}`} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>na stronie ↗</a>
-                <button onClick={zapisz} disabled={!brudne} style={{ ...btn, background: brudne ? '#262420' : undefined, color: brudne ? '#fff' : undefined }}>{brudne ? 'zapisz (Ctrl+S)' : 'zapisane'}</button>
-            </div>
+            <header className="pn-naglowek pn-naglowek-przyklejony">
+                <span className="pn-kol pn-kol-wasko">
+                    <a href="/keystatic/osoby" className="pn-maly">← osoby</a>
+                    <h1>{`${o.imiona} ${o.nazwisko}`.trim() || 'bez imienia'} <span className="pn-szary">· {zyje ? 'żyjąca' : 'nie żyje'}</span></h1>
+                </span>
+                <span className="pn-rzad">
+                    {msg && <span className={msg === 'zapisano' ? 'pn-maly pn-ok' : 'pn-maly pn-blad'} role="status">{msg}</span>}
+                    {dane.biogram
+                        ? <a href={`/keystatic/collection/biogramy/item/${id}`} className="pn-btn">biogram →</a>
+                        : <button type="button" onClick={async () => { const r = await fetch(`/api/keystatic/osoby/${id}/biogram`, { method: 'POST' }); const d = await r.json().catch(() => null); if (d?.adres) location.href = d.adres; else ustawMsg(d?.blad ?? 'nie udało się założyć biogramu') }} className="pn-btn" title="biogram w Keystatic – pokaże się na karcie osoby">napisz biogram →</button>}
+                    <a href={`/osoby/${id}`} target="_blank" rel="noreferrer" className="pn-btn">na stronie ↗</a>
+                    <button type="button" onClick={zapisz} disabled={!brudne} className={brudne ? 'pn-btn pn-btn-gl' : 'pn-btn'}>{brudne ? 'zapisz (Ctrl+S)' : 'zapisane'}</button>
+                </span>
+            </header>
 
             {dane.ostrzezenia.length > 0 && (
-                <div style={{ background: '#fef3c7', borderRadius: 8, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {dane.ostrzezenia.map((w, i) => <span key={i} style={{ fontSize: 13, color: '#78350f' }}>⚠ {w}</span>)}
-                    {o.uwagi?.length ? <button onClick={() => zmien({ uwagi: [] })} style={{ ...btn, height: 24, fontSize: 12, alignSelf: 'flex-start' }}>uwagi z importu sprawdzone – usuń</button> : null}
+                <div className="pn-ostrz">
+                    <div className="pn-kol">
+                        {dane.ostrzezenia.map((w, i) => <span key={i}>{w}</span>)}
+                        {o.uwagi?.length ? <button type="button" onClick={() => zmien({ uwagi: [] })} className="pn-btn pn-btn-maly pn-samo">uwagi z importu sprawdzone – usuń</button> : null}
+                    </div>
                 </div>
             )}
 
-            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>imiona</span><input value={o.imiona} onChange={(e) => zmien({ imiona: e.target.value })} style={pole} /></label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>nazwisko</span><input value={o.nazwisko} onChange={(e) => zmien({ nazwisko: e.target.value })} style={pole} /></label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>inne nazwiska (panieńskie, z aktów; po przecinku)</span><input value={(o.inneNazwiska ?? []).join(', ')} onChange={(e) => zmien({ inneNazwiska: e.target.value.split(',').map((s) => s.trim()) })} onBlur={() => zmien({ inneNazwiska: (o.inneNazwiska ?? []).filter(Boolean) })} style={pole} /></label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>przydomek, pseudonim</span><input value={o.przydomek ?? ''} placeholder="np. Sowa, Kowalka" onChange={(e) => zmien({ przydomek: e.target.value })} style={pole} /></label>
+            <section className="pn-karta" aria-labelledby="dane-t">
+                <h2 id="dane-t">dane osoby</h2>
+                <div className="pn-formularz">
+                <label className="pn-pole"><span>imiona</span><input value={o.imiona} onChange={(e) => zmien({ imiona: e.target.value })} className="pn-in" /></label>
+                <label className="pn-pole"><span>nazwisko</span><input value={o.nazwisko} onChange={(e) => zmien({ nazwisko: e.target.value })} className="pn-in" /></label>
+                <label className="pn-pole"><span>inne nazwiska (panieńskie, z aktów; po przecinku)</span><input value={(o.inneNazwiska ?? []).join(', ')} onChange={(e) => zmien({ inneNazwiska: e.target.value.split(',').map((s) => s.trim()) })} onBlur={() => zmien({ inneNazwiska: (o.inneNazwiska ?? []).filter(Boolean) })} className="pn-in" /></label>
+                <label className="pn-pole"><span>przydomek, pseudonim</span><input value={o.przydomek ?? ''} placeholder="np. Sowa, Kowalka" onChange={(e) => zmien({ przydomek: e.target.value })} className="pn-in" /></label>
                 {/* KRT-01 (P3): „zgłosił(a)” – podpis za zgodą, bez e-maila (adres z „@” nie zostanie zapisany) */}
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>zgłosił(a) – podpis za zgodą, bez e-maila</span><input value={o.zglosil ?? ''} placeholder="np. Anna Nowak, Olszanka" pattern="[^@]*" title="Bez adresu e-mail – sam podpis." onChange={(e) => zmien({ zglosil: e.target.value })} style={pole} /></label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2, gridColumn: '1 / -1' }}><span style={maly}>inne zapisy imienia i nazwiska – z aktów, po łacinie, cyrylicą (po przecinku)</span><input value={(o.inneZapisy ?? []).join(', ')} placeholder="np. Joannes Testowski, Иван Тестовый" onChange={(e) => zmien({ inneZapisy: e.target.value.split(',').map((s) => s.trim()) })} onBlur={() => zmien({ inneZapisy: (o.inneZapisy ?? []).filter(Boolean) })} style={pole} /></label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>płeć</span><select value={o.plec} onChange={(e) => zmien({ plec: e.target.value as Osoba['plec'] })} style={pole}><option value="U">nie wiadomo</option><option value="K">kobieta</option><option value="M">mężczyzna</option></select></label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>żyje</span><select value={o.zyje} onChange={(e) => zmien({ zyje: e.target.value as Osoba['zyje'] })} style={pole}><option value="auto">z dat ({dane.zyjeAuto ? 'żyjąca' : 'nie żyje'})</option><option value="tak">żyje</option><option value="nie">nie żyje</option></select></label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>widoczność karty</span><select value={o.widocznosc} onChange={(e) => zmien({ widocznosc: e.target.value as Osoba['widocznosc'] })} style={pole}><option value="auto">auto ({(dane.widocznoscAuto ?? (zyje ? 'bliscy' : 'publiczne')) === 'publiczne' ? 'publiczna' : 'dla bliskich'}) – ur. 100+ lub zm. 25+ lat temu</option><option value="publiczne">publiczna</option><option value="bliscy">dla bliskich</option><option value="ja">tylko ja</option></select></label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2, gridColumn: '1 / -1' }}><span style={maly}>znaczniki (po przecinku)</span><input value={(o.znaczniki ?? []).join(', ')} onChange={(e) => zmien({ znaczniki: e.target.value.split(',').map((s) => s.trim()) })} onBlur={() => zmien({ znaczniki: (o.znaczniki ?? []).filter(Boolean) })} style={pole} /></label>
+                <label className="pn-pole"><span>zgłosił(a) – podpis za zgodą, bez e-maila</span><input value={o.zglosil ?? ''} placeholder="np. Anna Nowak, Olszanka" pattern="[^@]*" title="Bez adresu e-mail – sam podpis." onChange={(e) => zmien({ zglosil: e.target.value })} className="pn-in" /></label>
+                <label className="pn-pole pn-caly"><span>inne zapisy imienia i nazwiska – z aktów, po łacinie, cyrylicą (po przecinku)</span><input value={(o.inneZapisy ?? []).join(', ')} placeholder="np. Joannes Testowski, Иван Тестовый" onChange={(e) => zmien({ inneZapisy: e.target.value.split(',').map((s) => s.trim()) })} onBlur={() => zmien({ inneZapisy: (o.inneZapisy ?? []).filter(Boolean) })} className="pn-in" /></label>
+                <label className="pn-pole"><span>płeć</span><select value={o.plec} onChange={(e) => zmien({ plec: e.target.value as Osoba['plec'] })} className="pn-in"><option value="U">nie wiadomo</option><option value="K">kobieta</option><option value="M">mężczyzna</option></select></label>
+                <label className="pn-pole"><span>żyje</span><select value={o.zyje} onChange={(e) => zmien({ zyje: e.target.value as Osoba['zyje'] })} className="pn-in"><option value="auto">z dat ({dane.zyjeAuto ? 'żyjąca' : 'nie żyje'})</option><option value="tak">żyje</option><option value="nie">nie żyje</option></select></label>
+                <label className="pn-pole"><span>widoczność karty</span><select value={o.widocznosc} onChange={(e) => zmien({ widocznosc: e.target.value as Osoba['widocznosc'] })} className="pn-in"><option value="auto">auto ({(dane.widocznoscAuto ?? (zyje ? 'bliscy' : 'publiczne')) === 'publiczne' ? 'publiczna' : 'dla bliskich'}) – ur. 100+ lub zm. 25+ lat temu</option><option value="publiczne">publiczna</option><option value="bliscy">dla bliskich</option><option value="ja">tylko ja</option></select></label>
+                <label className="pn-pole pn-caly"><span>znaczniki (po przecinku)</span><input value={(o.znaczniki ?? []).join(', ')} onChange={(e) => zmien({ znaczniki: e.target.value.split(',').map((s) => s.trim()) })} onBlur={() => zmien({ znaczniki: (o.znaczniki ?? []).filter(Boolean) })} className="pn-in" /></label>
+                </div>
             </section>
 
-            <section style={sek}>
-                <b>zdjęcie osoby</b>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <section className="pn-karta" aria-labelledby="zdjecie-t">
+                <h2 id="zdjecie-t">zdjęcie osoby</h2>
+                <div className="pn-rzad pn-rzad-gora">
                     {o.portret
                         // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={`/api/keystatic/osoby/${id}/portret?plik=${encodeURIComponent(o.portret.plik)}`} alt="" style={{ width: 120, borderRadius: 6, border: '1px solid #d6d1c6' }} />
-                        : <span style={{ ...maly, width: 120, height: 150, border: '1px dashed #d6d1c6', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>brak zdjęcia</span>}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 260px' }}>
-                        <label style={{ ...btn, display: 'inline-flex', alignItems: 'center', width: 'fit-content', cursor: 'pointer' }}>
+                        ? <img src={`/api/keystatic/osoby/${id}/portret?plik=${encodeURIComponent(o.portret.plik)}`} alt="zdjęcie osoby" className="pn-portret" />
+                        : <span className="pn-portret pn-portret-brak pn-maly">brak zdjęcia</span>}
+                    <div className="pn-kol pn-rosnie">
+                        <label className="pn-btn pn-samo">
                             {o.portret ? 'zmień zdjęcie' : 'dodaj zdjęcie'}
                             <input type="file" accept="image/*" hidden onChange={async (e) => {
                                 const f = e.target.files?.[0]; e.target.value = ''
@@ -248,66 +256,65 @@ export default function EdytorOsoby({ id }: { id: string }) {
                             }} />
                         </label>
                         {o.portret && <>
-                            <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>podpis (np. „ok. 1930, przed domem w Olszance”)</span><input value={o.portret.podpis ?? ''} onChange={(e) => zmien({ portret: { ...o.portret!, podpis: e.target.value } })} style={pole} /></label>
-                            <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={maly}>źródło (skąd zdjęcie, kto je udostępnił)</span><input value={o.portret.zrodlo ?? ''} onChange={(e) => zmien({ portret: { ...o.portret!, zrodlo: e.target.value } })} style={pole} /></label>
-                            <button onClick={() => confirm('Odpiąć zdjęcie od osoby? (plik zostaje na serwerze)') && zmien({ portret: undefined })} style={{ ...btn, width: 'fit-content' }}>odepnij zdjęcie</button>
+                            <label className="pn-pole"><span>podpis (np. „ok. 1930, przed domem w Olszance”)</span><input value={o.portret.podpis ?? ''} onChange={(e) => zmien({ portret: { ...o.portret!, podpis: e.target.value } })} className="pn-in" /></label>
+                            <label className="pn-pole"><span>źródło (skąd zdjęcie, kto je udostępnił)</span><input value={o.portret.zrodlo ?? ''} onChange={(e) => zmien({ portret: { ...o.portret!, zrodlo: e.target.value } })} className="pn-in" /></label>
+                            <button type="button" onClick={() => confirm('Odpiąć zdjęcie od osoby? (plik zostaje na serwerze)') && zmien({ portret: undefined })} className="pn-btn pn-samo">odepnij zdjęcie</button>
                         </>}
-                        <span style={maly}>Zdjęcie pokaże się na karcie osoby po zapisaniu – tylko tym, którzy widzą kartę.</span>
+                        <span className="pn-maly">Zdjęcie pokaże się na karcie osoby po zapisaniu – tylko tym, którzy widzą kartę.</span>
                     </div>
                 </div>
             </section>
 
-            <section style={sek}>
-                <b>zdarzenia</b>
+            <section className="pn-karta" aria-labelledby="zdarzenia-t">
+                <h2 id="zdarzenia-t">zdarzenia</h2>
                 {sortujZdarzenia(o.zdarzenia).map((z) => (
                     <EdycjaZdarzenia key={z.id} z={z} miejsca={miejsca} zParafii={dane.zParafii[z.id]} wszystkie={wszyscyBezMnie} osoby={dane.osoby} zrodla={dane.zrodla} rodzajeDozwolone={rodzajeOsoby}
                         zmien={(n) => zmien({ zdarzenia: o.zdarzenia.map((x) => (x.id === z.id ? n : x)) })}
                         usun={() => confirm('Usunąć to zdarzenie?') && zmien({ zdarzenia: o.zdarzenia.filter((x) => x.id !== z.id) })} />
                 ))}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <div className="pn-rzad">
                     {(['urodzenie', 'chrzest', 'zgon', 'pogrzeb', 'zamieszkanie', 'inne'] as RodzajZdarzenia[]).map((r) => (
-                        <button key={r} onClick={() => zmien({ zdarzenia: [...o.zdarzenia, { id: noweIdZdarzenia(), rodzaj: r }] })} style={{ ...btn, height: 26, fontSize: 12 }}>+ {RODZAJE_ZDARZEN[r]}</button>
+                        <button key={r} onClick={() => zmien({ zdarzenia: [...o.zdarzenia, { id: noweIdZdarzenia(), rodzaj: r }] })} className="pn-btn pn-btn-maly">+ {RODZAJE_ZDARZEN[r]}</button>
                     ))}
                 </div>
             </section>
 
-            <section style={sek}>
-                <b>rodzice</b>
-                {dane.rodzice.length === 0 && <span style={maly}>nie wpisano</span>}
+            <section className="pn-karta" aria-labelledby="rodzice-t">
+                <h2 id="rodzice-t">rodzice</h2>
+                {dane.rodzice.length === 0 && <span className="pn-maly">nie wpisano</span>}
                 {dane.rodzice.map((r) => (
-                    <div key={r.rodzina.id} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
-                        <span style={maly}>ojciec</span><LinkOsoby o={r.maz} /><span style={maly}>matka</span><LinkOsoby o={r.zona} />
-                        {r.rodzenstwo.length > 0 && <span style={{ ...maly, width: '100%' }}>rodzeństwo: {r.rodzenstwo.map((x) => <span key={x.id} style={{ marginRight: 6 }}><LinkOsoby o={x} /></span>)}</span>}
-                        <button onClick={() => confirm('Wypisać tę osobę z rodziny rodziców?') && relacja({ akcja: 'rozlacz', rodzina: r.rodzina.id, osoba: id })} style={{ ...btn, height: 24, fontSize: 11, background: 'none' }}>odłącz od rodziców</button>
+                    <div key={r.rodzina.id} className="pn-rzad">
+                        <span className="pn-maly">ojciec</span><LinkOsoby o={r.maz} /><span className="pn-maly">matka</span><LinkOsoby o={r.zona} />
+                        {r.rodzenstwo.length > 0 && <span className="pn-rzad pn-caly-wiersz"><span className="pn-maly">rodzeństwo:</span> {r.rodzenstwo.map((x) => <LinkOsoby key={x.id} o={x} />)}</span>}
+                        <button type="button" onClick={() => confirm('Wypisać tę osobę z rodziny rodziców?') && relacja({ akcja: 'rozlacz', rodzina: r.rodzina.id, osoba: id })} className="pn-btn pn-btn-maly">odłącz od rodziców</button>
                     </div>
                 ))}
                 {(!rodzina || !rodzina.maz) && <WyborOsoby wszystkie={wszyscyBezMnie} bez={[id]} etykieta="ojciec" onWybor={(x) => relacja({ akcja: 'polacz', osoba: x, z: id, jako: 'rodzic' })} onNowa={(i, n) => nowaWRodzinie(i, n, 'rodzic', undefined, 'M')} />}
                 {(!rodzina || !rodzina.zona) && <WyborOsoby wszystkie={wszyscyBezMnie} bez={[id]} etykieta="matka" onWybor={(x) => relacja({ akcja: 'polacz', osoba: x, z: id, jako: 'rodzic' })} onNowa={(i, n) => nowaWRodzinie(i, n, 'rodzic', undefined, 'K')} />}
             </section>
 
-            <section style={sek}>
-                <b>małżeństwa i dzieci</b>
+            <section className="pn-karta" aria-labelledby="malzenstwa-t">
+                <h2 id="malzenstwa-t">małżeństwa i dzieci</h2>
                 {dane.malzenstwa.map((m) => {
                     const slub = m.rodzina.zdarzenia
                     return (
-                        <div key={m.rodzina.id} style={{ border: '1px solid #e7e2d8', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                                <span style={maly}>{o.plec === 'K' ? 'mąż' : o.plec === 'M' ? 'żona' : 'małżonek'}</span><LinkOsoby o={m.malzonek} />
+                        <div key={m.rodzina.id} className="pn-kol pn-ramka">
+                            <div className="pn-rzad">
+                                <span className="pn-maly">{o.plec === 'K' ? 'mąż' : o.plec === 'M' ? 'żona' : 'małżonek'}</span><LinkOsoby o={m.malzonek} />
                                 {!m.malzonek && <WyborOsoby wszystkie={wszyscyBezMnie} bez={[id]} etykieta="małżonek" onWybor={(x) => relacja({ akcja: 'polacz', osoba: x, z: id, jako: 'malzonek' })} onNowa={(i, n) => nowaWRodzinie(i, n, 'malzonek', m.rodzina.id, o.plec === 'K' ? 'M' : o.plec === 'M' ? 'K' : 'U')} />}
-                                <span style={{ flex: 1 }} />
-                                <button onClick={() => confirm('Wypisać tę osobę z tego małżeństwa?') && relacja({ akcja: 'rozlacz', rodzina: m.rodzina.id, osoba: id })} style={{ ...btn, height: 24, fontSize: 11, background: 'none' }}>odłącz</button>
+                                <button type="button" onClick={() => confirm('Wypisać tę osobę z tego małżeństwa?') && relacja({ akcja: 'rozlacz', rodzina: m.rodzina.id, osoba: id })} className="pn-btn pn-btn-maly pn-prawo">odłącz</button>
                             </div>
                             {slub.map((z) => (
                                 <EdycjaZdarzenia key={z.id} z={z} miejsca={miejsca} zParafii={dane.zParafii[z.id]} wszystkie={wszyscyBezMnie} osoby={dane.osoby} zrodla={dane.zrodla} rodzajeDozwolone={['slub', 'rozwod', 'inne']}
                                     zmien={(n) => { m.rodzina.zdarzenia = slub.map((x) => (x.id === z.id ? n : x)); ustawDane({ ...dane }) }}
                                     usun={() => confirm('Usunąć?') && zapiszRodzine({ ...m.rodzina, zdarzenia: slub.filter((x) => x.id !== z.id) })} />
                             ))}
-                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                {!slub.some((z) => z.rodzaj === 'slub') && <button onClick={() => zapiszRodzine({ ...m.rodzina, zdarzenia: [...slub, { id: noweIdZdarzenia(), rodzaj: 'slub' }] })} style={{ ...btn, height: 26, fontSize: 12 }}>+ ślub</button>}
-                                <button onClick={() => zapiszRodzine(m.rodzina)} style={{ ...btn, height: 26, fontSize: 12 }}>zapisz ślub / rozwód</button>
+                            <div className="pn-rzad">
+                                {!slub.some((z) => z.rodzaj === 'slub') && <button type="button" onClick={() => zapiszRodzine({ ...m.rodzina, zdarzenia: [...slub, { id: noweIdZdarzenia(), rodzaj: 'slub' }] })} className="pn-btn pn-btn-maly">+ ślub</button>}
+                                <button type="button" onClick={() => zapiszRodzine(m.rodzina)} className="pn-btn pn-btn-maly">zapisz ślub / rozwód</button>
                             </div>
-                            <span style={maly}>dzieci</span>
-                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{m.dzieci.map((c) => <LinkOsoby key={c.id} o={c} />)}</div>
+                            <span className="pn-maly">dzieci</span>
+                            <div className="pn-rzad">{m.dzieci.map((c) => <LinkOsoby key={c.id} o={c} />)}</div>
                             <WyborOsoby wszystkie={wszyscyBezMnie} bez={[id, ...m.dzieci.map((c) => c.id)]} etykieta="dziecko" onWybor={(x) => relacja({ akcja: 'polacz', osoba: x, z: id, jako: 'dziecko', rodzina: m.rodzina.id })} onNowa={(i, n) => nowaWRodzinie(i, n, 'dziecko', m.rodzina.id)} />
                         </div>
                     )
@@ -315,43 +322,43 @@ export default function EdytorOsoby({ id }: { id: string }) {
                 <WyborOsoby wszystkie={wszyscyBezMnie} bez={[id]} etykieta="nowe małżeństwo" onWybor={(x) => relacja({ akcja: 'polacz', osoba: x, z: id, jako: 'malzonek' })} onNowa={(i, n) => nowaWRodzinie(i, n, 'malzonek', undefined, o.plec === 'K' ? 'M' : o.plec === 'M' ? 'K' : 'U')} />
             </section>
 
-            <section style={sek}>
-                <b>notatki</b>
-                <textarea value={o.notatki ?? ''} onChange={(e) => zmien({ notatki: e.target.value || undefined })} rows={5} style={{ ...pole, height: 'auto', padding: 8 }} />
-                <span style={maly}>Notatki osoby widzą na stronie tylko zalogowani bliscy.</span>
+            <section className="pn-karta" aria-labelledby="notatki-t">
+                <h2 id="notatki-t">notatki</h2>
+                <textarea value={o.notatki ?? ''} onChange={(e) => zmien({ notatki: e.target.value || undefined })} rows={5} className="pn-in" aria-label="notatki" />
+                <span className="pn-maly">Notatki osoby widzą na stronie tylko zalogowani bliscy.</span>
             </section>
 
             {o.cytaty?.length ? (
-                <section style={sek}>
-                    <b>źródła osoby</b>
+                <section className="pn-karta" aria-labelledby="zrodla-t">
+                    <h2 id="zrodla-t">źródła osoby</h2>
                     {o.cytaty.map((c, i) => <Cytat key={i} c={c} zrodla={dane.zrodla} usun={() => zmien({ cytaty: o.cytaty!.filter((_, j) => j !== i) })} />)}
                 </section>
             ) : null}
 
             {o.multimedia?.length ? (
-                <section style={sek}>
-                    <b>zdjęcia i dokumenty z Ancestry ({o.multimedia.length})</b>
-                    <span style={maly}>W pliku GEDCOM są tylko opisy – same pliki pobierz z Ancestry i dodaj w archiwum strony.</span>
+                <section className="pn-karta" aria-labelledby="multimedia-t">
+                    <h2 id="multimedia-t">zdjęcia i dokumenty z Ancestry ({o.multimedia.length})</h2>
+                    <span className="pn-maly">W pliku GEDCOM są tylko opisy – same pliki pobierz z Ancestry i dodaj w archiwum strony.</span>
                     {o.multimedia.map((m, i) => (
-                        <details key={i} style={{ fontSize: 13 }}>
-                            <summary>{m.tytul} <span style={maly}>{[m.data, m.miejsce].filter(Boolean).join(' · ')}</span></summary>
-                            {m.opis && <p style={{ margin: '4px 0' }}>{m.opis}</p>}
-                            {m.transkrypcja && <p style={{ margin: '4px 0', whiteSpace: 'pre-wrap', color: '#3b3731' }}>{m.transkrypcja}</p>}
-                            <button onClick={() => zmien({ multimedia: o.multimedia!.filter((_, j) => j !== i) })} style={{ ...btn, height: 24, fontSize: 11 }}>pobrane do archiwum – usuń z listy</button>
+                        <details key={i}>
+                            <summary>{m.tytul} <span className="pn-maly">{[m.data, m.miejsce].filter(Boolean).join(' · ')}</span></summary>
+                            {m.opis && <p className="pn-akapit">{m.opis}</p>}
+                            {m.transkrypcja && <p className="pn-akapit pn-transkrypcja">{m.transkrypcja}</p>}
+                            <button type="button" onClick={() => zmien({ multimedia: o.multimedia!.filter((_, j) => j !== i) })} className="pn-btn pn-btn-maly">pobrane do archiwum – usuń z listy</button>
                         </details>
                     ))}
                 </section>
             ) : null}
 
-            <section style={{ ...sek, flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                <span style={maly}>identyfikator: {id}{o.gedcomId && ` · z Ancestry: ${o.gedcomId}`}{o.zmieniono && ` · zmieniono ${new Date(o.zmieniono).toLocaleString('pl-PL')}`}</span>
-                <span style={{ ...maly, display: 'inline-flex', gap: 8, alignItems: 'center' }} title="krewni tej osoby (przodkowie i ich potomkowie) oraz ich małżonkowie">
+            <section className="pn-naglowek pn-stopka-osoby">
+                <span className="pn-maly">identyfikator: {id}{o.gedcomId && ` · z Ancestry: ${o.gedcomId}`}{o.zmieniono && ` · zmieniono ${new Date(o.zmieniono).toLocaleString('pl-PL')}`}</span>
+                <span className="pn-rzad pn-maly" title="krewni tej osoby (przodkowie i ich potomkowie) oraz ich małżonkowie">
                     GEDCOM tylko z rodziną tej osoby:
                     <a href={`/api/keystatic/osoby/eksport?rodzina=${id}&zyjace=ukryte`}>bez żyjących</a>
                     <a href={`/api/keystatic/osoby/eksport?rodzina=${id}&zyjace=pelne`}>pełny</a>
                 </span>
-                <button onClick={async () => { if (!confirm('Przenieść tę osobę do kosza? Zostanie wypisana z rodzin.')) return; await fetch(`/api/keystatic/osoby/${id}`, { method: 'DELETE' }); location.href = '/keystatic/osoby' }} style={{ ...btn, height: 26, fontSize: 12, background: 'none', color: '#b91c1c' }}>do kosza</button>
+                <button onClick={async () => { if (!confirm('Przenieść tę osobę do kosza? Zostanie wypisana z rodzin.')) return; await fetch(`/api/keystatic/osoby/${id}`, { method: 'DELETE' }); location.href = '/keystatic/osoby' }} className="pn-btn pn-btn-maly pn-blad">do kosza</button>
             </section>
-        </div>
+        </>
     )
 }

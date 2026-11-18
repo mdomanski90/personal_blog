@@ -1,5 +1,6 @@
 import { celeSieci, materialy, miejsca, obiekty } from '@/lib/archiwum'
 import { stronyMaterialu } from '@/lib/strony-materialow'
+import { rodzajPlanu } from '@/lib/plany/metadane'
 import { brakDostepu, listaPlanow, listaZgloszen, wczytajPlan, wczytajUstawienia, zapiszObraz, zapiszPlan } from '@/lib/plany/dane'
 import { nowyPlan, popraw, SLUG, type Plan } from '@/lib/plany/model'
 import { zNadaniemNumerow } from '@/lib/katalog/dane'
@@ -11,7 +12,7 @@ export async function GET(req: Request) {
     const b = brakDostepu(req); if (b) return b
     const plany = await listaPlanow()
     return Response.json({
-        plany: plany.map((p) => ({ slug: p.slug, tytul: p.tytul, widocznosc: p.widocznosc, miejsce: p.miejsce, obiekt: p.obiekt, elementow: p.elementy.length, zmieniono: p.zmieniono })),
+        plany: plany.map((p) => ({ slug: p.slug, tytul: p.tytul, rodzaj: rodzajPlanu(p), widocznosc: p.widocznosc, miejsce: p.miejsce, obiekt: p.obiekt, elementow: p.elementy.length, zmieniono: p.zmieniono })),
         miejsca: (await miejsca('ja')).map((m) => ({ id: m.id, nazwa: m.nazwa })),
         obiekty: (await obiekty('ja')).map((o) => ({ id: o.id, nazwa: o.nazwa, miejsce: o.miejsce })),
         // PH1: materiały ze stronami skanu – źródło planu i podkład ze strony materiału (panel za hasłem: wszystkie poziomy)
