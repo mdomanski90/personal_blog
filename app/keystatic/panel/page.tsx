@@ -1,7 +1,7 @@
 'use client'
-// Pulpit panelu: co czeka, skróty, postęp planów, drzewo, treści, ostatnie zmiany, uwagi techniczne.
+// Pulpit panelu (P6a wg planszy + uwaga 18.11 22:26): „szybko” na górze, „wróć do pracy”, co czeka, postęp planów, drzewo, ostatnie zmiany, uwagi.
 import * as React from 'react'
-import { Pin, PinOff, X } from 'lucide-react'
+import { Pin, PinOff } from 'lucide-react'
 import { kiedy, odmiana, useDane, wyslijJson } from './wspolne'
 
 type Plan = { slug: string; tytul: string; widocznosc: string; zmieniono: string; geo: number; grobow: number; sprawdzone: number; zNapisem: number; zeZdjeciem: number }
@@ -17,56 +17,57 @@ type Pulpit = {
     serwer: { commit: string | null; zbudowano: string | null }
     praca: Praca
 }
-type PozPracy = { href: string; nazwa: string; czas?: string; miejsce?: string }
+type PozPracy = { href: string; nazwa: string; czas?: string; miejsce?: string; strona?: string; zmiany?: string[]; grob?: string; rodzaj?: string; liczba?: number | null }
 type Praca = { ostatnie: PozPracy[]; przypiete: PozPracy[]; widoki: PozPracy[] }
 
-/** P6a (PNL-08): „wróć do pracy” – ostatnio edytowane z miejscem pracy, przypięte, zapisane widoki list. */
+/** Nazwa bez rodzaju z przodu („miejsce „Testowo”” → „Testowo”) – rodzaj stoi w linii opisu, jak na planszy. */
+const bezRodzaju = (n: string) => n.replace(/^[^„]*„(.*)”$/, '$1')
+
+/** P6a wg planszy (PDF 18.11, funkcja 2): „wróć do pracy” – ostatnio edytowane z przyciskami i przypięte (z zapisanymi widokami list). */
 function WrocDoPracy({ praca, odswiez }: { praca: Praca; odswiez: () => void }) {
-    const [p, ustawP] = React.useState(praca)
     const [blad, ustawBlad] = React.useState('')
-    React.useEffect(() => { ustawP(praca) }, [praca])
-    const zmien = async (akcja: 'dodaj' | 'usun', lista: 'przypiete' | 'widoki' | 'ostatnie', x: PozPracy) => {
+    const [zarzadzaj, ustawZarzadzaj] = React.useState(false)
+    const zmien = async (akcja: 'dodaj' | 'usun', lista: 'przypiete' | 'widoki', x: PozPracy) => {
         const b = await wyslijJson('/api/keystatic/panel/praca', 'POST', { akcja, lista, href: x.href, nazwa: x.nazwa })
         ustawBlad(b ?? '')
         if (!b) odswiez()
     }
-    const przypiety = new Set(p.przypiete.map((x) => x.href.split('?')[0]))
-    const pusto = !p.ostatnie.length && !p.przypiete.length && !p.widoki.length
+    const przypiety = new Set(praca.przypiete.map((x) => x.href.split('?')[0]))
+    const przypiete = [...praca.przypiete.map((x) => ({ ...x, lista: 'przypiete' as const })), ...praca.widoki.map((x) => ({ ...x, lista: 'widoki' as const }))]
     return (
         <section aria-labelledby="praca" className="pn-kol pn-kol-12">
             <h2 id="praca" className="pn-etyk">wróć do pracy</h2>
             {blad && <p className="pn-kom pn-bez-marginesu" role="alert">{blad}</p>}
-            {pusto ? <p className="pn-szary pn-bez-marginesu">Tu pojawi się to, nad czym ostatnio pracujesz – wpisy, plany z zaznaczonym grobem, osoby – oraz pozycje przypięte i zapisane widoki list.</p> : (
-                <div className="pn-siatka">
-                    <section className="pn-karta" aria-labelledby="praca-ostatnie">
-                        <h3 id="praca-ostatnie" className="pn-tytul-karty">ostatnio edytowane</h3>
-                        {p.ostatnie.length ? <div className="pn-wiersze">{p.ostatnie.map((x) => (
-                            <div key={x.href} className="pn-wiersz pn-wiersz-op">
-                                <span className="pn-kol pn-rosnie pn-bez-luki"><a href={x.href}>{x.nazwa}</a><span className="pn-maly">{[x.miejsce, kiedy(x.czas)].filter(Boolean).join(' · ')}</span></span>
-                                {!przypiety.has(x.href.split('?')[0]) && <button type="button" className="pn-ikona-btn" aria-label={`przypnij: ${x.nazwa}`} title="przypnij" onClick={() => zmien('dodaj', 'przypiete', { href: x.href.split('?')[0], nazwa: x.nazwa })}><Pin aria-hidden /></button>}
-                            </div>
-                        ))}</div> : <span className="pn-szary">nic jeszcze</span>}
-                    </section>
-                    <section className="pn-karta" aria-labelledby="praca-przypiete">
-                        <h3 id="praca-przypiete" className="pn-tytul-karty">przypięte</h3>
-                        {p.przypiete.length ? <div className="pn-wiersze">{p.przypiete.map((x) => (
-                            <div key={x.href} className="pn-wiersz pn-wiersz-op">
-                                <a href={x.href} className="pn-rosnie">{x.nazwa}</a>
-                                <button type="button" className="pn-ikona-btn" aria-label={`odepnij: ${x.nazwa}`} title="odepnij" onClick={() => zmien('usun', 'przypiete', x)}><PinOff aria-hidden /></button>
-                            </div>
-                        ))}</div> : <span className="pn-maly">Przypnij pozycję ikoną pinezki przy „ostatnio edytowanych” albo przyciskiem „przypnij” w pasku.</span>}
-                    </section>
-                    <section className="pn-karta" aria-labelledby="praca-widoki">
-                        <h3 id="praca-widoki" className="pn-tytul-karty">zapisane widoki list</h3>
-                        {p.widoki.length ? <div className="pn-wiersze">{p.widoki.map((x) => (
-                            <div key={x.href} className="pn-wiersz pn-wiersz-op">
-                                <a href={x.href} className="pn-rosnie">{x.nazwa}</a>
-                                <button type="button" className="pn-ikona-btn" aria-label={`usuń widok: ${x.nazwa}`} title="usuń widok" onClick={() => zmien('usun', 'widoki', x)}><X aria-hidden /></button>
-                            </div>
-                        ))}</div> : <span className="pn-maly">Na liście panelu ustaw filtry i kliknij „zapisz widok”.</span>}
-                    </section>
-                </div>
-            )}
+            <div className="pn-praca">
+                <section className="pn-karta" aria-labelledby="praca-ostatnie">
+                    <div className="pn-naglowek"><h3 id="praca-ostatnie" className="pn-tytul-karty">ostatnio edytowane przez Ciebie</h3><span className="pn-maly">wszystkie urządzenia</span></div>
+                    {praca.ostatnie.length ? <div className="pn-wiersze">{praca.ostatnie.map((x) => (
+                        <div key={x.href} className="pn-wiersz pn-praca-wiersz">
+                            <span className="pn-kol pn-rosnie pn-bez-luki">
+                                <span><a href={x.href}><b>{bezRodzaju(x.nazwa)}</b></a><span className="pn-szary"> · {[x.rodzaj, x.grob ? `kwatera ${x.grob.split('/')[0]}, rząd ${x.grob.split('/')[1] ?? ''}` : x.miejsce, x.zmiany?.join(', ')].filter(Boolean).join(' · ')}</span></span>
+                            </span>
+                            <span className="pn-praca-akcje">
+                                <span className="pn-maly pn-bez-zawijania">{kiedy(x.czas)}</span>
+                                {x.grob ? <a className="pn-btn pn-btn-gl pn-btn-maly" href={x.href}>wróć do grobu {x.grob}</a> : <a className="pn-btn pn-btn-maly" href={x.href}>edytuj</a>}
+                                {x.strona && <a className="pn-btn pn-btn-maly" href={x.strona} target="_blank" rel="noreferrer">na stronie ↗</a>}
+                                {!przypiety.has(x.href.split('?')[0]) && <button type="button" className="pn-ikona-btn" aria-label={`przypnij: ${x.nazwa}`} title="przypnij" onClick={() => zmien('dodaj', 'przypiete', { ...x, href: x.href.split('?')[0] })}><Pin aria-hidden /></button>}
+                            </span>
+                        </div>
+                    ))}</div> : <p className="pn-szary pn-bez-marginesu">Tu pojawi się to, nad czym ostatnio pracujesz – wpisy, plany z zaznaczonym grobem, osoby.</p>}
+                </section>
+                <section className="pn-karta" aria-labelledby="praca-przypiete">
+                    <div className="pn-naglowek"><h3 id="praca-przypiete" className="pn-tytul-karty">przypięte</h3>
+                        {przypiete.length > 0 && <button type="button" className="pn-link-btn pn-maly" aria-pressed={zarzadzaj} onClick={() => ustawZarzadzaj((z) => !z)}>{zarzadzaj ? 'gotowe' : 'zarządzaj'}</button>}</div>
+                    {przypiete.length ? <div className="pn-wiersze">{przypiete.map((x) => (
+                        <div key={`${x.lista}-${x.href}`} className="pn-wiersz pn-wiersz-op">
+                            <Pin aria-hidden className="pn-ikona-mala" />
+                            <a href={x.href} className="pn-rosnie">{x.lista === 'widoki' ? x.nazwa : bezRodzaju(x.nazwa)}</a>
+                            <span className="pn-maly pn-bez-zawijania">{x.lista === 'widoki' ? `zapisany filtr${typeof x.liczba === 'number' ? ` · ${x.liczba}` : ''}` : x.rodzaj}</span>
+                            {zarzadzaj && <button type="button" className="pn-ikona-btn" aria-label={`odepnij: ${x.nazwa}`} title="odepnij" onClick={() => zmien('usun', x.lista, x)}><PinOff aria-hidden /></button>}
+                        </div>
+                    ))}</div> : <p className="pn-maly pn-bez-marginesu">Przypnij pozycję pinezką przy „ostatnio edytowanych” albo przyciskiem „przypnij” w pasku; na liście panelu ustaw filtry i „zapisz widok”.</p>}
+                </section>
+            </div>
         </section>
     )
 }
@@ -93,7 +94,21 @@ export default function Pulpit() {
 
             {d && (
                 <>
+                    <section aria-labelledby="szybko" className="pn-kol pn-kol-12">
+                        <h2 id="szybko" className="pn-etyk">szybko</h2>
+                        <div className="pn-rzad">
+                            <a className="pn-btn pn-btn-gl" href="/keystatic/panel/do-opracowania">do opracowania →</a>
+                            <a className="pn-btn" href="/keystatic/collection/posts/create">+ wpis</a>
+                            <a className="pn-btn" href="/keystatic/collection/miejsca/create">+ miejsce</a>
+                            <a className="pn-btn" href="/keystatic/collection/materialy/create">+ materiał do archiwum</a>
+                            <a className="pn-btn" href="/keystatic/osoby">+ osoba</a>
+                            <a className="pn-btn" href="/keystatic/plany">+ plan</a>
+                            {ostatniPlan && <a className="pn-btn pn-btn-gl" href={`/keystatic/plany/${ostatniPlan.slug}`}>edytor: {ostatniPlan.tytul}</a>}
+                        </div>
+                    </section>
+
                     <WrocDoPracy praca={d.praca} odswiez={odswiez} />
+
 
                     <section aria-labelledby="czeka" className="pn-kol pn-kol-12">
                         <h2 id="czeka" className="pn-etyk">czeka na Ciebie</h2>
@@ -122,19 +137,6 @@ export default function Pulpit() {
                                 <span>szkice (tylko ja)</span>
                                 <span className="pn-maly">{d.szkice.lista.join(' · ') || 'brak'}</span>
                             </a>
-                        </div>
-                    </section>
-
-                    <section aria-labelledby="szybko" className="pn-kol pn-kol-12">
-                        <h2 id="szybko" className="pn-etyk">szybko</h2>
-                        <div className="pn-rzad">
-                            <a className="pn-btn pn-btn-gl" href="/keystatic/panel/do-opracowania">do opracowania →</a>
-                            <a className="pn-btn" href="/keystatic/collection/posts/create">+ wpis</a>
-                            <a className="pn-btn" href="/keystatic/collection/miejsca/create">+ miejsce</a>
-                            <a className="pn-btn" href="/keystatic/collection/materialy/create">+ materiał do archiwum</a>
-                            <a className="pn-btn" href="/keystatic/osoby">+ osoba</a>
-                            <a className="pn-btn" href="/keystatic/plany">+ plan</a>
-                            {ostatniPlan && <a className="pn-btn pn-btn-gl" href={`/keystatic/plany/${ostatniPlan.slug}`}>edytor: {ostatniPlan.tytul}</a>}
                         </div>
                     </section>
 

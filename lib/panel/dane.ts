@@ -19,7 +19,7 @@ import { listaKoszaPlikow, listaPlanow, listaZgloszen, przywrocPlikZKosza, usunP
 import { katalog, typGrobu } from '../plany/typy'
 import { etapElementu } from '../plany/statusy'
 import { stanOsob, sladImportu } from '../osoby/dane'
-import { nazwaOsoby } from '../osoby/model'
+import { lataZycia, nazwaOsoby } from '../osoby/model'
 import { ostrzezeniaWgOsob } from '../osoby/serwer'
 import { listaZgloszenStrony, RODZAJE_ZGLOSZEN, type ZgloszenieStrony } from '../zgloszenia'
 import { etykietaBraku } from '../wspoltworz-reguly'
@@ -294,8 +294,40 @@ export async function podsumowanie() {
         oProjekcieSzkic,
         zmiany,
         uwagi,
-        praca: await wczytajPrace(),
+        praca: await pracaZOpisem(),
         serwer: { commit: serwer.commit, zbudowano: serwer.zbudowano },
+    }
+}
+
+// ---------- „wróć do pracy” wg planszy: rodzaj przypiętych i liczba pozycji zapisanego widoku ----------
+const RODZAJ_ADRESU: [RegExp, string][] = [[/^\/keystatic\/osoby\//, 'osoba'], [/^\/keystatic\/plany\//, 'plan'], [/^\/keystatic\/singleton\//, 'ustawienie']]
+/** Liczba pozycji listy panelu dla adresu widoku (?q=…&f.<pole>=…) – te same reguły co filtr listy (lista/[kolekcja]/page.tsx). */
+export async function liczbaWidoku(href: string): Promise<number | null> {
+    const m = /^\/keystatic\/panel\/lista\/([\w-]+)(?:\?(.*))?$/.exec(href)
+    if (!m || !LISTY[m[1]]) return null
+    const q = new URLSearchParams(m[2] ?? '')
+    const { wpisy, nieczytelne } = await wczytajKolekcje(m[1]).catch(() => ({ wpisy: [] as { slug: string; dane: Record<string, unknown> }[], nieczytelne: [] as unknown[] }))
+    const norm = (x: string) => x.toLocaleLowerCase('pl').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l')
+    const lista = (v: unknown): string[] => (Array.isArray(v) ? v.map((x) => (typeof x === 'string' ? x : typeof x === 'object' && x && 'name' in x ? String((x as { name: unknown }).name) : '')) : v == null || v === '' ? [] : [typeof v === 'object' && 'name' in (v as object) ? String((v as { name: unknown }).name) : String(v)])
+    if (q.get('f.title') === '__nieczytelne') return nieczytelne.length
+    const t = norm(q.get('q') ?? '')
+    return wpisy.filter((w) => {
+        if (t && !norm(`${w.slug} ${Object.values(w.dane).map((v) => lista(v).join(' ')).join(' ')}`).includes(t)) return false
+        for (const [k, v] of q) {
+            if (!k.startsWith('f.') || !v) continue
+            const wart = lista(w.dane[k.slice(2)])
+            if (v === '__brak' ? wart.length > 0 : !wart.includes(v)) return false
+        }
+        return true
+    }).length
+}
+async function pracaZOpisem() {
+    const p = await wczytajPrace()
+    const rodzaj = (h: string) => RODZAJ_ADRESU.find(([r]) => r.test(h))?.[1] ?? ETYKIETY[/\/collection\/([\w-]+)\//.exec(h)?.[1] ?? ''] ?? ''
+    return {
+        ...p,
+        przypiete: p.przypiete.map((x) => ({ ...x, rodzaj: x.rodzaj ?? rodzaj(x.href) })),
+        widoki: await Promise.all(p.widoki.map(async (x) => ({ ...x, liczba: await liczbaWidoku(x.href) }))),
     }
 }
 
@@ -328,15 +360,20 @@ export async function indeksPanelu(): Promise<PozycjaIndeksu[]> {
     }
     for (const o of s.drzewo.osoby.values()) {
         const nr = numerKat('osoba', o.id) ?? undefined
-        wyn.push({ t: nazwaOsoby(o), typ: 'osoba', href: KS.osoba(o.id), grupa: 'osoby', d: s.lata.get(o.id) ? `ok. ${s.lata.get(o.id)}` : undefined, ...(s.widocznosc(o.id) !== 'ja' ? { strona: `/osoby/${o.id}` } : {}), ...(nr ? { nr } : {}) })
+        const lata = lataZycia(o)
+        wyn.push({ t: nazwaOsoby(o), typ: 'osoba', href: KS.osoba(o.id), grupa: 'osoby', d: lata ? `ok. ${lata}` : s.lata.get(o.id) ? `ok. ${s.lata.get(o.id)}` : undefined, ...(s.widocznosc(o.id) !== 'ja' ? { strona: `/osoby/${o.id}` } : {}), ...(nr ? { nr } : {}) })
     }
     // zgłoszenia czekające (nowe, odłożone) – prowadzą do miejsca poprawki albo listy zgłoszeń
-    for (const z of zg.filter((x) => czeka(x.stan))) wyn.push({ t: z.tytul, typ: `zgłoszenie · ${z.rodzaj}`, href: z.doPoprawy ?? '/keystatic/panel/zgloszenia', grupa: 'zgloszenia', d: kiedyKrotko(z.data), ...(z.adres ? { strona: z.adres } : {}) })
+    // plansza: „„drugi od lewej to chyba mój pradziadek…”” · rozpoznanie · List o arendzie · nowe (rodzaj · tytuł · stan)
+    for (const z of zg.filter((x) => czeka(x.stan))) {
+        const tresc = z.tresc.replace(/\s+/g, ' ').trim()
+        wyn.push({ t: tresc ? `„${tresc.slice(0, 60)}${tresc.length > 60 ? '…' : ''}”` : z.tytul, typ: z.rodzaj, href: z.doPoprawy ?? '/keystatic/panel/zgloszenia', grupa: 'zgloszenia',
+            d: `${z.tytul} · ${z.stan === 'odlozone' ? 'odłożone' : 'nowe'}`, ...(z.adres ? { strona: z.adres } : {}) })
+    }
     return wyn
 }
 /** Tytuł z pola Keystatic: tekst albo { name, slug } (pole nazwy z identyfikatorem). */
 const tytulWpisu = (t: unknown): string => (typeof t === 'string' ? t : t && typeof t === 'object' && typeof (t as { name?: unknown }).name === 'string' ? (t as { name: string }).name : '')
-const kiedyKrotko = (iso: string) => { const t = Date.parse(iso); return Number.isFinite(t) ? new Date(t).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' }) : '' }
 
 // ---------- kosz ----------
 export interface PozycjaKosza { rodzaj: 'plan' | 'osoba' | 'rodzina' | 'import' | 'plik' | 'tresc'; plik: string; nazwa: string; czas: string; wygasa?: string | null }

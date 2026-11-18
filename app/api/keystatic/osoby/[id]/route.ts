@@ -49,7 +49,7 @@ async function zapiszPUT(req: Request, { params }: { params: Promise<{ id: strin
     if (!d?.osoba) return Response.json({ blad: 'brak danych' }, { status: 400 })
     try {
         const o = await zapiszOsobe(poprawOsobe({ ...d.osoba, id }), d.osoba.wersja)
-        await zapiszOstatniePozycje([{ href: `/keystatic/osoby/${id}`, nazwa: `osoba „${nazwaOsoby(o) || id}”` }]).catch(() => {}) // P6a: „wróć do pracy”
+        await zapiszOstatniePozycje([{ href: `/keystatic/osoby/${id}`, nazwa: `osoba „${nazwaOsoby(o) || id}”`, rodzaj: 'osoba', ...(o.widocznosc !== 'ja' ? { strona: `/osoby/${id}` } : {}) }]).catch(() => {}) // P6a: „wróć do pracy”
         return Response.json({ osoba: o })
     } catch (e) {
         if (e instanceof Konflikt) return Response.json({ blad: e.message }, { status: 409 })

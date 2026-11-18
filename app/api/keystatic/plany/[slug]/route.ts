@@ -30,8 +30,10 @@ async function zapiszPUT(req: Request, { params }: P) {
     let el = ''
     try { el = decodeURIComponent(req.headers.get('x-miejsce-pracy') ?? '') } catch { /* zły nagłówek – bez miejsca */ }
     const e = w.plan.elementy.find((x) => x.id === el)
-    const nr = e ? numerTekst(numeryPlanu(w.plan).get(e.id)) : ''
-    await zapiszOstatniePozycje([{ href: `/keystatic/plany/${slug}${e ? `?el=${encodeURIComponent(e.id)}` : ''}`, nazwa: `plan „${w.plan.tytul}”`, ...(e ? { miejsce: nr ? `grób: ${nr}` : e.nazwa?.split('\n')[0] || e.typ } : {}) }]).catch(() => {})
+    const n = e ? numeryPlanu(w.plan).get(e.id) : undefined, nr = numerTekst(n)
+    await zapiszOstatniePozycje([{ href: `/keystatic/plany/${slug}${e ? `?el=${encodeURIComponent(e.id)}` : ''}`, nazwa: `plan „${w.plan.tytul}”`, rodzaj: 'plan',
+        ...(w.plan.widocznosc !== 'ja' ? { strona: `/plany/${slug}` } : {}),
+        ...(e ? { miejsce: nr ? `grób: ${nr}` : e.nazwa?.split('\n')[0] || e.typ } : {}), ...(n ? { grob: [n.kwatera, n.rzad, n.miejsce].filter(Boolean).join('/') } : {}) }]).catch(() => {})
     return Response.json({ wersja: w.plan.wersja, zmieniono: w.plan.zmieniono, przywrocone: w.przywrocone })
 }
 
