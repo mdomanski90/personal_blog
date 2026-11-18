@@ -39,3 +39,13 @@ export async function liczbyPlanow(): Promise<Record<RodzajPlanu, number>> {
     pamiec = { odcisk, liczby }
     return liczby
 }
+
+/** P6a (ADM-11): liczba wpisów w kolekcjach list panelu (pliki w content/<kolekcja>) – liczniki w menu zamiast karty „treści w Keystatic”. */
+export async function liczbyKolekcji(klucze: string[]): Promise<Record<string, number>> {
+    const wyn: Record<string, number> = {}
+    await Promise.all(klucze.map(async (k) => {
+        try { wyn[k] = (await fs.promises.readdir(path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', k))).filter((p) => /\.(mdoc|yaml|yml|json)$/.test(p)).length }
+        catch { wyn[k] = 0 }
+    }))
+    return wyn
+}

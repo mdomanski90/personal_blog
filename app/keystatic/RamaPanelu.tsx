@@ -4,7 +4,7 @@
 import * as React from 'react'
 import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { type LucideIcon, Archive, BookMarked, ChevronDown, ChevronRight, Ellipsis, ExternalLink, FileText, House, Inbox, Languages, Library, ListTodo, Map as IkonaMapy, Menu, Moon, PanelsTopLeft, Search, SlidersHorizontal, Sun, Wrench } from 'lucide-react'
+import { type LucideIcon, Archive, BookMarked, ChevronDown, ChevronRight, Ellipsis, ExternalLink, FileText, House, Inbox, Languages, Library, ListTodo, Map as IkonaMapy, Menu, Moon, PanelsTopLeft, Pin, PinOff, Search, SlidersHorizontal, Sun, Wrench } from 'lucide-react'
 import { aktywna, menuWgUstawien, rodzajWidoku, stronaZAdresuKeystatic, type Ikona, type UstawieniaMenu } from '@/lib/panel/menu'
 import type { RodzajPlanu } from '@/lib/plany/metadane'
 
@@ -65,15 +65,15 @@ function Szukaj({ pole }: { pole: React.RefObject<HTMLInputElement> }) {
     )
 }
 
-function licznikPozycji(l: string | undefined, czeka: number, plany: Record<RodzajPlanu, number>): number | null {
+function licznikPozycji(l: string | undefined, czeka: number, plany: Record<string, number>): number | null {
     if (!l) return null
     if (l === 'zgloszenia') return czeka
-    const r = l.split(':')[1] as RodzajPlanu
-    return plany[r] ?? null
+    const [rodzaj, k] = l.split(':')
+    return (rodzaj === 'plany' || rodzaj === 'kolekcja' ? plany[`${rodzaj}:${k}`] : undefined) ?? null
 }
 
 function MenuPelne({ menu, sciezka, szukane, czeka, plany, pokazWszystko, ustawPokazWszystko, rozwiniete, przelaczGrupe, naGorze }: {
-    menu: Menu; sciezka: string; szukane: string; czeka: number; plany: Record<RodzajPlanu, number>
+    menu: Menu; sciezka: string; szukane: string; czeka: number; plany: Record<string, number>
     pokazWszystko: boolean; ustawPokazWszystko: (b: boolean) => void; rozwiniete: Set<string>; przelaczGrupe: (k: string) => void; naGorze?: React.ReactNode
 }) {
     const ukrytych = menu.reduce((a, g) => a + (g.pozycje.length ? g.pozycje.filter((p) => p.ukryta).length : g.ukryta ? 1 : 0), 0)
@@ -152,7 +152,29 @@ function Ikony({ menu, sciezka, szukane, czeka, przycisk }: { menu: Menu; sciezk
     )
 }
 
-export default function RamaPanelu({ ustawienia, liczbyPlanow, children }: { ustawienia: UstawieniaMenu | null; liczbyPlanow: Record<RodzajPlanu, number>; children: React.ReactNode }) {
+/** P6a (PNL-08): „przypnij” bieżącą pozycję panelu (pulpit → „wróć do pracy”). Nazwę ustala serwer (wpis, osoba, plan). */
+function Przypnij({ sciezka }: { sciezka: string }) {
+    const [przypiete, ustawPrzypiete] = React.useState<Set<string> | null>(null)
+    React.useEffect(() => {
+        fetch('/api/keystatic/panel/praca', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
+            .then((p: { przypiete?: { href: string }[] } | null) => ustawPrzypiete(new Set((p?.przypiete ?? []).map((x) => x.href)))).catch(() => {})
+    }, [sciezka])
+    if (!przypiete || sciezka === '/keystatic/panel' || sciezka === '/keystatic') return null
+    const jest = przypiete.has(sciezka)
+    const przelacz = async () => {
+        const r = await fetch('/api/keystatic/panel/praca', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ akcja: jest ? 'usun' : 'dodaj', lista: 'przypiete', href: sciezka }) }).catch(() => null)
+        if (r?.ok) ustawPrzypiete((s) => { const n = new Set(s); if (jest) n.delete(sciezka); else n.add(sciezka); return n })
+    }
+    return (
+        <button type="button" className="pn-btn pn-btn-maly pn-tylko-szeroki" aria-pressed={jest} onClick={przelacz} title={jest ? 'odepnij z pulpitu' : 'przypnij na pulpicie („wróć do pracy”)'}>
+            {jest ? <PinOff aria-hidden /> : <Pin aria-hidden />}{jest ? 'przypięte' : 'przypnij'}
+        </button>
+    )
+}
+
+export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = {}, children }: { ustawienia: UstawieniaMenu | null; liczbyPlanow: Record<RodzajPlanu, number>; liczbyKolekcji?: Record<string, number>; children: React.ReactNode }) {
+    // liczniki w menu: „plany:<rodzaj>” i (P6a) „kolekcja:<klucz>”
+    const liczniki = React.useMemo(() => ({ ...Object.fromEntries(Object.entries(liczbyPlanow).map(([k, v]) => [`plany:${k}`, v])), ...Object.fromEntries(Object.entries(liczbyKolekcji).map(([k, v]) => [`kolekcja:${k}`, v])) }), [liczbyPlanow, liczbyKolekcji])
     const sciezka = usePathname() ?? ''
     const [szukane, ustawSzukane] = React.useState('')
     const rodzaj = rodzajWidoku(sciezka)
@@ -266,7 +288,7 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, children }: { ust
     const [zamontowany, ustawZamontowany] = React.useState(false)
     React.useEffect(() => ustawZamontowany(true), [])
     const ciemny = zamontowany && resolvedTheme === 'dark'
-    const wlasciwosciMenu = { menu, sciezka, szukane, czeka, plany: liczbyPlanow, pokazWszystko, ustawPokazWszystko, rozwiniete, przelaczGrupe }
+    const wlasciwosciMenu = { menu, sciezka, szukane, czeka, plany: liczniki, pokazWszystko, ustawPokazWszystko, rozwiniete, przelaczGrupe }
     const pelneMenu = rodzaj === 'panel' && !schowany
     const kolumnaIkon = rodzaj === 'edytor-planu' || (rodzaj === 'panel' && schowany)
 
@@ -284,6 +306,7 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, children }: { ust
                     {zglPozycji > 0 && <a href="/keystatic/panel/zgloszenia" className="pn-btn pn-btn-maly pn-tylko-szeroki">zgłoszenia: {zglPozycji}</a>}
                     {naStronie && <a href={naStronie} target="_blank" rel="noreferrer" className="pn-btn pn-btn-maly pn-tylko-szeroki">na stronie ↗</a>}
                     {maHistorie && <a href={`/keystatic/panel/historia?adres=${encodeURIComponent(sciezka)}`} className="pn-btn pn-btn-maly pn-tylko-szeroki">historia</a>}
+                    <Przypnij sciezka={sciezka} />
                     <button type="button" className="pn-ikona-btn" aria-label="przełącz motyw (jasny / ciemny)" title="przełącz motyw (jasny / ciemny)" onClick={() => setTheme(ciemny ? 'light' : 'dark')}>
                         {!zamontowany ? <Moon aria-hidden className="pn-niewidoczne" /> : ciemny ? <Sun aria-hidden /> : <Moon aria-hidden />}
                     </button>

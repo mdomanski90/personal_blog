@@ -8,8 +8,8 @@ export interface PozycjaMenu {
     klucz: string
     nazwa: string
     href: string
-    /** zgłoszenia – licznik z API; plany:<rodzaj> – liczba planów danego rodzaju */
-    licznik?: 'zgloszenia' | `plany:${string}`
+    /** zgłoszenia – licznik z API; plany:<rodzaj> – liczba planów danego rodzaju; kolekcja:<klucz> – liczba wpisów (P6a, zamiast karty na pulpicie) */
+    licznik?: 'zgloszenia' | `plany:${string}` | `kolekcja:${string}`
 }
 export interface GrupaMenu { klucz: string; nazwa: string; ikona: Ikona; href?: string; licznik?: PozycjaMenu['licznik']; pozycje: PozycjaMenu[] }
 
@@ -22,29 +22,29 @@ export const MENU: GrupaMenu[] = [
     { klucz: 'zgloszenia', nazwa: 'zgłoszenia', ikona: 'zgloszenia', href: '/keystatic/panel/zgloszenia', licznik: 'zgloszenia', pozycje: [] },
     { klucz: 'do-opracowania', nazwa: 'do opracowania', ikona: 'opracowanie', href: '/keystatic/panel/do-opracowania', pozycje: [] },
     { klucz: 'tresci', nazwa: 'treści', ikona: 'tresci', pozycje: [
-        { klucz: 'posts', nazwa: 'wpisy', href: kol('posts') },
-        { klucz: 'miejsca', nazwa: 'miejsca', href: kol('miejsca') },
-        { klucz: 'obiekty', nazwa: 'obiekty w terenie', href: kol('obiekty') },
-        { klucz: 'tematy', nazwa: 'tematy', href: kol('tematy') },
-        { klucz: 'biogramy', nazwa: 'osoby – biogramy', href: kol('biogramy') },
+        { klucz: 'posts', nazwa: 'wpisy', href: kol('posts'), licznik: 'kolekcja:posts' },
+        { klucz: 'miejsca', nazwa: 'miejsca', href: kol('miejsca'), licznik: 'kolekcja:miejsca' },
+        { klucz: 'obiekty', nazwa: 'obiekty w terenie', href: kol('obiekty'), licznik: 'kolekcja:obiekty' },
+        { klucz: 'tematy', nazwa: 'tematy', href: kol('tematy'), licznik: 'kolekcja:tematy' },
+        { klucz: 'biogramy', nazwa: 'osoby – biogramy', href: kol('biogramy'), licznik: 'kolekcja:biogramy' },
     ] },
     { klucz: 'archiwum', nazwa: 'archiwum', ikona: 'archiwum', pozycje: [
-        { klucz: 'materialy', nazwa: 'materiały (archiwum)', href: kol('materialy') },
-        { klucz: 'zbiory', nazwa: 'zbiory i kolekcje', href: kol('zbiory') },
+        { klucz: 'materialy', nazwa: 'materiały (archiwum)', href: kol('materialy'), licznik: 'kolekcja:materialy' },
+        { klucz: 'zbiory', nazwa: 'zbiory i kolekcje', href: kol('zbiory'), licznik: 'kolekcja:zbiory' },
         { klucz: 'strony-skanow', nazwa: 'strony skanów', href: '/keystatic/panel/materialy' },
     ] },
     { klucz: 'biblioteka', nazwa: 'biblioteka', ikona: 'biblioteka', pozycje: [
-        { klucz: 'publikacje', nazwa: 'publikacje i opracowania', href: kol('publikacje') },
+        { klucz: 'publikacje', nazwa: 'publikacje i opracowania', href: kol('publikacje'), licznik: 'kolekcja:publikacje' },
     ] },
     { klucz: 'ksiegi', nazwa: 'księgi metrykalne', ikona: 'ksiegi', pozycje: [
-        { klucz: 'parafie', nazwa: 'parafie i urzędy', href: kol('parafie') },
-        { klucz: 'ksiegi', nazwa: 'księgi metrykalne', href: kol('ksiegi') },
-        { klucz: 'zespoly', nazwa: 'zespoły archiwalne', href: kol('zespoly') },
+        { klucz: 'parafie', nazwa: 'parafie i urzędy', href: kol('parafie'), licznik: 'kolekcja:parafie' },
+        { klucz: 'ksiegi', nazwa: 'księgi metrykalne', href: kol('ksiegi'), licznik: 'kolekcja:ksiegi' },
+        { klucz: 'zespoly', nazwa: 'zespoły archiwalne', href: kol('zespoly'), licznik: 'kolekcja:zespoly' },
         { klucz: 'ksiegi-import', nazwa: 'import ksiąg · CSV/XLSX', href: '/keystatic/panel/ksiegi-import' },
         { klucz: 'raport-ksiag', nazwa: 'raport ksiąg', href: '/keystatic/panel/raport-ksiag' },
     ] },
     { klucz: 'slownik', nazwa: 'słownik', ikona: 'slownik', pozycje: [
-        { klucz: 'hasla', nazwa: 'słownik (pojęcia i gwara)', href: kol('hasla') },
+        { klucz: 'hasla', nazwa: 'słownik (pojęcia i gwara)', href: kol('hasla'), licznik: 'kolekcja:hasla' },
     ] },
     { klucz: 'strony', nazwa: 'strony', ikona: 'strony', pozycje: [
         { klucz: 'stronaGlowna', nazwa: 'strona główna', href: sin('stronaGlowna') },

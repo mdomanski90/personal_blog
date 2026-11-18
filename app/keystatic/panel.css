@@ -416,3 +416,5 @@ html.kui-scheme--dark, .pn .kui-scheme--dark {
 .pn-link-btn { border: 0; background: none; padding: 0; font: inherit; color: var(--pn-akcent); cursor: pointer; text-decoration: underline; }
 .pn-reguly > summary { cursor: pointer; }
 .pn-reguly[open] > summary { margin-bottom: 10px; }
+.pn-bez-luki { gap: 0; }
+.pn-btn-maly svg { width: 14px; height: 14px; margin-right: 4px; stroke-width: 1.5; }

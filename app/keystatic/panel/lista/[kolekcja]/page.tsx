@@ -33,7 +33,34 @@ export default function ListaPanelu() {
     const [kom, ustawKom] = React.useState<{ tekst: string; operacja?: string | null; blad?: boolean } | null>(null)
     const wszystkie = React.useRef<HTMLInputElement>(null)
 
-    React.useEffect(() => { ustawZazn(new Set()); ustawFiltry({}); ustawQ(''); ustawKom(null) }, [kolekcja])
+    // P6a (PNL-08): filtry w adresie (?q=…&f.<pole>=…) – widok da się zapisać na pulpicie („wróć do pracy”) i otworzyć ponownie
+    React.useEffect(() => {
+        const u = new URLSearchParams(window.location.search)
+        const f: Record<string, string> = {}
+        for (const [k, v] of u) if (k.startsWith('f.') && v) f[k.slice(2)] = v
+        ustawZazn(new Set()); ustawFiltry(f); ustawQ(u.get('q') ?? ''); ustawKom(null)
+    }, [kolekcja])
+    React.useEffect(() => {
+        const u = new URLSearchParams()
+        if (q.trim()) u.set('q', q.trim())
+        for (const [k, v] of Object.entries(filtry)) if (v) u.set(`f.${k}`, v)
+        const t = u.toString(), adres = `${window.location.pathname}${t ? `?${t}` : ''}`
+        if (adres !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(window.history.state, '', adres)
+    }, [q, filtry])
+    const [zapisanyWidok, ustawZapisanyWidok] = React.useState('')
+    const zapiszWidok = async () => {
+        if (!d) return
+        const opisy = Object.entries(filtry).filter(([, v]) => v).map(([pole, v]) => {
+            const k = d.kolumny.find((x) => x.pole === pole)
+            if (v === '__nieczytelne') return 'nieczytelne'
+            if (v === '__brak') return `${k?.etykieta ?? pole}: brak`
+            const etykieta = k?.rodzaj === 'wybor' ? d.opcje[pole]?.find((o) => o.value === v)?.label : (d.cele[k?.kolekcja ?? ''] ?? []).find((c) => c.slug === v)?.nazwa
+            return etykieta ?? v
+        })
+        const nazwa = [d.nazwa, ...opisy, ...(q.trim() ? [`„${q.trim()}”`] : [])].join(' · ')
+        const r = await post<{ ok?: boolean }>('/api/keystatic/panel/praca', { akcja: 'dodaj', lista: 'widoki', href: `${window.location.pathname}${window.location.search}`, nazwa })
+        ustawZapisanyWidok(r.ok ? `Zapisano widok „${nazwa}” – jest na pulpicie w „wróć do pracy”.` : String(r.dane.blad ?? 'Nie udało się zapisać widoku.'))
+    }
 
     const filtrowalne = (d?.kolumny ?? []).filter((k) => k.rodzaj === 'wybor' || k.rodzaj === 'relacja')
     const wiersze = React.useMemo(() => {
@@ -109,6 +136,7 @@ export default function ListaPanelu() {
                 </span>
             </header>
             {blad && <p className="pn-kom pn-bez-marginesu">{blad}</p>}
+            {zapisanyWidok && <p className="pn-info pn-bez-marginesu" role="status">{zapisanyWidok}</p>}
             {kom && <div className={kom.blad ? 'pn-ostrz' : 'pn-info'} role={kom.blad ? 'alert' : 'status'}>
                 <span className="pn-rzad pn-rosnie"><span className="pn-rosnie">{kom.tekst}</span>{kom.operacja && <button type="button" className="pn-btn pn-btn-maly" disabled={trwa} onClick={() => cofnij(kom.operacja!)}>cofnij</button>}</span>
             </div>}
@@ -124,6 +152,7 @@ export default function ListaPanelu() {
                 })}
                 {nieczytelnych > 0 && <label className="pn-rzad"><input type="checkbox" checked={filtry.title === '__nieczytelne'} onChange={(e) => ustawFiltry((f) => ({ ...f, title: e.target.checked ? '__nieczytelne' : '' }))} /> tylko nieczytelne ({nieczytelnych})</label>}
                 {(q || Object.values(filtry).some(Boolean)) && <button type="button" className="pn-btn pn-btn-maly" onClick={() => { ustawQ(''); ustawFiltry({}) }}>wyczyść filtry</button>}
+                {(q || Object.values(filtry).some(Boolean)) && <button type="button" className="pn-btn pn-btn-maly" onClick={zapiszWidok}>zapisz widok</button>}
             </div>}
             {zazn.size > 0 && d && (d.widocznosc || d.relacje.length > 0) && (
                 <div className="pn-pasek-akcji" role="region" aria-label="zmiana zbiorcza">

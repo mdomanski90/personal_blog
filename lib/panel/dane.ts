@@ -2,6 +2,9 @@
 // Tylko odczyt plików strony i drobne zapisy w content/ (stan zgłoszeń, przywracanie z kosza).
 import { wczytajZnacznik } from './kopia'
 import { brakujaceKatalogi } from './katalogi'
+import { LISTY } from './listy-konfig'
+import { wczytajKolekcje } from './listy'
+import { wczytajPrace } from './praca'
 import { doKosza, listaKoszaTresci, przywrocZKoszaTresci, usunZKoszaTresci } from './historia'
 import { kontrolaCzytnikiem } from './historia-adresy'
 import { poZapisieTresci } from '../katalog/dane'
@@ -262,6 +265,11 @@ export async function podsumowanie() {
     }
 
     const szkice = Object.entries(tr).map(([k, v]) => ({ k, nazwa: v.nazwa, n: v.L.filter((x) => x.widocznosc === 'ja').length })).filter((x) => x.n)
+    // P6a (ADM-11): szkice ze wszystkich kolekcji z widocznością (dawniej 8 – bez zbiorów i publikacji; biogramy i zespoły nie mają widoczności)
+    for (const k of Object.keys(LISTY).filter((x) => LISTY[x].widocznosc && !(x in tr))) {
+        const n = (await wczytajKolekcje(k).catch(() => ({ wpisy: [] }))).wpisy.filter((w) => w.dane.visibility === 'ja').length
+        if (n) szkice.push({ k, nazwa: LISTY[k].nazwa, n })
+    }
     const planySzkice = plany.filter((p) => p.widocznosc === 'ja').length
     const oProjekcieSzkic = await istnieje(path.join(CONTENT(), 'o-projekcie.szkic.mdoc'))
 
@@ -280,10 +288,11 @@ export async function podsumowanie() {
         plany,
         osoby: { liczba: s.drzewo.osoby.size, doSprawdzenia: osobyUwagi.size, zyjace: [...s.drzewo.osoby.keys()].filter((id) => s.zyje(id)).length, import: imp ? { data: imp.data } : null },
         tresci: Object.fromEntries(Object.entries(tr).map(([k, v]) => [k, { nazwa: v.nazwa, n: v.L.length, szkice: v.L.filter((x) => x.widocznosc === 'ja').length }])),
-        szkice: { razem: szkice.reduce((a, x) => a + x.n, 0) + planySzkice + (oProjekcieSzkic ? 1 : 0), lista: [...szkice.map((x) => `${x.nazwa} ${x.n}`), ...(planySzkice ? [`plany ${planySzkice}`] : []), ...(oProjekcieSzkic ? ['„o projekcie”'] : [])] },
+        szkice: { pierwsza: szkice[0]?.k, razem: szkice.reduce((a, x) => a + x.n, 0) + planySzkice + (oProjekcieSzkic ? 1 : 0), lista: [...szkice.map((x) => `${x.nazwa} ${x.n}`), ...(planySzkice ? [`plany ${planySzkice}`] : []), ...(oProjekcieSzkic ? ['„o projekcie”'] : [])] },
         oProjekcieSzkic,
         zmiany,
         uwagi,
+        praca: await wczytajPrace(),
         serwer: { commit: serwer.commit, zbudowano: serwer.zbudowano },
     }
 }
