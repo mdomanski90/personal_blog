@@ -280,6 +280,8 @@ export function roznica(z: string, na: string, kontekst = 3): WierszRoznicy[] {
 export interface WpisHistorii {
     klucz: string; zrodlo: 'keystatic' | 'operacja'; czas: string; opis: string
     zmiany: ZmianaPola[] | null; mozna: boolean; wersja?: string; operacja?: string
+    /** plik powstał tą zmianą (plansza: „nowa pozycja (utworzona)”) */
+    utworzona?: boolean
 }
 
 async function trescKopiiOperacji(korzen: string, id: string, nazwa: string | null): Promise<string | null> {
@@ -310,7 +312,7 @@ export async function osHistorii(relC: string, etykiety: Record<string, string>,
         const [przed, po] = await Promise.all([trescKopiiOperacji(korzen, m.id, z.przed), trescKopiiOperacji(korzen, m.id, z.po)])
         const nazwa = NAZWY_OPERACJI[m.rodzaj] ?? m.rodzaj
         wyn.push({ klucz: `o-${m.id}`, zrodlo: 'operacja', czas: m.zakonczono ?? m.utworzono, opis: m.cofa ? `${nazwa} (cofnięcie)` : nazwa,
-            zmiany: zmianyPol(plik, przed, po, etykiety), mozna: przed !== null && przed !== teraz, operacja: m.id })
+            zmiany: zmianyPol(plik, przed, po, etykiety), mozna: przed !== null && przed !== teraz, operacja: m.id, ...(z.przed === null && po !== null ? { utworzona: true } : {}) })
     }
     return wyn.sort((a, b) => b.czas.localeCompare(a.czas)).slice(0, maks)
 }

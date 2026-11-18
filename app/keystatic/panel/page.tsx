@@ -17,7 +17,7 @@ type Pulpit = {
     serwer: { commit: string | null; zbudowano: string | null }
     praca: Praca
 }
-type PozPracy = { href: string; nazwa: string; czas?: string; miejsce?: string; strona?: string; zmiany?: string[]; grob?: string; rodzaj?: string; liczba?: number | null }
+type PozPracy = { href: string; nazwa: string; czas?: string; miejsce?: string; strona?: string; zmiany?: string[]; grob?: string; rodzaj?: string; szkic?: boolean; liczba?: number | null }
 type Praca = { ostatnie: PozPracy[]; przypiete: PozPracy[]; widoki: PozPracy[] }
 
 /** Nazwa bez rodzaju z przodu („miejsce „Testowo”” → „Testowo”) – rodzaj stoi w linii opisu, jak na planszy. */
@@ -32,7 +32,6 @@ function WrocDoPracy({ praca, odswiez }: { praca: Praca; odswiez: () => void }) 
         ustawBlad(b ?? '')
         if (!b) odswiez()
     }
-    const przypiety = new Set(praca.przypiete.map((x) => x.href.split('?')[0]))
     const przypiete = [...praca.przypiete.map((x) => ({ ...x, lista: 'przypiete' as const })), ...praca.widoki.map((x) => ({ ...x, lista: 'widoki' as const }))]
     return (
         <section aria-labelledby="praca" className="pn-kol pn-kol-12">
@@ -44,13 +43,15 @@ function WrocDoPracy({ praca, odswiez }: { praca: Praca; odswiez: () => void }) 
                     {praca.ostatnie.length ? <div className="pn-wiersze">{praca.ostatnie.map((x) => (
                         <div key={x.href} className="pn-wiersz pn-praca-wiersz">
                             <span className="pn-kol pn-rosnie pn-bez-luki">
-                                <span><a href={x.href}><b>{bezRodzaju(x.nazwa)}</b></a><span className="pn-szary"> · {[x.rodzaj, x.grob ? `kwatera ${x.grob.split('/')[0]}, rząd ${x.grob.split('/')[1] ?? ''}` : x.miejsce, x.zmiany?.join(', ')].filter(Boolean).join(' · ')}</span></span>
+                                <span><a href={x.href}><b>{bezRodzaju(x.nazwa)}</b></a>{(() => {
+                                    const opis = [x.rodzaj, x.grob ? `kwatera ${x.grob.split('/')[0]}, rząd ${x.grob.split('/')[1] ?? ''}` : x.miejsce, x.szkic ? 'tylko ja' : x.zmiany?.join(', ')].filter(Boolean).join(' · ')
+                                    return opis ? <span className="pn-szary"> · {opis}</span> : null
+                                })()}</span>
                             </span>
                             <span className="pn-praca-akcje">
                                 <span className="pn-maly pn-bez-zawijania">{kiedy(x.czas)}</span>
                                 {x.grob ? <a className="pn-btn pn-btn-gl pn-btn-maly" href={x.href}>wróć do grobu {x.grob}</a> : <a className="pn-btn pn-btn-maly" href={x.href}>edytuj</a>}
-                                {x.strona && <a className="pn-btn pn-btn-maly" href={x.strona} target="_blank" rel="noreferrer">na stronie ↗</a>}
-                                {!przypiety.has(x.href.split('?')[0]) && <button type="button" className="pn-ikona-btn" aria-label={`przypnij: ${x.nazwa}`} title="przypnij" onClick={() => zmien('dodaj', 'przypiete', { ...x, href: x.href.split('?')[0] })}><Pin aria-hidden /></button>}
+                                {!x.grob && x.strona && <a className="pn-btn pn-btn-maly" href={x.strona} target="_blank" rel="noreferrer">na stronie ↗</a>}
                             </span>
                         </div>
                     ))}</div> : <p className="pn-szary pn-bez-marginesu">Tu pojawi się to, nad czym ostatnio pracujesz – wpisy, plany z zaznaczonym grobem, osoby.</p>}
@@ -65,7 +66,7 @@ function WrocDoPracy({ praca, odswiez }: { praca: Praca; odswiez: () => void }) 
                             <span className="pn-maly pn-bez-zawijania">{x.lista === 'widoki' ? `zapisany filtr${typeof x.liczba === 'number' ? ` · ${x.liczba}` : ''}` : x.rodzaj}</span>
                             {zarzadzaj && <button type="button" className="pn-ikona-btn" aria-label={`odepnij: ${x.nazwa}`} title="odepnij" onClick={() => zmien('usun', x.lista, x)}><PinOff aria-hidden /></button>}
                         </div>
-                    ))}</div> : <p className="pn-maly pn-bez-marginesu">Przypnij pozycję pinezką przy „ostatnio edytowanych” albo przyciskiem „przypnij” w pasku; na liście panelu ustaw filtry i „zapisz widok”.</p>}
+                    ))}</div> : <p className="pn-maly pn-bez-marginesu">Przypnij wpis, osobę albo plan przyciskiem „przypnij” w pasku; na liście panelu ustaw filtry i „zapisz widok”.</p>}
                 </section>
             </div>
         </section>

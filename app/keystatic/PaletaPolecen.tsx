@@ -4,7 +4,7 @@
 // (także po numerze katalogowym), plany, zgłoszenia, polecenia (pozycje menu i „+ nowa …”). Enter – edycja w panelu,
 // Shift+Enter – strona publiczna w nowej karcie. Natywny <dialog>: fokus w oknie, Esc zamyka, fokus wraca (zasada 5.3).
 import * as React from 'react'
-import { Search, X } from 'lucide-react'
+import { Search } from 'lucide-react'
 import type { GrupaWgUstawien } from '@/lib/panel/menu'
 import { NOWE, poleceniaZMenu, poleceniaZTekstem, szukajWPalecie, tylkoPolecenia, type PozycjaPalety as Poz } from '@/lib/panel/paleta'
 
@@ -75,7 +75,7 @@ export default function PaletaPolecen({ menu, otwarta, onZamknij }: { menu: Grup
                 <input ref={pole} type="search" role="combobox" aria-expanded="true" aria-controls="pn-paleta-wyniki" aria-autocomplete="list"
                     aria-activedescendant={wyniki[akt] ? `pn-pal-${akt}` : undefined} aria-label="szukaj: osoba, materiał, plan, numer katalogowy, polecenie"
                     placeholder="szukaj: osoba, materiał, MA-0042 albo > polecenie" autoComplete="off" value={q} onChange={(e) => ustawQ(e.target.value)} onKeyDown={klawisz} />
-                <button type="button" className="pn-ikona-btn" aria-label="zamknij" title="zamknij (Esc)" onClick={() => ref.current?.close()}><X aria-hidden /></button>
+                <button type="button" className="pn-paleta-esc" aria-label="Esc – zamknij paletę" onClick={() => ref.current?.close()}><span className="pn-paleta-esc-k">Esc</span><span className="pn-paleta-esc-t">zamknij</span></button>
             </div>
             <div id="pn-paleta-wyniki" role="listbox" aria-label="wyniki" className="pn-paleta-wyniki">
                 {q.trim() && indeks === null && <p className="pn-szary pn-paleta-pusto" role="status">wczytuję…</p>}
@@ -101,7 +101,7 @@ export default function PaletaPolecen({ menu, otwarta, onZamknij }: { menu: Grup
                     )
                 })}
             </div>
-            <div className="pn-paleta-stopka pn-maly" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd> wybór · <kbd>Enter</kbd> otwórz · <kbd>⇧ Enter</kbd> na stronie · MA-0042 – numer katalogowy · <kbd>&gt;</kbd> polecenia · <kbd>Esc</kbd> zamknij</div>
+            <div className="pn-paleta-stopka" aria-hidden="true"><span>↑↓ wybór</span><span>Enter otwórz</span><span>⇧Enter na stronie</span><span>MA-0042 · numer katalogowy</span><span>&gt; polecenia</span></div>
         </dialog>
     )
 }

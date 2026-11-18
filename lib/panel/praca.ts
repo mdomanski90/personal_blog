@@ -7,8 +7,8 @@ import { randomBytes } from 'node:crypto'
 import { opisPlikuZTytulem } from './historia-adresy'
 import { stronaZAdresuKeystatic } from './menu'
 
-/** P6a wg plansz: `strona` – strona publiczna, `zmiany` – nazwy zmienionych pól, `grob` – krótki numer („A/1/2”) dla „wróć do grobu”, `rodzaj`. */
-export interface PozycjaPracy { href: string; nazwa: string; czas?: string; miejsce?: string; strona?: string; zmiany?: string[]; grob?: string; rodzaj?: string }
+/** P6a wg plansz: `strona` – strona publiczna, `zmiany` – nazwy zmienionych pól, `grob` – krótki numer („A/1/2”) dla „wróć do grobu”, `rodzaj`, `szkic` – widoczność „tylko ja” (plansza: „wpis · tylko ja”). */
+export interface PozycjaPracy { href: string; nazwa: string; czas?: string; miejsce?: string; strona?: string; zmiany?: string[]; grob?: string; rodzaj?: string; szkic?: boolean }
 export interface Praca { wersja: 1; ostatnie: PozycjaPracy[]; przypiete: PozycjaPracy[]; widoki: PozycjaPracy[] }
 
 export const MAKS_OSTATNICH = 12
@@ -25,7 +25,7 @@ const pozycja = (x: unknown): PozycjaPracy | null => {
     const strona = typeof o.strona === 'string' && /^\/(?!\/)[^\s<>"]*$/.test(o.strona) && !o.strona.startsWith('/keystatic') ? o.strona.slice(0, 300) : undefined
     const zmiany = Array.isArray(o.zmiany) ? o.zmiany.filter((x): x is string => typeof x === 'string').slice(0, 8).map((x) => x.slice(0, 60)) : undefined
     return { href: o.href, nazwa: o.nazwa.trim().slice(0, 160), ...(typeof o.czas === 'string' ? { czas: o.czas } : {}), ...(typeof o.miejsce === 'string' && o.miejsce ? { miejsce: o.miejsce.slice(0, 120) } : {}),
-        ...(strona ? { strona } : {}), ...(zmiany?.length ? { zmiany } : {}), ...(typeof o.grob === 'string' && o.grob ? { grob: o.grob.slice(0, 40) } : {}), ...(typeof o.rodzaj === 'string' && o.rodzaj ? { rodzaj: o.rodzaj.slice(0, 40) } : {}) }
+        ...(strona ? { strona } : {}), ...(zmiany?.length ? { zmiany } : {}), ...(typeof o.grob === 'string' && o.grob ? { grob: o.grob.slice(0, 40) } : {}), ...(typeof o.rodzaj === 'string' && o.rodzaj ? { rodzaj: o.rodzaj.slice(0, 40) } : {}), ...(o.szkic === true ? { szkic: true } : {}) }
 }
 
 export async function wczytajPrace(korzen = process.cwd()): Promise<Praca> {
@@ -72,7 +72,7 @@ export async function zapiszOstatnie(sciezki: string[], korzen = process.cwd(), 
         const o = await opisPlikuZTytulem(korzen, s.slice('content/'.length))
         if (!o.edycja || poz.some((x) => x.href === o.edycja)) continue
         const strona = o.widocznosc !== 'ja' ? stronaZAdresuKeystatic(o.edycja) ?? undefined : undefined
-        poz.push({ href: o.edycja, nazwa: o.nazwa, ...(o.rodzaj ? { rodzaj: o.rodzaj } : {}), ...(strona ? { strona } : {}), ...(pola[s]?.length ? { zmiany: pola[s] } : {}) })
+        poz.push({ href: o.edycja, nazwa: o.nazwa, ...(o.rodzaj ? { rodzaj: o.rodzaj } : {}), ...(strona ? { strona } : {}), ...(pola[s]?.length ? { zmiany: pola[s] } : {}), ...(o.widocznosc === 'ja' ? { szkic: true } : {}) })
     }
     await zapiszOstatniePozycje(poz, korzen)
 }

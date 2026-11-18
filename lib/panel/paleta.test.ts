@@ -30,6 +30,8 @@ test('paleta: polecenia z menu (także ukryte) i „+ nowa …”, wszystkie w g
 test('paleta wg planszy: polecenie z wpisanym tekstem i tryb „>”', async () => {
     const { poleceniaZTekstem, tylkoPolecenia } = await import('./paleta')
     assert.deepEqual(poleceniaZTekstem('Jan Przykładowy').map((x) => [x.t, x.href]), [['+ nowa osoba „Jan Przykładowy”', '/keystatic/osoby?nowa=Jan%20Przyk%C5%82adowy']])
+    assert.equal(poleceniaZTekstem('przyk')[0].t, '+ nowa osoba „Przyk”', 'wielka litera jak na planszy')
+    assert.equal(poleceniaZTekstem('anna kowalska-nowak')[0].t, '+ nowa osoba „Anna Kowalska-Nowak”')
     assert.deepEqual(poleceniaZTekstem('> kop'), [])
     assert.equal(tylkoPolecenia(' >kopie'), true)
 })

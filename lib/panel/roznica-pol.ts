@@ -2,7 +2,9 @@
 // Czyste funkcje (testy); etykiety pól podaje wywołujący (lib/panel/historia-adresy.ts – z konfiguracji Keystatic).
 import { load } from 'js-yaml'
 
-export type Fragment = { t: '=' | '-' | '+'; s: string }
+import type { Fragment } from './wycinek'
+export type { Fragment } from './wycinek'
+export { wycinek } from './wycinek'
 export interface ZmianaPola { pole: string; etykieta: string; fragmenty: Fragment[]; skrot: boolean }
 
 /** Treść pliku Keystatic → obiekt pól; ciało .mdoc jako pole „__tresc”. Nieczytelny plik → null. */

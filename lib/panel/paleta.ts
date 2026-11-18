@@ -34,8 +34,10 @@ export function szukajWPalecie(L: Poz[], q: string): Poz[] {
 export function poleceniaZTekstem(q: string): Poz[] {
     const t = q.trim()
     if (t.length < 2 || t.startsWith('>')) return []
-    const krotko = t.length > 28 ? `${t.slice(0, 27)}…` : t
-    return [{ t: `+ nowa osoba „${krotko}”`, typ: 'utwórz', href: `/keystatic/osoby?nowa=${encodeURIComponent(t)}`, grupa: 'polecenia' }]
+    // plansza: „+ nowa osoba „Przyk…”” – imię i nazwisko wielką literą
+    const imie = t.replace(/(^|[\s-])(\p{Ll})/gu, (_, a: string, b: string) => a + b.toLocaleUpperCase('pl-PL'))
+    const krotko = imie.length > 28 ? `${imie.slice(0, 27)}…` : imie
+    return [{ t: `+ nowa osoba „${krotko}”`, typ: 'utwórz', href: `/keystatic/osoby?nowa=${encodeURIComponent(imie)}`, grupa: 'polecenia' }]
 }
 
 /** „>” na początku – same polecenia (plansza: stopka „> polecenia”). */

@@ -5,10 +5,11 @@
 // Esc i × zamykają, fokus wraca na przycisk „historia” (zasada 5.3). Kolory różnic – tokeny --pn-us / --pn-do (stonowane).
 import * as React from 'react'
 import { X } from 'lucide-react'
+import { wycinek } from '@/lib/panel/wycinek'
 
 type Fragment = { t: '=' | '-' | '+'; s: string }
 type ZmianaPola = { pole: string; etykieta: string; fragmenty: Fragment[] }
-type Wpis = { klucz: string; zrodlo: 'keystatic' | 'operacja'; czas: string; opis: string; zmiany: ZmianaPola[] | null; mozna: boolean; wersja?: string; operacja?: string }
+type Wpis = { klucz: string; zrodlo: 'keystatic' | 'operacja'; czas: string; opis: string; zmiany: ZmianaPola[] | null; mozna: boolean; wersja?: string; operacja?: string; utworzona?: boolean }
 type Kosz = { id: string; czas: string; opis: string }
 type Historia = { plik: string; nazwa: string; istnieje: boolean; wpisy: Wpis[]; kosz: Kosz[] }
 
@@ -24,10 +25,22 @@ function temu(iso: string): string {
     return dni < 1 ? 'dziś' : dni === 1 ? 'wczoraj' : `${dni} dni temu`
 }
 
+const Fr = ({ f }: { f: Fragment }) => (f.t === '-' ? <del className="pn-us">{f.s}</del> : f.t === '+' ? <ins className="pn-do">{f.s}</ins> : <span>{f.s}</span>)
+
+/** „porównaj”: całe pole z zaznaczonymi zmianami. */
 function Pole({ z }: { z: ZmianaPola }) {
+    return <p className="pn-hist-pole"><span className="pn-szary">{z.etykieta}: </span>{z.fragmenty.map((f, i) => <Fr key={i} f={f} />)}</p>
+}
+
+/** Plansza: jeden wiersz na pole – „opis: „Wieś wspominana w 18021820 r. …””, dopisane „+ „…””, usunięte „− „…””. */
+function PoleKrotko({ z }: { z: ZmianaPola }) {
+    const tylko = z.fragmenty.every((f) => f.t === '+') ? '+' : z.fragmenty.every((f) => f.t === '-') ? '−' : null
+    const w = wycinek(z.fragmenty)
+    const klasa = tylko === '+' ? 'pn-do' : tylko === '−' ? 'pn-us' : ''
     return (
-        <p className="pn-hist-pole"><span className="pn-szary">{z.etykieta}: </span>
-            {z.fragmenty.map((f, i) => f.t === '-' ? <del key={i} className="pn-us">{f.s}</del> : f.t === '+' ? <ins key={i} className="pn-do">{f.s}</ins> : <span key={i}>{f.s}</span>)}
+        <p className="pn-hist-pole pn-hist-krotko"><span className="pn-szary">{z.etykieta}: </span>
+            {tylko ? <span className={klasa}>{tylko} „{w.fragmenty.map((f) => f.s).join('')}{w.kon ? ' …' : ''}”</span>
+                : <>„{w.pocz && '… '}{w.fragmenty.map((f, i) => <Fr key={i} f={f} />)}{w.kon && ' …'}”</>}
         </p>
     )
 }
@@ -39,6 +52,7 @@ export default function SzufladaHistorii({ adres, otwarta, onZamknij }: { adres:
     const [d, ustawD] = React.useState<Historia | null>(null)
     const [blad, ustawBlad] = React.useState('')
     const [rozwiniete, ustawRozwiniete] = React.useState<string | null>(null)
+    const [wybrany, ustawWybrany] = React.useState<string | null>(null)
     const [pyta, ustawPyta] = React.useState<string | null>(null)
     const [kom, ustawKom] = React.useState('')
 
@@ -51,7 +65,7 @@ export default function SzufladaHistorii({ adres, otwarta, onZamknij }: { adres:
     React.useEffect(() => {
         if (!otwarta) return
         powrot.current = document.activeElement as HTMLElement | null
-        ustawD(null); ustawPyta(null); ustawKom(''); wczytaj()
+        ustawD(null); ustawPyta(null); ustawKom(''); ustawWybrany(null); ustawRozwiniete(null); wczytaj()
         window.setTimeout(() => tytul.current?.focus(), 0)
         const k = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); zamknij() } }
         document.addEventListener('keydown', k)
@@ -93,25 +107,30 @@ export default function SzufladaHistorii({ adres, otwarta, onZamknij }: { adres:
                     {d.wpisy.map((w, i) => {
                         const pola = w.zmiany ?? []
                         const caly = rozwiniete === w.klucz
+                        const zazn = (wybrany ?? d.wpisy[0].klucz) === w.klucz
                         return (
-                            <li key={w.klucz} className={`pn-hist-wpis${i === 0 ? ' pn-hist-zazn' : ''}`}>
-                                <b>{kiedy(w.czas)} · {w.opis}</b>
-                                {w.zmiany === null && <span className="pn-maly">nie da się porównać (plik nieczytelny)</span>}
-                                {w.zmiany && pola.length === 0 && <span className="pn-maly">bez zmian w polach</span>}
-                                {(caly ? pola : pola.slice(0, 2)).map((z) => <Pole key={z.pole} z={z} />)}
-                                {!caly && pola.length > 2 && <span className="pn-maly">i {pola.length - 2} {pola.length - 2 === 1 ? 'inne pole' : 'inne pola'}</span>}
-                                {pyta === w.klucz ? (
+                            <li key={w.klucz} className={`pn-hist-wpis${zazn ? ' pn-hist-zazn' : ''}`}>
+                                {zazn ? <b>{kiedy(w.czas)} · {w.opis}</b>
+                                    : <button type="button" className="pn-hist-glowa" aria-expanded={false} onClick={() => { ustawWybrany(w.klucz); ustawPyta(null) }}>{kiedy(w.czas)} · {w.opis}</button>}
+                                {w.utworzona ? <span>nowa pozycja (utworzona)</span>
+                                    : <>
+                                        {w.zmiany === null && <span className="pn-maly">nie da się porównać (plik nieczytelny)</span>}
+                                        {w.zmiany && pola.length === 0 && <span className="pn-maly">bez zmian w polach</span>}
+                                        {caly ? pola.map((z) => <Pole key={z.pole} z={z} />) : pola.slice(0, 2).map((z) => <PoleKrotko key={z.pole} z={z} />)}
+                                        {!caly && pola.length > 2 && <span className="pn-maly">i {pola.length - 2} {pola.length - 2 === 1 ? 'inne pole' : 'inne pola'}</span>}
+                                    </>}
+                                {zazn && (pyta === w.klucz ? (
                                     <div className="pn-rzad">
                                         <span className="pn-maly">Przywrócić stan sprzed tej zmiany?</span>
                                         <button type="button" className="pn-btn pn-btn-gl pn-btn-maly" onClick={() => przywroc(w)}>tak, przywróć</button>
                                         <button type="button" className="pn-btn pn-btn-maly" onClick={() => ustawPyta(null)}>anuluj</button>
                                     </div>
-                                ) : (
+                                ) : (pola.length > 0 || w.mozna) && (
                                     <div className="pn-rzad">
-                                        {pola.length > 0 && <button type="button" className="pn-btn pn-btn-maly" aria-expanded={caly} onClick={() => ustawRozwiniete(caly ? null : w.klucz)}>{caly ? 'zwiń' : 'porównaj'}</button>}
+                                        {pola.length > 0 && !w.utworzona && <button type="button" className="pn-btn pn-btn-maly" aria-expanded={caly} onClick={() => ustawRozwiniete(caly ? null : w.klucz)}>{caly ? 'zwiń' : 'porównaj'}</button>}
                                         {w.mozna && <button type="button" className="pn-btn pn-btn-gl pn-btn-maly" onClick={() => ustawPyta(w.klucz)}>przywróć poprzednią</button>}
                                     </div>
-                                )}
+                                ))}
                             </li>
                         )
                     })}
@@ -122,7 +141,7 @@ export default function SzufladaHistorii({ adres, otwarta, onZamknij }: { adres:
                     <h3 id="pn-hist-kosz">kosz treści</h3>
                     {d.kosz.length ? (
                         <p className="pn-maly pn-bez-marginesu">Usunięte w Keystatic: {d.kosz.slice(0, 6).map((k, i) => (
-                            <React.Fragment key={k.id}>{i > 0 && ' · '}{k.opis} ({temu(k.czas)}) – <button type="button" className="pn-link-btn" onClick={() => przywrocZKosza(k)}>przywróć</button></React.Fragment>
+                            <React.Fragment key={k.id}>{i > 0 && ' · '}{k.opis} ({temu(k.czas)}) – <button type="button" className="pn-link-btn pn-link-szary" onClick={() => przywrocZKosza(k)}>przywróć</button></React.Fragment>
                         ))}{d.kosz.length > 6 && <> · <a href="/keystatic/panel/system#kosz">cały kosz</a></>}</p>
                     ) : <p className="pn-maly pn-bez-marginesu">pusty – usunięte wpisy tego rodzaju trafią tutaj</p>}
                 </section>

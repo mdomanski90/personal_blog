@@ -45,3 +45,15 @@ test('praca: nazwa z tytułu wpisu (pole title albo { name }), bez pliku – z i
         assert.deepEqual((await wczytajPrace(k)).ostatnie.map((x) => x.nazwa), ['miejsce „Testowo”', 'miejsca „nie-ma”'])
     } finally { await fs.rm(k, { recursive: true, force: true }) }
 })
+
+test('praca wg planszy: szkic „tylko ja” oznaczony, bez strony publicznej', async () => {
+    const k = await fs.mkdtemp(path.join(os.tmpdir(), 'praca-'))
+    try {
+        await fs.mkdir(path.join(k, 'content', 'posts'), { recursive: true })
+        await fs.writeFile(path.join(k, 'content', 'posts', 'szkic.mdoc'), '---\ntitle: Szkic\nvisibility: ja\n---\nTekst.\n')
+        await zapiszOstatnie(['content/posts/szkic.mdoc'], k)
+        const [p] = (await wczytajPrace(k)).ostatnie
+        assert.equal(p.szkic, true)
+        assert.equal(p.strona, undefined)
+    } finally { await fs.rm(k, { recursive: true, force: true }) }
+})
