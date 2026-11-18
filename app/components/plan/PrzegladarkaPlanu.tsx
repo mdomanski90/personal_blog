@@ -78,7 +78,7 @@ export default function PrzegladarkaPlanu({ plan, ustawienia, zalogowany, osoby,
                         <span className="dok-grupa">
                             {pelny
                                 ? <button type="button" onClick={zamknijPelny} aria-label="zamknij pełny ekran" title="zamknij (Esc)"><span className="dok-etyk">zamknij </span>✕</button>
-                                : <button type="button" onClick={otworzPelny} aria-label="pełny ekran" title="pełny ekran">⤢</button>}
+                                : <button type="button" onClick={otworzPelny} aria-label="pełny ekran" title="pełny ekran"><span className="dok-etyk">pełny ekran </span>⤢</button>}
                         </span>
                     </span>
                 </div>

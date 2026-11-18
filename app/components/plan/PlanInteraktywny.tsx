@@ -6,6 +6,7 @@
 // znak „opisany” tylko z danych jawnych (CEM-09); plan historyczny / schemat bez interfejsu grobowego (PH-13).
 
 import * as React from 'react'
+import { Shrink } from 'lucide-react'
 import { punktyElementu, srodek, jednostka, type Element, type Numer, type Plan } from '@/lib/plany/model'
 import { elementyLegendy } from '@/lib/plany/ph3'
 import { numerKrotki, numerTekst, numeryPlanu } from '@/lib/plany/numeracja'
@@ -194,9 +195,17 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, osoby =
     React.useEffect(() => {
         const s = svgRef.current
         if (!s) return
+        // CEM-27 (decyzja 18.11): samo kółko przybliża przy kursorze, jak całe drzewo (wcześniej Ctrl + kółko);
+        // Shift + kółko przesuwa widok w bok
         const kolko = (e: WheelEvent) => {
-            if (!e.ctrlKey && !e.metaKey) return
             e.preventDefault()
+            if (e.shiftKey) {
+                const r = s.getBoundingClientRect()
+                const d = (e.deltaX || e.deltaY) * (e.deltaMode === 1 ? 16 : 1)
+                przerwij.current()
+                ustawVb(([x, y, w, h]) => [x + d * (w / Math.max(1, r.width)), y, w, h])
+                return
+            }
             const [x, y] = punkt(e.clientX, e.clientY)
             zoom(e.deltaY > 0 ? 1.15 : 1 / 1.15, x, y)
         }
@@ -406,10 +415,11 @@ export default function PlanInteraktywny({ plan, ustawienia, zalogowany, osoby =
                 <div className="plan-kontrolki plan-bez-druku" role="group" aria-label="przybliżenie">
                     <button type="button" aria-label="przybliż" onClick={() => zoom(1 / 1.4, undefined, undefined, true)}>+</button>
                     <button type="button" aria-label="oddal" onClick={() => zoom(1.4, undefined, undefined, true)}>−</button>
-                    <button type="button" aria-label="cały plan" onClick={() => plynnie(() => startowy)}>⤢</button>
+                    {/* łatka po PK (odbiór 18.11): inny znak niż „pełny ekran ⤢” w pasku – strzałki do środka */}
+                    <button type="button" aria-label="cały plan" title="cały plan" onClick={() => plynnie(() => startowy)}><Shrink aria-hidden size={16} /></button>
                 </div>
                 {nad && <div className="plan-podpowiedz plan-bez-druku" style={/* styl-dynamiczny: położenie podpowiedzi przy kursorze */ { left: nad.x + 14, top: nad.y + 14 }}>{nad.tekst}</div>}
-                <div className="plan-wskazowka plan-bez-druku">{interfejs.grobowy ? 'najedź – nazwisko · kliknij – karta grobu' : 'najedź – nazwa · kliknij – opis obiektu'} · przeciągnij – przesuń · Ctrl + kółko – przybliż</div>
+                <div className="plan-wskazowka plan-bez-druku">{interfejs.grobowy ? 'najedź – nazwisko · kliknij – karta grobu' : 'najedź – nazwa · kliknij – opis obiektu'} · przeciągnij – przesuń · kółko – przybliż</div>
             </div>
             <div ref={panelRef} className="plan-aplet-panel">
                 <PanelPlanu tytul={tytulCzesci} zamknij={zamknijPanel} szukaj={szukaj} ustawSzukaj={(v) => { ustawSzukaj(v); if (el) wybierz(null) }} naSzukaj={() => { if (trafienia[0]) pokazElement(trafienia[0]) }}

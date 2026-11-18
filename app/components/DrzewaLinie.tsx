@@ -137,6 +137,10 @@ export function przygotuj(fig: HTMLElement, opcje: OpcjeObslugiDrzewa = {}): () 
         glowny,
     )
     fig.insertBefore(pasek, przew)
+    // łatka po PK (odbiór 18.11): na karcie osoby „pełny ekran ⤢” w nagłówku części „drzewo” (obok „całe drzewo →”),
+    // żeby pasek mieścił się w jednym rzędzie; na pełnym ekranie przycisk („zamknij ✕”) wraca do paska
+    const miejscePelnego = wTabeli ? fig.parentElement?.previousElementSibling?.querySelector<HTMLElement>(':scope.ot-nagl > .ot-nagl-prawa') ?? null : null
+    if (miejscePelnego) { glowny.classList.add('dr-glowny-w-naglowku'); miejscePelnego.prepend(glowny) }
 
     // podpis pod drzewem na karcie: klawiatura i lista dla czytnika ekranu (na telefonie lista jest zawsze widoczna)
     let podpis: HTMLElement | null = null
@@ -208,6 +212,7 @@ export function przygotuj(fig: HTMLElement, opcje: OpcjeObslugiDrzewa = {}): () 
         if (!fig.classList.contains('drzewo-pelne')) return
         fig.classList.remove('drzewo-pelne')
         glowny.textContent = 'pełny ekran ⤢'
+        if (miejscePelnego) miejscePelnego.prepend(glowny)
         document.body.style.overflow = ''
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
         przywrocPoczatek()
@@ -217,6 +222,7 @@ export function przygotuj(fig: HTMLElement, opcje: OpcjeObslugiDrzewa = {}): () 
         otwierajacy = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : glowny
         fig.classList.add('drzewo-pelne')
         glowny.textContent = 'zamknij ✕'
+        if (miejscePelnego) pasek.append(glowny)
         document.body.style.overflow = 'hidden'
         fig.requestFullscreen?.().catch(() => {})
         requestAnimationFrame(() => { wysrodkuj(przew); glowny.focus() })
@@ -366,6 +372,7 @@ export function przygotuj(fig: HTMLElement, opcje: OpcjeObslugiDrzewa = {}): () 
         przew.removeEventListener('focusin', naFokus)
         przew.removeEventListener('click', naKlik)
         pasek.remove()
+        glowny.remove()
         podpis?.remove()
         delete fig.dataset.drzewoGotowe
         document.body.style.overflow = ''

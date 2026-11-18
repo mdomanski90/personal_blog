@@ -271,6 +271,11 @@ html.kui-scheme--dark, .pn .kui-scheme--dark {
 }
 /* Keystatic pod paskiem: jego układ liczy wysokość od okna */
 .pn-ks > * { height: 100% !important; min-height: 0 !important; }
+/* łatka po PK (odbiór 18.11: „nie ma »Save«”): powłoka Keystatic ma 100vh o poziom niżej – wyższa od .pn-ks o pasek 48 px;
+   przewinięcie menu do zaznaczonej pozycji (np. „Wstępy działów”) przesuwało .pn-ks i chowało nagłówek z „Save” pod paskiem.
+   Powłoka dopasowana do .pn-ks, a .pn-ks nie daje się przewinąć programowo (overflow: clip). */
+.pn-ks > * > * { height: 100% !important; min-height: 0 !important; }
+.pn-ks { overflow: clip; }
 /* jeden przełącznik motywu – w pasku panelu (decyzja 18.11) */
 .pn-ks [data-pn-motyw-ks] { display: none !important; }
 /* ikony w menu Keystatic (maska CSS po adresie kolekcji – wygenerowane z lucide-react) */

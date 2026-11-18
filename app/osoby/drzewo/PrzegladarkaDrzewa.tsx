@@ -2,12 +2,13 @@
 
 // PK (decyzje właściciela 18.11): całe drzewo jako aplet przeglądarki – ta sama rama co plan cmentarza (.plan-aplet:
 // pasek nad drzewem, pasek nad panelem, drzewo | panel 380 px na wysokość apletu, pełny ekran ⤢, ≤900 px panel pod drzewem).
-// Drzewo: suwaki w obu osiach, przeciąganie (łapka), płynne przybliżanie (+ − ⤢ na drzewie, kółko myszy, klawisze + − 0).
+// Drzewo: suwaki w obu osiach, przeciąganie (łapka), płynne przybliżanie (− N% + i „całe drzewo w oknie” w pasku, kółko myszy, klawisze + − 0).
 // Kliknięcie osoby otwiera jej kartę w panelu (jak grób na planie) – środek drzewa zostaje. Panel: szukanie u góry, karta
 // wybranej osoby (podstawy: lata, urodzenie, zgon, rodzice, małżonek, dzieci, rodzeństwo); domyślnie otwarty, można schować.
 
 import * as React from 'react'
 import { Link, useTransitionRouter } from 'next-view-transitions'
+import { Shrink } from 'lucide-react'
 import { normalizuj, odmiana } from '@/lib/tekst'
 import { animuj, przewinO } from '@/lib/ruch'
 import { KROK_PRZYCISKU, SKALA_START, dopasowana, ogranicz, przewiniecie, skalaZKolka } from '@/lib/osoby/drzewo-zoom'
@@ -26,10 +27,16 @@ function czesciDrzewa(kontener: HTMLElement | null) {
     const fig = kontener?.querySelector<HTMLElement>('figure.drzewo') ?? null
     return { fig, przew: fig?.querySelector<HTMLElement>(':scope > .dr-przewijanie') ?? null, plansza: fig?.querySelector<HTMLElement>('.dr-plansza') ?? null }
 }
-/** karta na środku okna drzewa (przewinięcie tylko okna drzewa, nie strony) */
+/** widoczna część okna drzewa – bez przyklejonej kolumny nazw pokoleń po lewej */
+function widoczne(przew: HTMLElement) {
+    const a = przew.getBoundingClientRect()
+    const lewa = Math.max(a.left, przew.querySelector('.dr-pokol')?.getBoundingClientRect().right ?? a.left)
+    return { left: lewa, right: a.left + przew.clientWidth, top: a.top, bottom: a.top + przew.clientHeight }
+}
+/** karta na środku widocznej części okna drzewa (przewinięcie tylko okna drzewa, nie strony) */
 function naSrodek(przew: HTMLElement, k: HTMLElement, gladko: boolean) {
-    const a = przew.getBoundingClientRect(), b = k.getBoundingClientRect()
-    const o = { left: b.left + b.width / 2 - (a.left + a.width / 2), top: b.top + b.height / 2 - (a.top + a.height / 2) }
+    const a = widoczne(przew), b = k.getBoundingClientRect()
+    const o = { left: b.left + b.width / 2 - (a.left + a.right) / 2, top: b.top + b.height / 2 - (a.top + a.bottom) / 2 }
     if (gladko) przewinO(przew, o)
     else przew.scrollBy(o)
 }
@@ -48,6 +55,7 @@ export default function PrzegladarkaDrzewa({ html, osoby, od, rody, wstecz, napr
     const ramka = React.useRef<HTMLDivElement>(null)
     const drzewoRef = React.useRef<HTMLDivElement>(null)
     const skala = React.useRef(SKALA_START)
+    const [procent, ustawProcent] = React.useState(Math.round(SKALA_START * 100))
     const przerwij = React.useRef<() => void>(() => {})
     const [naDrzewie, ustawNaDrzewie] = React.useState<Set<string>>(new Set())
     const [pokolenia, ustawPokolenia] = React.useState({ w: wstecz, n: naprzod, ileR: 0, wiecejW: false, wiecejN: false })
@@ -66,6 +74,7 @@ export default function PrzegladarkaDrzewa({ html, osoby, od, rody, wstecz, napr
         const x = cx ?? przew.clientWidth / 2, y = cy ?? przew.clientHeight / 2
         const l = przewiniecie(przew.scrollLeft, x, s0, s1), t = przewiniecie(przew.scrollTop, y, s0, s1)
         skala.current = s1
+        ustawProcent(Math.round(s1 * 100))
         fig.style.setProperty('--dr-skala', String(s1))
         przew.scrollLeft = l
         przew.scrollTop = t
@@ -88,6 +97,7 @@ export default function PrzegladarkaDrzewa({ html, osoby, od, rody, wstecz, napr
         if (!fig || !przew) return undefined
         const sprzataj = przygotuj(fig)
         skala.current = SKALA_START
+        ustawProcent(Math.round(SKALA_START * 100))
         fig.style.setProperty('--dr-skala', String(SKALA_START))
         const glowna = przew.querySelector<HTMLElement>('.dr-glowna')
         if (glowna) requestAnimationFrame(() => naSrodek(przew, glowna, false))
@@ -122,7 +132,7 @@ export default function PrzegladarkaDrzewa({ html, osoby, od, rody, wstecz, napr
         const k = przew.querySelector<HTMLElement>(`.dr-karta[data-id="${CSS.escape(wybrana)}"]`)
         if (!k) return
         k.classList.add('dr-wybrana')
-        const a = przew.getBoundingClientRect(), b = k.getBoundingClientRect()
+        const a = widoczne(przew), b = k.getBoundingClientRect()
         if (b.left < a.left + 20 || b.right > a.right - 20 || b.top < a.top + 20 || b.bottom > a.bottom - 20) naSrodek(przew, k, true)
     }, [wybrana, panel])
 
@@ -236,11 +246,19 @@ export default function PrzegladarkaDrzewa({ html, osoby, od, rody, wstecz, napr
                         </span>
                     </span>
                     <span className="dok-pasek-prawa">
+                        {/* łatka po PK (odbiór 18.11): przybliżenie w pasku zamiast pływających przycisków na drzewie;
+                            „całe drzewo w oknie” innym znakiem niż „pełny ekran ⤢” (strzałki do środka) */}
+                        {zakl === 'drzewo' && <span className="dok-grupa drzewo-krok" role="group" aria-label="przybliżenie">
+                            <button type="button" aria-label="oddal" title="oddal (−)" onClick={() => plynnie(skala.current / KROK_PRZYCISKU)}>−</button>
+                            <span className="drzewo-krok-txt" aria-live="polite" aria-label={`przybliżenie ${procent}%`}>{procent}%</span>
+                            <button type="button" aria-label="przybliż" title="przybliż (+)" onClick={() => plynnie(skala.current * KROK_PRZYCISKU)}>+</button>
+                            <button type="button" aria-label="całe drzewo w oknie" title="całe drzewo w oknie (0)" onClick={caleWOknie}><Shrink aria-hidden size={16} /></button>
+                        </span>}
                         <span className="dok-grupa">
                             {!panel && <button type="button" onClick={() => przelaczPanel(true)}>panel ◂</button>}
                             {pelny
                                 ? <button type="button" onClick={zamknijPelny} aria-label="zamknij pełny ekran" title="zamknij (Esc)"><span className="dok-etyk">zamknij </span>✕</button>
-                                : <button type="button" onClick={() => { ustawPelny(true); ramka.current?.requestFullscreen?.().catch(() => {}) }} aria-label="pełny ekran" title="pełny ekran">⤢</button>}
+                                : <button type="button" onClick={() => { ustawPelny(true); ramka.current?.requestFullscreen?.().catch(() => {}) }} aria-label="pełny ekran" title="pełny ekran"><span className="dok-etyk">pełny ekran </span>⤢</button>}
                         </span>
                     </span>
                 </div>
@@ -251,11 +269,6 @@ export default function PrzegladarkaDrzewa({ html, osoby, od, rody, wstecz, napr
             </div>
             <div {...atrybutyPanelu(prefix, zakl)} className="plan-aplet-mapa drzewo-aplet-obszar" onKeyDown={klawisz}>
                 <div ref={drzewoRef} className="ot-drzewo drzewo-aplet-drzewo" data-drzewo-wlasne="" dangerouslySetInnerHTML={{ __html: html }} />
-                <div className="plan-kontrolki" role="group" aria-label="przybliżenie">
-                    <button type="button" aria-label="przybliż" onClick={() => plynnie(skala.current * KROK_PRZYCISKU)}>+</button>
-                    <button type="button" aria-label="oddal" onClick={() => plynnie(skala.current / KROK_PRZYCISKU)}>−</button>
-                    <button type="button" aria-label="całe drzewo w oknie" title="całe drzewo w oknie (0)" onClick={caleWOknie}>⤢</button>
-                </div>
                 <div className="plan-wskazowka">kliknij – karta w panelu · przeciągnij – przesuń · kółko – przybliż · Shift + kółko – w bok</div>
             </div>
             <div className="plan-aplet-panel">
