@@ -53,7 +53,7 @@ async function czytaj(p: string): Promise<Buffer | null> {
 }
 
 // ---------- wersje ----------
-const katWersji = (korzen: string, relC: string) => path.join(katalogKopii(korzen, '_historia'), ...relC.split('/'))
+const katWersji = (korzen: string, relC: string) => path.join(/*turbopackIgnore: true*/ katalogKopii(korzen, '_historia'), ...relC.split('/'))
 
 /** Zapisuje poprzednią treść pliku jako wersję i przycina do WERSJI_NA_PLIK. */
 export async function zapiszWersje(korzen: string, relC: string, tresc: Buffer | string): Promise<string> {
@@ -86,7 +86,7 @@ export async function trescWersji(relC: string, id: string, korzen = process.cwd
 }
 export async function trescBiezaca(relC: string, korzen = process.cwd()): Promise<string | null> {
     if (!relTresci(`content/${relC}`)) return null
-    const b = await czytaj(path.join(korzen, 'content', ...relC.split('/')))
+    const b = await czytaj(path.join(/*turbopackIgnore: true*/ korzen, 'content', ...relC.split('/')))
     return b ? b.toString('utf8') : null
 }
 
@@ -192,7 +192,7 @@ export function odczytajZadanie(j: unknown): ZadanieKeystatic | null {
  * Przed zapisem Keystatic: wersje zmienianych plików tekstowych i kopia usuwanych w koszu.
  * Zwraca komunikat, gdy zapis trzeba odrzucić (usunięcie bez kopii w koszu), inaczej null.
  */
-export async function przedZapisemKeystatic(z: ZadanieKeystatic, opcje: { korzen?: string; opis?: (rel: string) => string } = {}): Promise<{ odrzuc: string | null; wersje: number; kosz: string | null; ostrzezenia: string[] }> {
+export async function przedZapisemKeystatic(z: ZadanieKeystatic, opcje: { korzen?: string; opis?: (rel: string) => string | Promise<string> } = {}): Promise<{ odrzuc: string | null; wersje: number; kosz: string | null; ostrzezenia: string[] }> {
     const korzen = opcje.korzen ?? process.cwd()
     const ostrzezenia: string[] = []
     let wersje = 0
@@ -201,7 +201,7 @@ export async function przedZapisemKeystatic(z: ZadanieKeystatic, opcje: { korzen
         const relC = relTresci(a.path)
         if (!relC || usuwane.has(a.path)) continue
         try {
-            const teraz = await czytaj(path.join(korzen, ...a.path.split('/')))
+            const teraz = await czytaj(path.join(/*turbopackIgnore: true*/ korzen, ...a.path.split('/')))
             if (teraz === null || teraz.length > MAKS_TEKSTU) continue
             if (teraz.equals(Buffer.from(a.contents, 'base64url'))) continue
             await zapiszWersje(korzen, relC, teraz); wersje++
@@ -213,7 +213,7 @@ export async function przedZapisemKeystatic(z: ZadanieKeystatic, opcje: { korzen
     if (doKoszaSciezki.length) {
         try {
             const glowny = doKoszaSciezki.find((p) => TEKST.test(p)) ?? doKoszaSciezki[0]
-            kosz = await doKosza(korzen, doKoszaSciezki, opcje.opis ? opcje.opis(glowny) : glowny)
+            kosz = await doKosza(korzen, doKoszaSciezki, opcje.opis ? await opcje.opis(glowny) : glowny)
         } catch (e) {
             return { odrzuc: e instanceof BrakKataloguKopii ? `Usunięcie wstrzymane: ${e.message}` : `Usunięcie wstrzymane – nie udało się zapisać kopii w koszu (${(e as Error).message}).`, wersje, kosz: null, ostrzezenia }
         }

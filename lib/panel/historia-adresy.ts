@@ -1,5 +1,6 @@
 // P6a: adres edycji w Keystatic ↔ plik treści (dla historii wersji i opisów w koszu).
 // Rozszerzenie wg konfiguracji: format.contentField → .mdoc, format.data 'json' → .json, inaczej .yaml (zachowanie Keystatic).
+import path from 'node:path'
 import config from '../../keystatic.config'
 
 type Konf = { label?: string; path?: string; format?: { contentField?: string; data?: string } }
@@ -69,4 +70,22 @@ export function kontrolaCzytnikiem(korzen: string, pliki: string[]): () => Promi
             } catch (e) { throw new Error(`Po przywróceniu „${p}” byłby nieczytelny dla strony (${String(e instanceof Error ? e.message : e).slice(0, 160)}) – nic nie zmieniono.`) }
         }
     }
+}
+
+const POJEDYNCZE: Record<string, string> = { posts: 'wpis', miejsca: 'miejsce', tematy: 'temat', obiekty: 'obiekt', materialy: 'materiał', zbiory: 'zbiór', publikacje: 'publikacja', parafie: 'instytucja', hasla: 'hasło', biogramy: 'biogram', zespoly: 'zespół', ksiegi: 'księga' }
+
+/** Jak opisPliku, ale z tytułem z treści pliku (pole title: tekst albo { name }) – „miejsce „Testowo”” zamiast identyfikatora. */
+export async function opisPlikuZTytulem(korzen: string, relC: string): Promise<{ nazwa: string; edycja: string | null }> {
+    const o = opisPliku(relC), w = wpisDlaPliku(relC)
+    if (!w || 'singleton' in w) return o
+    try {
+        const { readFile } = await import('node:fs/promises')
+        const { load } = await import('js-yaml')
+        const t = await readFile(path.join(/*turbopackIgnore: true*/ korzen, "content", ...relC.split("/")), "utf8")
+        const naglowek = relC.endsWith('.json') ? null : relC.endsWith('.mdoc') || relC.endsWith('.md') ? (/^---\r?\n([\s\S]*?)\r?\n---/.exec(t)?.[1] ?? '') : t
+        const d = (naglowek === null ? JSON.parse(t) : load(naglowek)) as Record<string, unknown> | null
+        const tytul = typeof d?.title === 'string' ? d.title : d?.title && typeof d.title === 'object' && typeof (d.title as { name?: unknown }).name === 'string' ? (d.title as { name: string }).name : ''
+        if (tytul.trim()) return { ...o, nazwa: `${POJEDYNCZE[w.kolekcja] ?? w.kolekcja} „${tytul.trim().slice(0, 120)}”` }
+    } catch { /* plik nieczytelny – nazwa z identyfikatora */ }
+    return o
 }

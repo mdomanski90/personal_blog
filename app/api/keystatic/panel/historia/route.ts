@@ -1,6 +1,6 @@
 import { brakDostepu } from '@/lib/plany/dane'
 import { listaWersji, przywrocWersje, relTresci, roznica, trescBiezaca, trescWersji } from '@/lib/panel/historia'
-import { kontrolaCzytnikiem, opisPliku, plikDlaAdresu } from '@/lib/panel/historia-adresy'
+import { kontrolaCzytnikiem, opisPlikuZTytulem, plikDlaAdresu } from '@/lib/panel/historia-adresy'
 import { poZapisieTresci } from '@/lib/katalog/dane'
 
 // P6a (PNL-10): historia wersji pliku treści.
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
         if (stara === null) return Response.json({ blad: 'Nie ma takiej wersji.' }, { status: 404, headers: BEZ_CACHE })
         return Response.json({ roznica: roznica(teraz ?? '', stara), bezZmian: stara === teraz, usuniety: teraz === null }, { headers: BEZ_CACHE })
     }
-    const o = opisPliku(plik)
+    const o = await opisPlikuZTytulem(process.cwd(), plik)
     return Response.json({ plik, nazwa: o.nazwa, edycja: o.edycja, istnieje: (await trescBiezaca(plik)) !== null, wersje: await listaWersji(plik) }, { headers: BEZ_CACHE })
 }
 

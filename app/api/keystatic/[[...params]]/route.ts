@@ -3,7 +3,7 @@ import config from '../../../../keystatic.config';
 import { poZapisieTresci } from '@/lib/katalog/dane';
 import { blokadaZapisu } from '@/lib/panel/operacje';
 import { odczytajZadanie, przedZapisemKeystatic } from '@/lib/panel/historia';
-import { opisPliku } from '@/lib/panel/historia-adresy';
+import { opisPlikuZTytulem } from '@/lib/panel/historia-adresy';
 import { zapiszOstatnie } from '@/lib/panel/praca';
 
 const obsluga = makeRouteHandler({ config });
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     if (blokada) return tekst(blokada, 423);
     const zadanie = odczytajZadanie(await req.clone().json().catch(() => null));
     if (zadanie) {
-        const p = await przedZapisemKeystatic(zadanie, { opis: (rel) => opisPliku(rel.replace(/^content\//, '')).nazwa });
+        const p = await przedZapisemKeystatic(zadanie, { opis: async (rel) => (await opisPlikuZTytulem(process.cwd(), rel.replace(/^content\//, ''))).nazwa });
         if (p.odrzuc) return tekst(p.odrzuc, 503);
         for (const o of p.ostrzezenia) console.error(`[historia] ${o}`);
     }

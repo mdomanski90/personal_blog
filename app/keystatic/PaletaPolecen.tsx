@@ -4,7 +4,7 @@
 // (także po numerze katalogowym), plany, zgłoszenia, polecenia (pozycje menu i „+ nowa …”). Enter – edycja w panelu,
 // Shift+Enter – strona publiczna w nowej karcie. Natywny <dialog>: fokus w oknie, Esc zamyka, fokus wraca (zasada 5.3).
 import * as React from 'react'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import type { GrupaWgUstawien } from '@/lib/panel/menu'
 import { NOWE, poleceniaZMenu, szukajWPalecie, type PozycjaPalety as Poz } from '@/lib/panel/paleta'
 
@@ -60,6 +60,8 @@ export default function PaletaPolecen({ menu, otwarta, onZamknij }: { menu: Grup
         if (e.key === 'ArrowDown') { e.preventDefault(); ustawAkt((a) => Math.min(a + 1, wyniki.length - 1)) }
         else if (e.key === 'ArrowUp') { e.preventDefault(); ustawAkt((a) => Math.max(a - 1, 0)) }
         else if (e.key === 'Enter') { e.preventDefault(); otworz(wyniki[akt], e.shiftKey) }
+        // pole typu „search” zjada pierwszy Esc (czyści tekst) – paleta zamyka się od razu, jak każde okno panelu
+        else if (e.key === 'Escape') { e.preventDefault(); ref.current?.close() }
     }
     React.useEffect(() => { document.getElementById(`pn-pal-${akt}`)?.scrollIntoView({ block: 'nearest' }) }, [akt])
 
@@ -71,7 +73,7 @@ export default function PaletaPolecen({ menu, otwarta, onZamknij }: { menu: Grup
                 <input ref={pole} type="search" role="combobox" aria-expanded="true" aria-controls="pn-paleta-wyniki" aria-autocomplete="list"
                     aria-activedescendant={wyniki[akt] ? `pn-pal-${akt}` : undefined} aria-label="szukaj: osoba, materiał, plan, numer katalogowy, polecenie"
                     placeholder="szukaj: osoba, materiał, MA-0042, polecenie…" autoComplete="off" value={q} onChange={(e) => ustawQ(e.target.value)} onKeyDown={klawisz} />
-                <kbd aria-hidden="true">Esc</kbd>
+                <button type="button" className="pn-ikona-btn" aria-label="zamknij" title="zamknij (Esc)" onClick={() => ref.current?.close()}><X aria-hidden /></button>
             </div>
             <div id="pn-paleta-wyniki" role="listbox" aria-label="wyniki" className="pn-paleta-wyniki">
                 {q.trim() && indeks === null && <p className="pn-szary pn-paleta-pusto" role="status">wczytuję…</p>}

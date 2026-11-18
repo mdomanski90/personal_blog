@@ -119,7 +119,7 @@ function Przypnij({ sciezka }: { sciezka: string }) {
         fetch('/api/keystatic/panel/praca', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
             .then((p: { przypiete?: { href: string }[] } | null) => ustawPrzypiete(new Set((p?.przypiete ?? []).map((x) => x.href)))).catch(() => {})
     }, [sciezka])
-    if (!przypiete || sciezka === '/keystatic/panel' || sciezka === '/keystatic') return null
+    if (!przypiete || !/^\/keystatic\/(collection\/[\w-]+\/item\/[^/]+|singleton\/[\w-]+|osoby\/[\w-]+|plany\/(?!typy$)[\w-]+)$/.test(sciezka)) return null // tylko pozycje: wpis, ustawienie, osoba, plan
     const jest = przypiete.has(sciezka)
     const przelacz = async () => {
         const r = await fetch('/api/keystatic/panel/praca', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ akcja: jest ? 'usun' : 'dodaj', lista: 'przypiete', href: sciezka }) }).catch(() => null)

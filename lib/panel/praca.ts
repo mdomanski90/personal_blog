@@ -4,7 +4,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { opisPliku } from './historia-adresy'
+import { opisPlikuZTytulem } from './historia-adresy'
 
 export interface PozycjaPracy { href: string; nazwa: string; czas?: string; miejsce?: string }
 export interface Praca { wersja: 1; ostatnie: PozycjaPracy[]; przypiete: PozycjaPracy[]; widoki: PozycjaPracy[] }
@@ -64,7 +64,7 @@ export async function zapiszOstatnie(sciezki: string[], korzen = process.cwd()):
     const poz: PozycjaPracy[] = []
     for (const s of sciezki) {
         if (!s.startsWith('content/')) continue
-        const o = opisPliku(s.slice('content/'.length))
+        const o = await opisPlikuZTytulem(korzen, s.slice('content/'.length))
         if (o.edycja && !poz.some((x) => x.href === o.edycja)) poz.push({ href: o.edycja, nazwa: o.nazwa })
     }
     await zapiszOstatniePozycje(poz, korzen)

@@ -35,3 +35,13 @@ test('praca.json: zapis Keystatic → adres edycji; przypnij, widok, odepnij; ty
         assert.equal(adresPanelu('/osoby/x'), false)
     } finally { await fs.rm(k, { recursive: true, force: true }) }
 })
+
+test('praca: nazwa z tytułu wpisu (pole title albo { name }), bez pliku – z identyfikatora', async () => {
+    const k = await fs.mkdtemp(path.join(os.tmpdir(), 'praca-'))
+    try {
+        await fs.mkdir(path.join(k, 'content', 'miejsca'), { recursive: true })
+        await fs.writeFile(path.join(k, 'content', 'miejsca', 'testowo.mdoc'), '---\ntitle:\n  name: Testowo\n  slug: testowo\n---\nOpis.\n')
+        await zapiszOstatnie(['content/miejsca/testowo.mdoc', 'content/miejsca/nie-ma.mdoc'], k)
+        assert.deepEqual((await wczytajPrace(k)).ostatnie.map((x) => x.nazwa), ['miejsce „Testowo”', 'miejsca „nie-ma”'])
+    } finally { await fs.rm(k, { recursive: true, force: true }) }
+})

@@ -1,10 +1,10 @@
 // P6a (PNL-08): nazwa pozycji panelu po ludzku dla „przypnij” – wpis Keystatic, osoba, plan; inaczej ścieżka.
-import { opisPliku, plikDlaAdresu } from './historia-adresy'
+import { opisPlikuZTytulem, plikDlaAdresu } from './historia-adresy'
 
 export async function nazwaDlaAdresu(href: string): Promise<string> {
     const sc = href.split('?')[0]
     const plik = plikDlaAdresu(sc)
-    if (plik) return opisPliku(plik).nazwa
+    if (plik) return (await opisPlikuZTytulem(process.cwd(), plik)).nazwa
     let m = /^\/keystatic\/osoby\/([\w-]+)$/.exec(sc)
     if (m) {
         const { stanOsob } = await import('../osoby/dane')
