@@ -277,10 +277,7 @@ export async function listaZgloszen(): Promise<Zgloszenie[]> {
     return wyn.sort((a, b) => b.data.localeCompare(a.data))
 }
 
-export async function usunZgloszenie(id: string) {
-    if (!/^\d+-[0-9a-f]+$/.test(id)) return
-    await fs.promises.unlink(path.join(KATALOG(), '_zgloszenia', `${id}.json`)).catch(() => {})
-}
+// P6a: usuwanie zgłoszeń do planu – do kosza treści przez usunZgloszeniePanelu (lib/panel/dane.ts), nie unlink (zasada 2.5).
 
 // ---------- ochrona edycji ----------
 /**

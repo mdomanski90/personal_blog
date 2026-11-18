@@ -1,4 +1,5 @@
-import { brakDostepu, listaZgloszen, usunZgloszenie } from '@/lib/plany/dane'
+import { brakDostepu, listaZgloszen } from '@/lib/plany/dane'
+import { usunZgloszeniePanelu } from '@/lib/panel/dane'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +10,7 @@ export async function GET(req: Request) {
 
 export async function DELETE(req: Request) {
     const b = brakDostepu(req); if (b) return b
-    await usunZgloszenie(new URL(req.url).searchParams.get('id') ?? '')
-    return Response.json({ ok: true })
+    // P6a: do kosza treści, jak w panelu zgłoszeń (zasada 2.5)
+    const blad = await usunZgloszeniePanelu('plan', new URL(req.url).searchParams.get('id') ?? '')
+    return blad ? Response.json({ blad }, { status: 400 }) : Response.json({ ok: true })
 }

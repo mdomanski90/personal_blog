@@ -36,6 +36,7 @@ export function useDane<T>(url: string): { dane: T | null; blad: string; odswiez
     const [blad, ustawBlad] = React.useState('')
     const [n, ustawN] = React.useState(0)
     React.useEffect(() => {
+        if (!url) return // adres jeszcze nieznany (np. czekamy na parametry z paska adresu)
         let zywy = true
         fetch(url, { cache: 'no-store' })
             .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))

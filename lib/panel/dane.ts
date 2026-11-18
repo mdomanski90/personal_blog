@@ -2,6 +2,9 @@
 // Tylko odczyt plików strony i drobne zapisy w content/ (stan zgłoszeń, przywracanie z kosza).
 import { wczytajZnacznik } from './kopia'
 import { brakujaceKatalogi } from './katalogi'
+import { doKosza, listaKoszaTresci, przywrocZKoszaTresci, usunZKoszaTresci } from './historia'
+import { kontrolaCzytnikiem } from './historia-adresy'
+import { poZapisieTresci } from '../katalog/dane'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -111,9 +114,13 @@ export async function zmienZgloszenie(zrodlo: string, id: string, zm: { stan?: s
     return true
 }
 
-export async function usunZgloszeniePanelu(zrodlo: string, id: string): Promise<void> {
+/** P6a (zasada 2.5): usunięte zgłoszenie trafia do kosza treści (content/_kosz), nie znika od razu. Błąd → komunikat, plik zostaje. */
+export async function usunZgloszeniePanelu(zrodlo: string, id: string): Promise<string | null> {
     const plik = plikZgloszenia(zrodlo, id)
-    if (plik) await fs.promises.unlink(plik).catch(() => {})
+    if (!plik) return 'złe zgłoszenie'
+    try { await doKosza(process.cwd(), [path.relative(process.cwd(), plik).split(path.sep).join('/')], `zgłoszenie ${zrodlo === 'plan' ? 'do planu' : 'ze strony'} z ${id.split('-')[0] ? new Date(+id.split('-')[0]).toLocaleDateString('pl-PL') : id}`, true) }
+    catch (e) { return e instanceof Error ? e.message : String(e) }
+    return null
 }
 
 // ---------- plany: postęp ----------
@@ -295,7 +302,7 @@ export async function indeksPanelu(): Promise<PozycjaIndeksu[]> {
 }
 
 // ---------- kosz ----------
-export interface PozycjaKosza { rodzaj: 'plan' | 'osoba' | 'rodzina' | 'import' | 'plik'; plik: string; nazwa: string; czas: string }
+export interface PozycjaKosza { rodzaj: 'plan' | 'osoba' | 'rodzina' | 'import' | 'plik' | 'tresc'; plik: string; nazwa: string; czas: string; wygasa?: string | null }
 
 const KOSZE = { plan: () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'plany', '_kosz'), osoby: () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'osoby', '_kosz') }
 const PLIK_KOSZA = /^[\w.-]+-\d{12,}\.json$/
@@ -321,12 +328,22 @@ export async function kosz(): Promise<PozycjaKosza[]> {
     // podkłady i zdjęcia planów (30 dni, potem znikają same)
     await wyczyscKoszPlikow()
     for (const k of await listaKoszaPlikow()) wyn.push({ rodzaj: 'plik', plik: k.nazwa, nazwa: `${k.slug}: ${k.plik}`, czas: k.czas })
+    // P6a (PNL-10): treści usunięte w Keystatic i usunięte zgłoszenia (content/_kosz)
+    for (const k of await listaKoszaTresci()) wyn.push({ rodzaj: 'tresc', plik: k.id, nazwa: k.opis + (k.pliki.length > 1 ? ` (${k.pliki.length} pliki)` : ''), czas: k.czas, wygasa: k.wygasa })
     return wyn.sort((a, b) => b.czas.localeCompare(a.czas))
 }
 
 /** Przywraca plik z kosza na dawne miejsce (tylko gdy tam nic nie ma). */
 export async function przywrocZKosza(rodzaj: string, plik: string): Promise<string | null> {
     if (rodzaj === 'plik') return przywrocPlikZKosza(plik)
+    if (rodzaj === 'tresc') {
+        try {
+            const m = (await listaKoszaTresci()).find((k) => k.id === plik)
+            const b = await przywrocZKoszaTresci(plik, { sprawdz: kontrolaCzytnikiem(process.cwd(), (m?.pliki ?? []).filter((p) => p.sciezka.startsWith('content/')).map((p) => p.sciezka.slice(8))) })
+            if (!b) await poZapisieTresci()
+            return b
+        } catch (e) { return e instanceof Error ? e.message : String(e) }
+    }
     if (!PLIK_KOSZA.test(plik)) return 'zła nazwa pliku'
     const id = plik.replace(/-\d+\.json$/, '')
     let zr: string, cel: string
@@ -343,6 +360,7 @@ export async function przywrocZKosza(rodzaj: string, plik: string): Promise<stri
 
 export async function usunZKosza(rodzaj: string, plik: string): Promise<string | null> {
     if (rodzaj === 'plik') return usunPlikZKosza(plik)
+    if (rodzaj === 'tresc') return usunZKoszaTresci(plik)
     if (!PLIK_KOSZA.test(plik)) return 'zła nazwa pliku'
     const kat = rodzaj === 'plan' ? KOSZE.plan() : rodzaj === 'osoba' || rodzaj === 'rodzina' ? KOSZE.osoby() : null
     if (!kat) return 'tego nie da się usunąć z panelu'

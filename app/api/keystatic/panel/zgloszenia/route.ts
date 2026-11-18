@@ -19,6 +19,6 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
     const b = brakDostepu(req); if (b) return b
     const q = new URL(req.url).searchParams
-    await usunZgloszeniePanelu(q.get('zrodlo') ?? '', q.get('id') ?? '')
-    return Response.json({ ok: true })
+    const blad = await usunZgloszeniePanelu(q.get('zrodlo') ?? '', q.get('id') ?? '')
+    return blad ? Response.json({ blad }, { status: 400 }) : Response.json({ ok: true })
 }

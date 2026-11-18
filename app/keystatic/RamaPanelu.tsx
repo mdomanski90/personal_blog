@@ -193,6 +193,8 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, children }: { ust
     const czeka = zgl.filter((z) => z.stan === 'nowe' || z.stan === 'odlozone').length
     const zglPozycji = zgl.filter((z) => z.doPoprawy && z.doPoprawy.split('?')[0] === sciezka && (z.stan === 'nowe' || z.stan === 'odlozone')).length
     const naStronie = rodzaj === 'keystatic' ? stronaZAdresuKeystatic(sciezka) : null
+    // P6a (PNL-10): historia wersji – przy edycji wpisu kolekcji albo ustawienia Keystatic
+    const maHistorie = rodzaj === 'keystatic' && /^\/keystatic\/(collection\/[\w-]+\/item\/[^/]+|singleton\/[\w-]+)$/.test(sciezka)
 
     // zwijanie menu (komputer) – fokus na przycisk, który się pojawił
     const zwin = (b: boolean) => { fokusPoZmianie.current = b ? 'rozwin' : 'zwin'; ustawSchowany(b); zapisz(KLUCZ_SCHOWANY, b ? '1' : '0') }
@@ -281,6 +283,7 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, children }: { ust
                 <div className="pn-gora-prawa">
                     {zglPozycji > 0 && <a href="/keystatic/panel/zgloszenia" className="pn-btn pn-btn-maly pn-tylko-szeroki">zgłoszenia: {zglPozycji}</a>}
                     {naStronie && <a href={naStronie} target="_blank" rel="noreferrer" className="pn-btn pn-btn-maly pn-tylko-szeroki">na stronie ↗</a>}
+                    {maHistorie && <a href={`/keystatic/panel/historia?adres=${encodeURIComponent(sciezka)}`} className="pn-btn pn-btn-maly pn-tylko-szeroki">historia</a>}
                     <button type="button" className="pn-ikona-btn" aria-label="przełącz motyw (jasny / ciemny)" title="przełącz motyw (jasny / ciemny)" onClick={() => setTheme(ciemny ? 'light' : 'dark')}>
                         {!zamontowany ? <Moon aria-hidden className="pn-niewidoczne" /> : ciemny ? <Sun aria-hidden /> : <Moon aria-hidden />}
                     </button>

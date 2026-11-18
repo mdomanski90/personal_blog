@@ -5,6 +5,8 @@ import { ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
 import { parafie } from '@/lib/archiwum'
 import { maBiogram } from '@/lib/osoby/biogramy'
 import { zNadaniemNumerow } from '@/lib/katalog/dane'
+import { zapiszOstatniePozycje } from '@/lib/panel/praca'
+import { nazwaOsoby } from '@/lib/osoby/model'
 
 // Jedna osoba w panelu: dane, rodzina, ostrzeżenia; zapis z kontrolą wersji; usunięcie do kosza.
 export const dynamic = 'force-dynamic'
@@ -47,6 +49,7 @@ async function zapiszPUT(req: Request, { params }: { params: Promise<{ id: strin
     if (!d?.osoba) return Response.json({ blad: 'brak danych' }, { status: 400 })
     try {
         const o = await zapiszOsobe(poprawOsobe({ ...d.osoba, id }), d.osoba.wersja)
+        await zapiszOstatniePozycje([{ href: `/keystatic/osoby/${id}`, nazwa: `osoba „${nazwaOsoby(o) || id}”` }]).catch(() => {}) // P6a: „wróć do pracy”
         return Response.json({ osoba: o })
     } catch (e) {
         if (e instanceof Konflikt) return Response.json({ blad: e.message }, { status: 409 })

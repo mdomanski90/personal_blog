@@ -392,3 +392,18 @@ html.kui-scheme--dark, .pn .kui-scheme--dark {
 /* do opracowania: kolejka + szczegóły; na wąskim ekranie jedna kolumna (wcześniej 520 px minimum – przewijanie w poziomie przy 390 px) */
 .pn-siatka-kolejka { grid-template-columns: minmax(220px, .9fr) minmax(300px, 1.2fr); }
 @media (max-width: 820px) { .pn-siatka-kolejka { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- P6a: historia, kosz treści, komendy ---------- */
+.pn-kod { display: block; font: 12.5px/1.5 var(--pn-mono); background: var(--pn-pole); border: 1px solid var(--pn-linia); border-radius: 6px; padding: 6px 10px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; user-select: all; }
+.pn-wiersz-btn[aria-current=true] { background: color-mix(in srgb, var(--pn-wyp) 12%, var(--pn-pole)); }
+/* różnica wersji – stonowane kolory (decyzja 18.11, 09:29); znak −/+ i przekreślenie niosą znaczenie także bez koloru */
+.pn-diff { font: 12.5px/1.6 var(--pn-mono); border: 1px solid var(--pn-linia); border-radius: 8px; background: var(--pn-pole); overflow: auto; max-height: min(62vh, 640px); }
+.pn-diff > div { display: grid; grid-template-columns: 18px minmax(0, 1fr); padding: 0 10px 0 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pn-diff ins, .pn-diff del { text-decoration-thickness: 1px; }
+.pn-diff ins { text-decoration: none; }
+.pn-diff-znak { color: var(--pn-szary); text-align: center; user-select: none; }
+.pn-diff-us { background: var(--pn-us-tlo); color: var(--pn-us); }
+.pn-diff-us .pn-diff-znak { color: var(--pn-us); }
+.pn-diff-do { background: var(--pn-do-tlo); color: var(--pn-do); }
+.pn-diff-do .pn-diff-znak { color: var(--pn-do); }
+.pn-diff > .pn-diff-zw { display: block; color: var(--pn-szary); font-family: var(--pn-font); font-size: 12px; padding: 2px 10px; background: var(--pn-karta); }

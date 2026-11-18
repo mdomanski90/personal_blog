@@ -9,11 +9,11 @@ type System = {
         dysk: { wolne: number; calosc: number } | null; pamiec: { wolna: number; calosc: number }
         archiwum: { bajty: number; pliki: number; ucieto: boolean }; restart: boolean; kopia: string | null; kopiaSerwer: string | null; logowanieBliskich: boolean
     }
-    kosz: { rodzaj: 'plan' | 'osoba' | 'rodzina' | 'import' | 'plik'; plik: string; nazwa: string; czas: string }[]
+    kosz: { rodzaj: 'plan' | 'osoba' | 'rodzina' | 'import' | 'plik' | 'tresc'; plik: string; nazwa: string; czas: string; wygasa?: string | null }[]
     omeka: { nazwa: string; bajty: number; czas: string }[]
     plany: { slug: string; tytul: string }[]
 }
-const RODZ = { plan: 'plan', osoba: 'osoba', rodzina: 'rodzina', import: 'kopia sprzed importu (sprzed P5 – przywracanie ręczne)', plik: 'plik planu' }
+const RODZ = { plan: 'plan', osoba: 'osoba', rodzina: 'rodzina', import: 'kopia sprzed importu (sprzed P5 – przywracanie ręczne)', plik: 'plik planu', tresc: 'treść' }
 
 function czasDzialania(s: number) {
     const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60)
@@ -168,7 +168,7 @@ export default function System() {
 
                 <section className="pn-karta" aria-labelledby="kosz">
                     <h2 id="kosz">kosz</h2>
-                    <span className="pn-maly">Usunięte plany i osoby leżą tu, dopóki ich nie przywrócisz albo nie usuniesz na stałe. Podkłady i zdjęcia planów – przez 30 dni.</span>
+                    <span className="pn-maly">Usunięte plany, osoby, wpisy z Keystatic i zgłoszenia leżą tu, dopóki ich nie przywrócisz albo nie usuniesz na stałe. Podkłady, zdjęcia i inne pliki – przez 30 dni.</span>
                     {d && d.kosz.length === 0 && <span className="pn-szary">pusty</span>}
                     <ul className="pn-lista">
                         {d?.kosz.slice(0, 50).map((k) => (

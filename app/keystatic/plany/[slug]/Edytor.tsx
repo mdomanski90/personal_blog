@@ -103,6 +103,8 @@ export default function Edytor({ slug }: { slug: string }) {
     const [blad, ustawBlad] = React.useState('')
     const [zapis, ustawZapis] = React.useState<Zapis>('ok')
     const [zazn, ustawZazn] = React.useState<Set<string>>(new Set())
+    const zaznRef = React.useRef(zazn) // P6a: miejsce pracy dla „wróć do pracy” (nagłówek przy zapisie)
+    zaznRef.current = zazn
     const [wzorId, ustawWzorId] = React.useState<string | null>(null)
     const [narz, ustawNarz] = React.useState<Narzedzie>('wybierz')
     const [typId, ustawTypIdSurowo] = React.useState(() => { try { return localStorage.getItem('plan-ostatni-typ') || 'grob' } catch { return 'grob' } })
@@ -244,7 +246,7 @@ export default function Edytor({ slug }: { slug: string }) {
             brudny.current = false
             wTrakcie.current = true
             ustawZapis('zapisuje')
-            const r = await fetch(API(slug), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(doZapisu) }).catch(() => null)
+            const r = await fetch(API(slug), { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Miejsce-Pracy': encodeURIComponent([...zaznRef.current][0] ?? '') }, body: JSON.stringify(doZapisu) }).catch(() => null)
             wTrakcie.current = false
             if (r?.status === 409) { brudny.current = true; zapiszKopie(); ustawZapis('konflikt'); return }
             // 422: zapis dodałby powtórzony numer grobu – ponawianie nic nie da; szkic na serwerze, komunikat, czekamy na poprawkę
