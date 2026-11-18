@@ -1,12 +1,13 @@
 'use client'
 // PK: rama panelu (integracja B) – pasek 48 px, menu boczne z grupami w danych (lib/panel/menu.ts), kolumna ikon w edytorze planu,
-// szuflada na telefonie, jeden przełącznik motywu (także dla Keystatic), szukaj w pasku (paleta Ctrl+K – P6).
+// szuflada na telefonie, jeden przełącznik motywu (także dla Keystatic), szukaj w pasku = paleta poleceń Ctrl+K (P6a, PaletaPolecen.tsx).
 import * as React from 'react'
 import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { type LucideIcon, Archive, BookMarked, ChevronDown, ChevronRight, Ellipsis, ExternalLink, FileText, House, Inbox, Languages, Library, ListTodo, Map as IkonaMapy, Menu, Moon, PanelsTopLeft, Pin, PinOff, Search, SlidersHorizontal, Sun, Wrench } from 'lucide-react'
 import { aktywna, menuWgUstawien, rodzajWidoku, stronaZAdresuKeystatic, type Ikona, type UstawieniaMenu } from '@/lib/panel/menu'
 import type { RodzajPlanu } from '@/lib/plany/metadane'
+import PaletaPolecen from './PaletaPolecen'
 
 const IKONY: Record<Ikona, LucideIcon> = {
     pulpit: House, zgloszenia: Inbox, opracowanie: ListTodo, tresci: FileText, archiwum: Archive, biblioteka: Library,
@@ -20,50 +21,9 @@ const MIN = 190, MAX = 480, START = 230
 const ogranicz = (n: number) => Math.min(MAX, Math.max(MIN, n))
 const czytaj = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
 const zapisz = (k: string, v: string) => { try { localStorage.setItem(k, v) } catch { /* bez pamięci przeglądarki */ } }
-const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
 
 type Zgl = { stan: string; doPoprawy: string | null }
-type Poz = { t: string; typ: string; href: string; d?: string }
 type Menu = ReturnType<typeof menuWgUstawien>
-
-function Szukaj({ pole }: { pole: React.RefObject<HTMLInputElement> }) {
-    const [indeks, ustawIndeks] = React.useState<Poz[] | null>(null)
-    const [q, ustawQ] = React.useState('')
-    const [akt, ustawAkt] = React.useState(0)
-    const [otwarte, ustawOtwarte] = React.useState(false)
-    const wczytaj = () => { if (!indeks) { ustawIndeks([]); fetch('/api/keystatic/panel?czesc=indeks').then((r) => r.json()).then(ustawIndeks).catch(() => {}) } }
-    const wyniki = React.useMemo(() => {
-        const sl = norm(q.trim()).split(/\s+/).filter(Boolean)
-        if (!sl.length || !indeks) return []
-        return indeks.filter((x) => { const t = norm(`${x.t} ${x.typ} ${x.d ?? ''}`); return sl.every((s) => t.includes(s)) }).slice(0, 12)
-    }, [q, indeks])
-    return (
-        <form role="search" aria-label="szukaj w panelu" className="pn-szukaj" onSubmit={(e) => { e.preventDefault(); if (wyniki[akt]) location.href = wyniki[akt].href }}>
-            <Search aria-hidden />
-            <input ref={pole} type="search" aria-label="szukaj w panelu" placeholder="szukaj: osoba, plan, MA-0042" autoComplete="off"
-                role="combobox" aria-expanded={otwarte && !!q.trim()} aria-controls="pn-wyniki" aria-autocomplete="list"
-                aria-activedescendant={otwarte && wyniki[akt] ? `pn-w-${akt}` : undefined}
-                value={q} onFocus={() => { wczytaj(); ustawOtwarte(true) }} onBlur={() => window.setTimeout(() => ustawOtwarte(false), 150)}
-                onChange={(e) => { ustawQ(e.target.value); ustawAkt(0); ustawOtwarte(true) }}
-                onKeyDown={(e) => {
-                    if (e.key === 'ArrowDown') { e.preventDefault(); ustawAkt((a) => Math.min(a + 1, wyniki.length - 1)) }
-                    else if (e.key === 'ArrowUp') { e.preventDefault(); ustawAkt((a) => Math.max(a - 1, 0)) }
-                    else if (e.key === 'Escape') { ustawOtwarte(false); (e.target as HTMLInputElement).blur() }
-                }} />
-            <kbd aria-hidden="true">Ctrl K</kbd>
-            {otwarte && q.trim() && (
-                <div className="pn-wyniki" id="pn-wyniki" role="listbox" aria-label="wyniki">
-                    {!wyniki.length && <span className="pn-maly pn-wyniki-pusto">{!indeks?.length ? 'wczytuję…' : 'nic nie znaleziono'}</span>}
-                    {wyniki.map((w, i) => (
-                        <a key={`${w.href}-${i}`} id={`pn-w-${i}`} href={w.href} data-akt={i === akt} role="option" aria-selected={i === akt}>
-                            <span>{w.t}</span><span className="pn-szary">{w.typ}{w.d ? ` · ${w.d}` : ''}</span>
-                        </a>
-                    ))}
-                </div>
-            )}
-        </form>
-    )
-}
 
 function licznikPozycji(l: string | undefined, czeka: number, plany: Record<string, number>): number | null {
     if (!l) return null
@@ -186,7 +146,8 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
     const [szuflada, ustawSzuflade] = React.useState(false)
     const [pokazWszystko, ustawPokazWszystko] = React.useState(false)
     const [rozwiniete, ustawRozwiniete] = React.useState<Set<string>>(() => new Set())
-    const poleSzukaj = React.useRef<HTMLInputElement>(null)
+    const [paleta, ustawPalete] = React.useState(false)
+    const zamknijPalete = React.useCallback(() => ustawPalete(false), [])
     const przyciskMenu = React.useRef<HTMLButtonElement>(null)
     const przyciskZwin = React.useRef<HTMLButtonElement>(null)
     const przyciskRozwin = React.useRef<HTMLButtonElement>(null)
@@ -233,14 +194,13 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
         return () => document.removeEventListener('keydown', k)
     }, [szuflada])
     React.useEffect(() => { ustawSzuflade(false) }, [sciezka])
-    // Ctrl+K: przejście do pola szukania (poza polami edycji – w edytorze tekstu Ctrl+K to odnośnik)
+    // Ctrl+K / ⌘K: paleta poleceń (poza polami edycji – w edytorze tekstu Ctrl+K to odnośnik)
     React.useEffect(() => {
         const k = (e: KeyboardEvent) => {
             if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'k') return
             const t = e.target as HTMLElement | null
-            if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) && t !== poleSzukaj.current) return
-            if (!poleSzukaj.current || !poleSzukaj.current.offsetParent) return
-            e.preventDefault(); poleSzukaj.current.focus()
+            if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) && !t.closest('.pn-paleta')) return
+            e.preventDefault(); ustawPalete(true)
         }
         document.addEventListener('keydown', k)
         return () => document.removeEventListener('keydown', k)
@@ -301,7 +261,8 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
                 <a href="/keystatic/panel" className="pn-gora-link pn-tylko-szeroki">← pulpit</a>
                 <a href="/keystatic/panel/zgloszenia" className="pn-gora-link">zgłoszenia{czeka > 0 && <span className="pn-licz" aria-label={`${czeka} czeka`}>{czeka}</span>}</a>
                 <a href="/keystatic/panel/do-opracowania" className="pn-gora-link pn-tylko-szeroki">do opracowania</a>
-                <Szukaj pole={poleSzukaj} />
+                <button type="button" className="pn-szukaj" aria-haspopup="dialog" onClick={() => ustawPalete(true)}><Search aria-hidden /><span>szukaj: osoba, plan, MA-0042</span><kbd aria-hidden="true">Ctrl K</kbd></button>
+                <button type="button" className="pn-ikona-btn pn-tylko-waski" aria-label="szukaj w panelu" aria-haspopup="dialog" onClick={() => ustawPalete(true)}><Search aria-hidden /></button>
                 <div className="pn-gora-prawa">
                     {zglPozycji > 0 && <a href="/keystatic/panel/zgloszenia" className="pn-btn pn-btn-maly pn-tylko-szeroki">zgłoszenia: {zglPozycji}</a>}
                     {naStronie && <a href={naStronie} target="_blank" rel="noreferrer" className="pn-btn pn-btn-maly pn-tylko-szeroki">na stronie ↗</a>}
@@ -312,6 +273,7 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
                     </button>
                 </div>
             </header>
+            <PaletaPolecen menu={menu} otwarta={paleta} onZamknij={zamknijPalete} />
             <div className="pn-uklad">
                 {pelneMenu && (
                     <aside className="pn-bok" aria-label="menu panelu">

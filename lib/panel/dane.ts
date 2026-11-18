@@ -7,7 +7,9 @@ import { wczytajKolekcje } from './listy'
 import { wczytajPrace } from './praca'
 import { doKosza, listaKoszaTresci, przywrocZKoszaTresci, usunZKoszaTresci } from './historia'
 import { kontrolaCzytnikiem } from './historia-adresy'
-import { poZapisieTresci } from '../katalog/dane'
+import { stronaZAdresuKeystatic } from './menu'
+import type { RodzajKat } from '../katalog/model'
+import { numerKat, poZapisieTresci } from '../katalog/dane'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -297,18 +299,44 @@ export async function podsumowanie() {
     }
 }
 
-// ---------- wyszukiwarka panelu ----------
-export interface PozycjaIndeksu { t: string; typ: string; href: string; d?: string }
+// ---------- wyszukiwarka panelu / paleta Ctrl+K (P6a, PNL-07) ----------
+export type GrupaIndeksu = 'osoby' | 'tresci' | 'plany' | 'zgloszenia'
+/** t – tytuł, typ – rodzaj, href – edycja w panelu, strona – strona publiczna (gdy pozycja nie jest „tylko ja”), nr – numer katalogowy. */
+export interface PozycjaIndeksu { t: string; typ: string; href: string; d?: string; grupa?: GrupaIndeksu; strona?: string; nr?: string }
+
+const RODZAJ_KAT: Record<string, RodzajKat> = { posts: 'wpis', miejsca: 'miejsce', obiekty: 'obiekt', tematy: 'temat', materialy: 'material', parafie: 'instytucja', zbiory: 'zbior', publikacje: 'publikacja' }
+const ETYKIETY: Record<string, string> = { posts: 'wpis', miejsca: 'miejsce', tematy: 'temat', obiekty: 'obiekt', materialy: 'materiał', ksiegi: 'księga', parafie: 'instytucja', hasla: 'hasło', zbiory: 'zbiór', publikacje: 'publikacja', biogramy: 'biogram', zespoly: 'zespół' }
 
 export async function indeksPanelu(): Promise<PozycjaIndeksu[]> {
-    const [tr, plany, s] = await Promise.all([tresci(), listaPlanow(), stanOsob()])
+    const [tr, plany, s, zg] = await Promise.all([tresci(), listaPlanow(), stanOsob(), zgloszeniaPanelu()])
     const wyn: PozycjaIndeksu[] = []
-    const ETYK: Record<string, string> = { posts: 'wpis', miejsca: 'miejsce', tematy: 'temat', obiekty: 'obiekt', materialy: 'materiał', ksiegi: 'księga', parafie: 'parafia', hasla: 'hasło' }
-    for (const [k, v] of Object.entries(tr)) for (const x of v.L) wyn.push({ t: x.nazwa, typ: ETYK[k], href: k === 'posts' ? KS.wpis(x.id) : KS.kolekcja(k, x.id), d: x.widocznosc === 'ja' ? 'szkic' : undefined })
-    for (const p of plany) wyn.push({ t: p.tytul, typ: 'plan', href: KS.plan(p.slug) })
-    for (const o of s.drzewo.osoby.values()) wyn.push({ t: nazwaOsoby(o), typ: 'osoba', href: KS.osoba(o.id), d: s.lata.get(o.id) ? `ok. ${s.lata.get(o.id)}` : undefined })
+    const dodajTresc = (k: string, x: Poz) => {
+        const href = k === 'posts' ? KS.wpis(x.id) : KS.kolekcja(k, x.id)
+        const strona = x.widocznosc !== 'ja' ? stronaZAdresuKeystatic(href) ?? undefined : undefined
+        const nr = RODZAJ_KAT[k] ? numerKat(RODZAJ_KAT[k], x.id) ?? undefined : undefined
+        wyn.push({ t: x.nazwa, typ: ETYKIETY[k] ?? k, href, grupa: 'tresci', d: x.widocznosc === 'ja' ? 'szkic' : undefined, ...(strona ? { strona } : {}), ...(nr ? { nr } : {}) })
+    }
+    for (const [k, v] of Object.entries(tr)) for (const x of v.L) dodajTresc(k, x)
+    // kolekcje spoza tresci(): zbiory, publikacje, biogramy, zespoły (odczyt plików jak lista panelu)
+    for (const k of ['zbiory', 'publikacje', 'biogramy', 'zespoly']) {
+        for (const w of (await wczytajKolekcje(k).catch(() => ({ wpisy: [] as { slug: string; dane: Record<string, unknown> }[] }))).wpisy)
+            dodajTresc(k, { id: w.slug, nazwa: tytulWpisu(w.dane.title) || w.slug, widocznosc: String(w.dane.visibility ?? 'publiczne') })
+    }
+    for (const p of plany) {
+        const nr = numerKat('plan', p.slug) ?? undefined
+        wyn.push({ t: p.tytul, typ: 'plan', href: KS.plan(p.slug), grupa: 'plany', d: p.widocznosc === 'ja' ? 'szkic' : undefined, ...(p.widocznosc !== 'ja' ? { strona: `/plany/${p.slug}` } : {}), ...(nr ? { nr } : {}) })
+    }
+    for (const o of s.drzewo.osoby.values()) {
+        const nr = numerKat('osoba', o.id) ?? undefined
+        wyn.push({ t: nazwaOsoby(o), typ: 'osoba', href: KS.osoba(o.id), grupa: 'osoby', d: s.lata.get(o.id) ? `ok. ${s.lata.get(o.id)}` : undefined, ...(s.widocznosc(o.id) !== 'ja' ? { strona: `/osoby/${o.id}` } : {}), ...(nr ? { nr } : {}) })
+    }
+    // zgłoszenia czekające (nowe, odłożone) – prowadzą do miejsca poprawki albo listy zgłoszeń
+    for (const z of zg.filter((x) => czeka(x.stan))) wyn.push({ t: z.tytul, typ: `zgłoszenie · ${z.rodzaj}`, href: z.doPoprawy ?? '/keystatic/panel/zgloszenia', grupa: 'zgloszenia', d: kiedyKrotko(z.data), ...(z.adres ? { strona: z.adres } : {}) })
     return wyn
 }
+/** Tytuł z pola Keystatic: tekst albo { name, slug } (pole nazwy z identyfikatorem). */
+const tytulWpisu = (t: unknown): string => (typeof t === 'string' ? t : t && typeof t === 'object' && typeof (t as { name?: unknown }).name === 'string' ? (t as { name: string }).name : '')
+const kiedyKrotko = (iso: string) => { const t = Date.parse(iso); return Number.isFinite(t) ? new Date(t).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' }) : '' }
 
 // ---------- kosz ----------
 export interface PozycjaKosza { rodzaj: 'plan' | 'osoba' | 'rodzina' | 'import' | 'plik' | 'tresc'; plik: string; nazwa: string; czas: string; wygasa?: string | null }
