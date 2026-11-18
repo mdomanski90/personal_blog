@@ -1,0 +1,20 @@
+# P5: kopia nocna odniepamieci.pl (scripts/kopia-nocna.ts) – instalacja i pobieranie: scripts/systemd/kopie-nocne.md
+[Unit]
+Description=odniepamieci.pl – kopia nocna (content, pliki-archiwum, data)
+After=network.target
+
+[Service]
+Type=oneshot
+User=blog
+Group=blog
+WorkingDirectory=/opt/personal_blog
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=KOPIE_NOCNE=/var/backups/odniepamieci/nocne
+Environment=npm_config_cache=/tmp/npm-cache
+ExecStart=/usr/bin/env npx --no-install tsx scripts/kopia-nocna.ts
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/backups/odniepamieci/nocne /opt/personal_blog/content/_panel

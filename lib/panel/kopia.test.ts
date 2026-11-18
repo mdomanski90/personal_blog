@@ -92,3 +92,23 @@ test('P5: import drzewa – blokada bez kopii poza serwerem z ostatnich 24 h', a
         assert.match((await brakSwiezejKopii(k, 24, teraz))!, /pobierz kopię/, 'kopia na serwerze się nie liczy – musi być poza serwerem')
     } finally { fss.rmSync(k, { recursive: true, force: true }) }
 })
+
+test('P5: kopia nocna – osobny wzór nazwy, 7 najnowszych, kopie panelu i obce pliki nietknięte, znacznik „nocna”', async () => {
+    const { zapiszNocna, ZACHOWAJ_NOCNYCH, listaArchiwum } = await import('./kopia')
+    const { root, db } = await strona(); db.close()
+    const kat = await fs.mkdtemp(path.join(os.tmpdir(), 'kopia-nocna-'))
+    try {
+        for (let i = 1; i <= 8; i++) await fs.writeFile(path.join(kat, `odniepamieci-nocna-2020010${i}-000000.tar.gz`), 'stara')
+        await fs.writeFile(path.join(kat, 'odniepamieci-kopia-20200101-000000.tar.gz'), 'kopia z panelu')
+        assert.match(String(await zapiszNocna(path.join(root, 'content'), { korzen: root })), /poza katalogiem strony/)
+        const w = await zapiszNocna(kat, { korzen: root, commit: 'n1' })
+        assert.equal(typeof w, 'object', String(w))
+        if (typeof w === 'string') return
+        assert.ok((await listaArchiwum(w.plik)).includes('content/miejsca/wies-testowa.mdoc'))
+        const pliki = await fs.readdir(kat)
+        assert.equal(pliki.filter((n) => n.startsWith('odniepamieci-nocna-')).length, ZACHOWAJ_NOCNYCH)
+        assert.ok(pliki.includes('odniepamieci-kopia-20200101-000000.tar.gz'))
+        assert.ok(!pliki.some((n) => n.endsWith('.part')))
+        assert.equal((await wczytajZnacznik(root)).nocna?.plik, w.plik)
+    } finally { await fs.rm(kat, { recursive: true, force: true }); await fs.rm(root, { recursive: true, force: true }) }
+})

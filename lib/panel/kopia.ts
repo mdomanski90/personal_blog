@@ -19,8 +19,13 @@ const WZOR = /^odniepamieci-kopia-\d{8}-\d{6}\.tar\.gz$/
 export interface Znacznik {
     komputer?: { czas: string; bajty: number }
     serwer?: { czas: string; bajty: number; plik: string }
+    /** P5: kopia nocna (scripts/kopia-nocna.ts, timer systemd) – do pobierania przez węzeł domowy (rrsync -ro) */
+    nocna?: { czas: string; bajty: number; plik: string }
     katalog?: string
 }
+
+export const WZOR_NOCNEJ = /^odniepamieci-nocna-\d{8}-\d{6}\.tar\.gz$/
+export const ZACHOWAJ_NOCNYCH = 7
 
 const plikZnacznika = (korzen: string) => path.join(korzen, 'content', '_panel', 'kopia.json')
 
@@ -137,6 +142,34 @@ export async function utworzKopie(rodzaj: 'komputer' | 'serwer', opcje: { korzen
     }
 }
 
+/** Archiwum do katalogu: .part → kontrola listy (tar -tzf) → rename, potem usunięcie najstarszych archiwów o tym wzorze ponad limit. */
+async function zapiszArchiwum(katalog: string, nazwa: string, wzor: RegExp, zachowaj: number, opcje: { korzen?: string; commit?: string | null }): Promise<{ plik: string; bajty: number; uwaga?: string } | string> {
+    const s = await utworzKopie('serwer', opcje)
+    if (typeof s === 'string') return s
+    const cel = path.join(/*turbopackIgnore: true*/ katalog, nazwa), part = `${cel}.part`
+    const out = createWriteStream(/*turbopackIgnore: true*/ part, { mode: 0o640 })
+    s.strumien.pipe(out)
+    const [wynik] = await Promise.all([s.koniec, new Promise<void>((ok, zle) => { out.on('finish', () => ok()); out.on('error', zle) })])
+    if (!wynik.ok) { await fs.rm(part, { force: true }); return `Kopia nie powstała: ${wynik.blad}` }
+    const lista = await listaArchiwum(part)
+    if (!lista.includes('kopia.json')) { await fs.rm(part, { force: true }); return 'Kopia uszkodzona – archiwum nie daje się odczytać (brak kopia.json).' }
+    await fs.rename(part, cel)
+    const stare = (await fs.readdir(/*turbopackIgnore: true*/ katalog)).filter((n) => wzor.test(n)).sort().reverse().slice(zachowaj)
+    for (const n of stare) await fs.rm(path.join(/*turbopackIgnore: true*/ katalog, n), { force: true })
+    return { plik: cel, bajty: wynik.bajty, uwaga: wynik.blad }
+}
+
+/** Lista plików archiwum (tar -tzf); pusta przy błędzie odczytu. */
+export function listaArchiwum(plik: string): Promise<string[]> {
+    return new Promise((ok) => {
+        const t = spawn('tar', ['-tzf', plik], { stdio: ['ignore', 'pipe', 'ignore'] })
+        let out = ''
+        t.stdout.on('data', (b: Buffer) => { out += b.toString() })
+        t.on('error', () => ok([]))
+        t.on('close', (kod) => ok(kod === 0 ? out.split('\n').filter(Boolean).map((x) => x.replace(/^\.\//, '')) : []))
+    })
+}
+
 /** Zapis na serwerze do wskazanego katalogu: .part → rename, potem usunięcie najstarszych własnych archiwów ponad limit. */
 export async function zapiszNaSerwerze(opcje: { korzen?: string; commit?: string | null } = {}): Promise<{ plik: string; bajty: number; uwaga?: string } | string> {
     const korzen = opcje.korzen ?? process.cwd()
@@ -144,18 +177,24 @@ export async function zapiszNaSerwerze(opcje: { korzen?: string; commit?: string
     if (!z.katalog) return 'Najpierw wskaż katalog kopii na serwerze.'
     const blad = await sprawdzKatalog(z.katalog, korzen)
     if (blad) return blad
-    const s = await utworzKopie('serwer', opcje)
-    if (typeof s === 'string') return s
-    const cel = path.join(/*turbopackIgnore: true*/ z.katalog, s.nazwa), part = `${cel}.part`
-    const out = createWriteStream(/*turbopackIgnore: true*/ part, { mode: 0o640 })
-    s.strumien.pipe(out)
-    const [wynik] = await Promise.all([s.koniec, new Promise<void>((ok, zle) => { out.on('finish', () => ok()); out.on('error', zle) })])
-    if (!wynik.ok) { await fs.rm(part, { force: true }); return `Kopia nie powstała: ${wynik.blad}` }
-    await fs.rename(part, cel)
-    const stare = (await fs.readdir(/*turbopackIgnore: true*/ z.katalog)).filter((n) => WZOR.test(n)).sort().reverse().slice(ZACHOWAJ_NA_SERWERZE)
-    for (const n of stare) await fs.rm(path.join(/*turbopackIgnore: true*/ z.katalog, n), { force: true })
-    await zapiszZnacznik({ ...(await wczytajZnacznik(korzen)), serwer: { czas: new Date().toISOString(), bajty: wynik.bajty, plik: cel } }, korzen)
-    return { plik: cel, bajty: wynik.bajty, uwaga: wynik.blad }
+    const w = await zapiszArchiwum(z.katalog, nazwaArchiwum(), WZOR, ZACHOWAJ_NA_SERWERZE, opcje)
+    if (typeof w === 'string') return w
+    await zapiszZnacznik({ ...(await wczytajZnacznik(korzen)), serwer: { czas: new Date().toISOString(), bajty: w.bajty, plik: w.plik } }, korzen)
+    return w
+}
+
+/**
+ * P5: kopia nocna (decyzja właściciela 18.11) – uruchamiana przez timer systemd (scripts/kopia-nocna.ts), katalog z argumentu
+ * (domyślnie /var/backups/odniepamieci/nocne), 7 najnowszych; węzeł domowy pobiera je tylko do odczytu (rrsync -ro).
+ */
+export async function zapiszNocna(katalog: string, opcje: { korzen?: string; commit?: string | null; zachowaj?: number } = {}): Promise<{ plik: string; bajty: number; uwaga?: string } | string> {
+    const korzen = opcje.korzen ?? process.cwd()
+    const blad = await sprawdzKatalog(katalog, korzen)
+    if (blad) return blad
+    const w = await zapiszArchiwum(path.resolve(/*turbopackIgnore: true*/ katalog), nazwaArchiwum().replace('-kopia-', '-nocna-'), WZOR_NOCNEJ, opcje.zachowaj ?? ZACHOWAJ_NOCNYCH, opcje)
+    if (typeof w === 'string') return w
+    await zapiszZnacznik({ ...(await wczytajZnacznik(korzen)), nocna: { czas: new Date().toISOString(), bajty: w.bajty, plik: w.plik } }, korzen)
+    return w
 }
 
 export async function kopieNaSerwerze(korzen = process.cwd()): Promise<{ nazwa: string; bajty: number; czas: string }[]> {

@@ -53,7 +53,7 @@ function Prog() {
     )
 }
 
-type StanKopii = { znacznik: { komputer?: { czas: string; bajty: number }; serwer?: { czas: string; bajty: number; plik: string }; katalog?: string }; pliki: { nazwa: string; bajty: number; czas: string }[] }
+type StanKopii = { znacznik: { komputer?: { czas: string; bajty: number }; serwer?: { czas: string; bajty: number; plik: string }; nocna?: { czas: string; bajty: number; plik: string }; katalog?: string }; pliki: { nazwa: string; bajty: number; czas: string }[] }
 
 /** Etap 0A: kopia zapasowa z panelu – pobranie na komputer (kopia poza serwerem) albo zapis w katalogu na serwerze. */
 function Kopie({ kopia, wczytano }: { kopia: string | null; wczytano: boolean }) {
@@ -85,6 +85,7 @@ function Kopie({ kopia, wczytano }: { kopia: string | null; wczytano: boolean })
             <dl className="pn-dl">
                 <dt>co obejmuje</dt><dd>treści (content/), pliki archiwum (pliki-archiwum/), bazy (data/ – skopiowane spójnie) i opis kopii (kopia.json) – jeden plik .tar.gz</dd>
                 <dt>na komputer</dt><dd>{z?.komputer ? `ostatnio ${kiedy(z.komputer.czas)} · ${bajty(z.komputer.bajty)}` : 'jeszcze nie pobierano'}</dd>
+                <dt>kopia nocna</dt><dd>{z?.nocna ? `ostatnio ${kiedy(z.nocna.czas)} · ${bajty(z.nocna.bajty)} (zostaje 7 najnowszych; pobiera węzeł domowy)` : 'nie włączona – instrukcja: scripts/systemd/kopie-nocne.md'}</dd>
                 <dt>na serwerze</dt><dd>{z?.serwer ? `ostatnio ${kiedy(z.serwer.czas)} · ${bajty(z.serwer.bajty)}` : 'jeszcze nie zapisywano'}{k && k.pliki.length > 0 ? ` · w katalogu: ${k.pliki.length} (zostaje 5 najnowszych)` : ''}</dd>
             </dl>
             <div className="pn-rzad">
@@ -103,7 +104,7 @@ function Kopie({ kopia, wczytano }: { kopia: string | null; wczytano: boolean })
             <span className="pn-maly">Importy i zmiany zbiorcze mają własne kopie zmienianych plików i przycisk „cofnij” – w <a href="/keystatic/panel/operacje">ostatnich operacjach</a>.</span>
             <details className="pn-maly">
                 <summary>jak sprawdzić i przywrócić kopię</summary>
-                <p>Sprawdzenie: <code>tar -tzf odniepamieci-kopia-….tar.gz | head</code> – lista plików bez błędu. Przywracanie zawsze najpierw do pustego katalogu: <code>mkdir /tmp/test-kopii &amp;&amp; tar -xzf plik.tar.gz -C /tmp/test-kopii</code>, porównanie z bieżącymi danymi, dopiero potem świadoma podmiana wybranych plików.</p>
+                <p>Na serwerze: <code>cd /opt/personal_blog &amp;&amp; sudo -u blog npx tsx scripts/sprawdz-kopie.ts &lt;kopia.tar.gz&gt;</code> – rozpakowuje obok, sprawdza czytelność treści i bazy, pokazuje różnice z bieżącymi danymi; niczego nie zmienia. Odtworzenie wybranych treści: dodaj <code>--przywroc miejsca/nazwa.mdoc</code> (podgląd), potem to samo z <code>--tak</code> – podmiana jako operacja, którą cofniesz w ostatnich operacjach.</p>
             </details>
         </section>
     )

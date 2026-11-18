@@ -4,12 +4,15 @@
 # Użycie (na serwerze): bash /opt/personal_blog/scripts/wdroz.sh            – pokazuje listę i pyta o zgodę
 #                       bash /opt/personal_blog/scripts/wdroz.sh --lista    – tylko lista, nic nie zmienia
 # Zmienne: KOPIE (katalog kopii, domyślnie ~/kopie-blog), ZRODLO (klon GitHub, domyślnie ~/blog-main), BAZA (adres testu).
+# P5 (OPS-05): dziennik wdrożeń $KOPIE/wdrozenia.log – co było na serwerze, co weszło, kopia, build, wynik, jak cofnąć.
 set -euo pipefail
 STRONA="${STRONA:-/opt/personal_blog}"
 ZRODLO="${ZRODLO:-$HOME/blog-main}"
 KOPIE="${KOPIE:-$HOME/kopie-blog}"
 cd "$STRONA"
-stop() { echo "STOP: $*" >&2; exit 1; }
+DZIENNIK="$KOPIE/wdrozenia.log"
+dziennik() { mkdir -p "$KOPIE" && printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "$DZIENNIK" || true; }
+stop() { echo "STOP: $*" >&2; [ "${ZAPISUJ:-0}" = 1 ] && dziennik "STOP: $*"; exit 1; }
 [ "$(git rev-parse --abbrev-ref HEAD)" = local ] || stop "gałąź inna niż local"
 [ ! -d .git/rebase-apply ] || stop "niedokończone git am – najpierw: git am --abort"
 git -C "$ZRODLO" fetch -q origin
@@ -37,6 +40,9 @@ echo "Na serwerze ostatni: $(git -C "$ZRODLO" log -1 --format='%h %s' "$OSTATNI"
 echo "Do wdrożenia (${#BRAK[@]}):"; for c in "${BRAK[@]}"; do git -C "$ZRODLO" log -1 --format='  %h %s' "$c"; done
 [ "${1:-}" = "--lista" ] && exit 0
 read -r -p "Wdrożyć? [t/N] " odp; [ "$odp" = t ] || stop "przerwane"
+PRZED=$(git rev-parse --short HEAD)
+ZAPISUJ=1
+dziennik "START: na serwerze $PRZED ($(git log -1 --format=%s)); do wdrożenia ${#BRAK[@]}: $(for c in "${BRAK[@]}"; do git -C "$ZRODLO" log -1 --format='%h' "$c"; done | tr '\n' ' ')"
 
 # 1. kopia danych
 mkdir -p "$KOPIE"
@@ -46,10 +52,11 @@ sudo chown "$USER" "$PLIK"
 tar -tzf "$PLIK" >/dev/null || stop "kopia uszkodzona: $PLIK"
 ls -1t "$KOPIE"/odniepamieci-kopia-*.tar.gz | tail -n +6 | xargs -r rm -f
 echo "Kopia: $PLIK ($(du -h "$PLIK" | cut -f1))"
+dziennik "KOPIA: $PLIK ($(du -h "$PLIK" | cut -f1))"
 
 # 2. zapas obecnej zbudowanej wersji
 rm -rf .next-poprzedni; cp -a .next .next-poprzedni
-przywroc() { echo "Przywracam poprzednią zbudowaną wersję…" >&2; rm -rf .next; mv .next-poprzedni .next; sudo systemctl restart blog; sleep 4; systemctl is-active blog >&2 || true; }
+przywroc() { echo "Przywracam poprzednią zbudowaną wersję…" >&2; dziennik "PRZYWRÓCONO poprzedni build (.next-poprzedni)"; rm -rf .next; mv .next-poprzedni .next; sudo systemctl restart blog; sleep 4; systemctl is-active blog >&2 || true; }
 
 # 3. nałożenie commitów
 git -C "$ZRODLO" format-patch --stdout "$OSTATNI..origin/main" | git am -3 || { git am --abort; stop "konflikt przy nakładaniu – nic nie zmieniono w kodzie, przyślij wynik"; }
@@ -63,4 +70,8 @@ sudo systemctl restart blog; sleep 5
 systemctl is-active blog || { przywroc; stop "usługa nie wstała – działa poprzednia wersja"; }
 bash scripts/sprawdz-wdrozenie.sh "${BAZA:-https://odniepamieci.pl}" || { przywroc; stop "test po wdrożeniu nie przeszedł – działa poprzednia wersja"; }
 rm -rf .next-poprzedni
-echo "WDROŻONE: $(git log -1 --format='%h %s') · build $(stat -c %y .next/BUILD_ID | cut -d. -f1) UTC"
+WYNIK="WDROŻONE: $(git log -1 --format='%h %s') · build $(stat -c %y .next/BUILD_ID | cut -d. -f1) UTC"
+dziennik "$WYNIK"
+dziennik "COFNIĘCIE (gdyby trzeba): kod – git revert --no-edit $PRZED..HEAD && npm run build && sudo systemctl restart blog (bez reset --hard); treści – kopia $PLIK (scripts/sprawdz-kopie.ts)"
+echo "$WYNIK"
+echo "Dziennik: $DZIENNIK"

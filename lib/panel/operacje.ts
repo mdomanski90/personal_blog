@@ -13,8 +13,8 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 
-export type RodzajOperacji = 'import-ksiag' | 'import-drzewa' | 'zbiorcza'
-export const NAZWY_OPERACJI: Record<RodzajOperacji, string> = { 'import-ksiag': 'import ksiąg', 'import-drzewa': 'import drzewa (GEDCOM)', zbiorcza: 'zmiana zbiorcza' }
+export type RodzajOperacji = 'import-ksiag' | 'import-drzewa' | 'zbiorcza' | 'odtworzenie'
+export const NAZWY_OPERACJI: Record<RodzajOperacji, string> = { 'import-ksiag': 'import ksiąg', 'import-drzewa': 'import drzewa (GEDCOM)', zbiorcza: 'zmiana zbiorcza', odtworzenie: 'odtworzenie z kopii' }
 export type StanOperacji = 'przygotowane' | 'zapisane' | 'wycofane' | 'wycofane-czesciowo' | 'cofniete' | 'dokonczone'
 
 /** Zmiana jednego pliku. `plik` – ścieżka względem `content/` (ukośniki). `null` = pliku nie ma (utworzenie / usunięcie). */

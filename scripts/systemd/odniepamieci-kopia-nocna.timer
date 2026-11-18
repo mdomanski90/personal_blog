@@ -1,0 +1,11 @@
+# P5: codziennie ok. 3:17 (do 15 min losowego opóźnienia); Persistent – po wyłączeniu serwera kopia przy starcie
+[Unit]
+Description=odniepamieci.pl – kopia nocna codziennie
+
+[Timer]
+OnCalendar=*-*-* 03:17:00
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
