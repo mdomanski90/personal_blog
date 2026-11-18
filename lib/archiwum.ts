@@ -760,7 +760,13 @@ export async function adresKontaktowy(): Promise<{ u: string; d: string }> {
 /** Wstęp strony głównej (singleton „Strona główna”); bez wpisu – tekst domyślny. Akapity rozdzielone pustym wierszem. */
 export async function wstepStronyGlownej(): Promise<string[]> {
     const s = await reader.singletons.stronaGlowna.read().catch(() => null)
-    const tekst = s?.intro?.trim() || WSTEP_DOMYSLNY
+    // P6a: dawne miejsce ustawienia (przed przeniesieniem do content/_panel) – tylko odczyt, gdy nowego jeszcze nie ma
+    let dawny = ''
+    if (!s) try {
+        const [{ load }, { readFile }, { join }] = await Promise.all([import('js-yaml'), import('node:fs/promises'), import('node:path')])
+        dawny = String((load(await readFile(join(process.cwd(), 'content', 'strona-glowna.yaml'), 'utf8')) as { intro?: unknown } | null)?.intro ?? '')
+    } catch { /* brak pliku */ }
+    const tekst = s?.intro?.trim() || dawny.trim() || WSTEP_DOMYSLNY
     return tekst.split(/\n\s*\n/).map((a) => a.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean)
 }
 

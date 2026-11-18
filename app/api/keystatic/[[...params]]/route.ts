@@ -5,6 +5,7 @@ import { blokadaZapisu } from '@/lib/panel/operacje';
 import { odczytajZadanie, przedZapisemKeystatic } from '@/lib/panel/historia';
 import { opisPlikuZTytulem } from '@/lib/panel/historia-adresy';
 import { zapiszOstatnie } from '@/lib/panel/praca';
+import { brakPrawaZapisu, komunikatPrawa } from '@/lib/panel/prawa-zapisu';
 
 const obsluga = makeRouteHandler({ config });
 
@@ -24,6 +25,8 @@ export async function POST(req: Request) {
     if (blokada) return tekst(blokada, 423);
     const zadanie = odczytajZadanie(await req.clone().json().catch(() => null));
     if (zadanie) {
+        const brak = await brakPrawaZapisu(process.cwd(), zadanie.additions.map((a) => a.path), zadanie.deletions.map((d) => d.path));
+        if (brak.length) return tekst(komunikatPrawa(brak), 503);
         const p = await przedZapisemKeystatic(zadanie, { opis: async (rel) => (await opisPlikuZTytulem(process.cwd(), rel.replace(/^content\//, ''))).nazwa });
         if (p.odrzuc) return tekst(p.odrzuc, 503);
         for (const o of p.ostrzezenia) console.error(`[historia] ${o}`);

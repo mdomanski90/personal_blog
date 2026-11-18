@@ -759,7 +759,9 @@ const konfiguracja = config({
     }),
     stronaGlowna: singleton({
       label: 'Strona główna',
-      path: 'content/strona-glowna',
+      // P6a (EACCES na VPS 18.11 21:20): usługa nie może zakładać plików w samym content/ – ustawienie w content/_panel
+      // (należy do usługi); odczyt dawnego content/strona-glowna.yaml zostaje jako zapas (lib/archiwum.ts, wstepStronyGlownej)
+      path: 'content/_panel/strona-glowna',
       schema: {
         intro: fields.text({
           label: 'Wstęp',
