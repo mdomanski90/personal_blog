@@ -11,6 +11,7 @@ import { zadania as wczytajZadania } from '@/lib/wspoltworz-dane'
 import { jestSiatka, KOLEJNOSC_GRUP, kontekstUzupelnienia, PROBKA, probkaDnia, type Zadanie } from '@/lib/wspoltworz'
 import { POMOC, RODZAJE_ZADAN, ZGLOSZENIE_BRAKU, type RodzajFormularza, type RodzajZadania } from '@/lib/wspoltworz-reguly'
 import { Strona, TytulStrony } from '../components/Uklad'
+import { TytulDzialu, WstepDzialu } from '../components/WstepDzialu'
 import { EtykietaBraku, GrupaZadan, KrokiDzialania, NawigacjaStron, PastylkaFiltra, RzadFiltrow, TytulSekcji } from '../components/Wzorce'
 import SiatkaMiniatur from '../components/SiatkaMiniatur'
 import Komunikat from '../components/Komunikat'
@@ -89,8 +90,9 @@ export default async function Wspoltworz({ searchParams }: { searchParams: Promi
 
     return (
         <Strona uklad="pelna">
-            <TytulStrony>współtwórz</TytulStrony>
-            <div className="wsp-wstep"><p>{WSTEP}</p></div>
+            {/* P6b (P6-D-06): tytuł, wstęp i link redakcyjny z panelu („Wstępy działów” → Współtwórz); puste – tekst dotychczasowy */}
+            <TytulStrony><TytulDzialu dzial="wspoltworz" domyslny="współtwórz" /></TytulStrony>
+            <div className="wsp-wstep"><WstepDzialu dzial="wspoltworz" domyslny={WSTEP} /></div>
 
             <section className="sekcja" aria-labelledby="jak-to-dziala">
                 <TytulSekcji id="jak-to-dziala">jak to działa</TytulSekcji>

@@ -8,7 +8,7 @@ import { DZIALY, znormalizujWstep } from './wstepy'
 const ROOT = path.resolve(import.meta.dirname, '../..')
 
 test('ADM-06: księgi, słownik i plany mają wstęp edytowalny w panelu', () => {
-    for (const d of ['ksiegi', 'slownik', 'plany']) assert.ok((DZIALY as readonly string[]).includes(d), d)
+    for (const d of ['ksiegi', 'slownik', 'plany', 'wspoltworz']) assert.ok((DZIALY as readonly string[]).includes(d), d)
 })
 test('ADM-06: każdy dział z DZIALY ma pola w schemacie Keystatic (wstepyDzialow)', () => {
     const cfg = fs.readFileSync(path.join(ROOT, 'keystatic.config.ts'), 'utf8')

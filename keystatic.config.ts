@@ -750,6 +750,7 @@ const konfiguracja = config({
         ['wpisy', 'Wpisy'], ['miejsca', 'Miejsca'], ['osoby', 'Osoby'], ['tematy', 'Tematy'], ['archiwum', 'Archiwum'],
         ['zbiory', 'Zbiory i kolekcje'], ['biblioteka', 'Biblioteka'], ['publikacje', 'Publikacje'], ['instytucje', 'Instytucje'], ['obiekty', 'Obiekty'],
         ['ksiegi', 'Księgi metrykalne'], ['slownik', 'Słownik'], ['plany', 'Plany i schematy'],
+        ['wspoltworz', 'Współtwórz'], // P6b (P6-D-06); kroki „jak to działa” zostają w kodzie
       ] as const).map(([klucz, nazwa]) => [klucz, fields.object({
         tytul: fields.text({ label: 'Tytuł (opcjonalny)' }),
         wstep: fields.text({ label: 'Wstęp (opcjonalny)', multiline: true }),
