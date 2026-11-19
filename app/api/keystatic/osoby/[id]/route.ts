@@ -1,6 +1,6 @@
 import { brakDostepu } from '@/lib/plany/dane'
 import { Konflikt, obrzadekZdarzenia, stanOsob, usunOsobe, zapiszOsobe } from '@/lib/osoby/dane'
-import { ID_OSOBY, poprawOsobe, widocznoscOsoby, type Osoba } from '@/lib/osoby/model'
+import { ID_OSOBY, poprawOsobe, rokUrodzenia, widocznoscOsoby, type Osoba } from '@/lib/osoby/model'
 import { ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
 import { parafie } from '@/lib/archiwum'
 import { maBiogram } from '@/lib/osoby/biogramy'
@@ -32,7 +32,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         malzenstwa: rel.malzenstwa.map((f) => ({ rodzina: f, malzonek: sk(f.maz === id ? f.zona : f.maz), dzieci: f.dzieci.map(sk).filter(Boolean) })),
         osoby: Object.fromEntries([...potrzebneOsoby].map((x) => [x, sk(x)])),
         zrodla: Object.fromEntries([...s.drzewo.zrodla]),
-        ostrzezenia: ostrzezeniaWgOsob(s).get(id) ?? [],
+        // PPL-11: „czy żyje?” liczy edytor na bieżąco z wieku (bez daty zgonu – lata od szacowanego roku urodzenia)
+        ostrzezenia: ostrzezeniaWgOsob(s, { zycie: false }).get(id) ?? [],
+        wiek: s.lata.get(id) != null ? new Date().getFullYear() - s.lata.get(id)! : null,
+        wiekSzacowany: rokUrodzenia(o) == null,
         zParafii,
         wszystkie: [...s.drzewo.osoby.values()].map((x) => skrot(s, x)),
     })

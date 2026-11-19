@@ -371,8 +371,22 @@ html.kui-scheme--dark, .pn .kui-scheme--dark {
 .pn-zdarzenie-nagl { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; width: 100%; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .pn-znak-koloru { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
 .pn-tag-przypuszczenie { font-style: italic; }
-.pn-portret { width: 120px; border-radius: 6px; border: 1px solid var(--pn-linia); }
-.pn-portret-brak { height: 150px; box-sizing: border-box; border-style: dashed; display: flex; align-items: center; justify-content: center; text-align: center; }
+.pn-portret { width: 112px; border-radius: 6px; border: 1px solid var(--pn-linia); }
+/* PPL-11 (19.11): edytor osoby – miniatura zdjęcia po lewej, pola w siatce 4 kolumn, objaśnienia pod polem */
+.pn-osoba-dane { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 18px; align-items: start; }
+.pn-osoba-zdjecie { gap: 6px; }
+.pn-osoba-zdjecie .pn-btn { justify-content: center; }
+.pn-formularz-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; }
+.pn-pole-2 { grid-column: span 2; }
+.pn-podp { font-size: 11.5px; color: var(--pn-szary); line-height: 1.35; }
+@media (max-width: 1100px) { .pn-formularz-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .pn-osoba-dane { grid-template-columns: minmax(0, 1fr); }
+  .pn-osoba-zdjecie { flex-direction: row; flex-wrap: wrap; align-items: flex-end; }
+  .pn-formularz-4 { grid-template-columns: minmax(0, 1fr); }
+  .pn-pole-2 { grid-column: auto; }
+}
+.pn-portret-brak { height: 140px; box-sizing: border-box; border-style: dashed; display: flex; align-items: center; justify-content: center; text-align: center; }
 .pn-akapit { margin: 4px 0; }
 .pn-transkrypcja { white-space: pre-wrap; color: var(--pn-szary); }
 .pn-naglowek-przyklejony { position: sticky; top: 48px; z-index: 5; margin: -24px -28px 0; padding: 14px 28px 12px; background: var(--pn-tlo); border-bottom: 1px solid var(--pn-linia); }

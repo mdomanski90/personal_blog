@@ -269,6 +269,17 @@ export function wiekDoSprawdzenia(o: Osoba, szacowany: number | undefined, rokTe
     return null
 }
 
+/**
+ * PPL-11 (19.11): tekst ostrzeżenia „czy żyje?” dla bieżącego stanu (także niezapisanego w edytorze) – te same progi co
+ * wiekDoSprawdzenia; `wiek` – lata od (szacowanego) roku urodzenia. null – nie trzeba sprawdzać.
+ */
+export function tekstSprawdzeniaZycia(o: Pick<Osoba, 'zyje' | 'zdarzenia'>, wiek: number, szacowany: boolean): string | null {
+    if (o.zyje === 'nie' || o.zdarzenia.some((z) => z.rodzaj === 'zgon' || z.rodzaj === 'pogrzeb')) return null
+    if (o.zyje === 'auto' && wiek >= WIEK_DO_SPRAWDZENIA && wiek < PROG_ZYCIA) return `${szacowany ? 'około ' : ''}${wiek} lat i brak daty zgonu – czy żyje?`
+    if (o.zyje === 'tak' && wiek >= PROG_ZYCIA) return `oznaczona jako żyjąca, a miałaby ${wiek} lat – sprawdź`
+    return null
+}
+
 /** Progi widoczności „auto”: karta publiczna, gdy osoba urodziła się co najmniej 100 lat temu albo zmarła co najmniej 25 lat temu. */
 export const PROG_URODZENIA = 100
 export const PROG_ZGONU = 25

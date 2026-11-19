@@ -1,7 +1,7 @@
 // Wspólne kawałki API panelu osób i stron czytelnika.
 
 import { miejsca as wszystkieMiejsca } from '../archiwum'
-import { lataZycia, nazwaOsoby, ostrzezenia, rokUrodzenia, wiekDoSprawdzenia, zdarzenie, type Osoba } from './model'
+import { lataZycia, nazwaOsoby, ostrzezenia, rokUrodzenia, tekstSprawdzeniaZycia, wiekDoSprawdzenia, zdarzenie, type Osoba } from './model'
 export { lataZycia }
 import type { StanOsob } from './dane'
 
@@ -30,12 +30,14 @@ export async function miejscaDoDopasowania() {
     return (await wszystkieMiejsca('ja')).map((m) => ({ id: m.id, nazwa: m.nazwa, inneNazwy: m.inneNazwy }))
 }
 
-export function ostrzezeniaWgOsob(s: StanOsob): Map<string, string[]> {
+/** Ostrzeżenia osób; `zycie: false` – bez „czy żyje?” (edytor osoby liczy je sam, na bieżąco – PPL-11). */
+export function ostrzezeniaWgOsob(s: StanOsob, { zycie = true }: { zycie?: boolean } = {}): Map<string, string[]> {
     const m = new Map<string, string[]>()
     for (const w of ostrzezenia(s.drzewo, s.relacje)) m.set(w.osoba, [...(m.get(w.osoba) ?? []), w.tekst])
-    for (const z of doSprawdzeniaZycia(s)) m.set(z.id, [...(m.get(z.id) ?? []), z.zyje === 'tak'
-        ? `oznaczona jako żyjąca, a miałaby ${z.wiek} lat – sprawdź`
-        : `${z.szacowany ? 'około ' : ''}${z.wiek} lat i brak daty zgonu – czy żyje?`])
+    if (zycie) for (const z of doSprawdzeniaZycia(s)) {
+        const t = tekstSprawdzeniaZycia(s.drzewo.osoby.get(z.id)!, z.wiek, z.szacowany)
+        if (t) m.set(z.id, [...(m.get(z.id) ?? []), t])
+    }
     return m
 }
 

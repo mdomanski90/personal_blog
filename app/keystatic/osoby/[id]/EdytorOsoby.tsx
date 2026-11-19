@@ -2,7 +2,7 @@
 // Edytor osoby w panelu (PK: w ramie panelu, klasy z app/keystatic/panel.css): dane, zdarzenia (z obrządkiem i chrzestnymi), rodzina, źródła, notatki, ostrzeżenia.
 import * as React from 'react'
 import { formatujEdtf, czyPoprawnaEdtf } from '@/lib/edtf'
-import { OBRZADKI, RODZAJE_ZDARZEN, ZDARZENIA_Z_OBRZADKIEM, adresAncestry, noweIdZdarzenia, sortujZdarzenia, type Obrzadek, type Osoba, type RodzajZdarzenia, type Rodzina, type Zdarzenie, type Zrodlo } from '@/lib/osoby/model'
+import { OBRZADKI, RODZAJE_ZDARZEN, ZDARZENIA_Z_OBRZADKIEM, adresAncestry, noweIdZdarzenia, sortujZdarzenia, tekstSprawdzeniaZycia, type Obrzadek, type Osoba, type RodzajZdarzenia, type Rodzina, type Zdarzenie, type Zrodlo } from '@/lib/osoby/model'
 import { wyslij } from '../wspolne'
 
 type Skrot = { id: string; nazwa: string; imiona: string; nazwisko: string; plec: string; lata: string; miejsce: string; zyje: boolean; widocznosc: string }
@@ -16,6 +16,9 @@ type Dane = {
     osoby: Record<string, Skrot | null>
     zrodla: Record<string, Zrodlo>
     ostrzezenia: string[]
+    /** PPL-11: lata od (szacowanego) roku urodzenia – „czy żyje?” liczone na bieżąco */
+    wiek: number | null
+    wiekSzacowany: boolean
     zParafii: Record<string, Obrzadek | null>
     wszystkie: Skrot[]
 }
@@ -191,6 +194,20 @@ export default function EdytorOsoby({ id }: { id: string }) {
     const rodzajeOsoby = (Object.keys(RODZAJE_ZDARZEN) as RodzajZdarzenia[]).filter((r) => r !== 'slub' && r !== 'rozwod')
     const zyje = o.zyje === 'auto' ? dane.zyjeAuto : o.zyje === 'tak'
     const rodzina = dane.rodzice[0]
+    // PPL-11: ostrzeżenie „czy żyje?” z bieżącego stanu formularza – znika od razu po „nie żyje” albo dodaniu zgonu
+    const zycie = dane.wiek != null ? tekstSprawdzeniaZycia(o, dane.wiek, dane.wiekSzacowany) : null
+    const pole = (etykieta: string, el: React.ReactElement, podp?: string, klasa = '') => {
+        const idp = podp ? `podp-${etykieta.replace(/\W+/g, '-')}` : undefined
+        return <label className={`pn-pole ${klasa}`.trim()}><span>{etykieta}</span>{idp ? React.cloneElement(el as React.ReactElement<{ 'aria-describedby'?: string }>, { 'aria-describedby': idp }) : el}{podp && <span id={idp} className="pn-podp">{podp}</span>}</label>
+    }
+    const wgrajZdjecie = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const f = e.target.files?.[0]; e.target.value = ''
+        if (!f) return
+        const fd = new FormData(); fd.append('plik', f)
+        const r = await fetch(`/api/keystatic/osoby/${id}/portret`, { method: 'POST', body: fd })
+        const d = await r.json().catch(() => null)
+        if (d?.plik) zmien({ portret: { ...(o.portret ?? {}), plik: d.plik } }); else ustawMsg(d?.blad ?? 'nie udało się wgrać zdjęcia')
+    }
 
     return (
         <>
@@ -210,57 +227,51 @@ export default function EdytorOsoby({ id }: { id: string }) {
                 </span>
             </header>
 
-            {dane.ostrzezenia.length > 0 && (
+            {(dane.ostrzezenia.length > 0 || zycie) && (
                 <div className="pn-ostrz">
                     <div className="pn-kol">
+                        {zycie && (
+                            <span className="pn-rzad">
+                                <span>{zycie}</span>
+                                <button type="button" onClick={() => zmien({ zyje: 'nie' })} className="pn-btn pn-btn-maly">nie żyje</button>
+                                {o.zyje === 'auto' && <button type="button" onClick={() => zmien({ zyje: 'tak' })} className="pn-btn pn-btn-maly">żyje</button>}
+                            </span>
+                        )}
                         {dane.ostrzezenia.map((w, i) => <span key={i}>{w}</span>)}
                         {o.uwagi?.length ? <button type="button" onClick={() => zmien({ uwagi: [] })} className="pn-btn pn-btn-maly pn-samo">uwagi z importu sprawdzone – usuń</button> : null}
                     </div>
                 </div>
             )}
 
+            {/* PPL-11 (19.11): zdjęcie przy imieniu (miniatura po lewej), krótkie etykiety z objaśnieniem pod polem – pola w jednej linii */}
             <section className="pn-karta" aria-labelledby="dane-t">
                 <h2 id="dane-t">dane osoby</h2>
-                <div className="pn-formularz">
-                <label className="pn-pole"><span>imiona</span><input value={o.imiona} onChange={(e) => zmien({ imiona: e.target.value })} className="pn-in" /></label>
-                <label className="pn-pole"><span>nazwisko</span><input value={o.nazwisko} onChange={(e) => zmien({ nazwisko: e.target.value })} className="pn-in" /></label>
-                <label className="pn-pole"><span>inne nazwiska (panieńskie, z aktów; po przecinku)</span><input value={(o.inneNazwiska ?? []).join(', ')} onChange={(e) => zmien({ inneNazwiska: e.target.value.split(',').map((s) => s.trim()) })} onBlur={() => zmien({ inneNazwiska: (o.inneNazwiska ?? []).filter(Boolean) })} className="pn-in" /></label>
-                <label className="pn-pole"><span>przydomek, pseudonim</span><input value={o.przydomek ?? ''} placeholder="np. Sowa, Kowalka" onChange={(e) => zmien({ przydomek: e.target.value })} className="pn-in" /></label>
-                {/* KRT-01 (P3): „zgłosił(a)” – podpis za zgodą, bez e-maila (adres z „@” nie zostanie zapisany) */}
-                <label className="pn-pole"><span>zgłosił(a) – podpis za zgodą, bez e-maila</span><input value={o.zglosil ?? ''} placeholder="np. Anna Nowak, Olszanka" pattern="[^@]*" title="Bez adresu e-mail – sam podpis." onChange={(e) => zmien({ zglosil: e.target.value })} className="pn-in" /></label>
-                <label className="pn-pole pn-caly"><span>inne zapisy imienia i nazwiska – z aktów, po łacinie, cyrylicą (po przecinku)</span><input value={(o.inneZapisy ?? []).join(', ')} placeholder="np. Joannes Testowski, Иван Тестовый" onChange={(e) => zmien({ inneZapisy: e.target.value.split(',').map((s) => s.trim()) })} onBlur={() => zmien({ inneZapisy: (o.inneZapisy ?? []).filter(Boolean) })} className="pn-in" /></label>
-                <label className="pn-pole"><span>płeć</span><select value={o.plec} onChange={(e) => zmien({ plec: e.target.value as Osoba['plec'] })} className="pn-in"><option value="U">nie wiadomo</option><option value="K">kobieta</option><option value="M">mężczyzna</option></select></label>
-                <label className="pn-pole"><span>żyje</span><select value={o.zyje} onChange={(e) => zmien({ zyje: e.target.value as Osoba['zyje'] })} className="pn-in"><option value="auto">z dat ({dane.zyjeAuto ? 'żyjąca' : 'nie żyje'})</option><option value="tak">żyje</option><option value="nie">nie żyje</option></select></label>
-                <label className="pn-pole"><span>widoczność karty</span><select value={o.widocznosc} onChange={(e) => zmien({ widocznosc: e.target.value as Osoba['widocznosc'] })} className="pn-in"><option value="auto">auto ({(dane.widocznoscAuto ?? (zyje ? 'bliscy' : 'publiczne')) === 'publiczne' ? 'publiczna' : 'dla bliskich'}) – ur. 100+ lub zm. 25+ lat temu</option><option value="publiczne">publiczna</option><option value="bliscy">dla bliskich</option><option value="ja">tylko ja</option></select></label>
-                <label className="pn-pole pn-caly"><span>znaczniki (po przecinku)</span><input value={(o.znaczniki ?? []).join(', ')} onChange={(e) => zmien({ znaczniki: e.target.value.split(',').map((s) => s.trim()) })} onBlur={() => zmien({ znaczniki: (o.znaczniki ?? []).filter(Boolean) })} className="pn-in" /></label>
-                </div>
-            </section>
-
-            <section className="pn-karta" aria-labelledby="zdjecie-t">
-                <h2 id="zdjecie-t">zdjęcie osoby</h2>
-                <div className="pn-rzad pn-rzad-gora">
-                    {o.portret
-                        // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={`/api/keystatic/osoby/${id}/portret?plik=${encodeURIComponent(o.portret.plik)}`} alt="zdjęcie osoby" className="pn-portret" />
-                        : <span className="pn-portret pn-portret-brak pn-maly">brak zdjęcia</span>}
-                    <div className="pn-kol pn-rosnie">
-                        <label className="pn-btn pn-samo">
+                <div className="pn-osoba-dane">
+                    <div className="pn-kol pn-osoba-zdjecie">
+                        {o.portret
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={`/api/keystatic/osoby/${id}/portret?plik=${encodeURIComponent(o.portret.plik)}`} alt="zdjęcie osoby" className="pn-portret" />
+                            : <span className="pn-portret pn-portret-brak pn-maly">brak zdjęcia</span>}
+                        <label className="pn-btn pn-btn-maly" title="Zdjęcie pokaże się na karcie osoby po zapisaniu – tylko tym, którzy widzą kartę.">
                             {o.portret ? 'zmień zdjęcie' : 'dodaj zdjęcie'}
-                            <input type="file" accept="image/*" hidden onChange={async (e) => {
-                                const f = e.target.files?.[0]; e.target.value = ''
-                                if (!f) return
-                                const fd = new FormData(); fd.append('plik', f)
-                                const r = await fetch(`/api/keystatic/osoby/${id}/portret`, { method: 'POST', body: fd })
-                                const d = await r.json().catch(() => null)
-                                if (d?.plik) zmien({ portret: { ...(o.portret ?? {}), plik: d.plik } }); else ustawMsg(d?.blad ?? 'nie udało się wgrać zdjęcia')
-                            }} />
+                            <input type="file" accept="image/*" hidden onChange={wgrajZdjecie} />
                         </label>
+                        {o.portret && <button type="button" onClick={() => confirm('Odpiąć zdjęcie od osoby? (plik zostaje na serwerze)') && zmien({ portret: undefined })} className="pn-btn pn-btn-maly">odepnij</button>}
+                    </div>
+                    <div className="pn-formularz pn-formularz-4">
+                        {pole('imiona', <input value={o.imiona} onChange={(e) => zmien({ imiona: e.target.value })} className="pn-in" />)}
+                        {pole('nazwisko', <input value={o.nazwisko} onChange={(e) => zmien({ nazwisko: e.target.value })} className="pn-in" />)}
+                        {pole('inne nazwiska', <input value={(o.inneNazwiska ?? []).join(', ')} onChange={(e) => zmien({ inneNazwiska: e.target.value.split(',').map((x) => x.trim()) })} onBlur={() => zmien({ inneNazwiska: (o.inneNazwiska ?? []).filter(Boolean) })} className="pn-in" />, 'panieńskie, z aktów; po przecinku')}
+                        {pole('przydomek, pseudonim', <input value={o.przydomek ?? ''} placeholder="np. Sowa, Kowalka" onChange={(e) => zmien({ przydomek: e.target.value })} className="pn-in" />)}
+                        {pole('inne zapisy imienia i nazwiska', <input value={(o.inneZapisy ?? []).join(', ')} placeholder="np. Joannes Testowski, Иван Тестовый" onChange={(e) => zmien({ inneZapisy: e.target.value.split(',').map((x) => x.trim()) })} onBlur={() => zmien({ inneZapisy: (o.inneZapisy ?? []).filter(Boolean) })} className="pn-in" />, 'z aktów, po łacinie, cyrylicą; po przecinku', 'pn-caly')}
+                        {pole('płeć', <select value={o.plec} onChange={(e) => zmien({ plec: e.target.value as Osoba['plec'] })} className="pn-in"><option value="U">nie wiadomo</option><option value="K">kobieta</option><option value="M">mężczyzna</option></select>)}
+                        {pole('żyje', <select value={o.zyje} onChange={(e) => zmien({ zyje: e.target.value as Osoba['zyje'] })} className="pn-in"><option value="auto">z dat ({dane.zyjeAuto ? 'żyjąca' : 'nie żyje'})</option><option value="tak">żyje</option><option value="nie">nie żyje</option></select>)}
+                        {pole('widoczność karty', <select value={o.widocznosc} onChange={(e) => zmien({ widocznosc: e.target.value as Osoba['widocznosc'] })} className="pn-in"><option value="auto">auto ({(dane.widocznoscAuto ?? (zyje ? 'bliscy' : 'publiczne')) === 'publiczne' ? 'publiczna' : 'dla bliskich'}) – ur. 100+ lub zm. 25+ lat temu</option><option value="publiczne">publiczna</option><option value="bliscy">dla bliskich</option><option value="ja">tylko ja</option></select>, undefined, 'pn-pole-2')}
+                        {pole('znaczniki', <input value={(o.znaczniki ?? []).join(', ')} onChange={(e) => zmien({ znaczniki: e.target.value.split(',').map((x) => x.trim()) })} onBlur={() => zmien({ znaczniki: (o.znaczniki ?? []).filter(Boolean) })} className="pn-in" />, 'po przecinku', 'pn-caly')}
                         {o.portret && <>
-                            <label className="pn-pole"><span>podpis (np. „ok. 1930, przed domem w Olszance”)</span><input value={o.portret.podpis ?? ''} onChange={(e) => zmien({ portret: { ...o.portret!, podpis: e.target.value } })} className="pn-in" /></label>
-                            <label className="pn-pole"><span>źródło (skąd zdjęcie, kto je udostępnił)</span><input value={o.portret.zrodlo ?? ''} onChange={(e) => zmien({ portret: { ...o.portret!, zrodlo: e.target.value } })} className="pn-in" /></label>
-                            <button type="button" onClick={() => confirm('Odpiąć zdjęcie od osoby? (plik zostaje na serwerze)') && zmien({ portret: undefined })} className="pn-btn pn-samo">odepnij zdjęcie</button>
+                            {pole('podpis zdjęcia', <input value={o.portret.podpis ?? ''} placeholder="np. ok. 1930, przed domem w Olszance" onChange={(e) => zmien({ portret: { ...o.portret!, podpis: e.target.value } })} className="pn-in" />, undefined, 'pn-pole-2')}
+                            {pole('źródło zdjęcia', <input value={o.portret.zrodlo ?? ''} onChange={(e) => zmien({ portret: { ...o.portret!, zrodlo: e.target.value } })} className="pn-in" />, 'skąd zdjęcie, kto je udostępnił; widać po zapisaniu', 'pn-pole-2')}
                         </>}
-                        <span className="pn-maly">Zdjęcie pokaże się na karcie osoby po zapisaniu – tylko tym, którzy widzą kartę.</span>
                     </div>
                 </div>
             </section>
@@ -289,8 +300,12 @@ export default function EdytorOsoby({ id }: { id: string }) {
                         <button type="button" onClick={() => confirm('Wypisać tę osobę z rodziny rodziców?') && relacja({ akcja: 'rozlacz', rodzina: r.rodzina.id, osoba: id })} className="pn-btn pn-btn-maly">odłącz od rodziców</button>
                     </div>
                 ))}
-                {(!rodzina || !rodzina.maz) && <WyborOsoby wszystkie={wszyscyBezMnie} bez={[id]} etykieta="ojciec" onWybor={(x) => relacja({ akcja: 'polacz', osoba: x, z: id, jako: 'rodzic' })} onNowa={(i, n) => nowaWRodzinie(i, n, 'rodzic', undefined, 'M')} />}
-                {(!rodzina || !rodzina.zona) && <WyborOsoby wszystkie={wszyscyBezMnie} bez={[id]} etykieta="matka" onWybor={(x) => relacja({ akcja: 'polacz', osoba: x, z: id, jako: 'rodzic' })} onNowa={(i, n) => nowaWRodzinie(i, n, 'rodzic', undefined, 'K')} />}
+                {(!rodzina || !rodzina.maz || !rodzina.zona) && (
+                    <div className="pn-rzad pn-rzad-gora">
+                        {(!rodzina || !rodzina.maz) && <WyborOsoby wszystkie={wszyscyBezMnie} bez={[id]} etykieta="ojciec" onWybor={(x) => relacja({ akcja: 'polacz', osoba: x, z: id, jako: 'rodzic' })} onNowa={(i, n) => nowaWRodzinie(i, n, 'rodzic', undefined, 'M')} />}
+                        {(!rodzina || !rodzina.zona) && <WyborOsoby wszystkie={wszyscyBezMnie} bez={[id]} etykieta="matka" onWybor={(x) => relacja({ akcja: 'polacz', osoba: x, z: id, jako: 'rodzic' })} onNowa={(i, n) => nowaWRodzinie(i, n, 'rodzic', undefined, 'K')} />}
+                    </div>
+                )}
             </section>
 
             <section className="pn-karta" aria-labelledby="malzenstwa-t">
@@ -323,9 +338,13 @@ export default function EdytorOsoby({ id }: { id: string }) {
             </section>
 
             <section className="pn-karta" aria-labelledby="notatki-t">
-                <h2 id="notatki-t">notatki</h2>
+                <h2 id="notatki-t">notatki i pochodzenie informacji</h2>
                 <textarea value={o.notatki ?? ''} onChange={(e) => zmien({ notatki: e.target.value || undefined })} rows={5} className="pn-in" aria-label="notatki" />
                 <span className="pn-maly">Notatki osoby widzą na stronie tylko zalogowani bliscy.</span>
+                {/* KRT-01 (P3): „zgłosił(a)” – podpis za zgodą, bez e-maila (adres z „@” nie zostanie zapisany); PPL-11: tu, nie w danych osoby */}
+                <div className="pn-formularz">
+                    {pole('zgłosił(a)', <input value={o.zglosil ?? ''} placeholder="np. Anna Nowak, Olszanka" pattern="[^@]*" title="Bez adresu e-mail – sam podpis." onChange={(e) => zmien({ zglosil: e.target.value })} className="pn-in" />, 'podpis za zgodą, bez e-maila – widać na karcie osoby')}
+                </div>
             </section>
 
             {o.cytaty?.length ? (
