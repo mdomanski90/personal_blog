@@ -15,8 +15,8 @@ import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { zapewnijKatalog } from './katalogi'
 
-export type RodzajOperacji = 'import-ksiag' | 'import-drzewa' | 'zbiorcza' | 'odtworzenie' | 'przywrocenie'
-export const NAZWY_OPERACJI: Record<RodzajOperacji, string> = { 'import-ksiag': 'import ksiąg', 'import-drzewa': 'import drzewa (GEDCOM)', zbiorcza: 'zmiana zbiorcza', odtworzenie: 'odtworzenie z kopii', przywrocenie: 'przywrócenie wersji / z kosza' }
+export type RodzajOperacji = 'import-ksiag' | 'import-drzewa' | 'zbiorcza' | 'odtworzenie' | 'przywrocenie' | 'polacz'
+export const NAZWY_OPERACJI: Record<RodzajOperacji, string> = { 'import-ksiag': 'import ksiąg', 'import-drzewa': 'import drzewa (GEDCOM)', zbiorcza: 'zmiana zbiorcza', odtworzenie: 'odtworzenie z kopii', przywrocenie: 'przywrócenie wersji / z kosza', polacz: 'połącz wzmianki (odnośniki [[…]])' }
 export type StanOperacji = 'przygotowane' | 'zapisane' | 'wycofane' | 'wycofane-czesciowo' | 'cofniete' | 'dokonczone'
 
 /** Zmiana jednego pliku. `plik` – ścieżka względem `content/` (ukośniki). `null` = pliku nie ma (utworzenie / usunięcie). */

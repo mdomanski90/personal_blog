@@ -240,6 +240,9 @@ a.pn-ostrz:hover, a.pn-info:hover { background: var(--pn-hover); }
 .pn-tabela tbody tr:hover { background: var(--pn-hover); }
 .pn-tabela tr[aria-selected=true] { background: color-mix(in srgb, var(--pn-wyp) 12%, var(--pn-pole)); }
 .pn-tabela .pn-kol-zazn { width: 36px; padding-right: 0; }
+/* P6b (PD-10): „połącz” – wiersz tekstu źródłowego nad jego wzmiankami (nie przykleja się jak nagłówek kolumn) */
+.pn-polacz .pn-polacz-tekst th { position: static; font-size: 13px; color: var(--pn-tekst); white-space: normal; padding-top: 14px; }
+.pn-ukryte { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .pn-tabela input[type=checkbox] { width: 16px; height: 16px; margin: 2px 0 0; }
 .pn-tabela th button { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
 .pn-tabela .pn-slug { font-family: var(--pn-mono); font-size: 12px; color: var(--pn-szary); }

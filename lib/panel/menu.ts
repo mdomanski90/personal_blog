@@ -64,6 +64,7 @@ export const MENU: GrupaMenu[] = [
         { klucz: 'przekierowania', nazwa: 'przekierowania adresów', href: sin('przekierowania') },
         { klucz: 'kregiStopka', nazwa: 'kręgi i stopka', href: sin('kregiStopka') },
         { klucz: 'menuPanelu', nazwa: 'menu panelu', href: sin('menuPanelu') },
+        { klucz: 'polacz', nazwa: 'połącz wzmianki', href: '/keystatic/panel/polacz' }, // P6b (PD-10)
         { klucz: 'szablony', nazwa: 'mapa szablonów', href: '/keystatic/panel/szablony' },
         { klucz: 'wzorce', nazwa: 'wzorce języka wizualnego', href: '/keystatic/panel/wzorce' },
         { klucz: 'system', nazwa: 'kopie, eksport, ustawienia', href: '/keystatic/panel/system' },
