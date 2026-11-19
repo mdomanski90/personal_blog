@@ -7,8 +7,9 @@ import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { maTeren, planWTerenie, type Uprawnienie } from '../konta/model'
 import { kontaWlaczone, zalogowany, type Zalogowany } from '../konta/straz'
-import { listaPlanow, poKolei, wczytajPlan, wczytajUstawienia, zapiszPlan } from '../plany/dane'
+import { listaPlanow, poKolei, sciezkaPliku, wczytajPlan, wczytajUstawienia, zapiszPlan } from '../plany/dane'
 import { popraw, SLUG, type Plan, type Widocznosc } from '../plany/model'
+import type { UstawieniaPlanow } from '../plany/typy'
 import { rozstrzygnij, zastosujCzynnosc, type Czynnosc, type KtoWTerenie, type WpisDziennika } from './czynnosci'
 import { ID_MIEJSCA, odczytajMiejsce, type MiejsceTerenu, type PunktMiejscowosci, type ZdjecieTerenu } from './miejsca'
 
@@ -93,6 +94,32 @@ export async function wykonajCzynnosc(slug: string, cz: Czynnosc, kto: KtoWTeren
     })
 }
 
+/**
+ * P7b-2: pliki do „pobierz do pracy bez internetu” – podkłady widoczne w terenie (bez materiałów archiwalnych, jak w widoku planu)
+ * i ikony własnych typów; z rozmiarem do napisu „(12 MB)”. Istniejących zdjęć grobów nie pobieramy (decyzja 19.11, pyt. 2).
+ */
+export async function plikiDoPobrania(slug: string, plan: Pick<Plan, 'podklady'>, u: UstawieniaPlanow): Promise<{ adres: string; bajty: number }[]> {
+    const wyn: { adres: string; bajty: number }[] = []
+    for (const p of plan.podklady) {
+        if (!p.plik || p.material) continue
+        const s = sciezkaPliku(slug, p.plik)
+        const st = s ? await fs.promises.stat(s).catch(() => null) : null
+        if (st) wyn.push({ adres: `/api/keystatic/plany/${slug}/plik/${p.plik}`, bajty: st.size })
+    }
+    for (const w of u.wlasneTypy ?? []) {
+        if (!w.png) continue
+        const s = sciezkaPliku('_ikony', w.png)
+        const st = s ? await fs.promises.stat(s).catch(() => null) : null
+        wyn.push({ adres: `/plany/ikona/${w.png}`, bajty: st?.size ?? 0 })
+    }
+    return wyn
+}
+
+/** Czynność już zapisana w dzienniku planu (powtórzona wysyłka z kolejki telefonu) – sprawdzane przed zapisem pliku zdjęcia. */
+export async function czynnoscWDzienniku(slug: string, id: string): Promise<WpisDziennika | null> {
+    return (await wczytajDziennik(slug)).find((w) => w.id === id) ?? null
+}
+
 /** Redakcja wybiera wersję napisu „do decyzji”. */
 export async function rozstrzygnijZmiane(slug: string, id: string, wybor: 'teren' | 'redakcja', kto: { id: string }): Promise<{ wpis: WpisDziennika } | { blad: string; status: number }> {
     return poKolei(slug, async () => {
@@ -143,6 +170,12 @@ export async function zapiszMiejsceTerenu(m: MiejsceTerenu) {
 export async function usunMiejsceTerenu(id: string) {
     if (!ID_MIEJSCA.test(id)) return
     await fs.promises.rm(path.join(MIEJSCA(), `${id}.json`), { force: true })
+    await fs.promises.rm(path.join(PLIKI(), id), { recursive: true, force: true })
+}
+
+/** Resztki przerwanej wysyłki: zdjęcia wpisu, którego plik jeszcze nie istnieje (P7b-2 – powtórka z kolejki telefonu). */
+export async function wyczyscResztkiMiejsca(id: string) {
+    if (!ID_MIEJSCA.test(id) || (await wczytajMiejsceTerenu(id))) return
     await fs.promises.rm(path.join(PLIKI(), id), { recursive: true, force: true })
 }
 

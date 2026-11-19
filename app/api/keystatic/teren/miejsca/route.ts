@@ -1,6 +1,6 @@
 import { brakDostepu } from '@/lib/plany/dane'
 import { najblizszaMiejscowosc, odczytajNoweMiejsce, type MiejsceTerenu } from '@/lib/teren/miejsca'
-import { listaMiejscTerenu, miejscowosciZPolozeniem, osobaWTerenie, wczytajMiejsceTerenu, zapiszMiejsceTerenu, zapiszZdjecieTerenu } from '@/lib/teren/serwer'
+import { listaMiejscTerenu, miejscowosciZPolozeniem, osobaWTerenie, wczytajMiejsceTerenu, wyczyscResztkiMiejsca, zapiszMiejsceTerenu, zapiszZdjecieTerenu } from '@/lib/teren/serwer'
 
 // P7b (TER-01): skrzynka „z terenu”. GET – redakcja (dział „miejsca i obiekty”) widzi wszystkie wpisy, konto terenowe tylko swoje.
 // POST – nowe miejsce z telefonu (zdjęcia, położenie, rodzaj, nazwa, notatka); zawsze stan „nowe”, widoczne tylko w panelu.
@@ -29,6 +29,7 @@ export async function POST(req: Request) {
     if (!pliki.length && !pola.nazwa) return Response.json({ blad: 'Dodaj zdjęcie albo wpisz nazwę.' }, { status: 422 })
     if (pliki.some((p) => p.size > 40 * 1024 * 1024)) return Response.json({ blad: 'Zdjęcie jest za duże (najwyżej 40 MB).' }, { status: 413 })
     const zdjecia: MiejsceTerenu['zdjecia'] = []
+    await wyczyscResztkiMiejsca(pola.id)
     try {
         for (const [i, p] of pliki.entries()) zdjecia.push(await zapiszZdjecieTerenu(pola.id, Buffer.from(await p.arrayBuffer()), i + 1))
     } catch { return Response.json({ blad: 'Nie udało się odczytać zdjęcia – spróbuj zrobić je jeszcze raz.' }, { status: 400 }) }
