@@ -4,14 +4,15 @@
 // nic się nie zmienia, panel chroni hasło nginx jak przed P7a.
 import { NextResponse, type NextRequest } from 'next/server'
 import { uprawnienieStrony } from './lib/konta/model'
-import { kontaWlaczone, zalogowanyZNaglowka } from './lib/konta/straz'
+import { konfiguracjaKont, zalogowanyZNaglowka } from './lib/konta/straz'
 
 export function proxy(req: NextRequest) {
-    if (!kontaWlaczone()) return NextResponse.next()
+    const strona = konfiguracjaKont()?.strona
+    if (!strona) return NextResponse.next()
     const { pathname, search } = req.nextUrl
     const z = zalogowanyZNaglowka(req.headers.get('cookie'))
-    // przekierowania względne – za nginx adres żądania to 127.0.0.1
-    const idz = (adres: string) => new NextResponse(null, { status: 307, headers: { Location: adres, 'Cache-Control': 'no-store' } })
+    // proxy wymaga pełnego adresu przekierowania; za nginx adres żądania to 127.0.0.1, więc bierzemy adres strony z ustawień kont
+    const idz = (adres: string) => { const r = NextResponse.redirect(new URL(adres, strona), 307); r.headers.set('Cache-Control', 'no-store'); return r }
     if (!z) return idz(`/zaloguj?wroc=${encodeURIComponent(pathname + search)}`)
     if (!z.uprawnienia.has('panel')) return idz('/moje-konto?panel=brak')
     if (!z.uprawnienia.has(uprawnienieStrony(pathname))) return idz('/keystatic/panel?odmowa=administrator')

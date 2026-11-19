@@ -2385,6 +2385,7 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 
 /* ---------- P7a (KON-01): zaloguj, zaproszenie („witaj”), moje konto, konto w nagłówku ---------- */
 .konto-opis{max-width:var(--szer-tekstu);margin:0;line-height:1.55}
+.konto-opis+.sekcja{margin-top:calc(1rem * var(--font-scale,1))}
 .konto-drobne{max-width:var(--szer-tekstu);margin:0;font-size:var(--rozmiar-opis);color:var(--tekst-opis);line-height:1.5}
 .konto-form{display:flex;flex-direction:column;gap:calc(.6rem * var(--font-scale,1));max-width:var(--szer-tekstu)}
 .konto-pole{font-size:var(--rozmiar-etykieta);color:var(--tekst-opis);text-transform:lowercase}
@@ -2396,6 +2397,6 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .konto-kroki li{counter-increment:krok;display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:var(--kreska-tytulu) solid var(--akcent);font-size:var(--rozmiar-maly);line-height:1.5}
 .konto-kroki li b::before{content:counter(krok) ". ";color:var(--akcent)}
 .naglowek-konto{font-size:var(--rozmiar-etykieta);color:var(--tekst-opis);white-space:nowrap;max-width:24ch;overflow:hidden;text-overflow:ellipsis}
-.naglowek-krotki{display:none}
-@media (max-width:640px){.naglowek-konto,.naglowek-dlugi{display:none}.naglowek-krotki{display:inline}}
+/* wąski ekran: w nagłówku sam znak ✎ (pełna nazwa w etykiecie odnośnika), imię w „moje konto” */
+@media (max-width:640px){.naglowek-konto,.naglowek-dlugi{display:none}}
 @media print{.naglowek-konto,.naglowek-edytuj{display:none}}

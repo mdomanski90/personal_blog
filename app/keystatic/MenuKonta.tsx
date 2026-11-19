@@ -2,7 +2,7 @@
 // P7a (KON-01): imię i rola w pasku panelu; menu z przełącznikiem ról (plansza „dwie role – przełącznik w pasku”).
 // Przełączenie na administratora = ponowne użycie klucza dostępu (Pocket ID), najwyżej 30 minut; powrót do roli na co dzień – od razu.
 import * as React from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, CircleUserRound } from 'lucide-react'
 
 export interface KontoRamy {
     imie: string; rola: string; naCoDzien: string | null
@@ -28,17 +28,21 @@ export default function MenuKonta({ konto, sciezka }: { konto: KontoRamy; sciezk
         if (!otwarte) return
         menu.current?.querySelector<HTMLElement>('a,button')?.focus()
         const klawisz = (e: KeyboardEvent) => { if (e.key === 'Escape') { ustawOtwarte(false); przycisk.current?.focus() } }
-        const klik = (e: MouseEvent) => { if (!menu.current?.contains(e.target as Node) && !przycisk.current?.contains(e.target as Node)) ustawOtwarte(false) }
-        document.addEventListener('keydown', klawisz); document.addEventListener('mousedown', klik)
-        return () => { document.removeEventListener('keydown', klawisz); document.removeEventListener('mousedown', klik) }
+        document.addEventListener('keydown', klawisz)
+        // treść strony pod otwartym menu jest nieaktywna (jak pod oknem): nic nie zostaje częściowo przykryte i klikalne
+        const tresc = document.getElementById('panel-tresc')
+        tresc?.setAttribute('inert', '')
+        return () => { document.removeEventListener('keydown', klawisz); tresc?.removeAttribute('inert') }
     }, [otwarte])
     React.useEffect(() => { ustawOtwarte(false) }, [sciezka])
     const tu = sciezka || '/keystatic/panel'
     return (
         <div className="pn-konto">
-            <button ref={przycisk} type="button" className="pn-btn pn-btn-maly pn-konto-btn" aria-expanded={otwarte} aria-controls={id} onClick={() => ustawOtwarte((o) => !o)}>
-                <span className="pn-konto-imie">{konto.imie}</span><span className="pn-tylko-szeroki"> · {konto.rola}{konto.administrator && zostalo ? ` (${zostalo} min)` : ''}</span><ChevronDown aria-hidden />
+            <button ref={przycisk} type="button" className="pn-btn pn-btn-maly pn-konto-btn" aria-expanded={otwarte} aria-controls={id} aria-label={`konto: ${konto.imie}, ${konto.rola}`} onClick={() => ustawOtwarte((o) => !o)}>
+                <CircleUserRound aria-hidden className="pn-konto-znak" /><span className="pn-konto-imie">{konto.imie}</span><span className="pn-konto-rola"> · {konto.rola}{konto.administrator && zostalo ? ` (${zostalo} min)` : ''}</span><ChevronDown aria-hidden className="pn-konto-strzalka" />
             </button>
+            {/* zasłona pod menu: klik poza menu zamyka je, a przyciski strony nie są częściowo przykryte */}
+            {otwarte && <div className="pn-konto-zaslona" aria-hidden="true" onClick={() => ustawOtwarte(false)} />}
             {otwarte && (
                 <div ref={menu} id={id} className="pn-konto-menu" role="group" aria-label="konto i rola">
                     <p className="pn-etyk">pracujesz jako</p>

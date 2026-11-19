@@ -532,6 +532,10 @@ button.pn-szukaj { background: var(--pn-pole); border-color: var(--pn-linia); }
 /* ---------- P7a (KON-01): konto w pasku, konta i dostęp, role ---------- */
 .pn-konto { position: relative; }
 .pn-konto-btn svg { width: 14px; height: 14px; margin: 0 -2px 0 2px; }
+.pn-konto-btn .pn-konto-znak { display: none; width: 18px; height: 18px; margin: 0; stroke-width: 1.5; }
+.pn-konto-zaslona { position: fixed; inset: 0; z-index: 85; }
+/* wąski ekran: w pasku sam znak konta (imię i rola w menu i w etykiecie przycisku) */
+@media (max-width: 820px) { .pn-konto-imie, .pn-konto-rola, .pn-konto-btn .pn-konto-strzalka { display: none; } .pn-konto-btn .pn-konto-znak { display: block; } .pn-konto-btn { width: 36px; height: 36px; padding: 0; } }
 .pn-konto-imie { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pn-konto-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 90; width: min(340px, calc(100vw - 24px)); box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--pn-linia); border-radius: 10px; background: var(--pn-karta); color: var(--pn-tekst); box-shadow: 0 8px 28px var(--pn-cien); font-size: 13px; }
 .pn-konto-menu p { margin: 0; }
@@ -567,3 +571,6 @@ button.pn-szukaj { background: var(--pn-pole); border-color: var(--pn-linia); }
 .pn-pole > span.pn-podp { font-size: 12px; }
 .pn-role-nazwy { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr); gap: 10px; }
 @media (max-width: 640px) { .pn-role-nazwy { grid-template-columns: minmax(0, 1fr); } }
+/* nagłówki wierszy (uprawnienia) – zwykłe komórki, bez tła nagłówka kolumn */
+.pn-tabela tbody th { position: static; background: none; color: var(--pn-tekst); font-weight: 400; font-size: 13px; padding: 8px 10px; border-bottom: 1px solid var(--pn-linia2); text-align: left; vertical-align: top; }
+.pn-tabela tbody tr:last-child th { border-bottom: 0; }

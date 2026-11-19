@@ -30,7 +30,7 @@ export default function Logowanie() {
         return (
             <>
                 {ja?.imie && <a href="/moje-konto" className="naglowek-konto" title="moje konto">{ja.imie.split(' ')[0]} · {ja.rola}</a>}
-                {edycja && <a href={edycja} className={`${KLASY} naglowek-edytuj`} aria-label="edytuj tę stronę w panelu"><span aria-hidden="true" className="naglowek-dlugi">edytuj tę stronę</span><span aria-hidden="true" className="naglowek-krotki">edytuj</span> <span aria-hidden="true">✎</span></a>}
+                {edycja && <a href={edycja} className={`${KLASY} naglowek-edytuj`} aria-label="edytuj tę stronę w panelu"><span aria-hidden="true" className="naglowek-dlugi">edytuj tę stronę </span><span aria-hidden="true">✎</span></a>}
                 <form method="post" action="/api/wyloguj" className="inline-flex">
                     <input type="hidden" name="wroc" value={sciezka} />
                     <button type="submit" className={KLASY} title={ja?.imie ? `zalogowano jako ${ja.imie} – wyloguj` : 'zalogowano jako bliski – wyloguj'}>wyloguj</button>
