@@ -964,19 +964,29 @@ export async function dokumentySzukania(poziom: Widocznosc): Promise<DokumentSzu
     }
     // osoby: tylko te, które czytelnik może zobaczyć; imię i nazwisko, inne nazwiska i zapisy, przydomek
     const { stanOsob } = await import('./osoby/dane')
-    const { nazwaOsoby, lataZycia, zdarzenie, nazwiskaPoMezu, dopiskiPoMezu } = await import('./osoby/model')
+    const { nazwaOsoby, lataZycia, nazwiskaPoMezu, dopiskiPoMezu } = await import('./osoby/model')
+    const { fasetyOsoby, opisOsoby } = await import('./osoby/fasety')
+    const { funkcjeOsoby } = await import('./parafie-powiazania')
+    const { miejscaGrobowOsob } = await import('./plany/serwer')
     const s = await stanOsob()
     const rozwiaz = slownikOdnosnikow(await pozycjeSieci(poziom))
-    const bio = new Map((await biogramy(poziom)).map((b) => [b.id, bezNawiasow(b.lead, rozwiaz)]))
+    // PPL-07 (P6b): z biogramu także pełna treść, nie tylko wstęp
+    const bio = new Map((await biogramy(poziom)).map((b) => [b.id, { lead: bezNawiasow(b.lead, rozwiaz), pelny: bezNawiasow(naTekst(b.tresc), rozwiaz) }]))
+    const nazwyMsc = new Map(msc.map((m) => [m.id, m.nazwa]))
+    const [instytucje, groby] = await Promise.all([parafie(), miejscaGrobowOsob()])
     for (const o of s.drzewo.osoby.values()) {
         if (!widoczne(s.widocznosc(o.id), poziom)) continue
         // nazwisko po mężu (P2, decyzja 17.11): także gdy mąż jest niewidoczny – ukryta jest jego karta, nie nazwisko żony
         const poMezu = nazwiskaPoMezu(s.drzewo, o)
         const nazwy = [nazwaOsoby(o), `${o.imiona} ${o.nazwisko}`, ...(o.inneNazwiska ?? []).map((n) => `${o.imiona} ${n}`), ...poMezu.map((n) => `${o.imiona} ${n}`), ...(o.inneZapisy ?? []), ...(o.przydomek ? [o.przydomek] : [])]
         const poMezuDopisek = dopiskiPoMezu(s.drzewo, o) // SRCH-D-20: „Kowalska (Kowalski)”, „Nowakowa (Nowak)”
-        const miejsce = zdarzenie(o, 'urodzenie', 'chrzest')?.miejsce?.split(',')[0] ?? ''
-        dok.push({ rodzaj: 'osoba', etykieta: 'osoba', id: o.id, tytul: nazwaOsoby(o), adres: `/osoby/${o.id}`, nazwy, tekst: bio.get(o.id) ?? '', stalyFragment: true,
-            fragment: [lataZycia(o), miejsce, o.przydomek && `„${o.przydomek}”`, poMezuDopisek.length > 0 && `po mężu: ${poMezuDopisek.join(', ')}`, bio.get(o.id)].filter(Boolean).join(' · ') })
+        // PPL-02 (P6b): lata · miejscowość · zajęcie – ta sama funkcja co lista osób
+        const f = fasetyOsoby(o, { zdarzeniaMalzenstw: (s.relacje.get(o.id)?.malzenstwa ?? []).flatMap((r) => r.zdarzenia), funkcje: funkcjeOsoby(o.id, instytucje), groby: groby.get(o.id) ?? [], nazwaMiejsca: (id) => nazwyMsc.get(id) })
+        const b = bio.get(o.id)
+        const tekstBio = [b?.lead, b?.pelny].filter(Boolean).join(' ')
+        dok.push({ rodzaj: 'osoba', etykieta: 'osoba', id: o.id, tytul: nazwaOsoby(o), adres: `/osoby/${o.id}`, nazwy,
+            tekst: `${tekstBio} ${f.zajecia.map((z) => z.nazwa).join(' ')} ${f.miejsca.map((m) => m.nazwa).join(' ')}`, tekstFragmentu: tekstBio, fragmentGdyBrak: true,
+            fragment: [opisOsoby(o, f), poMezuDopisek.length > 0 && `po mężu: ${poMezuDopisek.join(', ')}`, b?.lead].filter(Boolean).join(' · ') })
     }
     const obj = await obiekty(poziom)
     for (const o of obj) {

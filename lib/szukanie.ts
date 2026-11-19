@@ -2,7 +2,7 @@
 // Słowo zapytania skracamy do rdzenia (bez końcówki fleksyjnej) i szukamy wyrazów zaczynających się od rdzenia,
 // z typowymi obocznościami na końcu rdzenia (Olszanka → Olszance, Łuby → Łubach, bieżeństwo → bieżeństwie).
 
-import { normalizuj } from './tekst'
+import { normalizujDoSzukania as normalizuj } from './tekst'
 
 // 'iej' (P3, SRCH-D-20): dopełniacz/celownik przymiotnikowych nazwisk kobiet – „kowalskiej” → „kowalsk-” (Kowalska, Kowalski)
 const KONCOWKI = ['owie', 'iej', 'ami', 'ach', 'ami', 'owi', 'ego', 'emu', 'ich', 'ych', 'imi', 'ymi', 'iem', 'om', 'ow', 'ie', 'em', 'ej', 'im', 'ym', 'a', 'e', 'i', 'o', 'u', 'y']

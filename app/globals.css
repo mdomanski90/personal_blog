@@ -1878,6 +1878,9 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
 .katalog-filtry{display:flex;flex-direction:column;gap:10px}
 .katalog-szukanie{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .katalog-szukanie .katalog-pole{flex:1 1 16rem;max-width:480px}
+/* P6b (PPL-03): pola z podpowiedziami na /osoby – zajęcie i miejscowość obok siebie, na telefonie jedno pod drugim (AR-16) */
+.osoby-filtry-pola{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,16rem),1fr));gap:10px 16px;max-width:720px}
+.osoby-filtry-pola .k-pole{width:100%}
 .wstep-dzialu-tekst{display:flex;flex-direction:column;gap:.8rem;max-width:var(--szer-tekstu);font-size:var(--rozmiar-tekst);line-height:1.625}
 .wstep-dzialu-tekst p{margin:0}
 .osoby-litery{grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(34rem * var(--font-scale,1))),1fr));gap:16px 40px}

@@ -102,6 +102,25 @@ export async function pochowkiOsoby(osobaId: string): Promise<Pochowek[]> {
     return wyn
 }
 
+/** P6b (PPL-03, związek „pochówek”): osoba → miejscowości planów z jej grobem – jak pochowkiOsoby, dla wszystkich naraz. */
+export async function miejscaGrobowOsob(): Promise<Map<string, string[]>> {
+    const poziom = (await poziomCzytelnika()) === 'bliscy' ? 'bliscy' : 'publiczne'
+    const wyn = new Map<string, string[]>()
+    const kandydaci = (await listaPlanow()).filter((p) => p.miejsce && widoczne(p.widocznosc, poziom) && p.elementy.some((e) => e.osoby?.length))
+    if (!kandydaci.length) return wyn
+    const ust = await wczytajUstawienia()
+    for (const surowy of kandydaci) {
+        const p = dlaCzytelnika(surowy, poziom, ust)
+        for (const e of p.elementy) for (const o of e.osoby ?? []) {
+            if (!o.id) continue
+            const L = wyn.get(o.id) ?? []
+            if (!L.includes(p.miejsce!)) L.push(p.miejsce!)
+            wyn.set(o.id, L)
+        }
+    }
+    return wyn
+}
+
 export interface PlanNaMapie {
     slug: string
     tytul: string

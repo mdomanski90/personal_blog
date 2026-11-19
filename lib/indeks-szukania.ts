@@ -9,7 +9,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pasuje, pozycjaTrafienia, przygotujZapytanie, rdzenie, type Zapytanie } from './szukanie'
-import { normalizuj, porownajPl } from './tekst'
+import { normalizujDoSzukania as normalizuj, porownajPl } from './tekst' // P6b (PPL-07): cyrylica ↔ łacinka
 
 export type RodzajWyniku = 'osoba' | 'miejsce' | 'obiekt' | 'temat' | 'wpis' | 'materiał' | 'księga' | 'parafia' | 'hasło' | 'publikacja' | 'zbiór' | 'objaśnienie'
 export interface Wynik {
@@ -41,6 +41,8 @@ export interface DokumentSzukania {
     /** fragment, gdy trafiono w nazwę – albo fragment stały (stalyFragment) */
     fragment: string
     stalyFragment?: boolean
+    /** P6b (PPL-07): trafienie tylko w tekście, ale nie w tekstFragmentu (np. zajęcie osoby) – pokaż `fragment`, nie początek tekstu */
+    fragmentGdyBrak?: boolean
     /** dodatek do wagi (miejscowości +0,3) */
     bonus?: number
     /** identyfikatory miejscowości, z którymi pozycja jest powiązana (dołączana, gdy trafiono w miejscowość) */
@@ -75,7 +77,7 @@ export function ocenaDokumentu(d: DokumentSzukania, z: Zapytanie): { waga: numbe
     }
     const surowa = ocen(z, d.nazwy, d.tekst)
     if (!surowa) return null
-    const fragment = d.stalyFragment || surowa !== 1 ? d.fragment : fragmentWokol(d.tekstFragmentu ?? '', z)
+    const fragment = d.stalyFragment || surowa !== 1 || (d.fragmentGdyBrak && pozycjaTrafienia(z, d.tekstFragmentu ?? '') < 0) ? d.fragment : fragmentWokol(d.tekstFragmentu ?? '', z)
     return { waga: surowa + (d.bonus ?? 0), fragment }
 }
 
@@ -231,7 +233,7 @@ export function zrodloZIndeksu(plik: string): ZrodloDokumentow & { zamknij(): vo
 // ---------- odcisk treści i odbudowa leniwa ----------
 
 /** Wersja układu dokumentów w indeksie – podbić ręcznie, gdy zmienia się to, co `dokumentySzukania` wkłada do indeksu (poza wydaniem programu, zob. niżej). */
-export const WERSJA_INDEKSU = 2 // P3: dopisek „po mężu” z zapisem męża, formy „-owa”, hasła w sieci
+export const WERSJA_INDEKSU = 3 // P3: dopisek „po mężu” z zapisem męża, formy „-owa”, hasła w sieci; P6b: pełne biogramy, zajęcie osoby, cyrylica
 
 /** Identyfikator wydania programu (`.next/BUILD_ID`): nowe wydanie = nowy kod budujący dokumenty = indeks do odbudowy, nawet gdy treść się nie zmieniła. */
 function wydanie(korzen: string): string {

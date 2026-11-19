@@ -28,6 +28,26 @@ export function normalizuj(s: string): string {
         .trim()
 }
 
+// P6b (PPL-07): cyrylica → łacinka w zapisie polskim, od razu w postaci do porównań (bez ł/ż – normalizuj i tak je zdejmuje):
+// akty rosyjskie „Иван” → „iwan”, „Щербань” → „szczerban”.
+// Tylko do wyszukiwania – identyfikatory i wyświetlane nazwy bez zmian. Litery ukraińskie i białoruskie w tym samym zapisie.
+const CYRYLICA: Record<string, string> = {
+    а: 'a', б: 'b', в: 'w', г: 'g', ґ: 'g', д: 'd', е: 'e', ё: 'jo', є: 'je', ж: 'z', з: 'z', и: 'i', і: 'i', ї: 'ji', й: 'j',
+    к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ў: 'u', ф: 'f', х: 'ch', ц: 'c', ч: 'cz',
+    ш: 'sz', щ: 'szcz', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'ju', я: 'ja', ѣ: 'e', ѳ: 'f', ѵ: 'i', ї: 'ji',
+}
+
+/** „Иван Щербань” → „Iwan Szczerban” (małe litery; reszta tekstu bez zmian). */
+export function transliteruj(s: string): string {
+    if (!/[Ѐ-ӿ]/.test(s)) return s
+    return s.toLowerCase().replace(/[Ѐ-ӿ]/g, (z) => CYRYLICA[z] ?? z)
+}
+
+/** normalizuj + cyrylica jako łacinka – wspólna postać dokumentu i zapytania w wyszukiwarce (lib/szukanie, lib/indeks-szukania, lista osób). */
+export function normalizujDoSzukania(s: string): string {
+    return normalizuj(transliteruj(s))
+}
+
 /** Porównanie do sortowania alfabetycznego po polsku. */
 export const porownajPl = new Intl.Collator('pl').compare
 
