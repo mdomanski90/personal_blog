@@ -145,7 +145,7 @@ export function Sekcja({ tytul, children, id }: { tytul: string; children: React
 /** Łatka P6b (uwaga właściciela 19.11 07:23): tytuły pokrewnych stron obok tytułu – szare, bez podkreślenia; po kliknięciu
  *  nowa strona ma ten tytuł w akcencie, a kreska przejeżdża pod niego (view-transition-name „tytul-kreska”; bez ruchu przy
  *  prefers-reduced-motion – globals.css). Kolejność stała na obu stronach: `przed` – na lewo od bieżącego tytułu. */
-export type TytulObok = { tekst: string; href: string; przed?: boolean }
+export type TytulObok = { tekst: React.ReactNode; href: string; przed?: boolean }
 
 export function TytulStrony({ children, sciezka, akcje, bezOkruszkow = false, obok }: { children: React.ReactNode; sciezka?: Sciezka; akcje?: React.ReactNode; bezOkruszkow?: boolean; obok?: TytulObok[] }) {
     const link = (o: TytulObok) => <Link key={o.href} href={o.href} className="tytul-strony-obok">{o.tekst}</Link>

@@ -3,13 +3,14 @@ import { TytulDzialu, WstepDzialu, WstepTekst } from '@/app/components/WstepDzia
 import { Link } from 'next-view-transitions'
 import { RODZAJE_OBIEKTOW as NAZWY_OBIEKTOW, obiekty, poziomCzytelnika } from '@/lib/archiwum'
 import { Strona, TytulStrony } from '../components/Uklad'
+import { obokMiejsc } from '../components/TytulyDzialow'
 import Komunikat from '../components/Komunikat'
 import { tarczaObiektu } from '@/lib/tarcze'
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'obiekty · odniepamieci.pl' }
 export default async function Obiekty() {
   const lista = await obiekty(await poziomCzytelnika())
-  return <Strona uklad="pelna"><TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }]}><TytulDzialu dzial="obiekty" domyslny="obiekty" /></TytulStrony>
+  return <Strona uklad="pelna"><TytulStrony obok={obokMiejsc('/obiekty')} sciezka={[{ tekst: 'miejsca', href: '/miejsca' }]}><TytulDzialu dzial="obiekty" domyslny="obiekty" /></TytulStrony>
     <p className="ot-drobne"><WstepTekst dzial="obiekty" domyslny={"Kościoły, kaplice, cmentarze, budynki i inne obiekty. Instytucje, takie jak parafie, mają osobne karty."} /></p>
     {/* P7D-3 (AUD-04): wspólna lista pozycji działu; puste – Komunikat */}
     {lista.length ? <ul className="lista-pozycji">

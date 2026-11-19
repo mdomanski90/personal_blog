@@ -4,6 +4,7 @@ import { licznikiMiejsc, materialy, miejsca, miejscaWedlugObszarow, obiekty, OBS
 import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import { Strona, TytulStrony } from '../components/Uklad'
+import { obokMiejsc } from '../components/TytulyDzialow'
 import MapaMiejscLeniwa from '../components/MapaMiejscLeniwa'
 import SpisMiejsc from '../components/SpisMiejsc'
 
@@ -27,7 +28,7 @@ export default async function Miejsca() {
 
     return (
         <Strona uklad="pelna">
-            <TytulStrony><TytulDzialu dzial="miejsca" domyslny="miejsca" /></TytulStrony>
+            <TytulStrony obok={obokMiejsc('/miejsca')}><TytulDzialu dzial="miejsca" domyslny="miejsca" /></TytulStrony>
             <WstepDzialu dzial="miejsca" className="ot-drobne wstep-dzialu-tekst" />
             <div className="flex flex-col gap-2">
                 <MapaMiejscLeniwa punkty={punkty} planyGeo={planyGeo} granice zapamietaj="mapa-miejsca" />

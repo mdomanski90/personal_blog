@@ -5,6 +5,7 @@ import { miejsca, parafie, poziomCzytelnika } from '@/lib/archiwum'
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
 import { formatujEdtf } from '@/lib/edtf'
 import { Strona, TytulStrony } from '../components/Uklad'
+import { obokMiejsc } from '../components/TytulyDzialow'
 import Komunikat from '../components/Komunikat'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +17,7 @@ export default async function ParafieStrona() {
     const nazwyMiejsc = new Map(listaMiejsc.map((m) => [m.id, m.nazwa]))
     return (
         <Strona uklad="pelna">
-            <TytulStrony sciezka={[{ tekst: 'miejsca', href: '/miejsca' }]}><TytulDzialu dzial="instytucje" domyslny="instytucje" /></TytulStrony>
+            <TytulStrony obok={obokMiejsc('/parafie')} sciezka={[{ tekst: 'miejsca', href: '/miejsca' }]}><TytulDzialu dzial="instytucje" domyslny="instytucje" /></TytulStrony>
             <p className="leading-relaxed" style={{ fontSize: 'calc(16px * var(--font-scale, 1))' }}>
                 <WstepTekst dzial="instytucje" domyslny={"Instytucje prowadzące księgi metrykalne i akta stanu cywilnego. Ich okres działania jest czymś innym niż okres przynależności konkretnej miejscowości czy zachowane roczniki akt."} />
             </p>
