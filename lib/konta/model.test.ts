@@ -94,6 +94,8 @@ test('trasy API panelu: każda trasa i metoda z app/api/keystatic ma regułę; o
         const metody = [...kod.matchAll(/export (?:async function|const) (GET|POST|PUT|PATCH|DELETE)\b/g)].map((m) => m[1])
         assert.ok(metody.length > 0, `${rel}: brak metod`)
         assert.match(kod, /brakDostepu\(|odmowaKonta\(/, `${rel}: trasa bez strażnika`)
+        // KON-07: trasa bez wspólnego strażnika (brakDostepu) musi sama zamknąć się, gdy nie ma ani hasła nginx, ani kont
+        if (!/brakDostepu\(/.test(kod)) assert.match(kod, /panelZamkniety\(/, `${rel}: trasa bez kontroli „panel zamknięty”`)
         for (const m of metody) {
             const reg = uprawnieniaTrasy(adres, m)
             assert.ok(reg, `brak reguły: ${m} ${adres}`)

@@ -25,6 +25,16 @@ export function konfiguracjaKont(): KonfiguracjaKont | null {
 }
 export const kontaWlaczone = () => konfiguracjaKont() !== null
 
+/**
+ * KON-07: po wyłączeniu hasła nginx panel chronią wyłącznie konta. PANEL_TYLKO_KONTA=1 w .env.local mówi aplikacji, że
+ * hasła serwera już nie ma. Gdy wtedy konta nie są włączone (brak któregoś z ustawień KONTA_* albo SEKRET_SESJI), panel
+ * i jego API są ZAMKNIĘTE – inaczej Keystatic byłby otwarty dla każdego (bez kont trasa treści nie ma własnej kontroli,
+ * a nagłówek Authorization bez nginx może przysłać ktokolwiek).
+ */
+export const panelZamkniety = () => { const e = process.env; return e.PANEL_TYLKO_KONTA === '1' && !kontaWlaczone() } // przez zmienną, jak konfiguracjaKont: odczyt przy każdym żądaniu, nie przy budowie
+export const KOMUNIKAT_ZAMKNIETEGO = 'Panel jest zamknięty: konta są wyłączone, a hasło serwera nie chroni już panelu. Przywróć ustawienia kont w .env.local (npm run konta:przygotuj) albo hasło nginx.'
+export const odpowiedzZamknietego = () => Response.json({ blad: KOMUNIKAT_ZAMKNIETEGO }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+
 export interface Zalogowany {
     konto: Konto; sesja: Sesja; role: Rola[]
     /** pracuje teraz jako administrator (po ponownym użyciu klucza, najwyżej 30 minut) */
