@@ -3,6 +3,7 @@
 // Decyzje właściciela 19.11.2026 (07:20, 09:04–09:38, 16:55): kilka ról na koncie, administrator na żądanie (najwyżej 30 minut),
 // ostatniemu administratorowi nie można odebrać roli, „tylko ja” = osoby z rolą administratora.
 
+import { odmiana } from '../tekst'
 export type Uprawnienie =
     | 'bliscy' | 'panel'
     | 'wpisy' | 'miejsca' | 'archiwum' | 'biblioteka' | 'osoby' | 'plany' | 'slownik'
@@ -15,8 +16,6 @@ export interface OpisUprawnienia {
     dzial?: boolean
     /** krótko, do zdania „możesz: …” na stronie „moje konto” */
     mozesz: string
-    /** uprawnienie zapisane już w danych, ale używane dopiero w etapie „teren” (P7b) */
-    pozniej?: boolean
 }
 
 export const UPRAWNIENIA: OpisUprawnienia[] = [
@@ -29,8 +28,8 @@ export const UPRAWNIENIA: OpisUprawnienia[] = [
     { klucz: 'osoby', nazwa: 'osoby i drzewo', dzial: true, mozesz: 'osoby i drzewo' },
     { klucz: 'plany', nazwa: 'plany – rysowanie i opis', dzial: true, mozesz: 'plany' },
     { klucz: 'slownik', nazwa: 'słownik', dzial: true, mozesz: 'słownik' },
-    { klucz: 'plany-teren', nazwa: 'plany – zdjęcia grobów, napisy (wybrane plany)', mozesz: 'dodawać zdjęcia grobów i napisy', pozniej: true },
-    { klucz: 'teren', nazwa: '„w terenie” – szkice z telefonu', mozesz: 'zapisywać szkice z telefonu', pozniej: true },
+    { klucz: 'plany-teren', nazwa: 'plany – zdjęcia grobów, napisy (wybrane plany)', mozesz: 'dodawać zdjęcia grobów i napisy na wybranych planach' },
+    { klucz: 'teren', nazwa: '„w terenie” – nowe miejsca z telefonu', mozesz: 'zapisywać nowe miejsca z telefonu' },
     { klucz: 'publikowanie', nazwa: 'publikowanie („publiczne”)', mozesz: 'publikować' },
     { klucz: 'usuwanie', nazwa: 'usuwanie (do kosza)', mozesz: 'usuwać do kosza' },
     { klucz: 'operacje', nazwa: 'operacje: importy, zmiany zbiorcze, „połącz”', mozesz: 'wykonywać importy i zmiany zbiorcze' },
@@ -50,7 +49,7 @@ export interface Rola { klucz: KluczRoli; nazwa: string; opis: string; uprawnien
 export const ROLE_DOMYSLNE: Rola[] = [
     { klucz: 'administrator', nazwa: 'administrator', opis: 'wszystko, także konta, kopie i ustawienia', uprawnienia: UPRAWNIENIA.map((u) => u.klucz) },
     { klucz: 'redaktor', nazwa: 'redaktor', opis: 'treści, archiwum, plany, osoby, zgłoszenia', uprawnienia: ['bliscy', 'panel', 'wpisy', 'miejsca', 'archiwum', 'biblioteka', 'osoby', 'plany', 'slownik', 'plany-teren', 'teren', 'zgloszenia'] },
-    { klucz: 'teren', nazwa: 'współpracownik terenowy', opis: 'szkice z telefonu, zdjęcia grobów i napisy na wybranych planach', uprawnienia: ['bliscy', 'panel', 'plany-teren', 'teren'] },
+    { klucz: 'teren', nazwa: 'współpracownik terenowy', opis: 'nowe miejsca z telefonu, zdjęcia grobów i napisy na wybranych planach; widzi tylko „w terenie”', uprawnienia: ['bliscy', 'plany-teren', 'teren'] },
     { klucz: 'podglad', nazwa: 'podgląd', opis: 'widzi panel, niczego nie zmienia', uprawnienia: ['bliscy', 'panel'] },
     { klucz: 'bliski', nazwa: 'bliski', opis: 'czyta treści „dla bliskich” na stronie', uprawnienia: ['bliscy'] },
 ]
@@ -58,7 +57,8 @@ export const KLUCZE_ROL = ROLE_DOMYSLNE.map((r) => r.klucz)
 export const jestRola = (x: unknown): x is KluczRoli => typeof x === 'string' && (KLUCZE_ROL as string[]).includes(x)
 
 export type StanKonta = 'zaproszony' | 'aktywny' | 'zablokowany'
-export interface Zakres { kregi: string[]; miejsca: string[] }
+/** `plany` (P7b): plany, na których konto pracuje „w terenie” (uprawnienie „plany-teren” bez działu „plany”) */
+export interface Zakres { kregi: string[]; miejsca: string[]; plany?: string[] }
 export interface Konto {
     /** identyfikator osoby w Pocket ID (sub) – stały, nigdy nie pokazywany jako nazwa */
     id: string
@@ -117,7 +117,7 @@ export function odczytajPlik(j: unknown): PlikKont {
             role: lista(k.role, jestRola),
             dodane: lista(k.dodane, jestUprawnieniem).filter((u) => u !== 'administracja'),
             odebrane: lista(k.odebrane, jestUprawnieniem),
-            zakres: { kregi: lista(zakres.kregi, napis), miejsca: lista(zakres.miejsca, napis) },
+            zakres: { kregi: lista(zakres.kregi, napis), miejsca: lista(zakres.miejsca, napis), ...(lista(zakres.plany, napis).length ? { plany: lista(zakres.plany, napis) } : {}) },
             stan: k.stan === 'aktywny' || k.stan === 'zablokowany' ? k.stan : 'zaproszony',
             utworzono: tekst(k.utworzono, 40) || new Date(0).toISOString(),
             ...(tekst(k.ostatnio, 40) ? { ostatnio: tekst(k.ostatnio, 40) } : {}),
@@ -201,7 +201,8 @@ export function opisRoliZDzialami(k: Konto, role: Rola[], jakoAdministrator = fa
 /** „edytować wpisy i tematy, archiwum; publikować; obsługiwać zgłoszenia” – strona „moje konto”. */
 export function opisMozesz(u: Set<Uprawnienie>): string {
     const dzialy = UPRAWNIENIA.filter((x) => x.dzial && u.has(x.klucz)).map((x) => x.mozesz)
-    const reszta = UPRAWNIENIA.filter((x) => !x.dzial && !x.pozniej && x.klucz !== 'bliscy' && x.klucz !== 'panel' && u.has(x.klucz)).map((x) => x.mozesz)
+    // „zdjęcia i napisy na wybranych planach” – tylko gdy konto nie edytuje planów w całości
+    const reszta = UPRAWNIENIA.filter((x) => !x.dzial && x.klucz !== 'bliscy' && x.klucz !== 'panel' && !(x.klucz === 'plany-teren' && u.has('plany')) && u.has(x.klucz)).map((x) => x.mozesz)
     const czesci = [...(dzialy.length ? [`edytować ${wylicz(dzialy)}`] : []), ...reszta]
     if (czesci.length) return czesci.join('; ')
     if (u.has('panel')) return 'oglądać panel (bez zapisu)'
@@ -214,8 +215,10 @@ export function opisZakresu(k: Konto, role: Rola[], nazwyKregow: Record<string, 
     const u = uprawnieniaKonta({ ...k, stan: 'aktywny' }, role)
     const dzialy = UPRAWNIENIA.filter((x) => x.dzial && u.has(x.klucz)).map((x) => x.nazwa.replace(' – rysowanie i opis', ''))
     const miejsce = [...k.zakres.kregi.map((id) => nazwyKregow[id] ?? `krąg ${id}`), ...k.zakres.miejsca]
-    const co = dzialy.length === DZIALY.length ? 'wszystkie działy' : dzialy.length ? wylicz(dzialy) : u.has('panel') ? 'cały panel (bez zapisu)' : u.has('bliscy') ? 'treści „dla bliskich”' : '—'
-    return miejsce.length ? `${co} · ${wylicz(miejsce)}` : co
+    // konto tylko terenowe (bez żadnego działu): ile planów ma przydzielonych
+    const teren = dzialy.length ? '' : u.has('plany-teren') ? `w terenie: ${k.zakres.plany?.length ? odmiana(k.zakres.plany.length, ['plan', 'plany', 'planów']) : 'żaden plan'}` : u.has('teren') ? 'w terenie: nowe miejsca' : ''
+    const co = dzialy.length === DZIALY.length ? 'wszystkie działy' : dzialy.length ? wylicz(dzialy) : u.has('panel') ? 'cały panel (bez zapisu)' : teren ? '' : u.has('bliscy') ? 'treści „dla bliskich”' : '—'
+    return [co, teren, miejsce.length ? wylicz(miejsce) : ''].filter(Boolean).join(' · ')
 }
 
 // ---------- trasy API panelu ----------
@@ -232,6 +235,15 @@ export function uprawnieniaTrasy(sciezka: string, metoda: string): Uprawnienie[]
     // konta, kopie, wygląd strony – tylko administrator (także odczyt: kopia zawiera wszystko, lista kont – dane osób)
     if (pasuje(/^\/panel\/(konta|kopia)(\/|$)/)) return ['administracja']
     if (pasuje(/^\/osoby\/eksport$/)) return ['administracja']
+    // P7b (TER-01): teren. Zapis czynności i odczyt planu „dla terenu” – „plany-teren” (trasa sprawdza jeszcze listę planów konta);
+    // plik planu – trasa sama sprawdza „panel” albo dostęp terenowy do tego planu; nowe miejsca – „teren”; reszta tras terenowych
+    // wymaga tylko zalogowania, a trasa wydaje wyłącznie to, co wolno temu kontu (własne wpisy, własne plany).
+    if (pasuje(/^\/plany\/[^/]+\/teren$/)) return ['plany-teren']
+    if (pasuje(/^\/plany\/[^/]+\/plik\/[^/]+$/) && odczyt) return []
+    if (pasuje(/^\/teren\/miejsca$/) && !odczyt) return ['teren']
+    if (pasuje(/^\/teren\/miejsca\/[^/]+$/) && !odczyt) return ['miejsca']
+    if (pasuje(/^\/teren\/zmiany$/) && !odczyt) return ['plany']
+    if (pasuje(/^\/teren(\/|$)/) && odczyt) return []
     if (odczyt) return ['panel']
     if (pasuje(/^\/panel\/wyglad$/)) return ['administracja']
     if (pasuje(/^\/panel\/praca$/)) return ['panel'] // własne „przypięte” i „ostatnie”
@@ -312,11 +324,31 @@ const MENU_UPRAWNIENIE: Record<string, Uprawnienie> = {
 }
 /** Czy pozycja menu jest dla tego konta. Rola „podgląd” (bez żadnego działu) widzi wszystkie działy treści – tylko bez zapisu. */
 export function pozycjaMenuDlaKonta(klucz: string, u: Set<Uprawnienie>): boolean {
+    // P7b: „w terenie” – konta z uprawnieniami terenowymi; „z terenu” – redakcja skrzynki (miejsca) albo planów
+    if (klucz === 'w-terenie') return maTeren(u)
+    if (klucz === 'z-terenu') return u.has('panel') && (u.has('miejsca') || u.has('plany'))
     const w = MENU_UPRAWNIENIE[klucz]
     if (!w) return u.has('panel')
     if (u.has(w)) return true
     const maDzial = DZIALY.some((d) => u.has(d))
     return !maDzial && u.has('panel') && (DZIALY as string[]).includes(w)
+}
+
+/** P7b: czy konto ma cokolwiek „w terenie” (wejście na /keystatic/teren). */
+export const maTeren = (u: Set<Uprawnienie>) => u.has('teren') || u.has('plany-teren')
+/** P7b: czy konto pracuje „w terenie” na tym planie: dział „plany” – na każdym; samo „plany-teren” – tylko na planach z listy konta. */
+export function planWTerenie(u: Set<Uprawnienie>, zakres: Zakres, slug: string): boolean {
+    if (!u.has('plany-teren')) return false
+    return u.has('plany') || !!zakres.plany?.includes(slug)
+}
+/**
+ * P7b: dokąd odesłać konto ze strony panelu (null = wolno wejść). Strony terenowe – dla kont z „teren” / „plany-teren”;
+ * reszta panelu – „panel” (konto tylko terenowe widzi wyłącznie „w terenie”), strony ustawień – „administracja”.
+ */
+export function celStronyPanelu(sciezka: string, u: Set<Uprawnienie>): string | null {
+    if (/^\/keystatic\/teren(\/|$)/.test(sciezka)) return maTeren(u) ? null : u.has('panel') ? '/keystatic/panel' : '/moje-konto?panel=brak'
+    if (!u.has('panel')) return maTeren(u) ? '/keystatic/teren' : '/moje-konto?panel=brak'
+    return u.has(uprawnienieStrony(sciezka)) ? null : '/keystatic/panel?odmowa=administrator'
 }
 
 /** Strona panelu (ścieżka) → uprawnienie do jej otwarcia; reszta panelu – „panel”. */

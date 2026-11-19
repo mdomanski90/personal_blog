@@ -3,7 +3,7 @@
 // proxy ich nie obejmuje, żeby nie ograniczać rozmiaru przesyłanych skanów. Konta wyłączone (brak ustawień w .env.local):
 // nic się nie zmienia, panel chroni hasło nginx jak przed P7a.
 import { NextResponse, type NextRequest } from 'next/server'
-import { uprawnienieStrony } from './lib/konta/model'
+import { celStronyPanelu } from './lib/konta/model'
 import { konfiguracjaKont, zalogowanyZNaglowka } from './lib/konta/straz'
 
 export function proxy(req: NextRequest) {
@@ -14,9 +14,9 @@ export function proxy(req: NextRequest) {
     // proxy wymaga pełnego adresu przekierowania; za nginx adres żądania to 127.0.0.1, więc bierzemy adres strony z ustawień kont
     const idz = (adres: string) => { const r = NextResponse.redirect(new URL(adres, strona), 307); r.headers.set('Cache-Control', 'no-store'); return r }
     if (!z) return idz(`/zaloguj?wroc=${encodeURIComponent(pathname + search)}`)
-    if (!z.uprawnienia.has('panel')) return idz('/moje-konto?panel=brak')
-    if (!z.uprawnienia.has(uprawnienieStrony(pathname))) return idz('/keystatic/panel?odmowa=administrator')
-    return NextResponse.next()
+    // P7b: konto tylko terenowe trafia na „w terenie”; reguła w lib/konta/model.ts (celStronyPanelu)
+    const cel = celStronyPanelu(pathname, z.uprawnienia)
+    return cel ? idz(cel) : NextResponse.next()
 }
 
 export const config = { matcher: ['/keystatic', '/keystatic/:path*'] }

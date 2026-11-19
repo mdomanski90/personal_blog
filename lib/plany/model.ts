@@ -82,6 +82,8 @@ export interface Element extends PolaPH3 {
     zrodlaStan?: StanZrodel
     /** robocze (grób): pewność położenia – rozpoznane automatycznie / przypuszczalne; brak pola = pewne */
     polozenie?: Polozenie
+    /** robocze (grób, P7b): zmiana z konta terenowego czeka na przejrzenie przez redakcję – kto (id konta) i kiedy; zdejmuje ją „sprawdzony” */
+    zTerenu?: { kto: string; czas: string }
     /** @deprecated dawne jedno pole statusu (auto | przyp | ok) – zastępuje je migracja `npm run plany:statusy` */
     weryfikacja?: 'auto' | 'przyp' | 'ok'
     notatka?: string
@@ -384,7 +386,7 @@ export function dlaCzytelnika(plan: Plan, poziom: Widocznosc, u: UstawieniaPlano
         // statusy pracy i notatki są robocze; współrzędne GPS zdjęć – tylko dla zalogowanych (decyzja 16.11),
         // bo punkty geo planu też są przed czytelnikiem publicznym ukryte
         // PH2: surowe powiązania i podstawa mogą wskazywać pozycje ukryte – czytelnik dostaje je rozwiązane (lib/plany/serwer.ts)
-        const { weryfikacja: _w, notatka: _n, etap: _e, zrodlaStan: _z, polozenie: _p, oznaczenie: _o, numer: _nr, powiazania: _pw, podstawa: _ps, odnosniki: _od, ...bezNumeru } = e
+        const { weryfikacja: _w, notatka: _n, etap: _e, zrodlaStan: _z, polozenie: _p, zTerenu: _zt, oznaczenie: _o, numer: _nr, powiazania: _pw, podstawa: _ps, odnosniki: _od, ...bezNumeru } = e
         const nr = numery.get(e.id), czysty: Element = nr ? { ...bezNumeru, numer: nr } : bezNumeru
         if (poziom === 'publiczne' && grobOgraniczony(e, typy.get(e.typ), u.progLat)) {
             elementy.push({ id: e.id, typ: e.typ, g: e.g, stan: e.stan, ograniczony: true, ...(nr ? { numer: nr } : {}) })

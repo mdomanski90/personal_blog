@@ -7,7 +7,7 @@ import path from 'node:path'
 import { MENU } from '../panel/menu'
 import {
     UPRAWNIENIA, definicjeRol, dzialSciezki, liczbaAdministratorow, mozeTylkoJa, ocenZapis, odczytajPlik, odmowaZmianyKont, opisMozesz, opisRoliZDzialami, opisZakresu,
-    pozycjaMenuDlaKonta, uprawnieniaKonta, uprawnieniaTrasy, uprawnienieStrony, wZakresie, type Konto, type PlikKont,
+    pozycjaMenuDlaKonta, uprawnieniaKonta, uprawnieniaTrasy, uprawnienieStrony, wZakresie, PUSTY_PLIK, celStronyPanelu, maTeren, planWTerenie, type Konto, type PlikKont,
 } from './model'
 
 const konto = (z: Partial<Konto> = {}): Konto => ({ id: 'k1', imie: 'Anna Przykładowa', role: ['redaktor'], dodane: [], odebrane: [], zakres: { kregi: [], miejsca: [] }, stan: 'aktywny', utworzono: '2026-11-10T10:00:00Z', ...z })
@@ -36,7 +36,7 @@ test('uprawnienia konta: rola + dodane − odebrane; zablokowany i zaproszony ni
     assert.ok(!u.has('plany') && !u.has('osoby') && !u.has('usuwanie') && !u.has('administracja'))
     assert.equal(uprawnieniaKonta(konto({ stan: 'zablokowany' }), ROLE).size, 0)
     assert.equal(uprawnieniaKonta(konto({ stan: 'zaproszony' }), ROLE).size, 0)
-    assert.equal(opisMozesz(u), 'edytować wpisy i tematy, miejsca i obiekty, archiwum, słownik; publikować; obsługiwać zgłoszenia')
+    assert.equal(opisMozesz(u), 'edytować wpisy i tematy, miejsca i obiekty, archiwum, słownik; dodawać zdjęcia grobów i napisy na wybranych planach; zapisywać nowe miejsca z telefonu; publikować; obsługiwać zgłoszenia')
     assert.equal(opisRoliZDzialami(k, ROLE), 'redaktor: wpisy i tematy, miejsca i obiekty, archiwum, słownik')
 })
 
@@ -94,9 +94,23 @@ test('trasy API panelu: każda trasa i metoda z app/api/keystatic ma regułę; o
         const metody = [...kod.matchAll(/export (?:async function|const) (GET|POST|PUT|PATCH|DELETE)\b/g)].map((m) => m[1])
         assert.ok(metody.length > 0, `${rel}: brak metod`)
         assert.match(kod, /brakDostepu\(|odmowaKonta\(/, `${rel}: trasa bez strażnika`)
-        for (const m of metody) assert.ok(uprawnieniaTrasy(adres, m)?.length, `brak reguły: ${m} ${adres}`)
+        for (const m of metody) {
+            const reg = uprawnieniaTrasy(adres, m)
+            assert.ok(reg, `brak reguły: ${m} ${adres}`)
+            // pusta lista (wystarczy zalogowanie) tylko w trasach terenowych, które same wydają wyłącznie dane tego konta (P7b)
+            if (!reg.length) assert.match(kod, /osobaWTerenie\(|osobaZKonta\(/, `${rel}: trasa bez uprawnień musi sama sprawdzać konto terenowe`)
+        }
     }
     assert.deepEqual(uprawnieniaTrasy('/api/keystatic/plany/x', 'GET'), ['panel'])
+    // P7b (TER-01): teren
+    assert.deepEqual(uprawnieniaTrasy('/api/keystatic/plany/x/teren', 'GET'), ['plany-teren'])
+    assert.deepEqual(uprawnieniaTrasy('/api/keystatic/plany/x/teren', 'POST'), ['plany-teren'])
+    assert.deepEqual(uprawnieniaTrasy('/api/keystatic/plany/x/plik/y', 'GET'), [])
+    assert.deepEqual(uprawnieniaTrasy('/api/keystatic/plany/x/plik', 'POST'), ['plany'])
+    assert.deepEqual(uprawnieniaTrasy('/api/keystatic/teren/miejsca', 'POST'), ['teren'])
+    assert.deepEqual(uprawnieniaTrasy('/api/keystatic/teren/miejsca/x', 'POST'), ['miejsca'])
+    assert.deepEqual(uprawnieniaTrasy('/api/keystatic/teren/zmiany', 'POST'), ['plany'])
+    assert.deepEqual(uprawnieniaTrasy('/api/keystatic/teren', 'GET'), [])
     assert.deepEqual(uprawnieniaTrasy('/api/keystatic/plany/x', 'PUT'), ['plany'])
     assert.deepEqual(uprawnieniaTrasy('/api/keystatic/plany/x', 'DELETE'), ['plany', 'usuwanie'])
     assert.deepEqual(uprawnieniaTrasy('/api/keystatic/plany/x/szkic', 'DELETE'), ['plany'])
@@ -177,4 +191,41 @@ test('kolumna „zakres” na liście kont', () => {
     assert.equal(opisZakresu(konto({ role: ['bliski'] }), ROLE), 'treści „dla bliskich”')
     assert.equal(opisZakresu(konto({ odebrane: ['miejsca', 'biblioteka', 'osoby', 'plany', 'slownik'], zakres: { kregi: ['1'], miejsca: [] } }), ROLE, { '1': 'krąg 1' }), 'wpisy i tematy, archiwum · krąg 1')
     assert.equal(opisZakresu(konto({ stan: 'zaproszony' }), ROLE), 'wszystkie działy')
+})
+
+test('P7b: konto terenowe – tylko „w terenie”, wybrane plany, kolumna „zakres”', () => {
+    const role = definicjeRol(PUSTY_PLIK)
+    const teren: Konto = { id: 't', imie: 'Jan Testowy', role: ['teren'], dodane: [], odebrane: [], zakres: { kregi: [], miejsca: [], plany: ['cmentarz-testowo'] }, stan: 'aktywny', utworzono: '2026-11-19T00:00:00.000Z' }
+    const u = uprawnieniaKonta(teren, role)
+    assert.equal(u.has('panel'), false, 'rola terenowa nie daje wglądu w resztę panelu')
+    assert.ok(maTeren(u))
+    // plany: tylko z listy konta; redaktor (dział „plany”) – każdy
+    assert.equal(planWTerenie(u, teren.zakres, 'cmentarz-testowo'), true)
+    assert.equal(planWTerenie(u, teren.zakres, 'cmentarz-przykladowo'), false)
+    const red = uprawnieniaKonta({ ...teren, role: ['redaktor'], zakres: { kregi: [], miejsca: [] } }, role)
+    assert.equal(planWTerenie(red, { kregi: [], miejsca: [] }, 'cmentarz-przykladowo'), true)
+    assert.equal(planWTerenie(uprawnieniaKonta({ ...teren, role: ['podglad'] }, role), teren.zakres, 'cmentarz-testowo'), false)
+    // strony: konto terenowe trafia na „w terenie”, nie do panelu; podgląd nie wchodzi w teren
+    assert.equal(celStronyPanelu('/keystatic/teren', u), null)
+    assert.equal(celStronyPanelu('/keystatic/teren/plan/cmentarz-testowo', u), null)
+    assert.equal(celStronyPanelu('/keystatic/panel', u), '/keystatic/teren')
+    assert.equal(celStronyPanelu('/keystatic/osoby', u), '/keystatic/teren')
+    assert.equal(celStronyPanelu('/keystatic/panel', red), null)
+    assert.equal(celStronyPanelu('/keystatic/panel/dostep', red), '/keystatic/panel?odmowa=administrator')
+    const podglad = uprawnieniaKonta({ ...teren, role: ['podglad'] }, role)
+    assert.equal(celStronyPanelu('/keystatic/teren', podglad), '/keystatic/panel')
+    assert.equal(celStronyPanelu('/keystatic/panel', uprawnieniaKonta({ ...teren, role: ['bliski'] }, role)), '/moje-konto?panel=brak')
+    // odczyt reszty panelu wymaga „panel” – konto terenowe go nie ma
+    assert.deepEqual(uprawnieniaTrasy('/api/keystatic/osoby', 'GET'), ['panel'])
+    // menu i opisy
+    assert.equal(pozycjaMenuDlaKonta('w-terenie', u), true)
+    assert.equal(pozycjaMenuDlaKonta('z-terenu', u), false)
+    assert.equal(pozycjaMenuDlaKonta('z-terenu', red), true)
+    assert.equal(pozycjaMenuDlaKonta('osoby', u), false)
+    assert.equal(opisZakresu(teren, role), 'w terenie: 1 plan')
+    assert.equal(opisZakresu({ ...teren, zakres: { kregi: [], miejsca: [] } }, role), 'w terenie: żaden plan')
+    assert.equal(opisMozesz(u), 'dodawać zdjęcia grobów i napisy na wybranych planach; zapisywać nowe miejsca z telefonu')
+    // plik kont: lista planów przechodzi przez odczyt, śmieci odpadają
+    const p = odczytajPlik({ konta: [{ ...teren, zakres: { plany: ['cmentarz-testowo', 5, ''] } }] })
+    assert.deepEqual(p.konta[0].zakres, { kregi: [], miejsca: [], plany: ['cmentarz-testowo'] })
 })

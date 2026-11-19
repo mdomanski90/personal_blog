@@ -59,6 +59,9 @@ export const MENU: GrupaMenu[] = [
         { klucz: 'plany-historyczny', nazwa: 'plany historyczne', href: '/keystatic/plany?rodzaj=historyczny', licznik: 'plany:historyczny' },
         { klucz: 'plany-schemat', nazwa: 'schematy i szkice', href: '/keystatic/plany?rodzaj=schemat', licznik: 'plany:schemat' },
         { klucz: 'plany-typy', nazwa: 'typy na planach', href: '/keystatic/plany/typy' },
+        // P7b (TER-01): praca z telefonem i przegląd tego, co przyszło z terenu
+        { klucz: 'w-terenie', nazwa: 'w terenie (telefon)', href: '/keystatic/teren' },
+        { klucz: 'z-terenu', nazwa: 'z terenu – do przejrzenia', href: '/keystatic/panel/teren' },
     ] },
     { klucz: 'administracja', nazwa: 'administracja', ikona: 'administracja', pozycje: [
         { klucz: 'dostep', nazwa: 'konta i dostęp', href: '/keystatic/panel/dostep' },
