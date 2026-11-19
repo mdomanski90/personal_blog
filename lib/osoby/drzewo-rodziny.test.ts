@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { indeksRelacji, type Drzewo, type Osoba, type Rodzina } from './model'
 import type { StanOsob } from './dane'
-import { drzewoHtml } from './drzewo'
+import { drzewoHtml, rozwinieciaZAdresu, rozwinieciaDoAdresu } from './drzewo'
 
 const os = (id: string, nazwisko: string, plec: 'M' | 'K', ur: string): Osoba => ({ id, imiona: id, nazwisko, plec, zyje: 'nie', widocznosc: 'auto', wersja: 1, zdarzenia: [{ id: `${id}-u`, rodzaj: 'urodzenie', data: ur }] } as Osoba)
 const rodz = (id: string, maz: string | undefined, zona: string | undefined, dzieci: string[]): Rodzina => ({ id, maz, zona, dzieci, zdarzenia: [], wersja: 1 })
@@ -72,4 +72,49 @@ test('karta osoby (bez opcji): układ jak dotąd – bez wujostwa, kuzynostwa, p
     const h = drzewoHtml(stan(), 'ja', op, 'publiczne')
     for (const id of ['stryj', 'kuzyn', 'wuj', 'siostrzeniec']) assert.ok(!karty(h).includes(id), id)
     assert.doesNotMatch(h, /class="dr-pl |dr-podzial|dr-boczna|dr-strona/)
+})
+
+// DRZ-11/12/13 (19.11): rozwinięcie w miejscu, dwoje małżonków, nieprzezroczyste karty boczne
+const xRaw = (h: string, id: string) => Number(h.match(new RegExp(`data-id="${id}"[^>]*data-x="([\\d.-]+)"`))?.[1])
+
+test('rozwinięcia z adresu: g/b/d i id, złe pozycje pominięte, bez powtórzeń', () => {
+    assert.deepEqual(rozwinieciaZAdresu('g.os-1,x.os-2,b.os-3,g.os-1,d.<zly>'), [{ r: 'g', id: 'os-1' }, { r: 'b', id: 'os-3' }])
+    assert.equal(rozwinieciaDoAdresu([{ r: 'd', id: 'a' }, { r: 'g', id: 'b' }]), 'd.a,g.b')
+    assert.deepEqual(rozwinieciaZAdresu(null), [])
+})
+
+test('plakietka to przycisk z opisem; rozwinięcie rodzeństwa dziadka – w miejscu, reszta bez ruchu', () => {
+    const przed = drzewoHtml(stan(), 'ja', { ...op, boczni: true }, 'publiczne')
+    assert.match(przed, /<button type="button" class="dr-pl dr-pl-b"[^>]*data-rozwin="b\.dziadek"[^>]*aria-label="dziadek A: pokaż rodzeństwo \(1\)"/)
+    const po = drzewoHtml(stan(), 'ja', { ...op, boczni: true, rozwin: [{ r: 'b', id: 'dziadek' }] }, 'publiczne')
+    assert.ok(karty(po).includes('stryjDziadka'))
+    assert.match(po, /class="dr-karta dr-M dr-boczna"[^>]*data-id="stryjDziadka"/)
+    for (const id of ['ja', 'ojciec', 'matka', 'dziadek', 'stryj', 'kuzyn', 'syn']) assert.equal(xRaw(po, id), xRaw(przed, id), `${id} bez ruchu`)
+    assert.doesNotMatch(po, /data-rozwin="b\.dziadek"/, 'plakietka znika po rozwinięciu')
+    assert.match(po, /data-rozwiniete="1"/)
+})
+
+test('rozwinięcie rodziców żony (teść) nad nią; dzieci osoby przy 0 pokoleń w dół – pod łącznikiem pary', () => {
+    const po = drzewoHtml(stan(), 'ja', { ...op, boczni: true, rozwin: [{ r: 'g', id: 'zona' }] }, 'publiczne')
+    assert.ok(karty(po).includes('tesc'))
+    const rzad = (h: string, id: string) => Number(h.match(new RegExp(`data-id="${id}"[^>]*data-rzad="(\\d+)"`))?.[1])
+    assert.equal(rzad(po, 'tesc'), rzad(po, 'zona') - 1)
+    assert.match(po, /class="dr-karta dr-M dr-boczna"[^>]*data-id="tesc"/, 'rodzice małżonka – krewni boczni')
+    const bez = drzewoHtml(stan(), 'ja', { ...op, naprzod: 0, boczni: true }, 'publiczne')
+    assert.ok(!karty(bez).includes('syn'))
+    assert.match(bez, /data-rozwin="d\.ja"/)
+    const zSynem = drzewoHtml(stan(), 'ja', { ...op, naprzod: 0, boczni: true, rozwin: [{ r: 'd', id: 'ja' }] }, 'publiczne')
+    assert.ok(karty(zSynem).includes('syn'))
+    assert.doesNotMatch(zSynem, /class="dr-karta[^"]*dr-boczna"[^>]*data-id="syn"/, 'potomek z linii – wypełniony')
+})
+
+test('dwoje małżonków krewnego bocznego: osoba pośrodku (kreska nie biegnie przez kartę drugiego małżonka)', () => {
+    const s = stan()
+    s.drzewo.osoby.set('stryjenka2', os('stryjenka2', 'F', 'K', '1840'))
+    s.drzewo.rodziny.set('f2b', rodz('f2b', 'stryj', 'stryjenka2', []))
+    const s2 = { ...s, relacje: indeksRelacji(s.drzewo) }
+    const h = drzewoHtml(s2, 'ja', { ...op, boczni: true }, 'publiczne')
+    const x = (id: string) => xRaw(h, id)
+    const [a, b] = [x('stryjenka'), x('stryjenka2')].sort((p, q) => p - q)
+    assert.ok(a < x('stryj') && x('stryj') < b, 'stryj między żonami')
 })

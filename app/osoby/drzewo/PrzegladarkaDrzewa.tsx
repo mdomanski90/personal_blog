@@ -40,7 +40,7 @@ function naSrodek(przew: HTMLElement, k: HTMLElement, gladko: boolean) {
     else przew.scrollBy(o)
 }
 
-interface Pokolenia { w: number; n: number; ileR: number; wiecejW: boolean; wiecejN: boolean }
+interface Pokolenia { w: number; n: number; ileR: number; wiecejW: boolean; wiecejN: boolean; rozw: number }
 interface Wlasciwosci {
     html: string; osoby: OsobaPanelu[]; od: string; rody: { id: string; nazwa: string; osob: number }[]
     wstecz: number; naprzod: number; boczni: boolean; rodzenstwo: boolean
@@ -59,7 +59,7 @@ export default function PrzegladarkaDrzewa(w: Wlasciwosci) {
     const { boczni, rodzenstwo } = w
     const idz = useIdz()
     const [zakl, ustawZakl] = React.useState<Zakladka>('drzewo')
-    const [pokolenia, ustawPokolenia] = React.useState<Pokolenia>({ w: w.wstecz, n: w.naprzod, ileR: 0, wiecejW: false, wiecejN: false })
+    const [pokolenia, ustawPokolenia] = React.useState<Pokolenia>({ w: w.wstecz, n: w.naprzod, ileR: 0, wiecejW: false, wiecejN: false, rozw: 0 })
     return (
         <RamaPrzegladarki prefix="aplet-drzewo" etykietaPaska="przeglądanie drzewa" etykietaZakladek="widok drzewa" tytul="całe drzewo" klasa="drzewo-aplet"
             zakladki={[{ id: 'drzewo', etykieta: 'drzewo' }, { id: 'lista', etykieta: 'lista pokoleń' }]} aktywna={zakl} ustawZakladke={ustawZakl} kluczPanelu="drzewo-panel"
@@ -79,6 +79,8 @@ export default function PrzegladarkaDrzewa(w: Wlasciwosci) {
                         <button type="button" aria-pressed={boczni} onClick={() => idz({ boczni: boczni ? '0' : null })}>rodziny rodziców</button>
                         {pokolenia.ileR > 0 && <button type="button" aria-pressed={rodzenstwo} onClick={() => idz({ rodzenstwo: rodzenstwo ? '0' : null })}>rodzeństwo</button>}
                     </span>
+                    {/* DRZ-12: krewni dołożeni z plakietek ↑ +N ↓N – jednym przyciskiem z powrotem do układu podstawowego */}
+                    {pokolenia.rozw > 0 && <span className="dok-grupa"><button type="button" onClick={() => idz({ rozwin: null })}>zwiń dołożonych ({pokolenia.rozw})</button></span>}
                 </>
             )}>
             <WidokDrzewa {...w} ustawPokolenia={ustawPokolenia} />
@@ -94,6 +96,8 @@ function WidokDrzewa({ html, osoby, od, rody, ustawPokolenia }: Wlasciwosci & { 
     const [szukaj, ustawSzukaj] = React.useState('')
     const drzewoRef = React.useRef<HTMLDivElement>(null)
     const skala = React.useRef(SKALA_START)
+    // DRZ-12: karta, przy której kliknięto plakietkę – po dołożeniu krewnych zostaje w tym samym miejscu okna, skala bez zmian
+    const kotwica = React.useRef<{ id: string; left: number; top: number } | null>(null)
     const [procent, ustawProcent] = React.useState(Math.round(SKALA_START * 100))
     const przerwij = React.useRef<() => void>(() => {})
     const [naDrzewie, ustawNaDrzewie] = React.useState<Set<string>>(new Set())
@@ -132,14 +136,34 @@ function WidokDrzewa({ html, osoby, od, rody, ustawPokolenia }: Wlasciwosci & { 
         const { fig, przew } = elementy()
         if (!fig || !przew) return undefined
         const sprzataj = przygotuj(fig)
-        skala.current = SKALA_START
-        ustawProcent(Math.round(SKALA_START * 100))
-        fig.style.setProperty('--dr-skala', String(SKALA_START))
-        const glowna = przew.querySelector<HTMLElement>('.dr-glowna')
-        if (glowna) requestAnimationFrame(() => naSrodek(przew, glowna, false))
+        const kw = kotwica.current
+        kotwica.current = null
+        const kartaKotwicy = kw ? przew.querySelector<HTMLElement>(`.dr-karta[data-id="${CSS.escape(kw.id)}"]`) : null
+        if (kw && kartaKotwicy) {
+            fig.style.setProperty('--dr-skala', String(skala.current))
+            requestAnimationFrame(() => { const b = kartaKotwicy.getBoundingClientRect(); przew.scrollBy(b.left - kw.left, b.top - kw.top) })
+        } else {
+            skala.current = SKALA_START
+            ustawProcent(Math.round(SKALA_START * 100))
+            fig.style.setProperty('--dr-skala', String(SKALA_START))
+            const glowna = przew.querySelector<HTMLElement>('.dr-glowna')
+            if (glowna) requestAnimationFrame(() => naSrodek(przew, glowna, false))
+        }
         ustawNaDrzewie(new Set([...fig.querySelectorAll<HTMLElement>('.dr-karta[data-id]')].map((k) => k.dataset.id!)))
-        ustawPokolenia({ w: Number(fig.dataset.pokolenWstecz ?? 0), n: Number(fig.dataset.pokolenNaprzod ?? 0), ileR: Number(fig.dataset.rodzenstwo ?? 0), wiecejW: fig.dataset.wiecejWstecz === '1', wiecejN: fig.dataset.wiecejNaprzod === '1' })
+        ustawPokolenia({ w: Number(fig.dataset.pokolenWstecz ?? 0), n: Number(fig.dataset.pokolenNaprzod ?? 0), ileR: Number(fig.dataset.rodzenstwo ?? 0), wiecejW: fig.dataset.wiecejWstecz === '1', wiecejN: fig.dataset.wiecejNaprzod === '1', rozw: Number(fig.dataset.rozwiniete ?? 0) })
         const klik = (e: MouseEvent) => {
+            const pl = (e.target as Element).closest<HTMLElement>('.dr-pl[data-rozwin]')
+            if (pl) {
+                e.preventDefault()
+                e.stopPropagation()
+                const t = pl.dataset.rozwin!
+                const id = t.slice(2)
+                const b = przew.querySelector<HTMLElement>(`.dr-karta[data-id="${CSS.escape(id)}"]`)?.getBoundingClientRect()
+                if (b) kotwica.current = { id, left: b.left, top: b.top }
+                const teraz = (new URLSearchParams(window.location.search).get('rozwin') ?? '').split(',').filter(Boolean)
+                idz({ rozwin: [...teraz.filter((x) => x !== t), t].join(',') })
+                return
+            }
             const k = (e.target as Element).closest<HTMLElement>('.dr-karta[data-id]')
             if (!k || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return
             e.preventDefault()
@@ -149,7 +173,7 @@ function WidokDrzewa({ html, osoby, od, rody, ustawPokolenia }: Wlasciwosci & { 
         }
         fig.addEventListener('click', klik, true)
         return () => { fig.removeEventListener('click', klik, true); przerwij.current(); sprzataj() }
-    }, [html, przelaczPanel, ustawSkale, ustawPokolenia])
+    }, [html, przelaczPanel, ustawSkale, ustawPokolenia, idz])
 
     // kółko – wspólna obsługa z planem: przybliża przy kursorze; Shift + kółko – przeglądarka przewija w bok sama
     useKolkoPrzyblizenia(() => elementy().przew, [html], (czynnik, x, y) => {
@@ -191,7 +215,7 @@ function WidokDrzewa({ html, osoby, od, rody, ustawPokolenia }: Wlasciwosci & { 
         })
     }, [procent, plynnie, caleWOknie, zglosPrzyblizenie])
     React.useEffect(() => () => zglosPrzyblizenie(null), [zglosPrzyblizenie])
-    const doSrodka = (id: string) => idz({ od: id })
+    const doSrodka = (id: string) => idz({ od: id, rozwin: null })
 
     const sl = normalizuj(szukaj.trim()).split(/\s+/).filter(Boolean)
     const wyniki = sl.length ? osoby.filter((o) => sl.every((s) => o.szukaj.includes(s))).slice(0, 30) : []

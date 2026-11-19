@@ -4,7 +4,7 @@
 import type { Metadata } from 'next'
 import { poziomCzytelnika, widoczne } from '@/lib/archiwum'
 import { stanOsob } from '@/lib/osoby/dane'
-import { drzewoHtml } from '@/lib/osoby/drzewo'
+import { drzewoHtml, rozwinieciaZAdresu } from '@/lib/osoby/drzewo'
 import { DOMYSLNE_CALEGO_DRZEWA, parametryDrzewa } from '@/lib/osoby/drzewo-adres'
 import { lataZycia, nazwaOsoby, nazwaOsobyKatalog, zdarzenie } from '@/lib/osoby/model'
 import { osobaWSrodku, rodyDrzewa } from '@/lib/osoby/rody'
@@ -25,7 +25,8 @@ export default async function CaleDrzewo({ searchParams }: { searchParams: Promi
     const p = parametryDrzewa(sp, DOMYSLNE_CALEGO_DRZEWA)
     const zakres = sp.rodzenstwo === '0' ? 'malzonkowie' as const : 'rodzenstwo' as const
     const boczni = sp.boczni !== '0'
-    const html = od ? drzewoHtml(s, od, { ...p, zakres, wTabeli: true, idFigury: 'cale-drzewo', boczni }, poziom) : ''
+    // DRZ-12: rozwinięcia z plakietek (?rozwin=g.id,b.id,d.id) – tylko przy rodzinach rodziców
+    const html = od ? drzewoHtml(s, od, { ...p, zakres, wTabeli: true, idFigury: 'cale-drzewo', boczni, rozwin: rozwinieciaZAdresu(sp.rozwin) }, poziom) : ''
 
     // dane panelu i szukania – tylko osoby widoczne dla czytelnika (zasada 1.5)
     const jest = (x: string | undefined): x is string => !!x && s.drzewo.osoby.has(x) && widac(x)

@@ -356,7 +356,7 @@ export function przygotuj(fig: HTMLElement, opcje: OpcjeObslugiDrzewa = {}): () 
     // przesuwanie myszą (poza kartami-odnośnikami)
     let start: { x: number; y: number; l: number; t: number } | null = null
     const dol = (e: PointerEvent) => {
-        if (e.pointerType !== 'mouse' || e.button !== 0 || (e.target as Element).closest('a')) return
+        if (e.pointerType !== 'mouse' || e.button !== 0 || (e.target as Element).closest('a, button')) return
         start = { x: e.clientX, y: e.clientY, l: przew.scrollLeft, t: przew.scrollTop }
         przew.classList.add('ciagnie')
     }

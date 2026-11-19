@@ -846,8 +846,10 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dark .pasek-lat-os { background: none; }
 
 /* przeglądarka dokumentu: objaśnienia na skanie (ObjasnieniaSkanu) */
-.dok-grupa>button[aria-pressed=true]{background:var(--muted);font-weight:700}
-.dok-pelny .dok-grupa>button[aria-pressed=true]{background:#2f2c28}
+/* DRZ-13 (19.11): włączony przełącznik w pasku przeglądarki (drzewo, plan, skan) – wypełnienie akcentem jak zakładka obok
+   i przełączniki drzewa na karcie osoby (.dr-przelacznik) */
+.dok-grupa>button[aria-pressed=true]{background:var(--akcent-wypelnienie);border-color:var(--akcent-wypelnienie);color:var(--akcent-na-wypelnieniu);font-weight:700}
+.dok-grupa>button[aria-pressed=true]:hover{color:var(--akcent-na-wypelnieniu);filter:brightness(.92)}
 .dok-obszar{position:relative;display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"pole";column-gap:18px}
 .dok-uklad-prawa{grid-template-columns:minmax(0,1fr) 16rem;grid-template-areas:"pole prawy"}
 .dok-uklad-obie{grid-template-columns:17rem minmax(0,1fr) 17rem;grid-template-areas:"lewy pole prawy"}
@@ -2317,8 +2319,11 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 /* ===== PK · CAŁE DRZEWO (/osoby/drzewo, decyzje 18.11) =====
    Układ drzewa: rodziny ojca (lewa) i matki (prawa), krewni boczni bez wypełnienia, plakietki krewnych poza widokiem.
    Strona w ramie przeglądarki planu (.plan-aplet): drzewo | panel osoby; płynne przybliżanie (+ − ⤢, kółko), suwaki, łapka. */
-.drzewo .dr-boczna { background: transparent; }
-.drzewo .dr-pl { position: absolute; z-index: 2; transform: translate(-50%, -50%); min-width: 18px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px; background: var(--tlo-kontrolki); border: 1px solid var(--krawedz-kontrolki); font-size: 10.5px; line-height: 14px; text-align: center; color: var(--tekst-opis); pointer-events: none; white-space: nowrap; } /* skala-wyjatek: zoom = --font-scale na .dr-plansza */
+.drzewo .dr-boczna { background: var(--background); } /* DRZ-11: „bez wypełnienia” = kolor tła strony, nieprzezroczyste – kreski za kartą nie prześwitują */
+/* DRZ-12: plakietka = przycisk „pokaż rodziców / rodzeństwo / dzieci” (rozwinięcie w miejscu) */
+.drzewo .dr-pl { position: absolute; z-index: 3; transform: translate(-50%, -50%); min-width: 24px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; background: var(--tlo-kontrolki); border: 1px solid var(--krawedz-kontrolki); font: inherit; font-size: 11px; line-height: 18px; text-align: center; color: var(--tekst-opis); white-space: nowrap; cursor: pointer; } /* skala-wyjatek: zoom = --font-scale na .dr-plansza */
+.drzewo .dr-pl:hover { border-color: var(--akcent); color: var(--akcent); }
+.drzewo .dr-pl:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px; }
 .drzewo .dr-linie path.dr-podzial { stroke-dasharray: 4 5; stroke-width: 1; }
 .drzewo .dr-strona { position: absolute; z-index: 2; font-size: 12px; line-height: 18px; color: var(--tekst-opis); white-space: nowrap; } /* skala-wyjatek: zoom = --font-scale na .dr-plansza */
 .drzewo .dr-strona-l { transform: translateX(calc(-100% - 10px)); }
