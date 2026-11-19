@@ -84,7 +84,8 @@ export function fasetyOsoby(o: Osoba, d: DaneFaset): FasetyOsoby {
         const siedziba = f.instytucja.siedziba && d.nazwaMiejsca(f.instytucja.siedziba)
         if (siedziba) dodajMiejsce(siedziba, 'praca')
         const ob = OBRZADEK_PARAFII[f.instytucja.wyznanie]
-        if (ob) dodajWyznanie(ob, `${f.rola || 'funkcja'}: ${f.instytucja.nazwa}`)
+        // wyjaśnienie = instytucja (rola stoi już w wyniku jako zajęcie: „proboszcz · parafia prawosławna w Woli”)
+        if (ob) dodajWyznanie(ob, f.rola ? f.instytucja.nazwa : `funkcja: ${f.instytucja.nazwa}`)
     }
     for (const id of d.groby) { const n = d.nazwaMiejsca(id); if (n) dodajMiejsce(n, 'pochowek') }
     return { zajecia: [...zajecia.values()], miejsca: [...miejsca.values()], wyznania: [...wyznania.values()] }

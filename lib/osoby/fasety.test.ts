@@ -50,7 +50,7 @@ test('PPL-03: miejscowości z rodzajem związku – zdarzenia, małżeństwo, si
 
 test('PPL-03: wyznanie tylko z zapisu i z instytucji – z wyjaśnieniem', () => {
     assert.deepEqual(fJan.wyznania.map((w) => [w.klucz, w.powod]), [['unicki', 'chrzest unicki'], ['prawoslawny', 'ślub prawosławny']])
-    assert.deepEqual(fKsiadz.wyznania.map((w) => [w.klucz, w.powod]), [['prawoslawny', 'Proboszcz: Parafia prawosławna w Testowie']])
+    assert.deepEqual(fKsiadz.wyznania.map((w) => [w.klucz, w.powod]), [['prawoslawny', 'Parafia prawosławna w Testowie']])
 })
 
 test('PPL-03: filtry z adresu – nieznane wartości odrzucone, „związek” tylko przy miejscowości', () => {

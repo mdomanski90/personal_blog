@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { TytulDzialu, WstepDzialu, WstepTekst } from '@/app/components/WstepDzialu'
+import { TytulDzialu, WstepTekst } from '@/app/components/WstepDzialu'
 import ListaOsob, { type KragNaLiscie, type OsobaNaLiscie } from './ListaOsob'
 import { Link } from 'next-view-transitions'
 import { biogramy, miejsca, parafie, poziomCzytelnika, rozwiazOdnosniki, widoczne } from '@/lib/archiwum'

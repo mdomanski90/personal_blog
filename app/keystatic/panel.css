@@ -520,7 +520,7 @@ button.pn-szukaj { background: var(--pn-pole); border-color: var(--pn-linia); }
 .wm-poz:hover { background: var(--kui-color-scale-slate3); }
 .wm-poz[aria-pressed=true] { border-color: var(--kui-color-scale-indigo9); background: var(--kui-color-scale-indigo2); }
 .wm-mini { flex: none; width: 64px; height: 48px; object-fit: cover; border-radius: 4px; background: var(--kui-color-scale-slate4); }
-.wm-mini-brak { display: inline-flex; align-items: center; justify-content: center; text-align: center; font-size: 10.5px; line-height: 1.2; color: var(--kui-color-scale-slate9); }
+.wm-mini-brak { display: inline-flex; align-items: center; justify-content: center; text-align: center; font-size: 10.5px; line-height: 1.2; color: var(--kui-color-scale-slate10); }
 .wm-tekst { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .wm-nazwa { font-weight: 600; overflow-wrap: anywhere; }
 .wm-linia { font-size: 12.5px; color: var(--kui-color-scale-slate9); }

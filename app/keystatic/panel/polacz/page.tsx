@@ -70,7 +70,7 @@ export default function Polacz() {
         <>
             <header className="pn-naglowek">
                 <div className="pn-kol pn-kol-wasko">
-                    <h1>połącz {d && <span className="pn-szary">· {d.wzmianki.length}</span>}</h1>
+                    <h1>połącz wzmianki {d && <span className="pn-szary">· {d.wzmianki.length}</span>}</h1>
                     <span className="pn-maly">Nazwy miejscowości, obiektów, tematów i osób, które padają w tekstach bez odnośnika. Zaznacz, które zamienić na odnośnik [[…]] – przed zapisem zobaczysz każdą zmianę, po zapisie możesz cofnąć.</span>
                 </div>
             </header>

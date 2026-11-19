@@ -1,7 +1,7 @@
 // P6b (PD-20): logika okna wyboru materiału w bloku „Materiał z archiwum” (bez React) – widok: app/keystatic/WyborMaterialu.tsx.
 import { normalizuj } from '../tekst'
 
-export interface MaterialDoWyboru { id: string; nazwa: string; rodzaj: string; czas: string; widocznosc: string; podglad: string | null; zmieniono: string | null }
+export interface MaterialDoWyboru { id: string; nazwa: string; rodzaj: string; rodzajNazwa?: string; czas: string; widocznosc: string; podglad: string | null; zmieniono: string | null }
 
 export const ILE_OSTATNICH = 5
 export const ILE_WYNIKOW = 30
@@ -15,5 +15,5 @@ export function ostatnieMaterialy(L: MaterialDoWyboru[], ile = ILE_OSTATNICH): M
 export function szukajMaterialow(L: MaterialDoWyboru[], q: string, ile = ILE_WYNIKOW): MaterialDoWyboru[] {
     const slowa = normalizuj(q).split(' ').filter(Boolean)
     if (!slowa.length) return []
-    return L.filter((m) => { const t = normalizuj(`${m.nazwa} ${m.id} ${m.rodzaj} ${m.czas}`); return slowa.every((s) => t.includes(s)) }).slice(0, ile)
+    return L.filter((m) => { const t = normalizuj(`${m.nazwa} ${m.id} ${m.rodzaj} ${m.rodzajNazwa ?? ''} ${m.czas}`); return slowa.every((s) => t.includes(s)) }).slice(0, ile)
 }

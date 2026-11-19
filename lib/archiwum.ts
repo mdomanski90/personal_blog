@@ -964,7 +964,7 @@ export async function dokumentySzukania(poziom: Widocznosc): Promise<DokumentSzu
     }
     // osoby: tylko te, które czytelnik może zobaczyć; imię i nazwisko, inne nazwiska i zapisy, przydomek
     const { stanOsob } = await import('./osoby/dane')
-    const { nazwaOsoby, lataZycia, nazwiskaPoMezu, dopiskiPoMezu } = await import('./osoby/model')
+    const { nazwaOsoby, nazwiskaPoMezu, dopiskiPoMezu } = await import('./osoby/model')
     const { fasetyOsoby, opisOsoby } = await import('./osoby/fasety')
     const { funkcjeOsoby } = await import('./parafie-powiazania')
     const { miejscaGrobowOsob } = await import('./plany/serwer')

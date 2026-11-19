@@ -17,7 +17,7 @@ function Miniatura({ m }: { m: Pick<MaterialDoWyboru, 'podglad'> | undefined }) 
     return <img className="wm-mini" src={m.podglad} alt="" loading="lazy" onError={() => ustawBlad(true)} />
 }
 
-const linia = (m: MaterialDoWyboru) => [m.rodzaj, m.czas, WIDOCZNOSC[m.widocznosc] ?? m.widocznosc].filter(Boolean).join(' · ')
+const linia = (m: MaterialDoWyboru) => [m.rodzajNazwa ?? m.rodzaj, m.czas, WIDOCZNOSC[m.widocznosc] ?? m.widocznosc].filter(Boolean).join(' · ')
 
 export function WyborMaterialu({ value, onChange, autoFocus, forceValidation }: FormFieldInputProps<string | null>) {
     const [lista, ustawListe] = React.useState<MaterialDoWyboru[] | null>(null)

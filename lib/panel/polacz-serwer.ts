@@ -51,7 +51,8 @@ export async function zapiszPolaczenia(klucze: string[], korzen = process.cwd())
     const zmiany: { plik: string; poprzedni: string; wynik: string }[] = []
     for (const [plik, L] of poPlikach) {
         const poprzedni = await fs.readFile(path.join(/*turbopackIgnore: true*/ korzen, plik), 'utf8')
-        zmiany.push({ plik, poprzedni, wynik: polaczWTekscie(poprzedni, L) })
+        // operacje liczą ścieżki względem content/ (lib/panel/operacje.ts – sciezkaTresci); teksty sieci mają „content/…”
+        zmiany.push({ plik: plik.replace(/^content\//, ''), poprzedni, wynik: polaczWTekscie(poprzedni, L) })
     }
     const w = await wykonajOperacje({
         korzen, rodzaj: 'polacz', opis: `połącz: ${doZmiany.length} ${doZmiany.length === 1 ? 'odnośnik' : 'odnośników'} w ${zmiany.length} ${zmiany.length === 1 ? 'tekście' : 'tekstach'}`,
@@ -61,7 +62,7 @@ export async function zapiszPolaczenia(klucze: string[], korzen = process.cwd())
             const cfg = (await import('../../keystatic.config')).default
             const r = createReader(korzen, cfg) as unknown as { collections: Record<string, { read: (s: string) => Promise<unknown> }> }
             for (const z of zmiany) {
-                const m = z.plik.match(/^content\/([a-z]+)\/([^/]+)\.mdoc$/)
+                const m = z.plik.match(/^([a-z]+)\/([^/]+)\.mdoc$/)
                 if (!m || !r.collections[m[1]]) continue
                 try { if (!(await r.collections[m[1]].read(m[2]))) throw new Error('brak wpisu') }
                 catch (e) { throw new Error(`Po zmianie „${z.plik}” byłby nieczytelny dla strony (${String(e instanceof Error ? e.message : e).slice(0, 160)}) – nic nie zapisano.`) }
