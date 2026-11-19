@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { wczytajKonta } from '@/lib/konta/dane'
-import { definicjeRol, opisMozesz, uprawnieniaKonta } from '@/lib/konta/model'
+import { definicjeRol, opisMozesz, uprawnieniaKonta, maTeren } from '@/lib/konta/model'
 import { adresPolaczenia } from '@/lib/konta/pocket-id'
 import { konfiguracjaKont } from '@/lib/konta/straz'
 import { kontoZKodu } from '@/lib/konta/zaproszenia'
@@ -33,7 +33,7 @@ export default async function Zaproszenie({ params }: { params: Promise<{ kod: s
     const imie = konto.imie.split(' ')[0]
     const zaprasza = plik.konta.find((x) => x.id === konto.zaprosil)?.imie.split(' ')[0]
     const u = uprawnieniaKonta({ ...konto, stan: 'aktywny' }, definicjeRol(plik))
-    const panel = u.has('panel')
+    const panel = u.has('panel') || maTeren(u) // P7b: konto terenowe też „pomaga” – pracuje w „w terenie”
     const nowe = konto.stan === 'zaproszony'
     return (
         <Strona>

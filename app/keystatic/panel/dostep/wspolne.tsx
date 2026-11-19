@@ -3,14 +3,14 @@
 import * as React from 'react'
 import { Okno } from '../okno'
 
-export type Uprawnienie = { klucz: string; nazwa: string; dzial?: boolean; pozniej?: boolean }
+export type Uprawnienie = { klucz: string; nazwa: string; dzial?: boolean }
 export type Rola = { klucz: string; nazwa: string; opis: string; uprawnienia: string[] }
 export type Krag = { id: string; nazwa: string }
-export type Zakres = { kregi: string[]; miejsca: string[] }
+export type Zakres = { kregi: string[]; miejsca: string[]; plany?: string[] }
 export type Zaproszenie = { imie: string; link: string; do: string; qr: { rozmiar: number; sciezka: string } }
 
 export const dzien = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }) : '—')
-export const nazwaUprawnienia = (u: Uprawnienie) => (u.pozniej ? `${u.nazwa} · od etapu „teren”` : u.nazwa)
+export const nazwaUprawnienia = (u: Uprawnienie) => u.nazwa
 
 export async function wyslij<T = { ok?: boolean }>(dane: unknown): Promise<{ wynik: T | null; blad: string | null }> {
     const r = await fetch('/api/keystatic/panel/konta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dane) }).catch(() => null)

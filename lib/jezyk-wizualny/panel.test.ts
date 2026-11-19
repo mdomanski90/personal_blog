@@ -20,6 +20,9 @@ const PLIKI_RAMY = [
     'lib/panel/katalogi.ts', 'lib/panel/historia.ts', 'lib/panel/praca.ts', 'app/keystatic/SzufladaHistorii.tsx', 'app/keystatic/panel/do-opracowania/page.tsx', 'app/keystatic/PaletaPolecen.tsx', 'lib/panel/paleta.ts',
     // P7a
     'app/keystatic/MenuKonta.tsx', 'app/keystatic/panel/dostep/page.tsx', 'app/keystatic/panel/dostep/wspolne.tsx', 'app/keystatic/panel/dostep/[id]/page.tsx', 'app/keystatic/panel/dostep/role/page.tsx', 'lib/konta/model.ts',
+    // P7b (TER-01): „w terenie” i „z terenu”
+    'app/keystatic/RamaTerenu.tsx', 'app/keystatic/teren/page.tsx', 'app/keystatic/teren/wspolne.tsx', 'app/keystatic/teren/plan/[slug]/PlanTerenowy.tsx', 'app/keystatic/teren/nowe/page.tsx',
+    'app/keystatic/teren/wyslij/page.tsx', 'app/keystatic/teren/konto/page.tsx', 'app/keystatic/panel/teren/page.tsx',
 ]
 const blokTokenow = (sel: string) => /^(\.pn|\.dark \.pn)$/.test(sel) || /kui-scheme--/.test(sel)
 

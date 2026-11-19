@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { wczytajKregi } from '@/lib/kregi'
-import { maRoleAdministratora, opisMozesz } from '@/lib/konta/model'
+import { maRoleAdministratora, opisMozesz, maTeren } from '@/lib/konta/model'
 import { urzadzenia } from '@/lib/konta/pocket-id'
 import { konfiguracjaKont, rolaTeraz, zalogowanyTeraz } from '@/lib/konta/straz'
 import Komunikat from '../components/Komunikat'
@@ -39,6 +39,8 @@ export default async function MojeKonto({ searchParams }: { searchParams: Promis
             </Tabela>
             <div className="konto-rzad">
                 {z.uprawnienia.has('panel') && <Link className="k-btn k-btn--glowny" href="/keystatic/panel" prefetch={false}>przejdź do panelu →</Link>}
+                {/* P7b (TER-01): praca z telefonem – zdjęcia grobów, napisy, nowe miejsca */}
+                {maTeren(z.uprawnienia) && <Link className={`k-btn${z.uprawnienia.has('panel') ? '' : ' k-btn--glowny'}`} href="/keystatic/teren" prefetch={false}>w terenie →</Link>}
                 <a className="k-btn" href={`${k.adres}/settings/account`} target="_blank" rel="noopener">zarządzaj kluczami (konto.odniepamieci.pl)</a>
                 <form method="post" action="/api/wyloguj"><input type="hidden" name="wroc" value="/" /><button type="submit" className="k-btn">wyloguj</button></form>
             </div>

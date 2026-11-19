@@ -7,7 +7,7 @@ import { Okno } from '../../okno'
 import { OknoLinku, WyborZakresu, dzien, nazwaUprawnienia, wyslij, type Krag, type Rola, type Uprawnienie, type Zakres, type Zaproszenie } from '../wspolne'
 
 type Konto = { id: string; imie: string; email?: string; role: string[]; dodane: string[]; odebrane: string[]; zakres: Zakres; stan: 'zaproszony' | 'aktywny' | 'zablokowany'; utworzono: string; ostatnio?: string; zaproszenieDo: string | null; ty: boolean }
-type Dane = { wersja: number; konto: Konto; zRol: string[]; role: Rola[]; uprawnienia: Uprawnienie[]; kregi: Krag[]; urzadzenia: { id: string; nazwa: string; od: string }[] | null; uwagaUrzadzen: string | null; dzialania: { opis: string; czas: string }[] }
+type Dane = { wersja: number; konto: Konto; zRol: string[]; role: Rola[]; uprawnienia: Uprawnienie[]; kregi: Krag[]; plany: { slug: string; tytul: string }[]; urzadzenia: { id: string; nazwa: string; od: string }[] | null; uwagaUrzadzen: string | null; dzialania: { opis: string; czas: string }[] }
 const STAN = { aktywny: 'aktywne', zaproszony: 'zaproszony', zablokowany: 'zablokowane' } as const
 
 export default function KartaKonta() {
@@ -90,6 +90,18 @@ export default function KartaKonta() {
                     </div>
                     <span className="pn-etyk">zakres miejscowości</span>
                     <WyborZakresu zakres={zakres} kregi={dane.kregi} onZmiana={ustawZakres} />
+                    {ma.has('plany-teren') && !ma.has('plany') && (
+                        <fieldset className="pn-kol pn-pole-zbior">
+                            <legend className="pn-etyk">plany w terenie</legend>
+                            <span className="pn-maly">Na tych planach ta osoba dodaje telefonem zdjęcia grobów, napisy i notatki. Innych planów nie widzi.</span>
+                            {dane.plany.length === 0 && <span className="pn-szary">Nie ma jeszcze żadnego planu.</span>}
+                            {dane.plany.map((p) => (
+                                <label key={p.slug} className="pn-wybor">
+                                    <input type="checkbox" checked={!!zakres.plany?.includes(p.slug)} onChange={(e) => ustawZakres({ ...zakres, plany: e.target.checked ? [...(zakres.plany ?? []), p.slug] : (zakres.plany ?? []).filter((x) => x !== p.slug) })} /> {p.tytul}
+                                </label>
+                            ))}
+                        </fieldset>
+                    )}
                     <div className="pn-rzad">
                         <button type="button" className="pn-btn" onClick={() => ustawMa(new Set(zRoli))}>przywróć z roli</button>
                         <button type="button" className="pn-btn pn-btn-gl" onClick={zapisz}>zapisz zmiany</button>

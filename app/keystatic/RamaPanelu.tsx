@@ -11,6 +11,7 @@ import PaletaPolecen from './PaletaPolecen'
 import SzufladaHistorii from './SzufladaHistorii'
 import MenuKonta, { type KontoRamy } from './MenuKonta'
 import { pozycjaMenuDlaKonta, type Uprawnienie } from '@/lib/konta/model'
+import RamaTerenu from './RamaTerenu'
 
 const IKONY: Record<Ikona, LucideIcon> = {
     pulpit: House, zgloszenia: Inbox, opracowanie: ListTodo, tresci: FileText, archiwum: Archive, biblioteka: Library,
@@ -135,7 +136,16 @@ function Przypnij({ sciezka }: { sciezka: string }) {
     )
 }
 
-export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = {}, konto = null, children }: { ustawienia: UstawieniaMenu | null; liczbyPlanow: Record<RodzajPlanu, number>; liczbyKolekcji?: Record<string, number>; konto?: KontoRamy | null; children: React.ReactNode }) {
+type WlasciwosciRamy = { ustawienia: UstawieniaMenu | null; liczbyPlanow: Record<RodzajPlanu, number>; liczbyKolekcji?: Record<string, number>; konto?: KontoRamy | null; children: React.ReactNode }
+
+/** P7b (TER-01): strony „w terenie” mają własną, lekką ramę (telefon); reszta panelu – pełną. */
+export default function RamaPanelu(w: WlasciwosciRamy) {
+    const sciezka = usePathname() ?? ''
+    if (sciezka === '/keystatic/teren' || sciezka.startsWith('/keystatic/teren/')) return <RamaTerenu konto={w.konto ?? null}>{w.children}</RamaTerenu>
+    return <RamaPelna {...w} />
+}
+
+function RamaPelna({ ustawienia, liczbyPlanow, liczbyKolekcji = {}, konto = null, children }: WlasciwosciRamy) {
     // liczniki w menu: „plany:<rodzaj>” i (P6a) „kolekcja:<klucz>”
     const liczniki = React.useMemo(() => ({ ...Object.fromEntries(Object.entries(liczbyPlanow).map(([k, v]) => [`plany:${k}`, v])), ...Object.fromEntries(Object.entries(liczbyKolekcji).map(([k, v]) => [`kolekcja:${k}`, v])) }), [liczbyPlanow, liczbyKolekcji])
     const sciezka = usePathname() ?? ''

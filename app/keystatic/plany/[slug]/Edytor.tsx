@@ -415,7 +415,7 @@ export default function Edytor({ slug }: { slug: string }) {
     }
     const oznaczSprawdzony = (id: string) => {
         const e = el(id)
-        zmienElementy(new Map([[id, { etap: 'sprawdzony', ...(e?.stan === 'do-sprawdzenia' ? { stan: undefined } : {}) }]]))
+        zmienElementy(new Map([[id, { etap: 'sprawdzony', ...(e?.stan === 'do-sprawdzenia' ? { stan: undefined } : {}), ...(e?.zTerenu ? { zTerenu: undefined } : {}) }]]))
     }
     const zdjecieZTerenu = async (f: File) => {
         const id = wzor?.id
@@ -1433,7 +1433,7 @@ function pasujeDoFiltra(e: Element, f: Filtr): boolean {
     if (f === 'bezNapisu') return !(e.napis?.trim() || e.opis?.trim() || e.osoby?.some((o) => o.nazwa.trim()) || e.nazwa?.trim())
     if (f === 'bezZdjecia') return !e.zdjecia?.length
     if (f === 'nieopracowane') return etapElementu(e) === 'narysowany'
-    if (f === 'niesprawdzone') return etapElementu(e) !== 'sprawdzony' || !!polozenie(e) || e.stan === 'do-sprawdzenia'
+    if (f === 'niesprawdzone') return etapElementu(e) !== 'sprawdzony' || !!polozenie(e) || e.stan === 'do-sprawdzenia' || !!e.zTerenu
     return true
 }
 function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmiana, usun, duplikuj, powielOtwarte, przelaczPowiel, wgrajZdjecie, osobyDrzewa, wczytajOsoby, tryb, nastepny, zatwierdz, podglad, pokazGrob, listy }: {
@@ -1480,6 +1480,7 @@ function PanelElementu({ e, plan, typy, ukryteTypy, numer, skala, fmt, slug, zmi
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <a href={plikUrl(slug, e.zdjecia[0].plik)} target="_blank" rel="noreferrer"><img className="ed-podglad" src={plikUrl(slug, e.zdjecia[0].plik)} alt="zdjęcie nagrobka – porównaj z napisem poniżej" /></a>
                 : <span className="ed-uwaga">Brak zdjęcia – sprawdź w terenie albo dodaj zdjęcie niżej.</span>)}
+            {t?.grob && e.zTerenu && <span className="ed-uwaga">Zmiana z terenu ({e.zTerenu.czas.slice(0, 10)}) – do sprawdzenia. Kto i co zmienił: panel → „z terenu”.</span>}
             {rysuj && t?.grob && <span className="ed-maly">dane: {[e.napis?.trim() && 'napis', e.osoby?.length && `osoby: ${e.osoby.length}`, e.zdjecia?.length && `zdjęcia: ${e.zdjecia.length}`, e.zrodla?.trim() && 'źródła'].filter(Boolean).join(' · ') || 'brak'} – wpisuje się je w trybie „Opracuj”.</span>}
             {rysuj && <Pole etykieta="typ">
                 <select className="ed-in" value={e.typ} onChange={(x) => zmiana({ typ: x.target.value })}>{zgodne.map((x) => <option key={x.id} value={x.id}>{x.nazwa}</option>)}</select>
