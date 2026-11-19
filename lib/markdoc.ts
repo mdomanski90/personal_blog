@@ -1,4 +1,5 @@
 import { identyfikatorZNazwy, odmiana } from './tekst'
+import { ukryjAdresy } from './email-ochrona'
 import Markdoc, { Tag, type Node, type Config, type RenderableTreeNode, type RenderableTreeNodes } from '@markdoc/markdoc'
 import type { ObjasnienieWidoku } from './objasnienia-widok'
 import { bezNawiasow, ODNOSNIK, tekstOdnosnika, type Rozwiaz } from './odnosniki'
@@ -291,7 +292,8 @@ export function naHtml(node: Node | null | undefined, kontekst?: KontekstTresci 
     const k: KontekstTresci = typeof kontekst === 'function' ? { rozwiaz: kontekst } : (kontekst ?? {})
     const drzewo = Markdoc.transform(node, config)
     const wynik = wstawOdnosniki(drzewo, k)
-    return Markdoc.renderers.html(wynik as RenderableTreeNodes)
+    // OPS-08 (19.11): adresy e-mail w treści – zakodowane, widoczne po kliknięciu „pokaż adres e-mail”
+    return ukryjAdresy(Markdoc.renderers.html(wynik as RenderableTreeNodes))
 }
 
 /** JW-2: pozycje spisu treści z gotowego HTML – nagłówki h2 z identyfikatorem (pisownia autora). */

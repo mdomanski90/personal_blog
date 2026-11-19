@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import * as React from 'react'
 import { Link } from 'next-view-transitions'
+import { zakoduj } from '@/lib/email-ochrona'
 import { adresKontaktowy, miejsca } from '@/lib/archiwum'
 import { adresFiltrow, wartosc, type Parametry } from '@/lib/adres-filtrow'
 import { stronicuj } from '@/lib/stronicowanie'
@@ -172,7 +173,7 @@ export default async function Wspoltworz({ searchParams }: { searchParams: Promi
                 <TytulSekcji id="napisz-t">wyślij zgłoszenie</TytulSekcji>
                 <Zgloszenie key={uz?.zadanie.klucz ?? pomoc ?? 'ogolne'} wariant="formularz" rodzaj={formRodzaj}
                     adres={uz ? uz.zadanie.href : '/wspoltworz'} tytul="współtwórz" brak={uz?.zadanie.brak}
-                    czegoDotyczy={uz?.czegoDotyczy} zgoda email={email} />
+                    czegoDotyczy={uz?.czegoDotyczy} zgoda email={email ? zakoduj(`${email.u}@${email.d}`) : undefined} />
             </section>
         </Strona>
     )

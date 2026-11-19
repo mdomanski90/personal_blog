@@ -1,6 +1,7 @@
 import * as React from 'react'
 import SiteHeader from './SiteHeader'
 import Footer from './Footer'
+import UkryteAdresy from './UkryteAdresy'
 import ScrollToTop from './ScrollToTop'
 import ImageZoom from './ImageZoom'
 import DokumentyWTresci from './DokumentyWTresci'
@@ -111,6 +112,7 @@ export function Strona({ children, szeroka = false, uklad, akcje, naglowek, bok,
                     <ImageZoom />
                     <DokumentyWTresci />
                     <DrzewaLinie />
+                    <UkryteAdresy />
                     <Footer />
                 </div>
             </div>

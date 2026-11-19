@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { odmiana } from '@/lib/tekst'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
+import { zakoduj } from '@/lib/email-ochrona'
 import { adresKontaktowy, hasla, haslaWTekscie, kontekstTresci, material, nazwy, obiekty, objasnieniaDoWidoku, podpisZrodlaMaterialu, powiazania, poziomCzytelnika } from '@/lib/archiwum'
 import { adresHasla, skrocZnaczenie } from '@/lib/slownik'
 import { linkujHasla } from '@/lib/slownik-linki'
@@ -125,7 +126,7 @@ export default async function MaterialStrona({ params }: Parametry) {
                     {pomoc.has('brak-transkrypcji') && (
                         // dopisek właściciela (komentarz na makiecie 17.11) – jak na kartach miejscowości i obiektu
                         <p className="podpis-zrodla wsp-pomoc">Ten dokument nie ma jeszcze transkrypcji –{' '}
-                            <Zgloszenie rodzaj="odczyt" wariant="link" etykieta="pomóż go odczytać" adres={`/archiwum/${m.id}`} tytul={`${m.nazwa} – odczyt`} brak="brak-transkrypcji" zgoda email={email} />
+                            <Zgloszenie rodzaj="odczyt" wariant="link" etykieta="pomóż go odczytać" adres={`/archiwum/${m.id}`} tytul={`${m.nazwa} – odczyt`} brak="brak-transkrypcji" zgoda email={email ? zakoduj(`${email.u}@${email.d}`) : undefined} />
                             . Wspólnie możemy tworzyć ten serwis.
                         </p>
                     )}

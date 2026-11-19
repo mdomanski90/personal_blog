@@ -41,7 +41,8 @@ export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk',
     /** pole zgody na podpis w „opracował(a)” */
     zgoda?: boolean
     /** adres na pliki (części składane w przeglądarce, jak w „o projekcie”) */
-    email?: { u: string; d: string }
+    /** adres kontaktowy zakodowany (OPS-08: zakoduj() z lib/email-ochrona – bez adresu w danych strony) */
+    email?: string
     /** wariant „formularz”: wypełnione „czego dotyczy” (z ?uzupelnij=…) */
     czegoDotyczy?: string
 }) {
@@ -108,7 +109,7 @@ export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk',
                 placeholder={pelny ? OPISY[r].podpowiedz : undefined} />
             <span id={`${idPola}-pom`} className="k-podpowiedz">
                 {email
-                    ? <>Zdjęcia, skany i nagrania wyślij na adres <EmailLink u={email.u} d={email.d} /> – w temacie wpisz, czego dotyczą.</>
+                    ? <>Zdjęcia, skany i nagrania wyślij na adres <EmailLink k={email} /> – w temacie wpisz, czego dotyczą.</>
                     : 'Zgłoszenie trafia do redakcji – nie jest publikowane automatycznie.'}
             </span>
             <label className="k-etykieta" htmlFor={`${idPola}-k`}>kontakt do Ciebie (nieobowiązkowy)</label>

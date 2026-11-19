@@ -1,21 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { odkoduj, PRZYCISK_ADRESU } from '@/lib/email-ochrona'
 
 /**
- * Adres składany w przeglądarce, żeby nie było go w HTML strony (części przychodzą osobno, bez „@”).
- * Etap R (decyzja 17.11): adres z ustawień – pole „adres e-mail do kontaktu” w singletonie „O projekcie” (adresKontaktowy()).
+ * Adres kontaktowy chroniony przed botami (OPS-08, 19.11): w HTML i danych strony tylko zakodowany (lib/email-ochrona),
+ * widoczny po kliknięciu „pokaż adres e-mail”. Etap R (decyzja 17.11): adres z ustawień – pole „adres e-mail do kontaktu”
+ * w singletonie „O projekcie” (adresKontaktowy()); wywołujący przekazuje zakoduj(adres).
  */
-export default function EmailLink({ u, d }: { u: string; d: string }) {
-    const [email, setEmail] = useState<string | null>(null)
-
-    useEffect(() => {
-        setEmail(`${u}@${d}`)
-    }, [u, d])
-
-    if (!email) {
-        return <span className="text-[var(--tekst-etykieta)]">[adres pojawi się po załadowaniu strony]</span>
-    }
-
-    return <a href={`mailto:${email}`}>{email}</a>
+export default function EmailLink({ k }: { k: string }) {
+    const [adres, ustawAdres] = useState<string | null>(null)
+    if (!adres) return <button type="button" className="email-pokaz k-btn k-btn--s" data-adres-wlasny onClick={() => ustawAdres(odkoduj(k))}>{PRZYCISK_ADRESU}</button>
+    return <a href={`mailto:${adres}`} autoFocus>{adres}</a>
 }

@@ -3,6 +3,7 @@ import { adresKontaktowy, oProjekcie, poziomCzytelnika, kontekstTresci } from '@
 import { naHtml } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc, TytulStrony } from '../components/Uklad'
 import EmailLink from '../components/EmailLink'
+import { zakoduj } from '@/lib/email-ochrona'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'o projekcie · odniepamieci.pl' }
@@ -18,7 +19,7 @@ export default async function OProjekcie() {
             <Sekcja tytul="kontakt">
                 {/* etap R: rozmiar treści z klasy (bez stylu inline); adres z ustawień, ten sam co w „współtwórz” */}
                 <p className="tekst-tresc">
-                    <EmailLink u={email.u} d={email.d} />
+                    <EmailLink k={zakoduj(`${email.u}@${email.d}`)} />
                 </p>
             </Sekcja>
         </Strona>
