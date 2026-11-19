@@ -12,7 +12,7 @@ import { funkcjeOsoby } from '@/lib/parafie-powiazania'
 import { miejscaGrobowOsob } from '@/lib/plany/serwer'
 import { naTekst } from '@/lib/markdoc'
 import { normalizujDoSzukania, odmiana, porownajPl } from '@/lib/tekst'
-import { Strona, TytulStrony } from '../components/Uklad'
+import StronaDzialu from '../components/StronaDzialu'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,20 +72,18 @@ export default async function Osoby({ searchParams }: { searchParams: Promise<Re
             <p><WstepTekst dzial="osoby" domyslny={"Ludzie z tych wsi: przodkowie, sąsiedzi, księża, wójtowie – każdy ze swoją stroną, drzewem przodków i potomków oraz dokumentami, które potwierdzają daty i więzi."} /></p>
             {s.drzewo.osoby.size === 0 ? (
                 <p className="text-[var(--tekst-opis)]">Ten dział jest w przygotowaniu – osoby pojawią się po wczytaniu drzewa genealogicznego. Dane osób urodzonych w ostatnich 100 latach (i zmarłych w ostatnich 25) będą widoczne tylko dla zalogowanych bliskich.</p>
-            ) : (
+            ) : ukryte > 0 && poziom === 'publiczne' && (
+                // łatka P6b: liczba osób – w liczniku pod panelem (jak słownik); tu tylko informacja o danych dla bliskich
                 <p className="tekst-opis-maly text-[var(--tekst-opis)]">
-                    {odmiana(wszystkie.length, ['osoba', 'osoby', 'osób'])}
-                    {ukryte > 0 && poziom === 'publiczne' && <> · dane {odmiana(ukryte, ['osoby', 'osób', 'osób'])} widzą tylko <Link href="/zaloguj?wroc=/osoby">zalogowani bliscy</Link></>}
+                    Dane {odmiana(ukryte, ['osoby', 'osób', 'osób'])} widzą tylko <Link href="/zaloguj?wroc=/osoby">zalogowani bliscy</Link>.
                 </p>
             )}
-            {/* PK (uwaga 18.11): strona z całym drzewem – potomkowie najstarszej znanej pary */}
-            {wszystkie.length > 1 && <p><Link href="/osoby/drzewo" className="k-btn">całe drzewo →</Link></p>}
         </div>
     )
-    return (
-        <Strona uklad="pelna">
-            <TytulStrony><TytulDzialu dzial="osoby" domyslny="osoby" /></TytulStrony>
-            {wszystkie.length > 0 ? <ListaOsob key={[krag, ...Object.values(filtry)].join('|')} osoby={lista} kregi={kregiListy} krag={krag} filtry={filtry} opcje={opcje} poczatek={sp.q ?? ''} wstep={wstep} /> : wstep}
-        </Strona>
-    )
+    // łatka P6b (uwaga 19.11 07:17): szkielet strony działu jak słownik i archiwum (DZL-01) – wstęp → panel → wybrane → licznik → lista
+    return wszystkie.length > 0
+        // PK (uwaga 18.11) → łatka P6b (07:23): „całe drzewo” obok tytułu zamiast przycisku we wstępie
+        ? <StronaDzialu tytul={<TytulDzialu dzial="osoby" domyslny="osoby" />} obok={wszystkie.length > 1 ? [{ tekst: 'całe drzewo', href: '/osoby/drzewo' }] : undefined}
+            tresc={<ListaOsob key={[krag, ...Object.values(filtry)].join('|')} osoby={lista} kregi={kregiListy} krag={krag} filtry={filtry} opcje={opcje} poczatek={sp.q ?? ''} wstep={wstep} />} />
+        : <StronaDzialu tytul={<TytulDzialu dzial="osoby" domyslny="osoby" />} wstep={wstep} />
 }

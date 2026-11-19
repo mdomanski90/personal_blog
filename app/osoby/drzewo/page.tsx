@@ -51,7 +51,7 @@ export default async function CaleDrzewo({ searchParams }: { searchParams: Promi
     const o = od ? s.drzewo.osoby.get(od)! : null
     return (
         <Strona uklad="przegladarka">
-            <TytulStrony sciezka={[{ tekst: 'osoby', href: '/osoby' }]}>całe drzewo</TytulStrony>
+            <TytulStrony sciezka={[{ tekst: 'osoby', href: '/osoby' }]} obok={[{ tekst: 'osoby', href: '/osoby', przed: true }]}>całe drzewo</TytulStrony>
             <p className="przegladarka-opis">Wszystkie powiązania między osobami w jednym widoku: przodkowie ze strony ojca (po lewej) i matki (po prawej), rodzeństwo rodziców z rodzinami, kuzynostwo, rodzeństwo i potomkowie. Kliknij osobę – jej karta otworzy się w panelu obok; drzewo przesuwasz suwakami albo przeciągając.</p>
             {o && <PrzegladarkaDrzewa key={`${od}-${boczni}-${zakres}-${p.wstecz}-${p.naprzod}`} html={html} osoby={osoby} od={o.id}
                 rody={rody.length > 1 ? rody.map((r) => ({ id: r.korzen, nazwa: r.nazwa, osob: r.osob })) : []}

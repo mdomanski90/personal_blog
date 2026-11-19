@@ -55,7 +55,8 @@ test('całe drzewo: domyślnie 5 pokoleń w górę i 5 w dół; zmiana na 2 w g�
 test('uwagi 18.11: „po mężu” w nagłówku karty, odnośnik „całe drzewo” na /osoby, klik na drzewie z przejściem strony, cieńsza obwódka', () => {
     const czytaj = (p: string) => fs.readFileSync(path.join(process.cwd(), p), 'utf8')
     assert.match(czytaj('app/osoby/[id]/page.tsx'), /po mężu: \$\{poMezu\.join/)
-    assert.match(czytaj('app/osoby/page.tsx'), /href="\/osoby\/drzewo"/)
+    // łatka P6b (19.11 07:23): „całe drzewo” obok tytułu (TytulStrony obok), nie przycisk we wstępie
+    assert.match(czytaj('app/osoby/page.tsx'), /href: '\/osoby\/drzewo'/)
     assert.match(czytaj('app/components/DrzewoKarty.tsx'), /useTransitionRouter/)
     assert.match(czytaj('app/components/DrzewaLinie.tsx'), /opcje\.otworz\(/)
     const css = czytaj('app/globals.css').match(/\.drzewo \.dr-glowna \{[^}]*\}/)?.[0] ?? ''

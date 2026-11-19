@@ -7,6 +7,7 @@ import ImageZoom from './ImageZoom'
 import DokumentyWTresci from './DokumentyWTresci'
 import DrzewaLinie from './DrzewaLinie'
 import { Okruszki, TytulSekcji, type Sciezka } from './Wzorce'
+import { Link } from 'next-view-transitions'
 import { UstawieniaDruku } from './Druk'
 
 // Wspólne elementy wyglądu (JW-1): Strona (szerokość B), tytuł strony, sekcja z tytułem sekcji, treść.
@@ -141,13 +142,25 @@ export function Sekcja({ tytul, children, id }: { tytul: string; children: React
 }
 
 /** Tytuł strony: h1 w kolorze akcentu z kreską; „akcje” (np. ← mapa, kopiuj link, drukuj) nad okruszkami, po lewej. */
-export function TytulStrony({ children, sciezka, akcje, bezOkruszkow = false }: { children: React.ReactNode; sciezka?: Sciezka; akcje?: React.ReactNode; bezOkruszkow?: boolean }) {
+/** Łatka P6b (uwaga właściciela 19.11 07:23): tytuły pokrewnych stron obok tytułu – szare, bez podkreślenia; po kliknięciu
+ *  nowa strona ma ten tytuł w akcencie, a kreska przejeżdża pod niego (view-transition-name „tytul-kreska”; bez ruchu przy
+ *  prefers-reduced-motion – globals.css). Kolejność stała na obu stronach: `przed` – na lewo od bieżącego tytułu. */
+export type TytulObok = { tekst: string; href: string; przed?: boolean }
+
+export function TytulStrony({ children, sciezka, akcje, bezOkruszkow = false, obok }: { children: React.ReactNode; sciezka?: Sciezka; akcje?: React.ReactNode; bezOkruszkow?: boolean; obok?: TytulObok[] }) {
+    const link = (o: TytulObok) => <Link key={o.href} href={o.href} className="tytul-strony-obok">{o.tekst}</Link>
     return (
         <div className="tytul-strony-blok">
             {akcje && <div className="pasek-akcji">{akcje}</div>}
             {/* P7B-2 (JV-15), P7D-1 (AUD-07): okruszki na każdej stronie poza główną; bieżąca strona to tytuł (aria-current) */}
             {!bezOkruszkow && <Okruszki sciezka={sciezka ?? []} />}
-            <h1 className="tytul-strony" aria-current="page">{children}</h1>
+            {obok?.length ? (
+                <div className="tytul-przelacznik">
+                    {obok.filter((o) => o.przed).map(link)}
+                    <h1 className="tytul-strony tytul-strony--obok" aria-current="page">{children}<span className="tytul-kreska" aria-hidden="true" /></h1>
+                    {obok.filter((o) => !o.przed).map(link)}
+                </div>
+            ) : <h1 className="tytul-strony" aria-current="page">{children}</h1>}
         </div>
     )
 }

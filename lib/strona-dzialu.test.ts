@@ -23,7 +23,7 @@ test('DZL-01: puste elementy nie zostawiają śladu', () => {
     assert.equal(html, '<i data-k="spis"></i>')
 })
 
-const STRONY_DZIALOW = ['app/archiwum/page.tsx', 'app/biblioteka/page.tsx', 'app/biblioteka/publikacje/page.tsx', 'app/biblioteka/ksiegi/page.tsx', 'app/biblioteka/slownik/page.tsx', 'app/szukaj/page.tsx']
+const STRONY_DZIALOW = ['app/archiwum/page.tsx', 'app/biblioteka/page.tsx', 'app/biblioteka/publikacje/page.tsx', 'app/biblioteka/ksiegi/page.tsx', 'app/biblioteka/slownik/page.tsx', 'app/szukaj/page.tsx', 'app/osoby/page.tsx']
 
 test('DZL-01: każda strona działu składa się przez StronaDzialu, nie przez własną kolejność', () => {
     for (const p of STRONY_DZIALOW) {

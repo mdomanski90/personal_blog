@@ -1,14 +1,14 @@
 import * as React from 'react'
-import { Strona, TytulStrony } from './Uklad'
+import { Strona, TytulStrony, type TytulObok } from './Uklad'
 import type { Sciezka } from './Wzorce'
 import { ElementyDzialu, type ElementyDzialuProps } from './ElementyDzialu'
 import { odmiana } from '@/lib/tekst'
 
 /** Strona działu katalogu (DZL-01): tytuł i elementy w jednej, wspólnej kolejności – zob. ElementyDzialu. */
-export default function StronaDzialu({ tytul, sciezka, ...elementy }: { tytul: React.ReactNode; sciezka?: Sciezka } & ElementyDzialuProps) {
+export default function StronaDzialu({ tytul, sciezka, obok, ...elementy }: { tytul: React.ReactNode; sciezka?: Sciezka; obok?: TytulObok[] } & ElementyDzialuProps) {
     return (
         <Strona uklad="pelna">
-            <TytulStrony sciezka={sciezka}>{tytul}</TytulStrony>
+            <TytulStrony sciezka={sciezka} obok={obok}>{tytul}</TytulStrony>
             <ElementyDzialu {...elementy} />
         </Strona>
     )
