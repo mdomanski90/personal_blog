@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { MENU, NIEUKRYWALNE, aktywna, menuWgUstawien, migrujUstawieniaMenu, pozycjeDoUstawien, rodzajWidoku, stronaZAdresuKeystatic } from './menu'
+import { MENU, NIEUKRYWALNE, adresEdycji, aktywna, menuWgUstawien, migrujUstawieniaMenu, pozycjeDoUstawien, rodzajWidoku, stronaZAdresuKeystatic } from './menu'
 
 const hrefy = () => MENU.flatMap((g) => [g.href, ...g.pozycje.map((p) => p.href)]).filter(Boolean) as string[]
 
@@ -73,6 +73,20 @@ test('„na stronie ↗”: pozycja Keystatic → strona publiczna; kolekcja bez
     assert.equal(stronaZAdresuKeystatic('/keystatic/collection/ksiegi/item/x'), null)
     assert.equal(stronaZAdresuKeystatic('/keystatic/singleton/oProjekcie'), '/o-projekcie')
     assert.equal(stronaZAdresuKeystatic('/keystatic/collection/miejsca'), null)
+})
+
+test('P7a (D-PA-08): „edytuj tę stronę” – strona publiczna → edycja w panelu; listy i działy bez przycisku', () => {
+    assert.equal(adresEdycji('/miejsca/testowo'), '/keystatic/collection/miejsca/item/testowo')
+    assert.equal(adresEdycji('/wpisy/wpis-testowy/'), '/keystatic/collection/posts/item/wpis-testowy')
+    assert.equal(adresEdycji('/archiwum/mat-00?strona=2'), '/keystatic/collection/materialy/item/mat-00')
+    assert.equal(adresEdycji('/archiwum/zbiory/zb-1'), '/keystatic/collection/zbiory/item/zb-1')
+    assert.equal(adresEdycji('/biblioteka/slownik/arenda'), '/keystatic/collection/hasla/item/arenda')
+    assert.equal(adresEdycji('/osoby/os-jan'), '/keystatic/osoby/os-jan')
+    assert.equal(adresEdycji('/plany/cmentarz-testowo'), '/keystatic/plany/cmentarz-testowo')
+    assert.equal(adresEdycji('/'), '/keystatic/singleton/stronaGlowna')
+    assert.equal(adresEdycji('/o-projekcie'), '/keystatic/singleton/oProjekcie')
+    for (const p of ['/miejsca', '/archiwum', '/archiwum/zbiory', '/osoby', '/osoby/drzewo', '/biblioteka/slownik', '/szukaj', '/zaloguj', '/moje-konto', '/plany'])
+        assert.equal(adresEdycji(p), null, p)
 })
 
 test('rodzaj widoku ramy: strony panelu, edytor planu (kolumna ikon), Keystatic', () => {

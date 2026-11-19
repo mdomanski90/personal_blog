@@ -11,9 +11,6 @@
     "app/components/InfoZMapa.tsx": {
       "styl": 8
     },
-    "app/components/Logowanie.tsx": {
-      "styl": 2
-    },
     "app/components/MapaKarty.tsx": {
       "styl": 1
     },
@@ -57,10 +54,6 @@
     },
     "app/tematy/page.tsx": {
       "styl": 2
-    },
-    "app/zaloguj/page.tsx": {
-      "styl": 8,
-      "hex": 1
     }
   }
 }

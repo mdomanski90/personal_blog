@@ -18,6 +18,8 @@ const PLIKI_RAMY = [
     'app/keystatic/panel/okno.tsx', 'app/keystatic/panel/operacje/page.tsx', 'app/keystatic/panel/ksiegi-import/page.tsx', 'app/keystatic/panel/raport-ksiag/page.tsx', 'app/keystatic/panel/lista/[kolekcja]/page.tsx',
     // P6a
     'lib/panel/katalogi.ts', 'lib/panel/historia.ts', 'lib/panel/praca.ts', 'app/keystatic/SzufladaHistorii.tsx', 'app/keystatic/panel/do-opracowania/page.tsx', 'app/keystatic/PaletaPolecen.tsx', 'lib/panel/paleta.ts',
+    // P7a
+    'app/keystatic/MenuKonta.tsx', 'app/keystatic/panel/dostep/page.tsx', 'app/keystatic/panel/dostep/wspolne.tsx', 'app/keystatic/panel/dostep/[id]/page.tsx', 'app/keystatic/panel/dostep/role/page.tsx', 'lib/konta/model.ts',
 ]
 const blokTokenow = (sel: string) => /^(\.pn|\.dark \.pn)$/.test(sel) || /kui-scheme--/.test(sel)
 

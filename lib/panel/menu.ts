@@ -122,6 +122,24 @@ export function stronaZAdresuKeystatic(sciezka: string): string | null {
     return s ? STRONA_PUBLICZNA[s[1]] ?? null : null
 }
 
+/** P7a (D-PA-08): strona publiczna → adres edycji w panelu („edytuj tę stronę” w nagłówku dla zalogowanych). Strony list i działów – null. */
+export function adresEdycji(sciezka: string): string | null {
+    const p = sciezka.split(/[?#]/)[0].replace(/\/+$/, '') || '/'
+    if (p === '/') return '/keystatic/singleton/stronaGlowna'
+    if (p === '/o-projekcie') return '/keystatic/singleton/oProjekcie'
+    const osoba = /^\/osoby\/([^/]+)$/.exec(p)
+    if (osoba) return osoba[1] === 'drzewo' ? null : `/keystatic/osoby/${osoba[1]}`
+    const plan = /^\/plany\/([^/]+)$/.exec(p)
+    if (plan) return `/keystatic/plany/${plan[1]}`
+    const wzory = Object.entries(STRONA_PUBLICZNA).filter(([, w]) => w.endsWith('/{slug}')).map(([k, w]) => [k, w.slice(0, -'{slug}'.length)] as const)
+    if (wzory.some(([, prefiks]) => prefiks === `${p}/`)) return null // strona listy (np. /archiwum/zbiory), nie pozycja
+    for (const [kolekcja, prefiks] of wzory.sort((a, b) => b[1].length - a[1].length)) {
+        const slug = p.startsWith(prefiks) ? p.slice(prefiks.length) : ''
+        if (slug && !slug.includes('/')) return `/keystatic/collection/${kolekcja}/item/${slug}`
+    }
+    return null
+}
+
 /** Rodzaj widoku ramy: pełne menu (strony panelu), kolumna ikon (edytor planu), menu Keystatic (bez naszego menu bocznego). */
 export function rodzajWidoku(sciezka: string): 'panel' | 'edytor-planu' | 'keystatic' {
     if (/^\/keystatic\/plany\/(?!typy(?:\/|$))[^/]+/.test(sciezka)) return 'edytor-planu'

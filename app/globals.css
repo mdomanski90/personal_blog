@@ -2382,3 +2382,20 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 @media (max-width:900px){
   .plan-aplet .dok-pasek-karta{padding:6px 8px}
 }
+
+/* ---------- P7a (KON-01): zaloguj, zaproszenie („witaj”), moje konto, konto w nagłówku ---------- */
+.konto-opis{max-width:var(--szer-tekstu);margin:0;line-height:1.55}
+.konto-drobne{max-width:var(--szer-tekstu);margin:0;font-size:var(--rozmiar-opis);color:var(--tekst-opis);line-height:1.5}
+.konto-form{display:flex;flex-direction:column;gap:calc(.6rem * var(--font-scale,1));max-width:var(--szer-tekstu)}
+.konto-pole{font-size:var(--rozmiar-etykieta);color:var(--tekst-opis);text-transform:lowercase}
+.konto-rzad{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.konto-rzad form{display:contents}
+.konto-polacz{display:flex;flex-direction:column;gap:calc(.6rem * var(--font-scale,1))}
+.konto-polacz p{margin:0}
+.konto-kroki{list-style:none;counter-reset:krok;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(220px * var(--font-scale,1))),1fr));gap:calc(1.25rem * var(--font-scale,1));max-width:calc(var(--szer-tekstu) * 1.25)}
+.konto-kroki li{counter-increment:krok;display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:var(--kreska-tytulu) solid var(--akcent);font-size:var(--rozmiar-maly);line-height:1.5}
+.konto-kroki li b::before{content:counter(krok) ". ";color:var(--akcent)}
+.naglowek-konto{font-size:var(--rozmiar-etykieta);color:var(--tekst-opis);white-space:nowrap;max-width:24ch;overflow:hidden;text-overflow:ellipsis}
+.naglowek-krotki{display:none}
+@media (max-width:640px){.naglowek-konto,.naglowek-dlugi{display:none}.naglowek-krotki{display:inline}}
+@media print{.naglowek-konto,.naglowek-edytuj{display:none}}
