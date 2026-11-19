@@ -2,6 +2,7 @@
 // Jeden plik content/_panel/praca.json (katalog _panel należy do usługi – Krok 0 P6), zapis atomowy. Same adresy panelu i nazwy –
 // bez treści wpisów. Ostatnio edytowane dopisuje serwer po udanym zapisie (Keystatic, edytor planu, edytor osoby).
 import fs from 'node:fs/promises'
+import { ktoTeraz } from '../konta/straz'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { opisPlikuZTytulem } from './historia-adresy'
@@ -13,7 +14,11 @@ export interface Praca { wersja: 1; ostatnie: PozycjaPracy[]; przypiete: Pozycja
 
 export const MAKS_OSTATNICH = 12
 export const MAKS_PRZYPIETYCH = 30
-const plik = (korzen: string) => path.join(/*turbopackIgnore: true*/ korzen, 'content', '_panel', 'praca.json')
+const WSPOLNY = 'praca.json'
+// P7a (KON-01): „ostatnio edytowane przez Ciebie” i „przypięte” osobno dla każdego konta (praca-<konto>.json).
+// Bez kont (albo poza żądaniem) – wspólny plik jak przed P7a.
+const nazwaPliku = () => { const k = ktoTeraz(); return k ? `praca-${k.id.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 80)}.json` : WSPOLNY }
+const plik = (korzen: string, nazwa = nazwaPliku()) => path.join(/*turbopackIgnore: true*/ korzen, 'content', '_panel', nazwa)
 const pusta = (): Praca => ({ wersja: 1, ostatnie: [], przypiete: [], widoki: [] })
 
 /** Adres w panelu: tylko ścieżki /keystatic…, bez protokołu i podwójnych ukośników. */
@@ -30,7 +35,9 @@ const pozycja = (x: unknown): PozycjaPracy | null => {
 
 export async function wczytajPrace(korzen = process.cwd()): Promise<Praca> {
     try {
-        const j = JSON.parse(await fs.readFile(plik(korzen), 'utf8')) as Record<string, unknown>
+        // osoba z rolą administratora zaczyna od dotychczasowej wspólnej listy (praca sprzed kont nie znika)
+        const tekst = await fs.readFile(plik(korzen), 'utf8').catch((e) => { if (ktoTeraz()?.rolaAdministratora) return fs.readFile(plik(korzen, WSPOLNY), 'utf8'); throw e })
+        const j = JSON.parse(tekst) as Record<string, unknown>
         const lista = (k: string) => (Array.isArray(j[k]) ? (j[k] as unknown[]).map(pozycja).filter((x): x is PozycjaPracy => !!x) : [])
         return { wersja: 1, ostatnie: lista('ostatnie'), przypiete: lista('przypiete'), widoki: lista('widoki') }
     } catch { return pusta() }

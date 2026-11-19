@@ -10,6 +10,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { zapewnijKatalog, katalogKopii, BrakKataloguKopii } from './katalogi'
+import { ktoTeraz } from '../konta/straz'
 import { listaOperacji, wczytajManifest, wykonajOperacje, NAZWY_OPERACJI, type WynikOperacji } from './operacje'
 import { zmianyPol, type ZmianaPola } from './roznica-pol'
 
@@ -64,7 +65,10 @@ export async function zapiszWersje(korzen: string, relC: string, tresc: Buffer |
     await fs.mkdir(kat, { recursive: true, mode: 0o750 })
     const id = noweId()
     await fs.writeFile(path.join(kat, id), tresc, { flag: 'wx', mode: 0o640 })
-    for (const stary of doUsuniecia((await fs.readdir(kat)).filter((x) => ID.test(x)))) await fs.rm(path.join(kat, stary), { force: true })
+    // P7a (KON-01): kto zastąpił tę wersję nową treścią (podpis zmiany); plik obok wersji, usuwany razem z nią
+    const autor = ktoTeraz()
+    if (autor) await fs.writeFile(path.join(kat, `${id}.kto`), JSON.stringify({ kto: autor.id, ...(autor.administrator ? { administrator: true } : {}) }), { mode: 0o640 }).catch(() => {})
+    for (const stary of doUsuniecia((await fs.readdir(kat)).filter((x) => ID.test(x)))) { await fs.rm(path.join(kat, stary), { force: true }); await fs.rm(path.join(kat, `${stary}.kto`), { force: true }) }
     return id
 }
 
@@ -79,7 +83,7 @@ export function doUsuniecia(ids: string[], teraz = Date.now()): string[] {
     return stare.filter((id) => !keep.has(id))
 }
 
-export interface Wersja { id: string; czas: string; bajty: number }
+export interface Wersja { id: string; czas: string; bajty: number; kto?: string; administrator?: boolean }
 export async function listaWersji(relC: string, korzen = process.cwd()): Promise<Wersja[]> {
     if (!relTresci(`content/${relC}`)) return []
     const kat = katWersji(korzen, relC)
@@ -87,7 +91,12 @@ export async function listaWersji(relC: string, korzen = process.cwd()): Promise
     try { L = (await fs.readdir(kat)).filter((x) => ID.test(x)) } catch { return [] }
     const wyn: Wersja[] = []
     for (const id of L.sort().reverse()) {
-        try { wyn.push({ id, czas: czasId(id), bajty: (await fs.stat(path.join(kat, id))).size }) } catch { /* zniknęła */ }
+        try {
+            const w: Wersja = { id, czas: czasId(id), bajty: (await fs.stat(path.join(kat, id))).size }
+            const p = await czytaj(path.join(kat, `${id}.kto`))
+            if (p) try { const j = JSON.parse(p.toString('utf8')) as { kto?: unknown; administrator?: unknown }; if (typeof j.kto === 'string') { w.kto = j.kto; if (j.administrator === true) w.administrator = true } } catch { /* bez podpisu */ }
+            wyn.push(w)
+        } catch { /* zniknęła */ }
     }
     return wyn
 }
@@ -282,6 +291,8 @@ export interface WpisHistorii {
     zmiany: ZmianaPola[] | null; mozna: boolean; wersja?: string; operacja?: string
     /** plik powstał tą zmianą (plansza: „nowa pozycja (utworzona)”) */
     utworzona?: boolean
+    /** P7a: identyfikator konta autora zmiany; `administrator` – zmiana zrobiona w roli administratora */
+    kto?: string; administrator?: boolean
 }
 
 async function trescKopiiOperacji(korzen: string, id: string, nazwa: string | null): Promise<string | null> {
@@ -303,7 +314,7 @@ export async function osHistorii(relC: string, etykiety: Record<string, string>,
     let nastepna = teraz
     for (const w of wersje) {
         const t = await trescWersji(relC, w.id, korzen)
-        wyn.push({ klucz: `k-${w.id}`, zrodlo: 'keystatic', czas: w.czas, opis: 'zapis w Keystatic', zmiany: zmianyPol(plik, t, nastepna, etykiety), mozna: t !== null && t !== teraz, wersja: w.id })
+        wyn.push({ klucz: `k-${w.id}`, zrodlo: 'keystatic', czas: w.czas, opis: 'zapis w Keystatic', zmiany: zmianyPol(plik, t, nastepna, etykiety), mozna: t !== null && t !== teraz, wersja: w.id, ...(w.kto ? { kto: w.kto } : {}), ...(w.administrator ? { administrator: true } : {}) })
         nastepna = t
     }
     for (const m of (await listaOperacji(korzen)).slice(0, 200)) {
@@ -312,7 +323,7 @@ export async function osHistorii(relC: string, etykiety: Record<string, string>,
         const [przed, po] = await Promise.all([trescKopiiOperacji(korzen, m.id, z.przed), trescKopiiOperacji(korzen, m.id, z.po)])
         const nazwa = NAZWY_OPERACJI[m.rodzaj] ?? m.rodzaj
         wyn.push({ klucz: `o-${m.id}`, zrodlo: 'operacja', czas: m.zakonczono ?? m.utworzono, opis: m.cofa ? `${nazwa} (cofnięcie)` : nazwa,
-            zmiany: zmianyPol(plik, przed, po, etykiety), mozna: przed !== null && przed !== teraz, operacja: m.id, ...(z.przed === null && po !== null ? { utworzona: true } : {}) })
+            zmiany: zmianyPol(plik, przed, po, etykiety), mozna: przed !== null && przed !== teraz, operacja: m.id, ...(z.przed === null && po !== null ? { utworzona: true } : {}), ...(m.kto ? { kto: m.kto } : {}), ...(m.administrator ? { administrator: true } : {}) })
     }
     return wyn.sort((a, b) => b.czas.localeCompare(a.czas)).slice(0, maks)
 }

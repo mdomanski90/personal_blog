@@ -1,4 +1,5 @@
 import { brakDostepu } from '@/lib/plany/dane'
+import { imieKonta } from '@/lib/konta/straz'
 import { koszRodzaju, osHistorii, przywrocSprzedOperacji, przywrocWersje, relTresci, trescBiezaca } from '@/lib/panel/historia'
 import { etykietyPol, kontrolaCzytnikiem, opisPlikuZTytulem, plikDlaAdresu } from '@/lib/panel/historia-adresy'
 import { poZapisieTresci } from '@/lib/katalog/dane'
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
     const plik = plikZ(new URL(req.url).searchParams)
     if (!plik) return Response.json({ blad: 'Historia dotyczy wpisów i ustawień Keystatic.' }, { status: 404, headers: BEZ_CACHE })
     const [o, wpisy, kosz, teraz] = await Promise.all([opisPlikuZTytulem(process.cwd(), plik), osHistorii(plik, etykietyPol(plik)), koszRodzaju(plik), trescBiezaca(plik)])
-    return Response.json({ plik, nazwa: o.nazwa, edycja: o.edycja, istnieje: teraz !== null, wpisy, kosz }, { headers: BEZ_CACHE })
+    return Response.json({ plik, nazwa: o.nazwa, edycja: o.edycja, istnieje: teraz !== null, wpisy: wpisy.map((w) => ({ ...w, kto: imieKonta(w.kto) ?? undefined })), kosz }, { headers: BEZ_CACHE })
 }
 
 export async function POST(req: Request) {

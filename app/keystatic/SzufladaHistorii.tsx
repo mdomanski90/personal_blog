@@ -9,7 +9,7 @@ import { wycinek } from '@/lib/panel/wycinek'
 
 type Fragment = { t: '=' | '-' | '+'; s: string }
 type ZmianaPola = { pole: string; etykieta: string; fragmenty: Fragment[] }
-type Wpis = { klucz: string; zrodlo: 'keystatic' | 'operacja'; czas: string; opis: string; zmiany: ZmianaPola[] | null; mozna: boolean; wersja?: string; operacja?: string; utworzona?: boolean }
+type Wpis = { klucz: string; zrodlo: 'keystatic' | 'operacja'; czas: string; opis: string; zmiany: ZmianaPola[] | null; mozna: boolean; wersja?: string; operacja?: string; utworzona?: boolean; kto?: string; administrator?: boolean }
 type Kosz = { id: string; czas: string; opis: string }
 type Historia = { plik: string; nazwa: string; istnieje: boolean; wpisy: Wpis[]; kosz: Kosz[] }
 
@@ -112,6 +112,7 @@ export default function SzufladaHistorii({ adres, otwarta, onZamknij }: { adres:
                             <li key={w.klucz} className={`pn-hist-wpis${zazn ? ' pn-hist-zazn' : ''}`}>
                                 {zazn ? <b>{kiedy(w.czas)} · {w.opis}</b>
                                     : <button type="button" className="pn-hist-glowa" aria-expanded={false} onClick={() => { ustawWybrany(w.klucz); ustawPyta(null) }}>{kiedy(w.czas)} · {w.opis}</button>}
+                                {w.kto && <span className="pn-maly">{w.kto}{w.administrator ? ' · jako administrator' : ''}</span>}
                                 {w.utworzona ? <span>nowa pozycja (utworzona)</span>
                                     : <>
                                         {w.zmiany === null && <span className="pn-maly">nie da się porównać (plik nieczytelny)</span>}

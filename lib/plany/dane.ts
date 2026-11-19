@@ -13,6 +13,7 @@ import { popraw, SLUG, type Plan } from './model'
 import { nowePowtorzenie } from './numeracja'
 import { nowyPowtorzonyNrLegendy } from './ph3'
 import { USTAWIENIA_DOMYSLNE, type UstawieniaPlanow, type WlasnyTyp } from './typy'
+import { kontaWlaczone, odmowaKonta } from '../konta/straz'
 
 const KATALOG = () => path.resolve(process.cwd(), 'content', 'plany')
 const PLIKI = () => path.resolve(process.cwd(), 'pliki-archiwum', 'plany')
@@ -290,6 +291,9 @@ export function brakDostepu(req: Request): Response | null {
     if (site && site !== 'same-origin' && site !== 'none') return new Response('Zabronione', { status: 403 })
     const origin = req.headers.get('origin'), host = req.headers.get('x-forwarded-host') || req.headers.get('host')
     if (origin && host && new URL(origin).host !== host) return new Response('Zabronione', { status: 403 })
+    // P7a (KON-01): konta włączone → liczy się zalogowane konto i uprawnienia trasy (lib/konta/model.ts uprawnieniaTrasy);
+    // hasło nginx może zostać jako dodatkowa warstwa, ale aplikacja już go nie wymaga.
+    if (kontaWlaczone()) return odmowaKonta(req)
     if (process.env.NODE_ENV === 'production' && process.env.PLANY_BEZ_HASLA_NGINX !== '1' && !req.headers.get('authorization')) {
         return new Response('Edytor planów wymaga hasła panelu (nginx auth_basic dla /keystatic i /api/keystatic).', { status: 401 })
     }

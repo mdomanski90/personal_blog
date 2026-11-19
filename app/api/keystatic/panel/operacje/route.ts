@@ -1,4 +1,5 @@
 import { brakDostepu } from '@/lib/plany/dane'
+import { imieKonta } from '@/lib/konta/straz'
 import {
     cofnijOperacje, listaOperacji, podgladCofniecia, rozstrzygnijPrzerwana, skrotOperacji, stanBlokady, zdejmijMartwaBlokade,
 } from '@/lib/panel/operacje'
@@ -16,7 +17,7 @@ export async function GET(req: Request) {
     const id = new URL(req.url).searchParams.get('podglad')
     if (id) return Response.json(await podgladCofniecia(id), { headers: BEZ_CACHE })
     const [L, blokada, brak] = await Promise.all([listaOperacji(), stanBlokady(), brakujaceKatalogi()])
-    return Response.json({ operacje: L.map(skrotOperacji), blokada, katalogi: brak.length ? { brak, komenda: KOMENDA_KATALOGOW } : null }, { headers: BEZ_CACHE })
+    return Response.json({ operacje: L.map((m) => ({ ...skrotOperacji(m), kto: imieKonta(m.kto) })), blokada, katalogi: brak.length ? { brak, komenda: KOMENDA_KATALOGOW } : null }, { headers: BEZ_CACHE })
 }
 
 export async function POST(req: Request) {

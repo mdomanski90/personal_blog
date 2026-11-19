@@ -6,10 +6,16 @@ import { odczytajZadanie, przedZapisemKeystatic } from '@/lib/panel/historia';
 import { etykietyPol, opisPlikuZTytulem } from '@/lib/panel/historia-adresy';
 import { zapiszOstatnie } from '@/lib/panel/praca';
 import { brakPrawaZapisu, komunikatPrawa } from '@/lib/panel/prawa-zapisu';
+import { kontaWlaczone, odmowaKonta, zalogowany } from '@/lib/konta/straz';
+import { odmowaZapisuTresci } from '@/lib/konta/zapis-tresci';
 
 const obsluga = makeRouteHandler({ config });
 
-export const GET = obsluga.GET;
+// P7a (KON-01): odczyt treści w Keystatic tylko dla konta z dostępem do panelu (gdy konta są włączone).
+export async function GET(req: Request) {
+    const odmowa = kontaWlaczone() ? odmowaKonta(req, ['panel']) : null;
+    return odmowa ?? obsluga.GET(req);
+}
 
 const tekst = (t: string, status: number) => new Response(t, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 
@@ -20,11 +26,21 @@ const tekst = (t: string, status: number) => new Response(t, { status, headers: 
 // (bez kopii w koszu usunięcie jest odrzucane – 503); po udanym zapisie – „ostatnio edytowane” na pulpicie.
 export async function POST(req: Request) {
     const zapis = new URL(req.url).pathname.endsWith('/update');
+    // P7a (KON-01): konto z dostępem do panelu; przy zapisie każdy plik sprawdzany względem uprawnień (dział, usuwanie,
+    // „tylko ja”, publikowanie, zakres miejscowości) – odmowa zatrzymuje cały zapis z komunikatem prostym językiem.
+    const odmowa = kontaWlaczone() ? odmowaKonta(req, ['panel']) : null;
+    if (odmowa) return odmowa;
     if (!zapis) return obsluga.POST(req);
     const blokada = await blokadaZapisu();
     if (blokada) return tekst(blokada, 423);
     const zadanie = odczytajZadanie(await req.clone().json().catch(() => null));
     let pola: Record<string, string[]> = {};
+    const kto = kontaWlaczone() ? zalogowany(req) : null;
+    if (kontaWlaczone() && (!zadanie || !kto)) return tekst('Zapis wstrzymany – nie udało się odczytać żądania. Nic nie zmieniono.', 400);
+    if (zadanie && kto) {
+        const brakUprawnien = await odmowaZapisuTresci(kto, zadanie);
+        if (brakUprawnien) return tekst(brakUprawnien, 403);
+    }
     if (zadanie) {
         const brak = await brakPrawaZapisu(process.cwd(), zadanie.additions.map((a) => a.path), zadanie.deletions.map((d) => d.path));
         if (brak.length) return tekst(komunikatPrawa(brak), 503);

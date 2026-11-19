@@ -33,14 +33,17 @@ const cache: <T extends (...a: never[]) => unknown>(fn: T) => T =
 export type Widocznosc = 'publiczne' | 'bliscy' | 'ja'
 
 /**
- * Poziom dostępu czytelnika: „bliscy” po zalogowaniu wspólnym hasłem (lib/sesja), inaczej „publiczne”.
+ * Poziom dostępu czytelnika: „bliscy” po zalogowaniu wspólnym hasłem (lib/sesja) albo kontem (P7a, lib/konta), inaczej „publiczne”.
  * „Tylko ja” widać wyłącznie w panelu.
  */
 export async function poziomCzytelnika(): Promise<Widocznosc> {
     try {
         const { cookies } = await import('next/headers')
         const { CIASTECZKO, sesjaWazna } = await import('./sesja')
-        return sesjaWazna((await cookies()).get(CIASTECZKO)?.value) ? 'bliscy' : 'publiczne'
+        if (sesjaWazna((await cookies()).get(CIASTECZKO)?.value)) return 'bliscy'
+        // P7a (KON-01): zalogowane konto z uprawnieniem „treści dla bliskich” czyta jak bliski; „tylko ja” zostaje w panelu
+        const { zalogowanyTeraz } = await import('./konta/straz')
+        return (await zalogowanyTeraz())?.uprawnienia.has('bliscy') ? 'bliscy' : 'publiczne'
     } catch {
         // poza żądaniem (skrypty) – tylko publiczne
         return 'publiczne'

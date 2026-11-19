@@ -3,6 +3,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import sharp from 'sharp'
 import { brakDostepu } from '@/lib/plany/dane'
+import { odmowaOsobyZyjacej } from '@/lib/konta/zyjacy'
 import { stanOsob } from '@/lib/osoby/dane'
 import { NAZWA_PORTRETU } from '@/lib/osoby/model'
 import { KATALOG_PLIKOW } from '@/lib/pliki'
@@ -15,6 +16,7 @@ const katalog = (id: string) => path.join(/*turbopackIgnore: true*/ process.cwd(
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const b = brakDostepu(req); if (b) return b
     const { id } = await params
+    const zyjacy = await odmowaOsobyZyjacej(req, id); if (zyjacy) return zyjacy // P7a: „dane osób żyjących”
     if (!(await stanOsob()).drzewo.osoby.has(id)) return Response.json({ blad: 'Nie ma takiej osoby.' }, { status: 404 })
     const f = (await req.formData().catch(() => null))?.get('plik')
     if (!(f instanceof File)) return Response.json({ blad: 'brak pliku' }, { status: 400 })
@@ -30,6 +32,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const b = brakDostepu(req); if (b) return b
     const { id } = await params
+    const zyjacy = await odmowaOsobyZyjacej(req, id); if (zyjacy) return zyjacy // P7a: „dane osób żyjących”
     const plik = new URL(req.url).searchParams.get('plik') ?? ''
     if (!NAZWA_PORTRETU.test(plik) || !(await stanOsob()).drzewo.osoby.has(id)) return new Response('Nie znaleziono', { status: 404 })
     try {

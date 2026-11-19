@@ -14,6 +14,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { zapewnijKatalog } from './katalogi'
+import { ktoTeraz } from '../konta/straz'
 
 export type RodzajOperacji = 'import-ksiag' | 'import-drzewa' | 'zbiorcza' | 'odtworzenie' | 'przywrocenie' | 'polacz'
 export const NAZWY_OPERACJI: Record<RodzajOperacji, string> = { 'import-ksiag': 'import ksiąg', 'import-drzewa': 'import drzewa (GEDCOM)', zbiorcza: 'zmiana zbiorcza', odtworzenie: 'odtworzenie z kopii', przywrocenie: 'przywrócenie wersji / z kosza', polacz: 'połącz wzmianki (odnośniki [[…]])' }
@@ -29,6 +30,8 @@ export interface Manifest {
     /** Dane do widoku (np. liczby z importu, wybrane pozycje). Bez treści plików. */
     szczegoly?: Record<string, unknown>
     cofa?: string; cofnietaPrzez?: string; zakonczono?: string; problemy?: string[]
+    /** P7a (KON-01): identyfikator konta, które wykonało operację; `administrator` – w roli administratora */
+    kto?: string; administrator?: boolean
     /** Prawa plików tej operacji – te same przy cofaniu i dokańczaniu. */
     prawa?: { tryb?: number; grupaKatalogu?: boolean }
 }
@@ -216,6 +219,7 @@ export async function wykonajOperacje(o: OpcjeOperacji): Promise<WynikOperacji> 
         bylo.add(z.plik)
     }
     const id = noweId()
+    const autor = ktoTeraz()
     const m: Manifest = {
         wersja: 1, id, rodzaj: o.rodzaj, opis: o.opis.slice(0, 300), utworzono: new Date().toISOString(), stan: 'przygotowane',
         zmiany: zmiany.map((z, i) => ({
@@ -223,6 +227,7 @@ export async function wykonajOperacje(o: OpcjeOperacji): Promise<WynikOperacji> 
             przed: z.poprzedni === null ? null : `przed/${i}`, po: z.wynik === null ? null : `po/${i}`,
         })),
         ...(o.szczegoly ? { szczegoly: o.szczegoly } : {}), ...(o.cofa ? { cofa: o.cofa } : {}), ...(o.prawa ? { prawa: o.prawa } : {}),
+        ...(autor ? { kto: autor.id, ...(autor.administrator ? { administrator: true } : {}) } : {}),
     }
     await zablokuj(korzen, m)
     const zrobione: number[] = []
@@ -366,7 +371,7 @@ export function skrotOperacji(m: Manifest) {
         id: m.id, rodzaj: m.rodzaj, nazwa: NAZWY_OPERACJI[m.rodzaj] ?? m.rodzaj, opis: m.opis, utworzono: m.utworzono, stan: m.stan,
         pliki: m.zmiany.length, utworzone: m.zmiany.filter((x) => x.operacja === 'utworz').length,
         zmienione: m.zmiany.filter((x) => x.operacja === 'zmien').length, usuniete: m.zmiany.filter((x) => x.operacja === 'usun').length,
-        cofa: m.cofa ?? null, cofnietaPrzez: m.cofnietaPrzez ?? null, problemy: m.problemy ?? [], przyklady: m.zmiany.slice(0, 8).map((x) => x.plik),
+        kto: m.kto ?? null, administrator: m.administrator === true, cofa: m.cofa ?? null, cofnietaPrzez: m.cofnietaPrzez ?? null, problemy: m.problemy ?? [], przyklady: m.zmiany.slice(0, 8).map((x) => x.plik),
     }
 }
 

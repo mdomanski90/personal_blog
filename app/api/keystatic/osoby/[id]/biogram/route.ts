@@ -1,4 +1,5 @@
 import { brakDostepu } from '@/lib/plany/dane'
+import { odmowaOsobyZyjacej } from '@/lib/konta/zyjacy'
 import { stanOsob } from '@/lib/osoby/dane'
 import { lataZycia, nazwaOsoby } from '@/lib/osoby/model'
 import { zalozBiogram } from '@/lib/osoby/biogramy'
@@ -9,6 +10,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const b = brakDostepu(req); if (b) return b
     const { id } = await params
+    const zyjacy = await odmowaOsobyZyjacej(req, id); if (zyjacy) return zyjacy // P7a: „dane osób żyjących”
     const o = (await stanOsob()).drzewo.osoby.get(id)
     if (!o) return Response.json({ blad: 'Nie ma takiej osoby.' }, { status: 404 })
     const lata = lataZycia(o)

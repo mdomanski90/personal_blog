@@ -6,6 +6,7 @@ import { kiedy, odmiana, useDane } from '../wspolne'
 import { Okno } from '../okno'
 
 type Op = {
+    kto?: string | null; administrator?: boolean
     id: string; rodzaj: string; nazwa: string; opis: string; utworzono: string; stan: string; pliki: number
     utworzone: number; zmienione: number; usuniete: number; cofa: string | null; cofnietaPrzez: string | null; problemy: string[]; przyklady: string[]
 }
@@ -103,7 +104,7 @@ export default function Operacje() {
                     {L.map((o) => (
                         <div key={o.id} className="pn-wiersz pn-wiersz-op">
                             <span className="pn-kol pn-kol-wasko pn-rosnie">
-                                <span><b>{o.nazwa}</b> <span className="pn-szary">· {kiedy(o.utworzono)}</span></span>
+                                <span><b>{o.nazwa}</b> <span className="pn-szary">· {kiedy(o.utworzono)}{o.kto ? ` · ${o.kto}${o.administrator ? ' (jako administrator)' : ''}` : ''}</span></span>
                                 <span>{o.opis}</span>
                                 <span className="pn-maly">{liczby(o) || odmiana(o.pliki, ['plik', 'pliki', 'plików'])}{o.problemy.length > 0 ? ` · ${o.problemy[0]}` : ''}</span>
                             </span>

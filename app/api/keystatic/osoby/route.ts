@@ -1,4 +1,6 @@
 import { brakDostepu } from '@/lib/plany/dane'
+import { brakUprawnienia } from '@/lib/konta/straz'
+import { widziZyjacych } from '@/lib/konta/zyjacy'
 import { importujGedcom } from '@/lib/osoby/gedcom'
 import { idOsobRecznych, sladImportu, stanOsob, zapiszImport, zapiszOsobe } from '@/lib/osoby/dane'
 import { polacz } from '@/lib/osoby/relacje'
@@ -16,13 +18,15 @@ export async function GET(req: Request) {
     const b = brakDostepu(req); if (b) return b
     const s = await stanOsob()
     const ostrz = ostrzezeniaWgOsob(s)
-    const osoby = [...s.drzewo.osoby.values()].map((o) => skrot(s, o, ostrz.get(o.id)?.length ?? 0))
+    // P7a (KON-01): bez uprawnienia „dane osób żyjących” lista i ostrzeżenia nie zawierają osób żyjących
+    const wszyscy = widziZyjacych(req)
+    const osoby = [...s.drzewo.osoby.values()].filter((o) => wszyscy || !s.zyje(o.id)).map((o) => skrot(s, o, ostrz.get(o.id)?.length ?? 0))
         .sort((a, b) => porownajPl(a.nazwisko, b.nazwisko) || porownajPl(a.imiona, b.imiona))
     return Response.json({
         osoby,
         import: await sladImportu(),
-        doSprawdzeniaZycia: doSprawdzeniaZycia(s),
-        ostrzezenia: [...ostrz].flatMap(([id, t]) => t.map((tekst) => ({ osoba: id, tekst }))).slice(0, 300),
+        doSprawdzeniaZycia: wszyscy ? doSprawdzeniaZycia(s) : [],
+        ostrzezenia: [...ostrz].filter(([id]) => wszyscy || !s.zyje(id)).flatMap(([id, t]) => t.map((tekst) => ({ osoba: id, tekst }))).slice(0, 300),
         miejsca: (await miejscaDoDopasowania()).map((m) => ({ id: m.id, nazwa: m.nazwa })),
     })
 }
@@ -37,6 +41,7 @@ async function zapiszPOST(req: Request) {
     const d = await req.json().catch(() => null)
     try {
         if (d?.akcja === 'podglad' || d?.akcja === 'import') {
+            const operacje = brakUprawnienia(req, 'operacje', 'zyjacy'); if (operacje) return operacje // P7a: import drzewa = operacja na danych wszystkich osób
             const tekst = String(d.gedcom ?? '')
             if (!tekst.trim() || tekst.length > MAKS) return Response.json({ blad: 'Pusty albo za duży plik.' }, { status: 400 })
             if (!/^\s*0\s+HEAD/m.test(tekst.slice(0, 2000))) return Response.json({ blad: 'To nie wygląda na plik GEDCOM (brak nagłówka „0 HEAD”).' }, { status: 400 })

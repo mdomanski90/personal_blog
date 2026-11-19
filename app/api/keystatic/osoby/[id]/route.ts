@@ -1,4 +1,5 @@
 import { brakDostepu } from '@/lib/plany/dane'
+import { odmowaOsobyZyjacej, widziZyjacych } from '@/lib/konta/zyjacy'
 import { Konflikt, obrzadekZdarzenia, stanOsob, usunOsobe, zapiszOsobe } from '@/lib/osoby/dane'
 import { ID_OSOBY, poprawOsobe, rokUrodzenia, widocznoscOsoby, type Osoba } from '@/lib/osoby/model'
 import { ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
@@ -14,11 +15,13 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const b = brakDostepu(req); if (b) return b
     const { id } = await params
+    const zyjacy = await odmowaOsobyZyjacej(req, id); if (zyjacy) return zyjacy // P7a: „dane osób żyjących”
     const s = await stanOsob()
     const o = s.drzewo.osoby.get(id)
     if (!o) return Response.json({ blad: 'Nie ma takiej osoby.' }, { status: 404 })
     const rel = s.relacje.get(id) ?? { rodzice: [], malzenstwa: [] }
-    const sk = (x?: string) => (x && s.drzewo.osoby.get(x) ? skrot(s, s.drzewo.osoby.get(x)!) : null)
+    const wszyscy = widziZyjacych(req)
+    const sk = (x?: string) => (x && s.drzewo.osoby.get(x) && (wszyscy || !s.zyje(x)) ? skrot(s, s.drzewo.osoby.get(x)!) : null)
     const par = await parafie()
     const zWszystkich = [...o.zdarzenia, ...rel.malzenstwa.flatMap((f) => f.zdarzenia)]
     const zParafii = Object.fromEntries(zWszystkich.map((z) => [z.id, obrzadekZdarzenia({ ...z, obrzadek: undefined }, par)?.obrzadek ?? null]))
@@ -47,6 +50,7 @@ export const PUT = zNadaniemNumerow(zapiszPUT)
 async function zapiszPUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const b = brakDostepu(req); if (b) return b
     const { id } = await params
+    const zyjacy = await odmowaOsobyZyjacej(req, id); if (zyjacy) return zyjacy // P7a: „dane osób żyjących”
     if (!ID_OSOBY.test(id)) return Response.json({ blad: 'zły identyfikator' }, { status: 400 })
     const d = (await req.json().catch(() => null)) as { osoba?: Osoba } | null
     if (!d?.osoba) return Response.json({ blad: 'brak danych' }, { status: 400 })
@@ -63,6 +67,7 @@ async function zapiszPUT(req: Request, { params }: { params: Promise<{ id: strin
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const b = brakDostepu(req); if (b) return b
     const { id } = await params
+    const zyjacy = await odmowaOsobyZyjacej(req, id); if (zyjacy) return zyjacy // P7a: „dane osób żyjących”
     await usunOsobe(id)
     return Response.json({ ok: true })
 }
