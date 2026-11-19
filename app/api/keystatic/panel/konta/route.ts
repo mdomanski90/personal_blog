@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { brakDostepu } from '@/lib/plany/dane'
+import { brakDostepu, listaPlanow } from '@/lib/plany/dane'
 import { wczytajKregi } from '@/lib/kregi'
 import { logowanieWlaczone } from '@/lib/sesja'
 import { KonfliktKont, OdmowaKont, wczytajKonta, zmienKonta } from '@/lib/konta/dane'
@@ -24,6 +24,11 @@ const tekst = (x: unknown, maks: number) => (typeof x === 'string' ? x.trim().sl
 const role = (x: unknown): KluczRoli[] => (Array.isArray(x) ? [...new Set(x.filter(jestRola))] : [])
 const upr = (x: unknown): Uprawnienie[] => (Array.isArray(x) ? [...new Set(x.filter(jestUprawnieniem))] : [])
 const napisy = (x: unknown) => (Array.isArray(x) ? [...new Set(x.filter((v): v is string => typeof v === 'string' && !!v.trim()).map((v) => v.trim().slice(0, 120)))] : [])
+/** Zakres z żądania: kręgi, miejscowości i (P7b) plany konta terenowego. */
+function zakresZ(z: unknown): Konto['zakres'] {
+    const o = (z && typeof z === 'object' ? z : {}) as Record<string, unknown>, plany = napisy(o.plany)
+    return { kregi: napisy(o.kregi), miejsca: napisy(o.miejsca), ...(plany.length ? { plany } : {}) }
+}
 const EMAIL = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i
 
 async function nazwyKregow(): Promise<Record<string, string>> {
@@ -66,6 +71,8 @@ export async function GET(req: Request) {
     try { urz = k ? await urzadzenia(k, id) : null } catch (e) { uwaga = e instanceof BladPocketId ? e.message : 'Nie udało się odczytać urządzeń.' }
     return odp({ wersja: plik.wersja, konto: { ...konto, zaproszenie: undefined, zaproszenieDo: konto.zaproszenie?.do ?? null, ty: konto.id === ja },
         zRol: [...uprawnieniaZRol(konto, roleDef)], role: roleDef, uprawnienia: UPRAWNIENIA, kregi: Object.entries(kregi).map(([kid, nazwa]) => ({ id: kid, nazwa })),
+        // P7b (TER-01): plany do wyboru – „wybrane plany” konta terenowego
+        plany: (await listaPlanow()).map((p) => ({ slug: p.slug, tytul: p.tytul })),
         urzadzenia: urz, uwagaUrzadzen: uwaga, dzialania: await dzialania(id) })
 }
 
@@ -97,7 +104,7 @@ export async function POST(req: Request) {
             const z = linkZaproszenia(k.strona, kod, dni)
             try {
                 zmienKonta((p) => { p.konta.push({ id: osoba.id, imie, ...(email ? { email } : {}), uzytkownik: osoba.username, role: r, dodane: upr(d.dodane).filter((u) => u !== 'administracja'), odebrane: upr(d.odebrane),
-                    zakres: { kregi: napisy((d.zakres as Record<string, unknown> | undefined)?.kregi), miejsca: napisy((d.zakres as Record<string, unknown> | undefined)?.miejsca) }, stan: 'zaproszony', utworzono: new Date().toISOString(),
+                    zakres: zakresZ(d.zakres), stan: 'zaproszony', utworzono: new Date().toISOString(),
                     ...(autor ? { zaprosil: autor.id } : {}), zaproszenie: { skrot: skrotKodu(kod), do: z.do } }); return p }, { wersja })
             } catch (e) { await usunOsobe(k, osoba.id).catch(() => {}); throw e }
             dziennik(`zaprosił konto ${osoba.id} (role: ${r.join(', ')})`)
@@ -120,7 +127,7 @@ export async function POST(req: Request) {
                     if (Array.isArray(d.role)) x.role = r
                     if (Array.isArray(d.dodane)) x.dodane = upr(d.dodane).filter((u) => u !== 'administracja')
                     if (Array.isArray(d.odebrane)) x.odebrane = upr(d.odebrane)
-                    if (d.zakres && typeof d.zakres === 'object') x.zakres = { kregi: napisy((d.zakres as Record<string, unknown>).kregi), miejsca: napisy((d.zakres as Record<string, unknown>).miejsca) }
+                    if (d.zakres && typeof d.zakres === 'object') x.zakres = zakresZ(d.zakres)
                     if (imie.length >= 2) x.imie = imie
                     if (typeof d.email === 'string') { if (email) x.email = email; else delete x.email }
                 })
