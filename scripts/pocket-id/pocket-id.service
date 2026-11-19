@@ -1,0 +1,42 @@
+# P7a: Pocket ID – usługa logowania kluczem dostępu dla odniepamieci.pl (konto.odniepamieci.pl)
+# Instalacja i komendy właściciela: scripts/pocket-id/README.md
+[Unit]
+Description=Pocket ID – logowanie kluczem dostępu (konto.odniepamieci.pl)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pocketid
+Group=pocketid
+StateDirectory=pocket-id
+StateDirectoryMode=0700
+WorkingDirectory=/var/lib/pocket-id
+EnvironmentFile=/etc/pocket-id/pocket-id.env
+ExecStart=/opt/pocket-id/pocket-id
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
