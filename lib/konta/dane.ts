@@ -42,7 +42,8 @@ export function zmienKonta(zmiana: (p: PlikKont) => PlikKont, opcje: { korzen?: 
     po.wersja = przed.wersja + 1
     fs.mkdirSync(path.dirname(p), { recursive: true })
     const tmp = `${p}.${process.pid}.tmp`
-    fs.writeFileSync(tmp, JSON.stringify(po, null, 1) + '\n', { mode: 0o640 })
+    // 0660: plik zapisuje usługa (użytkownik blog) i komenda właściciela na serwerze (grupa blog) – npm run konta:administrator
+    fs.writeFileSync(tmp, JSON.stringify(po, null, 1) + '\n', { mode: 0o660 })
     fs.renameSync(tmp, p)
     pamiec = null
     return po

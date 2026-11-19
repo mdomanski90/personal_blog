@@ -7,13 +7,21 @@ import { wczytajKonta } from './dane'
 import { definicjeRol, maRoleAdministratora, mozeTylkoJa, nazwaRoli, nazwaUprawnienia, opisRoliZDzialami, roleCodzienne, uprawnieniaKonta, uprawnieniaTrasy, type Konto, type Rola, type Uprawnienie } from './model'
 import { CIASTECZKO_KONTA, odczytajSesje, sesjaUniewazniona, zNaglowka, type Sesja } from './sesja'
 
-export interface KonfiguracjaKont { adres: string; klientId: string; klientSekret: string; kluczApi: string; sekret: string; strona: string }
+export interface KonfiguracjaKont {
+    /** adres publiczny usługi logowania (dla przeglądarek, wystawca tokenów) */
+    adres: string
+    /** adres, pod którym serwer bloga łączy się z usługą logowania. Usługa `blog` ma IPAddressAllow=localhost (odczyt VPS 19.11.2026),
+     *  więc na serwerze to http://127.0.0.1:1411 (KONTA_ADRES_WEWN); bez ustawienia – adres publiczny. */
+    wewn: string
+    klientId: string; klientSekret: string; kluczApi: string; sekret: string; strona: string
+}
 
 export function konfiguracjaKont(): KonfiguracjaKont | null {
     const e = process.env
     const adres = (e.KONTA_ADRES ?? '').replace(/\/+$/, '')
     if (!/^https?:\/\//.test(adres) || !e.KONTA_KLIENT_ID || !e.KONTA_KLIENT_SEKRET || !e.SEKRET_SESJI) return null
-    return { adres, klientId: e.KONTA_KLIENT_ID, klientSekret: e.KONTA_KLIENT_SEKRET, kluczApi: e.KONTA_KLUCZ_API ?? '', sekret: e.SEKRET_SESJI, strona: (e.KONTA_STRONA ?? ADRES_STRONY).replace(/\/+$/, '') }
+    const wewn = /^https?:\/\//.test(e.KONTA_ADRES_WEWN ?? '') ? e.KONTA_ADRES_WEWN!.replace(/\/+$/, '') : adres
+    return { adres, wewn, klientId: e.KONTA_KLIENT_ID, klientSekret: e.KONTA_KLIENT_SEKRET, kluczApi: e.KONTA_KLUCZ_API ?? '', sekret: e.SEKRET_SESJI, strona: (e.KONTA_STRONA ?? ADRES_STRONY).replace(/\/+$/, '') }
 }
 export const kontaWlaczone = () => konfiguracjaKont() !== null
 

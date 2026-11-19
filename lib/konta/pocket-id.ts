@@ -5,11 +5,12 @@ import type { KonfiguracjaKont } from './straz'
 
 export class BladPocketId extends Error { constructor(public status: number, tresc: string) { super(tresc) } }
 
-async function api<T>(k: Pick<KonfiguracjaKont, 'adres' | 'kluczApi'>, metoda: string, sciezka: string, dane?: unknown): Promise<T> {
+type Polaczenie = Pick<KonfiguracjaKont, 'wewn' | 'kluczApi'>
+async function api<T>(k: Polaczenie, metoda: string, sciezka: string, dane?: unknown): Promise<T> {
     if (!k.kluczApi) throw new BladPocketId(0, 'Brak klucza API usługi logowania (KONTA_KLUCZ_API w .env.local).')
     let r: Response
     try {
-        r = await fetch(`${k.adres}${sciezka}`, { method: metoda, cache: 'no-store', signal: AbortSignal.timeout(10_000),
+        r = await fetch(`${k.wewn}${sciezka}`, { method: metoda, cache: 'no-store', signal: AbortSignal.timeout(10_000),
             headers: { 'X-API-KEY': k.kluczApi, ...(dane !== undefined ? { 'Content-Type': 'application/json' } : {}) }, body: dane !== undefined ? JSON.stringify(dane) : undefined })
     } catch (e) { throw new BladPocketId(0, `Usługa logowania nie odpowiada (${(e as Error).message}).`) }
     const tekst = await r.text()
@@ -35,12 +36,14 @@ export async function zalozOsobe(k: KonfiguracjaKont, imie: string, email?: stri
     const [pierwsze, ...reszta] = imie.trim().split(/\s+/)
     return api<OsobaPocketId>(k, 'POST', '/api/users', { username: nazwaUzytkownika(imie), firstName: pierwsze, lastName: reszta.join(' '), displayName: imie.trim(), isAdmin: false, locale: 'pl', ...(email ? { email } : {}) })
 }
-export const listaOsob = async (k: Pick<KonfiguracjaKont, 'adres' | 'kluczApi'>) => (await api<{ data: OsobaPocketId[] }>(k, 'GET', '/api/users?pagination[limit]=200')).data
+export const listaOsob = async (k: Polaczenie) => (await api<{ data: OsobaPocketId[] }>(k, 'GET', '/api/users?pagination[limit]=200')).data
 export const usunOsobe = (k: KonfiguracjaKont, id: string) => api<null>(k, 'DELETE', `/api/users/${encodeURIComponent(id)}`)
 
 /** Kod linku jednorazowego (strona Pocket ID: /lc/{kod}). `godziny` – ważność, najwyżej 31 dni. */
-export async function kodJednorazowy(k: Pick<KonfiguracjaKont, 'adres' | 'kluczApi'>, id: string, godziny: number): Promise<string> {
-    const { token } = await api<{ token: string }>(k, 'POST', `/api/users/${encodeURIComponent(id)}/one-time-access-token`, { ttl: `${Math.min(Math.max(1, Math.round(godziny)), 31 * 24)}h` })
+export async function kodJednorazowy(k: Polaczenie, id: string, godziny: number): Promise<string> {
+    // co najmniej godzina: przy ważności do 15 minut Pocket ID wydaje krótki kod (6 znaków) do wpisania ręcznie – link /lc/ nie loguje wtedy sam
+    const ttl = `${Math.min(Math.max(1, Math.round(godziny)), 31 * 24)}h`
+    const { token } = await api<{ token: string }>(k, 'POST', `/api/users/${encodeURIComponent(id)}/one-time-access-token`, { ttl })
     return token
 }
 export const adresPolaczenia = (k: Pick<KonfiguracjaKont, 'adres'>, kod: string) => `${k.adres}/lc/${encodeURIComponent(kod)}`
@@ -53,8 +56,8 @@ export const usunUrzadzenie = (k: KonfiguracjaKont, id: string, idKlucza: string
 
 // ---------- klient OIDC (npm run konta:przygotuj) ----------
 export interface KlientOidc { id: string; name: string; callbackURLs: string[] }
-export const listaKlientow = async (k: Pick<KonfiguracjaKont, 'adres' | 'kluczApi'>) => (await api<{ data: KlientOidc[] }>(k, 'GET', '/api/oidc/clients?pagination[limit]=100')).data
-export async function zalozKlienta(k: Pick<KonfiguracjaKont, 'adres' | 'kluczApi'>, nazwa: string, strona: string): Promise<{ id: string; sekret: string }> {
+export const listaKlientow = async (k: Polaczenie) => (await api<{ data: KlientOidc[] }>(k, 'GET', '/api/oidc/clients?pagination[limit]=100')).data
+export async function zalozKlienta(k: Polaczenie, nazwa: string, strona: string): Promise<{ id: string; sekret: string }> {
     const kl = await api<KlientOidc>(k, 'POST', '/api/oidc/clients', { name: nazwa, callbackURLs: [`${strona}/api/konto/powrot`], logoutCallbackURLs: [`${strona}/`], launchURL: `${strona}/moje-konto`, isPublic: false, pkceEnabled: true, skipConsent: true })
     const { secret } = await api<{ secret: string }>(k, 'POST', `/api/oidc/clients/${kl.id}/secrets`, {})
     return { id: kl.id, sekret: secret }

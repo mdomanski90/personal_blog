@@ -9,6 +9,8 @@ import { aktywna, menuWgUstawien, rodzajWidoku, stronaZAdresuKeystatic, type Iko
 import type { RodzajPlanu } from '@/lib/plany/metadane'
 import PaletaPolecen from './PaletaPolecen'
 import SzufladaHistorii from './SzufladaHistorii'
+import MenuKonta, { type KontoRamy } from './MenuKonta'
+import { pozycjaMenuDlaKonta, type Uprawnienie } from '@/lib/konta/model'
 
 const IKONY: Record<Ikona, LucideIcon> = {
     pulpit: House, zgloszenia: Inbox, opracowanie: ListTodo, tresci: FileText, archiwum: Archive, biblioteka: Library,
@@ -33,8 +35,8 @@ function licznikPozycji(l: string | undefined, czeka: number, plany: Record<stri
     return (rodzaj === 'plany' || rodzaj === 'kolekcja' ? plany[`${rodzaj}:${k}`] : undefined) ?? null
 }
 
-function MenuPelne({ menu, sciezka, szukane, czeka, plany, pokazWszystko, ustawPokazWszystko, rozwiniete, przelaczGrupe, naGorze }: {
-    menu: Menu; sciezka: string; szukane: string; czeka: number; plany: Record<string, number>
+function MenuPelne({ menu, sciezka, szukane, czeka, plany, pokazWszystko, ustawPokazWszystko, rozwiniete, przelaczGrupe, naGorze, administracja = true }: {
+    menu: Menu; sciezka: string; szukane: string; czeka: number; plany: Record<string, number>; administracja?: boolean
     pokazWszystko: boolean; ustawPokazWszystko: (b: boolean) => void; rozwiniete: Set<string>; przelaczGrupe: (k: string) => void; naGorze?: React.ReactNode
 }) {
     const ukrytych = menu.reduce((a, g) => a + (g.pozycje.length ? g.pozycje.filter((p) => p.ukryta).length : g.ukryta ? 1 : 0), 0)
@@ -79,7 +81,7 @@ function MenuPelne({ menu, sciezka, szukane, czeka, plany, pokazWszystko, ustawP
                 })}
             </nav>
             <div className="pn-bok-dol">
-                <a href="/keystatic/singleton/menuPanelu" className="pn-poz"><SlidersHorizontal aria-hidden strokeWidth={1.5} /><span className="pn-nazwa">dostosuj menu</span></a>
+                {administracja && <a href="/keystatic/singleton/menuPanelu" className="pn-poz"><SlidersHorizontal aria-hidden strokeWidth={1.5} /><span className="pn-nazwa">dostosuj menu</span></a>}
                 {ukrytych > 0 && (
                     <button type="button" className="pn-poz" aria-pressed={pokazWszystko} onClick={() => ustawPokazWszystko(!pokazWszystko)}>
                         <Ellipsis aria-hidden strokeWidth={1.5} /><span className="pn-nazwa">{pokazWszystko ? 'schowaj ukryte' : `pokaż wszystko (${ukrytych} ukryte)`}</span>
@@ -133,13 +135,22 @@ function Przypnij({ sciezka }: { sciezka: string }) {
     )
 }
 
-export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = {}, children }: { ustawienia: UstawieniaMenu | null; liczbyPlanow: Record<RodzajPlanu, number>; liczbyKolekcji?: Record<string, number>; children: React.ReactNode }) {
+export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = {}, konto = null, children }: { ustawienia: UstawieniaMenu | null; liczbyPlanow: Record<RodzajPlanu, number>; liczbyKolekcji?: Record<string, number>; konto?: KontoRamy | null; children: React.ReactNode }) {
     // liczniki w menu: „plany:<rodzaj>” i (P6a) „kolekcja:<klucz>”
     const liczniki = React.useMemo(() => ({ ...Object.fromEntries(Object.entries(liczbyPlanow).map(([k, v]) => [`plany:${k}`, v])), ...Object.fromEntries(Object.entries(liczbyKolekcji).map(([k, v]) => [`kolekcja:${k}`, v])) }), [liczbyPlanow, liczbyKolekcji])
     const sciezka = usePathname() ?? ''
     const [szukane, ustawSzukane] = React.useState('')
     const rodzaj = rodzajWidoku(sciezka)
-    const menu = React.useMemo(() => menuWgUstawien(ustawienia), [ustawienia])
+    // P7a (KON-01): menu (i paleta Ctrl+K, która z niego korzysta) tylko z pozycjami dla tej roli; bez kont – całe jak dotąd
+    const menu = React.useMemo(() => {
+        const m = menuWgUstawien(ustawienia)
+        if (!konto) return m
+        const u = new Set(konto.uprawnienia as Uprawnienie[])
+        return m.map((g) => ({ ...g, pozycje: g.pozycje.filter((p) => pozycjaMenuDlaKonta(p.klucz, u)) })).filter((g) => (g.pozycje.length ? true : !!g.href && pozycjaMenuDlaKonta(g.klucz, u)))
+    }, [ustawienia, konto])
+    const administracja = !konto || konto.uprawnienia.includes('administracja')
+    const [odmowa, ustawOdmowe] = React.useState(false)
+    React.useEffect(() => { ustawOdmowe(new URLSearchParams(location.search).get('odmowa') === 'administrator') }, [sciezka])
     const { resolvedTheme, setTheme } = useTheme()
     const [zgl, ustawZgl] = React.useState<Zgl[]>([])
     const [szer, ustawSzer] = React.useState(START)
@@ -251,7 +262,7 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
     const [zamontowany, ustawZamontowany] = React.useState(false)
     React.useEffect(() => ustawZamontowany(true), [])
     const ciemny = zamontowany && resolvedTheme === 'dark'
-    const wlasciwosciMenu = { menu, sciezka, szukane, czeka, plany: liczniki, pokazWszystko, ustawPokazWszystko, rozwiniete, przelaczGrupe }
+    const wlasciwosciMenu = { menu, sciezka, szukane, czeka, plany: liczniki, pokazWszystko, ustawPokazWszystko, rozwiniete, przelaczGrupe, administracja }
     const pelneMenu = rodzaj === 'panel' && !schowany
     const kolumnaIkon = rodzaj === 'edytor-planu' || (rodzaj === 'panel' && schowany)
 
@@ -262,7 +273,7 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
                 <button ref={przyciskMenu} type="button" className="pn-ikona-btn pn-gora-menu" aria-label="menu panelu" aria-expanded={szuflada} aria-controls="pn-szuflada" onClick={() => ustawSzuflade((s) => !s)}><Menu aria-hidden /></button>
                 <a href="/keystatic/panel" className="pn-marka">odniepamieci.pl<span>panel</span></a>
                 <a href="/keystatic/panel" className="pn-gora-link pn-tylko-szeroki">← pulpit</a>
-                <a href="/keystatic/panel/zgloszenia" className="pn-gora-link">zgłoszenia{czeka > 0 && <span className="pn-licz" aria-label={`${czeka} czeka`}>{czeka}</span>}</a>
+                {(!konto || konto.uprawnienia.includes('zgloszenia')) && <a href="/keystatic/panel/zgloszenia" className="pn-gora-link">zgłoszenia{czeka > 0 && <span className="pn-licz" aria-label={`${czeka} czeka`}>{czeka}</span>}</a>}
                 <a href="/keystatic/panel/do-opracowania" className="pn-gora-link pn-tylko-szeroki">do opracowania</a>
                 <button type="button" className="pn-szukaj" aria-haspopup="dialog" onClick={() => ustawPalete(true)}><Search aria-hidden /><span>szukaj: osoba, plan, MA-0042</span><kbd aria-hidden="true">Ctrl K</kbd></button>
                 <button type="button" className="pn-ikona-btn pn-tylko-waski" aria-label="szukaj w panelu" aria-haspopup="dialog" onClick={() => ustawPalete(true)}><Search aria-hidden /></button>
@@ -271,6 +282,7 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
                     {naStronie && <a href={naStronie} target="_blank" rel="noreferrer" className="pn-btn pn-btn-maly pn-tylko-szeroki">na stronie ↗</a>}
                     {maHistorie && <button type="button" className="pn-btn pn-btn-maly pn-tylko-szeroki" aria-expanded={historia} aria-controls="pn-hist-tytul" onClick={() => ustawHistorie((h) => !h)}>historia</button>}
                     <Przypnij sciezka={sciezka} />
+                    {konto && <MenuKonta konto={konto} sciezka={sciezka} />}
                     <button type="button" className="pn-ikona-btn" aria-label="przełącz motyw (jasny / ciemny)" title="przełącz motyw (jasny / ciemny)" onClick={() => setTheme(ciemny ? 'light' : 'dark')}>
                         {!zamontowany ? <Moon aria-hidden className="pn-niewidoczne" /> : ciemny ? <Sun aria-hidden /> : <Moon aria-hidden />}
                     </button>
@@ -309,7 +321,10 @@ export default function RamaPanelu({ ustawienia, liczbyPlanow, liczbyKolekcji = 
                 )}
                 {rodzaj === 'keystatic'
                     ? <div id="panel-tresc" tabIndex={-1} className="pn-ks">{children}</div>
-                    : <main id="panel-tresc" tabIndex={-1} className="pn-glowna">{children}</main>}
+                    : <main id="panel-tresc" tabIndex={-1} className="pn-glowna">
+                        {odmowa && <p className="pn-ostrz pn-bez-marginesu" role="alert"><span><b>To wymaga roli administratora.</b> {konto?.mozeAdministrator ? 'Przełącz rolę w menu pod swoim imieniem – potwierdzisz kluczem dostępu.' : 'Poproś administratora.'}</span></p>}
+                        {children}
+                    </main>}
             </div>
         </div>
     )

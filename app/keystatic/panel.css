@@ -38,6 +38,8 @@
   --pn-do-tlo: #e9efea;
   --pn-do: #3f5e49;
   --pn-zaslona: rgb(0 0 0 / .32);
+  --pn-qr: #000000;
+  --pn-qr-tlo: #ffffff;
   --pn-cien: rgb(0 0 0 / .14);
   --pn-font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --pn-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -526,3 +528,42 @@ button.pn-szukaj { background: var(--pn-pole); border-color: var(--pn-linia); }
 .wm-linia { font-size: 12.5px; color: var(--kui-color-scale-slate9); }
 .wm-btn { flex: none; min-height: 32px; padding: 4px 12px; font: inherit; color: inherit; border: 1px solid var(--kui-color-scale-slate6); border-radius: 6px; background: var(--kui-color-scale-slate1); cursor: pointer; }
 .wm-blad { font-size: 13px; color: var(--kui-color-scale-red11, currentColor); }
+
+/* ---------- P7a (KON-01): konto w pasku, konta i dostęp, role ---------- */
+.pn-konto { position: relative; }
+.pn-konto-btn svg { width: 14px; height: 14px; margin: 0 -2px 0 2px; }
+.pn-konto-imie { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pn-konto-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 90; width: min(340px, calc(100vw - 24px)); box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--pn-linia); border-radius: 10px; background: var(--pn-karta); color: var(--pn-tekst); box-shadow: 0 8px 28px var(--pn-cien); font-size: 13px; }
+.pn-konto-menu p { margin: 0; }
+.pn-konto-menu hr { width: 100%; border: 0; border-top: 1px solid var(--pn-linia2); margin: 2px 0; }
+.pn-konto-menu form { margin: 0; display: contents; }
+.pn-konto-role { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pn-konto-role li { display: flex; gap: 6px; align-items: baseline; color: var(--pn-szary); }
+.pn-konto-role li b { color: var(--pn-tekst); }
+.pn-konto-role li::before { content: ""; flex: none; align-self: center; width: 10px; height: 10px; box-sizing: border-box; border: 1.5px solid var(--pn-szary); border-radius: 50%; }
+.pn-konto-role li[aria-current=true]::before { border: 3px solid var(--pn-wyp); }
+.pn-konto-link { display: block; width: 100%; padding: 4px 0; border: 0; background: none; text-align: left; font: inherit; color: var(--pn-tekst) !important; cursor: pointer; }
+.pn-konto-link:hover { text-decoration: underline; }
+/* stan konta: znak w kolorze + słowo (kolor nigdy sam) */
+.pn-stan { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.pn-stan::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--pn-ok); }
+.pn-stan-zaproszony::before { background: var(--pn-ostrz); }
+.pn-stan-zablokowany::before { background: var(--pn-blad); }
+.pn-drugi-wiersz { display: block; font-size: 12px; color: var(--pn-szary); }
+.pn-odst { margin-left: 6px; font-size: 11.5px; padding: 1px 6px; border-radius: 5px; }
+.pn-odst-dodane { background: var(--pn-do-tlo); color: var(--pn-do); }
+.pn-odst-odebrane { background: var(--pn-us-tlo); color: var(--pn-us); }
+.pn-tabela td.pn-srodek, .pn-tabela th.pn-srodek { text-align: center; }
+.pn-tabela-upr td:first-child { width: 55%; }
+.pn-pastylki { display: flex; flex-wrap: wrap; gap: 6px; }
+.pn-pastylka { display: inline-flex; align-items: center; height: 28px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--pn-linia); border-radius: 999px; background: var(--pn-pole); color: var(--pn-tekst); font: inherit; font-size: 13px; cursor: pointer; }
+.pn-pastylka[aria-pressed=true] { border-color: var(--pn-wyp); background: color-mix(in srgb, var(--pn-wyp) 12%, var(--pn-pole)); color: var(--pn-akcent); font-weight: 600; }
+.pn-qr { width: 180px; height: 180px; padding: 6px; box-sizing: border-box; border: 1px solid var(--pn-linia); border-radius: 8px; background: var(--pn-qr-tlo); }
+.pn-qr path { fill: var(--pn-qr); }
+.pn-link-pole { flex: 1 1 240px; min-width: 0; font-family: var(--pn-mono); font-size: 12.5px; }
+.pn-konta-uklad { display: grid; grid-template-columns: minmax(0, 3fr) minmax(260px, 2fr); gap: 14px; align-items: start; }
+@media (max-width: 900px) { .pn-konta-uklad { grid-template-columns: minmax(0, 1fr); } }
+.pn-form-kol { display: flex; flex-direction: column; gap: 12px; }
+.pn-pole > span.pn-podp { font-size: 12px; }
+.pn-role-nazwy { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr); gap: 10px; }
+@media (max-width: 640px) { .pn-role-nazwy { grid-template-columns: minmax(0, 1fr); } }

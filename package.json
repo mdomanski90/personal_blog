@@ -20,7 +20,9 @@
     "plany:rodzaj": "tsx scripts/plany-rodzaj.ts",
     "jw:zapadka": "tsx scripts/jw-zapadka.ts",
     "kat:nadaj": "tsx scripts/kat-nadaj.ts",
-    "kregi:domyslne": "tsx scripts/kregi-domyslne.ts"
+    "kregi:domyslne": "tsx scripts/kregi-domyslne.ts",
+    "konta:przygotuj": "tsx scripts/konta.ts przygotuj",
+    "konta:administrator": "tsx scripts/konta.ts administrator"
   },
   "dependencies": {
     "@annotorious/openseadragon": "3.9.5",

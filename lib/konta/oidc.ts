@@ -6,11 +6,15 @@ import type { KonfiguracjaKont } from './straz'
 let pamiec: { klucz: string; konfig: oidc.Configuration; czas: number } | null = null
 
 async function konfig(k: KonfiguracjaKont): Promise<oidc.Configuration> {
-    const klucz = `${k.adres}|${k.klientId}`
+    const klucz = `${k.adres}|${k.wewn}|${k.klientId}`
     if (pamiec && pamiec.klucz === klucz && Date.now() - pamiec.czas < 3600_000) return pamiec.konfig
     // http tylko dla testów na tym samym komputerze (Pocket ID uruchomiony lokalnie)
     const lokalnie = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(k.adres)
-    const konfig = await oidc.discovery(new URL(k.adres), k.klientId, k.klientSekret, undefined, lokalnie ? { execute: [oidc.allowInsecureRequests] } : undefined)
+    // Serwer bloga łączy się z usługą logowania pod adresem wewnętrznym (piaskownica usługi blog dopuszcza tylko localhost);
+    // wystawca i adresy w tokenach zostają publiczne – podmieniamy wyłącznie początek adresu żądania.
+    const polacz: oidc.CustomFetch = (adres, opcje) => fetch(adres.startsWith(k.adres + '/') ? k.wewn + adres.slice(k.adres.length) : adres, opcje as RequestInit)
+    const konfig = await oidc.discovery(new URL(k.adres), k.klientId, k.klientSekret, undefined, { [oidc.customFetch]: polacz, ...(lokalnie ? { execute: [oidc.allowInsecureRequests] } : {}) })
+    konfig[oidc.customFetch] = polacz
     pamiec = { klucz, konfig, czas: Date.now() }
     return konfig
 }

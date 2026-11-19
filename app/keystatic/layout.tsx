@@ -3,6 +3,9 @@ import './panel.css'
 import RamaPanelu from './RamaPanelu'
 import { liczbyKolekcji, liczbyPlanow, ustawieniaMenu } from '@/lib/panel/menu-serwer'
 import { LISTY } from '@/lib/panel/listy-konfig'
+import { maRoleAdministratora, nazwaRoli, roleCodzienne } from '@/lib/konta/model'
+import { rolaTeraz, zalogowanyTeraz } from '@/lib/konta/straz'
+import type { KontoRamy } from './MenuKonta'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,11 +13,14 @@ export const dynamic = 'force-dynamic'
 const MOTYW_KS = "try{var t=localStorage.getItem('theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);localStorage.setItem('keystatic-color-scheme',d?'dark':'light')}catch(e){}"
 
 export default async function UkladKeystatic({ children }: { children: React.ReactNode }) {
-    const [ustawienia, plany, kolekcje] = await Promise.all([ustawieniaMenu(), liczbyPlanow(), liczbyKolekcji(Object.keys(LISTY))])
+    const [ustawienia, plany, kolekcje, z] = await Promise.all([ustawieniaMenu(), liczbyPlanow(), liczbyKolekcji(Object.keys(LISTY)), zalogowanyTeraz()])
+    // P7a (KON-01): kto pracuje w panelu – do paska (imię, rola, przełącznik ról) i do menu filtrowanego uprawnieniami; bez kont: null
+    const konto: KontoRamy | null = z ? { imie: z.konto.imie, rola: rolaTeraz(z), naCoDzien: roleCodzienne(z.konto).map((r) => nazwaRoli(z.role, r)).join(' + ') || null,
+        administrator: z.administrator, administratorDo: z.sesja.adminDo ?? null, mozeAdministrator: maRoleAdministratora(z.konto), uprawnienia: [...z.uprawnienia] } : null
     return (
         <>
             <script dangerouslySetInnerHTML={{ __html: MOTYW_KS }} />
-            <RamaPanelu ustawienia={ustawienia} liczbyPlanow={plany} liczbyKolekcji={kolekcje}>{children}</RamaPanelu>
+            <RamaPanelu ustawienia={ustawienia} liczbyPlanow={plany} liczbyKolekcji={kolekcje} konto={konto}>{children}</RamaPanelu>
         </>
     )
 }
