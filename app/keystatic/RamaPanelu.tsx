@@ -4,7 +4,7 @@
 import * as React from 'react'
 import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { type LucideIcon, Archive, BookMarked, ChevronDown, ChevronRight, Ellipsis, ExternalLink, FileText, House, Inbox, Languages, Library, ListTodo, Map as IkonaMapy, Menu, Moon, PanelsTopLeft, Pin, PinOff, Search, SlidersHorizontal, Sun, Wrench } from 'lucide-react'
+import { type LucideIcon, Archive, BookMarked, ChevronDown, ChevronRight, Ellipsis, ExternalLink, FileText, House, Inbox, Languages, Library, ListTodo, Map as IkonaMapy, Menu, Moon, PanelsTopLeft, Pin, PinOff, Search, ShieldCheck, SlidersHorizontal, Sun, Users, Wrench } from 'lucide-react'
 import { aktywna, menuWgUstawien, rodzajWidoku, stronaZAdresuKeystatic, type Ikona, type UstawieniaMenu } from '@/lib/panel/menu'
 import type { RodzajPlanu } from '@/lib/plany/metadane'
 import PaletaPolecen from './PaletaPolecen'
@@ -12,7 +12,7 @@ import SzufladaHistorii from './SzufladaHistorii'
 
 const IKONY: Record<Ikona, LucideIcon> = {
     pulpit: House, zgloszenia: Inbox, opracowanie: ListTodo, tresci: FileText, archiwum: Archive, biblioteka: Library,
-    ksiegi: BookMarked, slownik: Languages, strony: PanelsTopLeft, plany: IkonaMapy, narzedzia: Wrench,
+    ksiegi: BookMarked, slownik: Languages, strony: PanelsTopLeft, plany: IkonaMapy, narzedzia: Wrench, osoby: Users, administracja: ShieldCheck,
 }
 const KLUCZ_SZER = 'odniepamieci-panel-szerokosc-v1'
 /** ADM-04: zwinięcie menu zapamiętane między stronami panelu */

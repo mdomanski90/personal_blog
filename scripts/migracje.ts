@@ -6,6 +6,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { migrujUstawieniaMenu } from '../lib/panel/menu'
 
 const CONTENT = path.join(process.cwd(), 'content')
 let zmienione = 0
@@ -44,6 +45,15 @@ przerob('miejsca', ['.mdoc'], (t) => {
     const rownorzedne = m[1] === 'mieszana'
     glowa = glowa.replace(m[0], lista.length ? `religions:\n${lista.map((w) => `  - ${w}`).join('\n')}${rownorzedne ? '\nreligionsEqual: true' : ''}` : 'religions: []')
     return glowa + t.slice(kon)
+})
+
+// 3. P7a: ustawienie „Menu panelu” – grupa „narzedzia” została „administracją” (Keystatic odrzuca nieznaną wartość listy)
+przerob('_panel', ['menu-panelu.json'], (t) => {
+    try {
+        const u = JSON.parse(t) as { kolejnosc?: string[] }
+        const n = migrujUstawieniaMenu(u)
+        return n === u ? t : JSON.stringify(n, null, 2) + '\n'
+    } catch { return t }
 })
 
 console.log(zmienione ? `Migracje treści: zmieniono ${zmienione} plik(ów).` : 'Migracje treści: nic do zmiany.')

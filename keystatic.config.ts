@@ -187,7 +187,7 @@ const konfiguracja = config({
       'Księgi metrykalne': ['parafie', 'ksiegi', 'zespoly'],
       'Słownik': ['hasla'],
       'Strony': ['stronaGlowna', 'wstepyDzialow', 'oProjekcie'],
-      'Narzędzia': ['przekierowania', 'kregiStopka', 'menuPanelu'],
+      'Administracja': ['menuPanelu', 'kregiStopka', 'przekierowania'],
     },
   },
   collections: {

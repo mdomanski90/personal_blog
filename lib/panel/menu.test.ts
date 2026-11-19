@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { MENU, NIEUKRYWALNE, aktywna, menuWgUstawien, pozycjeDoUstawien, rodzajWidoku, stronaZAdresuKeystatic } from './menu'
+import { MENU, NIEUKRYWALNE, aktywna, menuWgUstawien, migrujUstawieniaMenu, pozycjeDoUstawien, rodzajWidoku, stronaZAdresuKeystatic } from './menu'
 
 const hrefy = () => MENU.flatMap((g) => [g.href, ...g.pozycje.map((p) => p.href)]).filter(Boolean) as string[]
 
@@ -38,11 +38,32 @@ test('ukrycie wszystkich pozycji grupy ukrywa grupę; pulpitu i „menu panelu�
     const m = menuWgUstawien({ ukryte: ['publikacje', 'pulpit', 'menuPanelu', 'zespoly'] })
     assert.equal(m.find((g) => g.klucz === 'biblioteka')!.ukryta, true)
     assert.equal(m.find((g) => g.klucz === 'pulpit')!.ukryta, false)
-    assert.equal(m.find((g) => g.klucz === 'narzedzia')!.pozycje.find((p) => p.klucz === 'menuPanelu')!.ukryta, false)
+    assert.equal(m.find((g) => g.klucz === 'administracja')!.pozycje.find((p) => p.klucz === 'menuPanelu')!.ukryta, false)
     const ks = m.find((g) => g.klucz === 'ksiegi')!
     assert.equal(ks.ukryta, false)
     assert.equal(ks.pozycje.find((p) => p.klucz === 'zespoly')!.ukryta, true)
     assert.ok(pozycjeDoUstawien().every((x) => !NIEUKRYWALNE.has(x.value)))
+})
+
+test('P7a: menu wg plansz – „osoby i drzewo” w głównej części, „administracja” zamiast „narzędzi”, „połącz wzmianki” w treściach', () => {
+    assert.equal(MENU.find((g) => g.klucz === 'narzedzia'), undefined)
+    assert.deepEqual(MENU.find((g) => g.klucz === 'osoby'), { klucz: 'osoby', nazwa: 'osoby i drzewo', ikona: 'osoby', href: '/keystatic/osoby', pozycje: [] })
+    assert.deepEqual(MENU.find((g) => g.klucz === 'administracja')!.pozycje.map((p) => p.klucz), ['dostep', 'wyglad', 'menuPanelu', 'kregiStopka', 'przekierowania', 'system', 'operacje', 'szablony', 'wzorce'])
+    assert.ok(MENU.find((g) => g.klucz === 'tresci')!.pozycje.some((p) => p.klucz === 'polacz'))
+})
+
+test('P7a: migracja zapisanego ustawienia menu – „narzedzia” → „administracja”, bez powtórzeń, drugi raz nic nie zmienia', () => {
+    const stare = { ukryte: ['osoby', 'wzorce'], kolejnosc: ['plany', 'narzedzia', 'tresci'] }
+    const nowe = migrujUstawieniaMenu(stare)
+    assert.deepEqual(nowe, { ukryte: ['osoby', 'wzorce'], kolejnosc: ['plany', 'administracja', 'tresci'] })
+    assert.equal(migrujUstawieniaMenu(nowe), nowe)
+    assert.deepEqual(migrujUstawieniaMenu({ kolejnosc: ['administracja', 'narzedzia'] }).kolejnosc, ['administracja'])
+    // kolejność po migracji działa w menu; dawna pozycja „osoby” ukryta = ukryta grupa „osoby i drzewo”
+    const m = menuWgUstawien(nowe)
+    assert.deepEqual(m.slice(0, 3).map((g) => g.klucz), ['plany', 'administracja', 'tresci'])
+    assert.equal(m.find((g) => g.klucz === 'osoby')!.ukryta, true)
+    const bez = {}
+    assert.equal(migrujUstawieniaMenu(bez), bez)
 })
 
 test('„na stronie ↗”: pozycja Keystatic → strona publiczna; kolekcja bez strony – brak', () => {

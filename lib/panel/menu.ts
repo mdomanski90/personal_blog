@@ -2,7 +2,7 @@
 // ustawienia „Menu panelu” w Keystatic (keystatic.config.ts) i adresów „na stronie ↗”. Bez fs – plik wspólny dla klienta i konfiguracji.
 // Ustawienie (content/_panel/menu-panelu.json) może ukryć pozycje i zmienić kolejność grup; pulpit zostaje zawsze.
 
-export type Ikona = 'pulpit' | 'zgloszenia' | 'opracowanie' | 'tresci' | 'archiwum' | 'biblioteka' | 'ksiegi' | 'slownik' | 'strony' | 'plany' | 'narzedzia'
+export type Ikona = 'pulpit' | 'zgloszenia' | 'opracowanie' | 'tresci' | 'archiwum' | 'biblioteka' | 'ksiegi' | 'slownik' | 'strony' | 'plany' | 'narzedzia' | 'osoby' | 'administracja'
 
 export interface PozycjaMenu {
     klucz: string
@@ -21,12 +21,15 @@ export const MENU: GrupaMenu[] = [
     { klucz: 'pulpit', nazwa: 'pulpit', ikona: 'pulpit', href: '/keystatic/panel', pozycje: [] },
     { klucz: 'zgloszenia', nazwa: 'zgłoszenia', ikona: 'zgloszenia', href: '/keystatic/panel/zgloszenia', licznik: 'zgloszenia', pozycje: [] },
     { klucz: 'do-opracowania', nazwa: 'do opracowania', ikona: 'opracowanie', href: '/keystatic/panel/do-opracowania', pozycje: [] },
+    // P7a (uwaga właściciela 19.11 08:48): osoby i drzewo w głównej części menu; „narzędzia” → „administracja”
+    { klucz: 'osoby', nazwa: 'osoby i drzewo', ikona: 'osoby', href: '/keystatic/osoby', pozycje: [] },
     { klucz: 'tresci', nazwa: 'treści', ikona: 'tresci', pozycje: [
         { klucz: 'posts', nazwa: 'wpisy', href: kol('posts'), licznik: 'kolekcja:posts' },
         { klucz: 'miejsca', nazwa: 'miejsca', href: kol('miejsca'), licznik: 'kolekcja:miejsca' },
         { klucz: 'obiekty', nazwa: 'obiekty w terenie', href: kol('obiekty'), licznik: 'kolekcja:obiekty' },
         { klucz: 'tematy', nazwa: 'tematy', href: kol('tematy'), licznik: 'kolekcja:tematy' },
         { klucz: 'biogramy', nazwa: 'osoby – biogramy', href: kol('biogramy'), licznik: 'kolekcja:biogramy' },
+        { klucz: 'polacz', nazwa: 'połącz wzmianki', href: '/keystatic/panel/polacz' }, // P6b (PD-10)
     ] },
     { klucz: 'archiwum', nazwa: 'archiwum', ikona: 'archiwum', pozycje: [
         { klucz: 'materialy', nazwa: 'materiały (archiwum)', href: kol('materialy'), licznik: 'kolekcja:materialy' },
@@ -57,18 +60,16 @@ export const MENU: GrupaMenu[] = [
         { klucz: 'plany-schemat', nazwa: 'schematy i szkice', href: '/keystatic/plany?rodzaj=schemat', licznik: 'plany:schemat' },
         { klucz: 'plany-typy', nazwa: 'typy na planach', href: '/keystatic/plany/typy' },
     ] },
-    { klucz: 'narzedzia', nazwa: 'narzędzia', ikona: 'narzedzia', pozycje: [
-        { klucz: 'osoby', nazwa: 'osoby i drzewo', href: '/keystatic/osoby' },
-        { klucz: 'dostep', nazwa: 'dostęp', href: '/keystatic/panel/dostep' },
+    { klucz: 'administracja', nazwa: 'administracja', ikona: 'administracja', pozycje: [
+        { klucz: 'dostep', nazwa: 'konta i dostęp', href: '/keystatic/panel/dostep' },
         { klucz: 'wyglad', nazwa: 'wygląd strony', href: '/keystatic/panel/wyglad' },
-        { klucz: 'przekierowania', nazwa: 'przekierowania adresów', href: sin('przekierowania') },
-        { klucz: 'kregiStopka', nazwa: 'kręgi i stopka', href: sin('kregiStopka') },
         { klucz: 'menuPanelu', nazwa: 'menu panelu', href: sin('menuPanelu') },
-        { klucz: 'polacz', nazwa: 'połącz wzmianki', href: '/keystatic/panel/polacz' }, // P6b (PD-10)
-        { klucz: 'szablony', nazwa: 'mapa szablonów', href: '/keystatic/panel/szablony' },
-        { klucz: 'wzorce', nazwa: 'wzorce języka wizualnego', href: '/keystatic/panel/wzorce' },
+        { klucz: 'kregiStopka', nazwa: 'kręgi i stopka', href: sin('kregiStopka') },
+        { klucz: 'przekierowania', nazwa: 'przekierowania adresów', href: sin('przekierowania') },
         { klucz: 'system', nazwa: 'kopie, eksport, ustawienia', href: '/keystatic/panel/system' },
         { klucz: 'operacje', nazwa: 'ostatnie operacje', href: '/keystatic/panel/operacje' },
+        { klucz: 'szablony', nazwa: 'mapa szablonów', href: '/keystatic/panel/szablony' },
+        { klucz: 'wzorce', nazwa: 'wzorce języka wizualnego', href: '/keystatic/panel/wzorce' },
     ] },
 ]
 
@@ -76,6 +77,16 @@ export const MENU: GrupaMenu[] = [
 export const NIEUKRYWALNE = new Set(['pulpit', 'menuPanelu'])
 
 export interface UstawieniaMenu { ukryte?: string[]; kolejnosc?: string[] }
+
+/** P7a: dawne klucze grup w zapisanym ustawieniu (stary → nowy). Grupa „narzędzia” została „administracją”. */
+export const DAWNE_GRUPY: Record<string, string> = { narzedzia: 'administracja' }
+
+/** P7a: zapisane ustawienie menu po zmianie nazw grup – dawny klucz zastąpiony nowym, powtórzenia usunięte; reszta bez zmian. */
+export function migrujUstawieniaMenu<T extends UstawieniaMenu>(u: T): T {
+    if (!u.kolejnosc?.some((k) => k in DAWNE_GRUPY)) return u
+    const kolejnosc = u.kolejnosc.map((k) => DAWNE_GRUPY[k] ?? k).filter((k, i, t) => t.indexOf(k) === i)
+    return { ...u, kolejnosc }
+}
 
 /** Wszystkie pozycje do listy w ustawieniu „Menu panelu” (klucz → „grupa · nazwa”). */
 export const pozycjeDoUstawien = (): { value: string; label: string }[] =>

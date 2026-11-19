@@ -2,7 +2,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { rodzajPlanu, RODZAJE_PLANU, type RodzajPlanu } from '../plany/metadane'
-import type { UstawieniaMenu } from './menu'
+import { migrujUstawieniaMenu, type UstawieniaMenu } from './menu'
 
 const PLIK_MENU = () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', '_panel', 'menu-panelu.json')
 const KATALOG_PLANOW = () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'plany')
@@ -12,7 +12,7 @@ export async function ustawieniaMenu(): Promise<UstawieniaMenu | null> {
     try {
         const j = JSON.parse(await fs.promises.readFile(PLIK_MENU(), 'utf8')) as Record<string, unknown>
         const lista = (x: unknown) => (Array.isArray(x) ? x.filter((v): v is string => typeof v === 'string') : [])
-        return { ukryte: lista(j.ukryte), kolejnosc: lista(j.kolejnosc) }
+        return migrujUstawieniaMenu({ ukryte: lista(j.ukryte), kolejnosc: lista(j.kolejnosc) }) // P7a: dawny klucz „narzedzia” czytany jak „administracja”, zanim migracja przepisze plik
     } catch {
         return null
     }
