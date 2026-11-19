@@ -1,14 +1,32 @@
 'use client'
 // P7b (TER-01): „konto” w aplikacji terenowej – kto jest zalogowany, jak dodać ikonę na ekran telefonu, wylogowanie
-// (plansza „instalacja i praca bez internetu”; praca bez internetu – krok 2).
+// (plansza „instalacja i praca bez internetu”).
+// P7b-2 (TER-06): „praca bez internetu” – plany w telefonie z rozmiarem, „usuń z telefonu”; wylogowanie czyści telefon, chyba że
+// coś czeka na wysłanie (wtedy ostrzega i dane zostają – decyzja 19.11, pyt. 3).
 import * as React from 'react'
-import { Blad, useTeren } from '../wspolne'
+import { DNI_W_TELEFONIE, rozmiar } from '@/lib/teren/kolejka'
+import { odmiana } from '@/lib/tekst'
+import { planyWTelefonie, useKolejka, useZmianyPamieci, usunPlanZTelefonu, wyczyscTelefon, type PlanWTelefonie } from '../pamiec'
+import { Blad, kiedy, useStart } from '../wspolne'
 
-type Dane = { imie: string; mozna: { plany: boolean; miejsca: boolean; sprawdzony: boolean } }
+type Dane = { konto: string; imie: string; mozna: { plany: boolean; miejsca: boolean; sprawdzony: boolean } }
 type Instalacja = Event & { prompt: () => Promise<void> }
 
 export default function KontoWTerenie() {
-    const { dane, blad } = useTeren<Dane>('/api/keystatic/teren')
+    const { dane, blad } = useStart<Dane>()
+    const { pozycje } = useKolejka()
+    const [plany, ustawPlany] = React.useState<PlanWTelefonie[]>([])
+    const [ostrzez, ustawOstrzez] = React.useState(false)
+    const formularz = React.useRef<HTMLFormElement>(null)
+    const wczytaj = React.useCallback(() => { planyWTelefonie().then((L) => ustawPlany(L.filter((p) => !dane || p.konto === dane.konto))).catch(() => {}) }, [dane])
+    React.useEffect(() => wczytaj(), [wczytaj])
+    useZmianyPamieci(wczytaj)
+    const wyloguj = async (ev: React.FormEvent) => {
+        ev.preventDefault()
+        if (pozycje.length && !ostrzez) { ustawOstrzez(true); return }
+        if (!pozycje.length) await wyczyscTelefon().catch(() => {})
+        formularz.current?.submit()
+    }
     const [instalacja, ustawInstalacje] = React.useState<Instalacja | null>(null)
     const [zainstalowana, ustawZainstalowana] = React.useState(false)
     React.useEffect(() => {
@@ -28,8 +46,9 @@ export default function KontoWTerenie() {
                     <p>Możesz: {mozesz || 'na razie nic – poproś administratora o uprawnienia'}.</p>
                     <div className="pn-rzad">
                         <a className="pn-btn" href="/moje-konto">moje konto i urządzenia</a>
-                        <form method="post" action="/api/wyloguj"><button type="submit" className="pn-btn">wyloguj</button></form>
+                        <form ref={formularz} method="post" action="/api/wyloguj" onSubmit={wyloguj}><button type="submit" className="pn-btn">{ostrzez ? 'wyloguj mimo to' : 'wyloguj'}</button></form>
                     </div>
+                    {ostrzez && <p className="pn-ostrz pn-bez-marginesu" role="alert"><span>W telefonie {odmiana(pozycje.length, ['czeka pozycja', 'czekają pozycje', 'czeka pozycji'])} do wysłania. Po wylogowaniu zostaną w telefonie razem z pobranymi planami – wyślą się po ponownym zalogowaniu. Najlepiej najpierw wyślij je w „do wysłania”.</span></p>}
                 </section>
             )}
             <section className="pn-karta tr-karta" aria-labelledby="kt-ikona">
@@ -45,7 +64,16 @@ export default function KontoWTerenie() {
             </section>
             <section className="pn-karta tr-karta" aria-labelledby="kt-siec">
                 <h2 id="kt-siec">praca bez internetu</h2>
-                <p className="pn-szary">W przygotowaniu. Na razie do zapisu potrzebny jest internet – gdy go zabraknie, zobaczysz komunikat i nic nie zginie z tego, co już zapisane.</p>
+                <p>Przed wyjazdem otwórz „plany” i wybierz „pobierz do pracy bez internetu” przy planie, na którym będziesz pracować. Na miejscu plan, położenie, zdjęcia i notatki działają bez internetu; wszystko wyśle się po wznowieniu połączenia, gdy aplikacja jest otwarta.</p>
+                {plany.length === 0 && <p className="pn-szary">Żaden plan nie jest jeszcze pobrany do tego telefonu.</p>}
+                {plany.map((p) => (
+                    <div key={p.klucz} className="tr-wpis">
+                        <span>{p.tytul}<span className="pn-tag tr-ok">dostępny bez internetu</span></span>
+                        <span className="pn-maly">{rozmiar(p.bajty)} · pobrany {kiedy(p.pobrano)} · ostatnio otwarty {kiedy(p.otwarto)}</span>
+                        <div className="pn-rzad"><button type="button" className="pn-btn pn-btn-maly" onClick={() => usunPlanZTelefonu(p.konto, p.slug)}>usuń z telefonu</button></div>
+                    </div>
+                ))}
+                <p className="pn-maly">Plan nieotwierany przez {DNI_W_TELEFONIE} dni usuwa się z telefonu sam. Wylogowanie usuwa wszystkie plany z telefonu, jeśli nic nie czeka na wysłanie.</p>
             </section>
         </>
     )

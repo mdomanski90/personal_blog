@@ -1,11 +1,13 @@
 'use client'
 // P7b (TER-01): „nowe miejsce” – zdjęcie, położenie z telefonu, co to jest, nazwa, notatka (plansza „nowe miejsce”).
 // Wpis trafia do skrzynki „z terenu” w panelu – widzi go tylko redakcja (decyzja 19.11).
+// P7b-2 (TER-06): zapis przez kolejkę w telefonie – zdjęcia zmniejszone w telefonie, bez sieci wpis czeka; „najbliżej” liczone w telefonie.
 import * as React from 'react'
 import Link from 'next/link'
 import { Camera, Images, LocateFixed } from 'lucide-react'
-import { RODZAJE_TERENU } from '@/lib/teren/miejsca'
-import { BRAK_SIECI, nowyId } from '../wspolne'
+import { RODZAJE_TERENU, najblizszaMiejscowosc, opisBlisko } from '@/lib/teren/miejsca'
+import { dodajDoKolejki, kolejka, kontoWTelefonie, miejscowosciZTelefonu, pobierz, przypiszKonto, wyslijKolejke, zmniejszZdjecie } from '../pamiec'
+import { nowyId } from '../wspolne'
 
 type Polozenie = { lat: number; lon: number; dokl: number }
 
@@ -20,7 +22,7 @@ export default function NoweMiejsce() {
     const [notatka, ustawNotatka] = React.useState('')
     const [kom, ustawKom] = React.useState('')
     const [wTrakcie, ustawWTrakcie] = React.useState(false)
-    const [zapisane, ustawZapisane] = React.useState(false)
+    const [zapisane, ustawZapisane] = React.useState<'' | 'wyslane' | 'czeka'>('')
     React.useEffect(() => ustawId(nowyId()), [])
 
     // położenie: przez 20 s zbieramy odczyty i zostawiamy najdokładniejszy
@@ -40,7 +42,12 @@ export default function NoweMiejsce() {
     React.useEffect(() => {
         if (!lat || !lon) return
         let zywy = true
-        fetch(`/api/keystatic/teren/gdzie?lat=${lat}&lon=${lon}`).then((r) => (r.ok ? r.json() : null)).then((j) => { if (zywy) ustawBlisko(j?.opis ?? '') }).catch(() => {})
+        pobierz(`/api/keystatic/teren/gdzie?lat=${lat}&lon=${lon}`).then((r) => (r.ok ? r.json() : null)).then((j) => { if (zywy) ustawBlisko(j?.opis ?? '') })
+            .catch(async () => {
+                // bez sieci: ta sama funkcja na liście miejscowości pobranej razem z planem
+                const b = najblizszaMiejscowosc(Number(lat), Number(lon), await miejscowosciZTelefonu().catch(() => []))
+                if (zywy) ustawBlisko(b ? opisBlisko(b) : '')
+            })
         return () => { zywy = false }
     }, [lat, lon])
 
@@ -56,24 +63,28 @@ export default function NoweMiejsce() {
         ev.preventDefault()
         if (!zdjecia.length && !nazwa.trim()) { ustawKom('Dodaj zdjęcie albo wpisz nazwę.'); return }
         ustawWTrakcie(true); ustawKom('zapisuję…')
-        const fd = new FormData()
-        fd.append('id', id); fd.append('rodzaj', rodzaj); fd.append('nazwa', nazwa); fd.append('notatka', notatka)
-        if (poz) { fd.append('lat', String(poz.lat)); fd.append('lon', String(poz.lon)); fd.append('dokl', String(Math.round(poz.dokl))) }
-        for (const z of zdjecia) fd.append('zdjecie', z.plik)
         try {
-            const r = await fetch('/api/keystatic/teren/miejsca', { method: 'POST', body: fd })
-            const j = await r.json().catch(() => null)
-            if (!r.ok) { ustawKom(j?.blad ?? BRAK_SIECI); return }
+            let konto = await kontoWTelefonie()
+            if (!konto) konto = await pobierz('/api/keystatic/teren').then((r) => (r.ok ? r.json() : null)).then(async (j) => { if (j?.konto) await przypiszKonto(j.konto); return j?.konto ?? null }).catch(() => null)
+            if (!konto) { ustawKom('Najpierw otwórz listę planów z internetem – telefon musi wiedzieć, kto jest zalogowany.'); return }
+            const pliki = await Promise.all(zdjecia.map((z) => zmniejszZdjecie(z.plik)))
+            await dodajDoKolejki({ id, konto, czas: new Date().toISOString(), stan: 'czeka', rodzaj: 'miejsce', zdjec: pliki.length,
+                pola: { rodzaj, nazwa: nazwa.trim(), notatka: notatka.trim(), ...(poz ? { lat: poz.lat, lon: poz.lon, dokl: Math.round(poz.dokl) } : {}) } }, pliki)
+            const w = await wyslijKolejke()
+            const teraz = (await kolejka()).find((p) => p.id === id)
+            if (teraz?.stan === 'problem') { ustawKom(`Nie da się zapisać: ${teraz.blad} Wpis został w „do wysłania”.`); return }
             zdjecia.forEach((z) => URL.revokeObjectURL(z.adres))
-            ustawZapisane(true); ustawKom('')
-        } catch { ustawKom(BRAK_SIECI) } finally { ustawWTrakcie(false) }
+            ustawZapisane(w.wyslane.has(id) ? 'wyslane' : 'czeka'); ustawKom('')
+        } catch { ustawKom('Nie udało się zapisać w telefonie – spróbuj jeszcze raz.') } finally { ustawWTrakcie(false) }
     }
-    const kolejne = () => { ustawId(nowyId()); ustawZdjecia([]); ustawNazwa(''); ustawNotatka(''); ustawZapisane(false); szukaj() }
+    const kolejne = () => { ustawId(nowyId()); ustawZdjecia([]); ustawNazwa(''); ustawNotatka(''); ustawZapisane(''); szukaj() }
 
     if (zapisane) return (
         <>
             <h1>zapisane</h1>
-            <p className="pn-info pn-bez-marginesu" role="status"><span>Miejsce trafiło do redakcji. Na stronie pojawi się dopiero po opracowaniu.</span></p>
+            <p className="pn-info pn-bez-marginesu" role="status"><span>{zapisane === 'wyslane'
+                ? 'Miejsce trafiło do redakcji. Na stronie pojawi się dopiero po opracowaniu.'
+                : 'Miejsce jest zapisane w telefonie. Wyślę je do redakcji po wznowieniu połączenia – zobaczysz je w „do wysłania”.'}</span></p>
             <div className="pn-rzad">
                 <button type="button" className="pn-btn pn-btn-gl" onClick={kolejne}>+ kolejne miejsce</button>
                 <Link className="pn-btn" href="/keystatic/teren">wróć do planów</Link>

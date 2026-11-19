@@ -2,26 +2,32 @@
 // P7b (TER-01): plan w terenie. Lekki widok zamiast pełnego edytora: rysunek planu, położenie z telefonu, wybór grobu
 // dotknięciem i pojedyncze czynności (zdjęcie, napis, notatka, „sprawdzony” dla redakcji) wysyłane do
 // /api/keystatic/plany/<slug>/teren. Plan w telefonie aktualizuje ta sama czysta funkcja co na serwerze (lib/teren/czynnosci.ts).
+// P7b-2 (TER-06): każda czynność najpierw trafia do kolejki w telefonie i z siecią od razu jest wysyłana; bez sieci czeka.
+// Plan bez sieci – kopia pobrana do pracy bez internetu; widok = plan + czekające czynności (lib/teren/kolejka.ts zOczekujacymi).
 import * as React from 'react'
 import Link from 'next/link'
 import { Camera, Check, ChevronLeft, ChevronRight, LocateFixed, Maximize, Minus, Plus } from 'lucide-react'
 import { RysunekPlanu, Wzory, kadr } from '@/app/components/plan/Rysunek'
-import { geoNaPlan, jednostka, punktyElementu, skalaZGeo, srodek, type Element, type Pkt, type Plan } from '@/lib/plany/model'
+import { geoNaPlan, jednostka, punktyElementu, skalaZGeo, srodek, type Element, type Pkt } from '@/lib/plany/model'
 import { kolejnoDoPracy, numerTekst, numeryPlanu } from '@/lib/plany/numeracja'
 import { etapElementu } from '@/lib/plany/statusy'
-import { katalog, typGrobu, type UstawieniaPlanow } from '@/lib/plany/typy'
-import { zastosujCzynnosc, type Czynnosc, type WpisDziennika } from '@/lib/teren/czynnosci'
-import { BRAK_SIECI, Blad, nowyId, useTeren } from '../../wspolne'
+import { katalog, typGrobu } from '@/lib/plany/typy'
+import type { Czynnosc } from '@/lib/teren/czynnosci'
+import { czyLokalny, zOczekujacymi, type PozycjaCzynnosci } from '@/lib/teren/kolejka'
+import { dodajDoKolejki, kolejka, oznaczOtwarcie, odswiezPlanWTelefonie, planZTelefonu, pobierz, useKolejka, wyslijKolejke, zdjeciaPozycji, zmniejszZdjecie, type DanePlanu } from '../../pamiec'
+import { Blad, kiedy, nowyId } from '../../wspolne'
 
-type Dane = { plan: Plan; ustawienia: UstawieniaPlanow; sprawdzony: boolean }
+type Dane = DanePlanu
 type Filtr = '' | 'bezZdjecia' | 'niesprawdzone' | 'bezNapisu'
 const FILTRY: [Filtr, string][] = [['', 'wszystkie'], ['bezZdjecia', 'bez zdjęcia'], ['niesprawdzone', 'niesprawdzone'], ['bezNapisu', 'bez napisu']]
 type Vb = [number, number, number, number]
 
 export default function PlanTerenowy({ slug }: { slug: string }) {
     const adres = `/api/keystatic/plany/${slug}/teren`
-    const { dane, blad } = useTeren<Dane>(adres)
-    const [plan, ustawPlan] = React.useState<Plan | null>(null)
+    const [dane, ustawDane] = React.useState<Dane | null>(null)
+    const [zTelefonu, ustawZTelefonu] = React.useState('')
+    const [blad, ustawBlad] = React.useState('')
+    const { pozycje } = useKolejka()
     const [vb, ustawVb] = React.useState<Vb | null>(null)
     const [wybrany, ustawWybrany] = React.useState<string | null>(null)
     const [filtr, ustawFiltr] = React.useState<Filtr>('')
@@ -36,11 +42,41 @@ export default function PlanTerenowy({ slug }: { slug: string }) {
     const ruch = React.useRef<{ przesunieto: boolean; odleglosc: number } | null>(null)
     const prefix = React.useId().replace(/:/g, '')
 
+    // plan: z sieci (i odświeżenie kopii w telefonie), a bez sieci – kopia pobrana do pracy bez internetu
+    const wczytaj = React.useCallback(async () => {
+        try {
+            const r = await pobierz(adres)
+            const j = await r.json().catch(() => null)
+            if (!r.ok || !j?.plan) { ustawBlad(j?.blad ?? (r.status === 401 ? 'Sesja wygasła – zaloguj się ponownie.' : 'Nie udało się wczytać planu.')); return }
+            await odswiezPlanWTelefonie(slug, j).catch(() => {})
+            ustawDane(j); ustawVb((v) => v ?? kadr({ ...j.plan, obrot: 0 })); ustawZTelefonu(''); ustawBlad('')
+        } catch {
+            const t = await planZTelefonu(slug).catch(() => null)
+            if (t) { oznaczOtwarcie(t).catch(() => {}); ustawDane(t.dane); ustawVb((v) => v ?? kadr({ ...t.dane.plan, obrot: 0 })); ustawZTelefonu(t.pobrano); ustawBlad('') }
+            else ustawBlad('Brak internetu, a ten plan nie jest pobrany do pracy bez internetu. Pobierz go na liście planów, gdy będzie zasięg.')
+        }
+    }, [adres, slug])
+    React.useEffect(() => { wczytaj() }, [wczytaj])
+    // czynności tego planu czekające w telefonie; gdy któraś odejdzie (wysłana) – świeży plan z serwera
+    const kto = React.useMemo(() => (dane ? { id: dane.konto, imie: dane.imie, pelne: dane.sprawdzony } : null), [dane])
+    const oczek = pozycje.filter((p): p is PozycjaCzynnosci => p.rodzaj === 'czynnosc' && p.plan === slug)
+    const kluczOczek = oczek.map((p) => p.id).join(',')
+    const poprzednie = React.useRef('')
     React.useEffect(() => {
-        if (!dane) return
-        const p = { ...dane.plan, obrot: 0 }
-        ustawPlan(p); ustawVb(kadr(p))
-    }, [dane])
+        const bylo = poprzednie.current.split(',').filter(Boolean), jest = new Set(kluczOczek.split(','))
+        poprzednie.current = kluczOczek
+        if (bylo.some((id) => !jest.has(id))) wczytaj()
+    }, [kluczOczek, wczytaj])
+    const plan = React.useMemo(() => (dane && kto ? zOczekujacymi({ ...dane.plan, obrot: 0 }, oczek, kto, dane.ustawienia) : null), [dane, kto, kluczOczek]) // eslint-disable-line react-hooks/exhaustive-deps
+    // zdjęcia czekające w telefonie – miniatury z pamięci telefonu
+    const [lokalne, ustawLokalne] = React.useState<Map<string, string>>(new Map())
+    const kluczZdjec = oczek.filter((p) => p.czynnosc.rodzaj === 'zdjecie').map((p) => p.id).join(',')
+    React.useEffect(() => {
+        let zywy = true; const adresy: string[] = []
+        Promise.all(kluczZdjec.split(',').filter(Boolean).map(async (id) => { const [b] = await zdjeciaPozycji(id); if (b) { const u = URL.createObjectURL(b); adresy.push(u); return [id, u] as const } return null }))
+            .then((L) => { if (zywy) ustawLokalne(new Map(L.filter((x): x is readonly [string, string] => !!x))) })
+        return () => { zywy = false; adresy.forEach((u) => URL.revokeObjectURL(u)) }
+    }, [kluczZdjec])
     // położenie z telefonu na planie
     React.useEffect(() => {
         if (!('geolocation' in navigator)) { ustawKom('Ten telefon nie podaje położenia.'); return }
@@ -52,6 +88,7 @@ export default function PlanTerenowy({ slug }: { slug: string }) {
     }, [])
 
     const typy = React.useMemo(() => katalog(dane?.ustawienia), [dane])
+    const adresZdjecia = (plik: string) => (czyLokalny(plik) ? lokalne.get(plik.slice('lokalne-'.length, -'.jpg'.length)) ?? '' : `/api/keystatic/plany/${slug}/plik/${plik}`)
     const numery = React.useMemo(() => (plan ? numeryPlanu(plan) : new Map()), [plan])
     const groby = React.useMemo(() => (plan ? kolejnoDoPracy(plan, typy) : []), [plan, typy])
     const g2p = React.useMemo(() => (plan && plan.geo.length >= 2 ? geoNaPlan(plan.geo) : null), [plan])
@@ -81,24 +118,23 @@ export default function PlanTerenowy({ slug }: { slug: string }) {
         wybierz(n); pokaz(n)
     }
 
-    // ---------- czynności ----------
+    // ---------- czynności: kolejka w telefonie → wysyłka (z siecią od razu) ----------
     const wyslij = async (cz: Czynnosc, plik?: File) => {
-        ustawWTrakcie(true); ustawKom(plik ? 'wysyłam zdjęcie…' : 'zapisuję…')
+        ustawWTrakcie(true); ustawKom(plik ? 'zapisuję zdjęcie…' : 'zapisuję…')
         try {
-            let tresc: BodyInit, naglowki: HeadersInit | undefined
-            if (plik) { const fd = new FormData(); fd.append('plik', plik); for (const [k, v] of Object.entries(cz)) if (k !== 'plik' && v !== undefined) fd.append(k, String(v)); tresc = fd }
-            else { tresc = JSON.stringify(cz); naglowki = { 'Content-Type': 'application/json' } }
-            const odp = await fetch(adres, { method: 'POST', headers: naglowki, body: tresc })
-            const j = (await odp.json().catch(() => null)) as { wpis?: WpisDziennika; blad?: string } | null
-            if (!odp.ok || !j?.wpis) { ustawKom(j?.blad ?? BRAK_SIECI); return false }
-            if (j.wpis.wynik === 'do-decyzji') { ustawKom('W tym czasie redakcja poprawiła ten napis. Obie wersje zostały zachowane – wybierze redakcja.'); return true }
-            // ten sam plan co na serwerze: czynność nałożona tą samą funkcją
-            const pelna: Czynnosc = cz.rodzaj === 'zdjecie' ? { ...cz, plik: j.wpis.plik ?? cz.plik } : cz
-            const w = zastosujCzynnosc(plan, pelna, { id: j.wpis.kto, imie: j.wpis.imie, pelne: dane.sprawdzony }, dane.ustawienia)
-            if ('plan' in w) ustawPlan(w.plan)
-            ustawKom(cz.rodzaj === 'zdjecie' ? 'Zdjęcie zapisane.' : cz.rodzaj === 'napis' ? 'Napis zapisany.' : cz.rodzaj === 'notatka' ? 'Notatka zapisana.' : 'Oznaczono jako sprawdzony.')
+            const nrE = numery.get(cz.grob)
+            const poz: PozycjaCzynnosci = { id: cz.id, konto: dane.konto, czas: new Date().toISOString(), stan: 'czeka', rodzaj: 'czynnosc', plan: slug, tytul: plan.tytul, ...(nrE ? { numer: numerTekst(nrE) } : {}), czynnosc: cz }
+            await dodajDoKolejki(poz, plik ? [await zmniejszZdjecie(plik)] : [])
+            const w = await wyslijKolejke()
+            if (w.wyslane.has(cz.id)) {
+                if (w.wyslane.get(cz.id)?.wynik === 'do-decyzji') ustawKom('W tym czasie redakcja poprawiła ten napis. Obie wersje zostały zachowane – wybierze redakcja.')
+                else ustawKom(cz.rodzaj === 'zdjecie' ? 'Zdjęcie zapisane.' : cz.rodzaj === 'napis' ? 'Napis zapisany.' : cz.rodzaj === 'notatka' ? 'Notatka zapisana.' : 'Oznaczono jako sprawdzony.')
+            } else {
+                const teraz = (await kolejka()).find((p) => p.id === cz.id)
+                ustawKom(teraz?.stan === 'problem' ? `Nie da się zapisać: ${teraz.blad}` : w.zaloguj ? 'Zapisane w telefonie. Sesja wygasła – zaloguj się, żeby wysłać.' : 'Zapisane w telefonie – wyślę po wznowieniu połączenia.')
+            }
             return true
-        } catch { ustawKom(BRAK_SIECI); return false } finally { ustawWTrakcie(false) }
+        } catch { ustawKom('Nie udało się zapisać w telefonie – spróbuj jeszcze raz.'); return false } finally { ustawWTrakcie(false) }
     }
     const zdjecie = (f: File) => e && wyslij({ id: nowyId(), rodzaj: 'zdjecie', grob: e.id, plik: 'zdjecie.jpg', ...(pozycja ? { lat: +pozycja.lat.toFixed(6), lon: +pozycja.lon.toFixed(6) } : {}), data: new Date().toISOString().slice(0, 19) }, f)
     const zapiszTekst = async () => {
@@ -158,6 +194,7 @@ export default function PlanTerenowy({ slug }: { slug: string }) {
             <div className="tr-plan-gora">
                 <Link className="pn-btn pn-btn-maly" href="/keystatic/teren">← plany</Link>
                 <h1>{plan.tytul}</h1>
+                {zTelefonu && <span className="pn-maly" title={`plan z telefonu, pobrany ${kiedy(zTelefonu)}`}>z telefonu</span>}
             </div>
             <div className="tr-rysunek">
                 <svg ref={svg} viewBox={vb.join(' ')} role="img" aria-label={`plan: ${plan.tytul}`} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
@@ -182,7 +219,7 @@ export default function PlanTerenowy({ slug }: { slug: string }) {
                 {e && !!e.zdjecia?.length && (
                     <div className="tr-miniatury">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {e.zdjecia.slice(-6).map((z) => <img key={z.plik} src={`/api/keystatic/plany/${slug}/plik/${z.plik}`} alt="zdjęcie tego grobu" loading="lazy" />)}
+                        {e.zdjecia.slice(-6).filter((z) => adresZdjecia(z.plik)).map((z) => <img key={z.plik} src={adresZdjecia(z.plik)} alt={czyLokalny(z.plik) ? 'zdjęcie tego grobu – czeka w telefonie' : 'zdjęcie tego grobu'} loading="lazy" />)}
                     </div>
                 )}
                 {pisze && e ? (

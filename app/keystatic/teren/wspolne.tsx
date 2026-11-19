@@ -1,6 +1,7 @@
 'use client'
 // P7b (TER-01): wspólne części ekranów „w terenie” – pobieranie danych z prostymi komunikatami, identyfikator czynności, daty.
 import * as React from 'react'
+import { przypiszKonto, startZTelefonu, zapiszStart } from './pamiec'
 
 /** Identyfikator czynności nadawany w telefonie – ta sama czynność wysłana ponownie niczego nie dubluje. */
 export function nowyId(): string {
@@ -26,6 +27,31 @@ export function useTeren<T>(adres: string): { dane: T | null; blad: string; odsw
         return () => { zywy = false }
     }, [adres, n])
     return { dane, blad, odswiez: React.useCallback(() => ustawN((x) => x + 1), []) }
+}
+
+/**
+ * P7b-2: dane ekranu startowego (/api/keystatic/teren) – z sieci, a bez sieci ostatnia kopia z telefonu (`zTelefonu` – kiedy pobrana).
+ * Odpowiedź z sieci przypisuje dane w telefonie do zalogowanego konta.
+ */
+export function useStart<T extends { konto: string }>(): { dane: T | null; blad: string; zTelefonu: string; odswiez: () => void } {
+    const [s, ustaw] = React.useState<{ dane: T | null; blad: string; zTelefonu: string }>({ dane: null, blad: '', zTelefonu: '' })
+    const [n, ustawN] = React.useState(0)
+    React.useEffect(() => {
+        let zywy = true
+        fetch('/api/keystatic/teren', { cache: 'no-store' })
+            .then(async (r) => {
+                const j = await r.json().catch(() => null)
+                if (!r.ok) throw j?.blad ?? (r.status === 401 ? 'Sesja wygasła – zaloguj się ponownie.' : 'Nie udało się wczytać danych.')
+                await zapiszStart(j).catch(() => {}); await przypiszKonto(j.konto).catch(() => {})
+                if (zywy) ustaw({ dane: j, blad: '', zTelefonu: '' })
+            })
+            .catch(async (b) => {
+                const k = typeof b === 'string' ? null : await startZTelefonu<T>().catch(() => null)
+                if (zywy) ustaw(k ? { dane: k.dane, blad: '', zTelefonu: k.czas } : { dane: null, blad: typeof b === 'string' ? b : BRAK_SIECI, zTelefonu: '' })
+            })
+        return () => { zywy = false }
+    }, [n])
+    return { ...s, odswiez: React.useCallback(() => ustawN((x) => x + 1), []) }
 }
 
 export function kiedy(czas: string): string {
