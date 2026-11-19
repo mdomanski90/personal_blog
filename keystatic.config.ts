@@ -7,6 +7,7 @@ import { RODZAJE_MATERIALOW } from './lib/materialy';
 import { ADRES_PLIKOW, KATALOG_PLIKOW } from './lib/pliki';
 import { MENU, pozycjeDoUstawien, STRONA_PUBLICZNA } from './lib/panel/menu';
 import { WYZNANIA_PARAFII, RODZAJE_KSIAG, DOSTEP_KSIAG } from './lib/ksiegi';
+import { WyborMaterialu } from './app/keystatic/WyborMaterialu';
 
 // Model danych: claude/odniepamieci-model-danych.md (projekt „own www”).
 // Nazwy pól w plikach jak w Dublin Core – ułatwia późniejszy eksport do Omeka S.
@@ -123,7 +124,8 @@ const komponenty = {
     label: 'Materiał z archiwum',
     description: 'Zdjęcie, nagranie, mapa albo dokument z archiwum, wstawione w tekst. Materiał niewidoczny dla czytelnika się nie pokaże.',
     schema: {
-      id: fields.relationship({ label: 'Materiał', collection: 'materialy', validation: { isRequired: true } }),
+      // P6b (PD-20): własne okno wyboru (5 ostatnich, miniatury, szukanie) – zapis jak dotąd (relationship: id materiału)
+      id: { ...fields.relationship({ label: 'Materiał', collection: 'materialy', validation: { isRequired: true } }), Input: WyborMaterialu },
       podpis: fields.text({ label: 'Podpis', description: 'Puste – tytuł materiału.' }),
       // PD-07 (etap R): wstawka otwiera się na wskazanej stronie skanu
       strona: fields.integer({ label: 'Strona skanu', description: 'Która strona skanu ma być widoczna na początku (1 = pierwsza). Puste – pierwsza.', validation: { min: 1, max: 999 } }),

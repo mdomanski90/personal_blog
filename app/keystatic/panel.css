@@ -505,3 +505,24 @@ button.pn-szukaj { background: var(--pn-pole); border-color: var(--pn-linia); }
 .pn-paleta-wyniki a[data-akt=true] .pn-paleta-typ { color: var(--pn-na-wyp); }
 .pn-paleta-typ { color: var(--pn-szary); }
 @media (max-width: 640px) { .pn-paleta-podp { display: none; } }
+
+/* ---------- P6b (PD-20): okno wyboru materiału w bloku „Materiał z archiwum” (edytor Keystatic) ----------
+   Formularz bloku Keystatic otwiera się w portalu poza .pn – kolory z jego skali --kui-* (przestawionej wyżej na barwy panelu). */
+.wm { display: flex; flex-direction: column; gap: 8px; font-family: var(--kui-typography-font-family-base); font-size: 14px; color: var(--kui-color-scale-slate11); }
+.wm-etykieta { font-weight: 600; font-size: 14px; }
+.wm-wybrany, .wm-poz { display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid var(--kui-color-scale-slate5); border-radius: 8px; background: var(--kui-color-scale-slate1); }
+.wm-okno { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--kui-color-scale-slate5); border-radius: 10px; background: var(--kui-color-scale-slate2); }
+.wm-szukaj { box-sizing: border-box; width: 100%; min-height: 36px; padding: 6px 10px; font: inherit; color: inherit; border: 1px solid var(--kui-color-scale-slate6); border-radius: 6px; background: var(--kui-color-scale-slate1); }
+.wm-szukaj:focus-visible, .wm-poz:focus-visible, .wm-btn:focus-visible { outline: 2px solid var(--kui-color-scale-indigo9); outline-offset: 2px; }
+.wm-podpis { font-size: 12.5px; color: var(--kui-color-scale-slate9); }
+.wm-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow: auto; }
+.wm-poz { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.wm-poz:hover { background: var(--kui-color-scale-slate3); }
+.wm-poz[aria-pressed=true] { border-color: var(--kui-color-scale-indigo9); background: var(--kui-color-scale-indigo2); }
+.wm-mini { flex: none; width: 64px; height: 48px; object-fit: cover; border-radius: 4px; background: var(--kui-color-scale-slate4); }
+.wm-mini-brak { display: inline-flex; align-items: center; justify-content: center; text-align: center; font-size: 10.5px; line-height: 1.2; color: var(--kui-color-scale-slate9); }
+.wm-tekst { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.wm-nazwa { font-weight: 600; overflow-wrap: anywhere; }
+.wm-linia { font-size: 12.5px; color: var(--kui-color-scale-slate9); }
+.wm-btn { flex: none; min-height: 32px; padding: 4px 12px; font: inherit; color: inherit; border: 1px solid var(--kui-color-scale-slate6); border-radius: 6px; background: var(--kui-color-scale-slate1); cursor: pointer; }
+.wm-blad { font-size: 13px; color: var(--kui-color-scale-red11, currentColor); }
