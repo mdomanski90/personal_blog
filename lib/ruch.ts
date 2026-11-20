@@ -97,7 +97,11 @@ export function zmianaWysokosci(el: HTMLElement | null, zmien: () => void, token
     const h1 = el.getBoundingClientRect().height
     if (Math.abs(h1 - h0) < 1) return
     const opcje = { duration: czas, easing: krzywaCss() }
-    el.animate([{ height: `${h0}px`, overflow: 'clip' }, { height: `${h1}px`, overflow: 'clip' }], opcje)
+    // „height” w klatkach działa wg box-sizing elementu: przy content-box odejmujemy dopełnienie i ramkę w NOWYM stanie
+    // (dopełnienie zmienia się od razu) – inaczej start i koniec są przesunięte o nie, a na końcu wysokość przeskakuje (uwaga 20.11 21:33)
+    const c = getComputedStyle(el)
+    const dodatek = c.boxSizing === 'border-box' ? 0 : ['paddingTop', 'paddingBottom', 'borderTopWidth', 'borderBottomWidth'].reduce((a, k) => a + (parseFloat(c[k as 'paddingTop']) || 0), 0)
+    el.animate([{ height: `${h0 - dodatek}px`, overflow: 'clip' }, { height: `${h1 - dodatek}px`, overflow: 'clip' }], opcje)
     for (const d of Array.from(el.children)) (d as HTMLElement).animate?.([{ opacity: 0.25 }, { opacity: 1 }], opcje)
 }
 

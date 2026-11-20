@@ -26,7 +26,7 @@ export default function SpisDzialow({ dzialy, wybrany, etykieta = 'działy archi
     // po każdym otwarciu/zamknięciu panelu filtrów i po zmianie działu spis znów zwinięty
     React.useEffect(() => { ustawPokaz(false) }, [wybrany])
     React.useEffect(() => {
-        const h = (e: Event) => { if ((e.target as Element)?.classList?.contains('k-filtry-ramka')) ustawPokaz(false) }
+        const h = (e: Event) => { if ((e.target as Element)?.closest?.('.k-filtry-ramka')) ustawPokaz(false) } // od 20.11 rozwija się <details> wewnątrz ramki (RamkaFiltrow)
         document.addEventListener('toggle', h, true)
         return () => document.removeEventListener('toggle', h, true)
     }, [])
