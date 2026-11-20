@@ -3,8 +3,9 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import PoleWyboru, { type OpcjaWyboru } from './PoleWyboru'
+import PoleSzukania from './PoleSzukania'
+import { RamkaFiltrow } from './RamkaFiltrow'
 import { pojaw } from '@/lib/ruch'
-import { odmiana } from '@/lib/tekst'
 
 export type WartosciFiltrow = { q: string; rodzaj: string; miejsce: string; temat: string; obiekt: string; osoba: string; zbior: string; od: string; do: string; sort: string }
 const KLUCZE: (keyof WartosciFiltrow)[] = ['q', 'rodzaj', 'miejsce', 'temat', 'obiekt', 'osoba', 'zbior', 'od', 'do', 'sort']
@@ -68,7 +69,7 @@ export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'sz
 
     // 5A (scena 3): po przeliczeniu filtrów nowa lista wchodzi wygaszeniem (--ruch-sredni), bez przesuwania pozycji;
     // przy ograniczeniu ruchu – od razu
-    const ramka = React.useRef<HTMLDetailsElement>(null)
+    const ramka = React.useRef<HTMLDivElement>(null)
     const czekal = React.useRef(false)
     React.useEffect(() => {
         if (czekal.current && !czeka) {
@@ -105,23 +106,19 @@ export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'sz
     const [otwarte, ustawOtwarte] = React.useState(aktywnych > 0)
 
     return (
-        <details ref={ramka} className="k-filtry-ramka" open={otwarte} onToggle={(e) => ustawOtwarte((e.currentTarget as HTMLDetailsElement).open)}>
-        <summary className="k-filtry-naglowek">
-            <span className="k-filtry-tytul">{tytul}</span>
-            {aktywnych > 0 && <span className="k-filtry-licznik">{odmiana(aktywnych, ['filtr', 'filtry', 'filtrów'])}</span>}
-            <span className="k-btn k-filtry-przelacz">{otwarte ? 'zwiń' : 'rozwiń'} <span aria-hidden="true">{otwarte ? '▴' : '▾'}</span></span>
-        </summary>
-        <div className="rozwin-tresc">
+        // 20.11 (wariant A): pole frazy w pasku ramki, filtry pod „filtry ▾”; bez JS pole wysyła frazę z bieżącymi filtrami
+        <RamkaFiltrow ref={ramka} otwarte={otwarte} naZmiane={ustawOtwarte} aktywnych={aktywnych}
+            pole={(waski) => (
+                <PoleSzukania id={idFrazy} action={adresBazowy} value={w.q} onChange={(v) => zmien('q', v, false)}
+                    onSubmit={() => { if (zegar.current) clearTimeout(zegar.current); zastosuj({ ...w, q: w.q.trim() }) }}
+                    obszar={tytul} placeholder={waski ? `${tytul.replace(/^szukaj i filtruj /, 'szukaj ')}…` : `${etykietaFrazy} (min. 2 litery)…`}
+                    ukryte={Object.fromEntries(KLUCZE.filter((k) => k !== 'q').map((k) => [k === 'rodzaj' ? parametrDzialu : k, w[k] || undefined]))}
+                    className="k-filtry-pole" />
+            )}>
         <form method="get" action={adresBazowy} className="k-filtry" aria-busy={czeka}
             onSubmit={(e) => { e.preventDefault(); if (zegar.current) clearTimeout(zegar.current); zastosuj({ ...w, q: w.q.trim() }) }}>
-            {/* PD-03 (P2): „szukaj” jako przycisk w ramce pola – jak PoleSzukania; klik = Enter */}
-            <div className="k-etykieta k-filtry-szeroki">
-                <label htmlFor={idFrazy}>{etykietaFrazy}</label>
-                <span className="pole-szukania">
-                    <button type="submit">szukaj</button>
-                    <input id={idFrazy} name="q" type="search" value={w.q} onChange={(e) => zmien('q', e.target.value, false)} placeholder="wpisz frazę (min. 2 litery)…" />
-                </span>
-            </div>
+            {/* fraza jest w pasku ramki; tu zachowana dla wysyłki bez JS */}
+            <input type="hidden" name="q" value={w.q} />
             {dodatek && <div className="k-filtry-szeroki">{dodatek}</div>}
             {/* dział (rodzaj) wybiera się w spisie działów nad filtrami; tu tylko go zachowujemy */}
             <input type="hidden" name={parametrDzialu} value={w.rodzaj} />
@@ -146,7 +143,6 @@ export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'sz
                 {czeka && <span className="k-podpowiedz" role="status">wczytuję…</span>}
             </span>
         </form>
-        </div>
-        </details>
+        </RamkaFiltrow>
     )
 }

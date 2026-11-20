@@ -10,6 +10,7 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import PoleSzukania from '../components/PoleSzukania'
+import { RamkaFiltrow } from '../components/RamkaFiltrow'
 import PoleWyboru from '../components/PoleWyboru'
 import { ElementyDzialu } from '../components/ElementyDzialu'
 import { normalizujDoSzukania, odmiana } from '@/lib/tekst'
@@ -64,8 +65,8 @@ export default function ListaOsob({ osoby, kregi, krag, filtry = BEZ_FILTROW, op
     const opcjaWyboru = (o: { id: string; nazwa: string; ile: number }) => ({ id: o.id, nazwa: o.nazwa, opis: odmiana(o.ile, ['osoba', 'osoby', 'osób']) })
     const filtrow = wybrane.length
 
-    // jak FiltryKatalogu (P7A-4): panel zwinięty, otwarty, gdy coś jest wpisane albo wybrane
-    const [panelOtwarty, ustawPanelOtwarty] = React.useState(filtrow > 0 || poczatek.trim().length > 0)
+    // jak FiltryKatalogu (P7A-4): filtry zwinięte, otwarte, gdy któryś jest wybrany (fraza jest w pasku – 20.11)
+    const [panelOtwarty, ustawPanelOtwarty] = React.useState(filtrow > 0)
     // wybór filtra przeładowuje listę (nowy klucz) – panel otwarty przez czytelnika zostaje otwarty także po zdjęciu ostatniego filtra
     React.useEffect(() => { try { if (sessionStorage.getItem('osoby-panel') === '1') ustawPanelOtwarty(true) } catch { /* bez pamięci sesji */ } }, [])
     const przelaczPanel = (otwarty: boolean) => {
@@ -86,18 +87,11 @@ export default function ListaOsob({ osoby, kregi, krag, filtry = BEZ_FILTROW, op
     const literyNawigacji = [...ALFABET, ...[...grupy.keys()].filter((l) => !ALFABET.includes(l))]
 
     const panel = (
-        <details className="k-filtry-ramka" open={panelOtwarty} onToggle={(e) => przelaczPanel((e.currentTarget as HTMLDetailsElement).open)}>
-            <summary className="k-filtry-naglowek">
-                <span className="k-filtry-tytul">szukaj i filtruj w osobach</span>
-                {filtrow > 0 && <span className="k-filtry-licznik">{odmiana(filtrow, ['filtr', 'filtry', 'filtrów'])}</span>}
-                <span className="k-btn k-filtry-przelacz">{panelOtwarty ? 'zwiń' : 'rozwiń'} <span aria-hidden="true">{panelOtwarty ? '▴' : '▾'}</span></span>
-            </summary>
-            <div className="rozwin-tresc">
+        // 20.11 (wariant A): pole w pasku ramki, filtry pod „filtry ▾”
+        <RamkaFiltrow otwarte={panelOtwarty} naZmiane={przelaczPanel} aktywnych={filtrow}
+            pole={(waski) => <PoleSzukania id={idFrazy} value={q} onChange={ustawQ} onSubmit={ustawQ} obszar="szukaj osób"
+                placeholder={waski ? 'szukaj w osobach…' : 'szukaj w osobach: nazwisko, imię, wieś, zajęcie, rok…'} className="k-filtry-pole" />}>
                 <div className="k-filtry">
-                    <div className="k-etykieta k-filtry-szeroki">
-                        <label htmlFor={idFrazy}>szukaj w nazwiskach, imionach, miejscowościach, zajęciach i biogramach</label>
-                        <PoleSzukania id={idFrazy} value={q} onChange={ustawQ} onSubmit={ustawQ} obszar="szukaj osób" placeholder="nazwisko, imię, wieś, zajęcie, rok…" className="katalog-pole" />
-                    </div>
                     <div className="k-filtry-szeroki">
                         <RzadFiltrow podpis="krąg" etykieta="krąg miejscowości">
                             {kregi.map((k) => (
@@ -130,8 +124,7 @@ export default function ListaOsob({ osoby, kregi, krag, filtry = BEZ_FILTROW, op
                         </span>
                     )}
                 </div>
-            </div>
-        </details>
+        </RamkaFiltrow>
     )
 
     const licznik = (

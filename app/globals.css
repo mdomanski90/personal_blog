@@ -1379,7 +1379,15 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .odp .spis-dzialow a.sd-pusty{color:var(--tekst-etykieta)}
 .odp .spis-dzialow a.sd-pusty[aria-current=page]{color:var(--akcent-na-wypelnieniu)}
 .k-filtry-ramka{border-radius:var(--promien-duzy);background:var(--tlo-sekcji);margin:6px 0 4px}
-.k-filtry-ramka>.rozwin-tresc>.k-filtry{background:transparent;margin:0;padding-top:4px}
+.k-filtry-ramka>.rozwin-tresc>.k-filtry,.k-filtry-szczegoly>.rozwin-tresc>.k-filtry{background:transparent;margin:0;padding-top:4px}
+/* 20.11 (wariant A): pole szukania w pasku ramki, „filtry ▾” obok; rozwijane filtry w <details> z ukrytym summary (RamkaFiltrow) */
+.k-filtry-pasek{cursor:default;flex-wrap:nowrap;padding:10px 12px}
+.k-filtry-pasek>.k-filtry-pole{flex:1 1 0;min-width:0;margin:0}
+.k-filtry-pasek .k-filtry-przelacz{flex:none;display:inline-flex;align-items:center;gap:6px}
+.k-filtry-pasek .k-filtry-licznik{min-height:calc(22px * var(--font-scale,1));padding:0 8px;font-size:var(--rozmiar-etykieta)}
+.k-filtry-ramka:has(.k-filtry-pasek-info) .k-filtry-pasek{flex-wrap:wrap}
+.k-filtry-pasek-info{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.k-filtry-szczegoly>summary{display:none}
 .k-filtry-naglowek{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px 10px 24px;cursor:pointer;list-style:none}
 .k-filtry-naglowek::-webkit-details-marker{display:none}
 .k-filtry-tytul{font-weight:700;color:var(--tekst)}
@@ -1469,13 +1477,13 @@ select.k-pole{padding-right:8px;cursor:pointer}
 .podpis-zrodla span{color:var(--tekst-etykieta)}
 /* spis działów zwinięty do jednego wiersza, gdy panel filtrów jest rozwinięty (uwaga właściciela 15.11) */
 .sd-wiecej{display:none}
-body:has(.k-filtry-ramka[open]) .spis-ramka{display:flex;align-items:center;gap:8px 16px;padding-block:10px}
-body:has(.k-filtry-ramka[open]) .spis-ramka .sd-wiecej{display:inline-flex;flex:none;margin-left:auto}
-body:has(.k-filtry-ramka[open]) .spis-ramka .spis-dzialow{flex:1;min-width:0}
-body:has(.k-filtry-ramka[open]) .spis-ramka:not(.sd-pokaz) .spis-dzialow{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-auto-flow:row}
-body:has(.k-filtry-ramka[open]) .spis-ramka:not(.sd-pokaz) .spis-dzialow li:not(:has(>a[aria-current])){display:none}
-body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz{flex-direction:column;align-items:stretch}
-body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-end}
+body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka{display:flex;align-items:center;gap:8px 16px;padding-block:10px}
+body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka .sd-wiecej{display:inline-flex;flex:none;margin-left:auto}
+body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka .spis-dzialow{flex:1;min-width:0}
+body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka:not(.sd-pokaz) .spis-dzialow{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-auto-flow:row}
+body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka:not(.sd-pokaz) .spis-dzialow li:not(:has(>a[aria-current])){display:none}
+body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka.sd-pokaz{flex-direction:column;align-items:stretch}
+body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-end}
 
 /* ============================================ */
 /* P7C-2 · PRZEGLĄDARKA SKANÓW – JEDEN PASEK (JV-19) */
@@ -1547,7 +1555,7 @@ body:has(.k-filtry-ramka[open]) .spis-ramka.sd-pokaz .sd-wiecej{align-self:flex-
 /* ustalenie z planszy 17.11: zwinięty spis – wybrany dział w szerokości jednej kolumny rozwiniętego spisu (2 kolumny, odstęp 40 px); telefon bez zmian */
 @media (min-width:641px){
   .spis-ramka.sd-zwiniety:not(.sd-pokaz) .spis-dzialow,
-  body:has(.k-filtry-ramka[open]) .spis-ramka:not(.sd-pokaz) .spis-dzialow{flex:0 1 calc((100% - 40px) / 2)}
+  body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka:not(.sd-pokaz) .spis-dzialow{flex:0 1 calc((100% - 40px) / 2)}
 }
 /* opisy działów pod spisem biblioteki */
 

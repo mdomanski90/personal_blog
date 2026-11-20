@@ -9,6 +9,7 @@ import { formatujEdtf } from '@/lib/edtf'
 import { PasekLat, TabelaKsiag } from './Ksiegi'
 import OtworzGrupeKsiegi from './OtworzGrupeKsiegi'
 import PoleSzukania from './PoleSzukania'
+import { RamkaFiltrow } from './RamkaFiltrow'
 import Komunikat from './Komunikat'
 import { odmiana } from '@/lib/tekst'
 
@@ -85,16 +86,25 @@ export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyz
         window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
     }
 
-    const aktywnychFiltrow = [wyznanie, tylkoSkany, fraza.trim()].filter(Boolean).length
+    const [filtryOtwarte, ustawFiltryOtwarte] = useState(true)
     return (
         <div>
             {/* DZL-01 (P2): panel „szukaj i filtruj w księgach” w tej samej ramce co w pozostałych katalogach; filtrowanie nadal lokalne */}
-            <details className="k-filtry-ramka" open>
-                <summary className="k-filtry-naglowek">
-                    <span className="k-filtry-tytul">szukaj i filtruj w księgach</span>
-                    {aktywnychFiltrow > 0 && <span className="k-filtry-licznik">{odmiana(aktywnychFiltrow, ['filtr', 'filtry', 'filtrów'])}</span>}
-                </summary>
-                <div className="rozwin-tresc">
+            {/* 20.11 (wariant A): pole miejscowości w pasku ramki, filtry (widok, wyznanie, digitalizacja) pod „filtry ▾” – domyślnie rozwinięte */}
+            <RamkaFiltrow otwarte={filtryOtwarte} naZmiane={ustawFiltryOtwarte} aktywnych={[wyznanie, tylkoSkany].filter(Boolean).length}
+                pole={(waski) => miejscowosci.length > 0 ? <>
+                    <PoleSzukania
+                        id="ks-miejsce-szukaj" etykieta="szukaj" obszar="szukaj miejscowości w księgach"
+                        value={fraza} onChange={zmienFraze} onSubmit={zmienFraze}
+                        placeholder={waski ? 'szukaj w księgach: miejscowość…' : 'szukaj w księgach: miejscowość (min. 2 litery)…'}
+                        className="k-filtry-pole"
+                    />
+                    {fraza && <span className="k-filtry-pasek-info">
+                        <button type="button" onClick={() => zmienFraze('')} className="szukaj-filtr" aria-label="wyczyść wyszukiwanie miejscowości">wyczyść</button>
+                        {aktywneSzukanie && <span className="kk-male">{znalezioneMiejsca.length === 1 ? '1 miejscowość' : odmiana(znalezioneMiejsca.length, ['miejscowość', 'pasujące miejscowości', 'pasujących miejscowości'])}</span>}
+                        {fraza.trim() && !aktywneSzukanie && <span className="kk-male">wpisz co najmniej 2 litery</span>}
+                    </span>}
+                </> : <span className="k-filtry-tytul">szukaj i filtruj w księgach</span>}>
                     <div className="k-filtry kk-panel">
                         <nav aria-label="sposób przeglądania ksiąg" className="k-seg kk-widok">
                             <Link href={adres({ widok: undefined })} aria-current={widok === 'miejscowosci' ? 'page' : undefined}>według miejscowości</Link>
@@ -109,26 +119,12 @@ export default function KatalogKsiegiNaZywo({ ksiegi, miejscowosci, parafie, wyz
                                 </div>
                             </div>
                         )}
-                        {miejscowosci.length > 0 && (
-                            <div className="kk-rzad">
-                                <PoleSzukania
-                                    id="ks-miejsce-szukaj" etykieta="szukaj" obszar="szukaj miejscowości w księgach"
-                                    value={fraza} onChange={zmienFraze} onSubmit={zmienFraze}
-                                    placeholder="miejscowość – min. 2 litery…"
-                                    className="kk-pole-szukania"
-                                />
-                                {fraza && <button type="button" onClick={() => zmienFraze('')} className="szukaj-filtr" aria-label="wyczyść wyszukiwanie miejscowości">wyczyść</button>}
-                                {aktywneSzukanie && <span className="kk-male">{znalezioneMiejsca.length === 1 ? '1 miejscowość' : odmiana(znalezioneMiejsca.length, ['miejscowość', 'pasujące miejscowości', 'pasujących miejscowości'])}</span>}
-                                {fraza.trim() && !aktywneSzukanie && <span className="kk-male">wpisz co najmniej 2 litery</span>}
-                            </div>
-                        )}
                         <div className="kk-rzad">
                             <span className="kk-male">digitalizacja:</span>
                             <Link href={adres({ skany: tylkoSkany ? undefined : '1' })} className="szukaj-filtr" aria-current={tylkoSkany ? 'true' : undefined}>{tylkoSkany ? '✓ ' : ''}tylko ze skanami online</Link>
                         </div>
                     </div>
-                </div>
-            </details>
+            </RamkaFiltrow>
             <p className="ot-drobne" aria-live="polite">
                 {liczbaKsieg(ksiegiFiltrowane.length)} · {odmiana(bloki.length, ['grupa', 'grupy', 'grup'])}
                 {widok === 'miejscowosci' && ksiegiFiltrowane.length > 0 && ' · jedna księga może dotyczyć kilku miejscowości'}
