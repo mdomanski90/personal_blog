@@ -2285,6 +2285,9 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 .sm-fiszka-tresc .sm-fiszka-zrodlo+.zapowiedz-dalej{margin-top:4px}
 .sm-fiszka-dopisek{font-size:var(--rozmiar-drobny);color:var(--tekst-etykieta)}
 .slownik-litery{display:flex;flex-wrap:wrap;gap:2px 4px}
+/* uwaga właściciela 20.11 (P7c): na telefonie pasek liter (osoby, słownik) zajmował kilka rzędów (litery po 44 px dla palca) – ukryty;
+   zostaje szukanie i filtry, lista osób ma nagłówki liter, wybrana litera słownika jest w „wybrane” */
+@media (max-width:640px){.slownik-litery{display:none}}
 .slownik-litery .lista-litera{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:var(--tekst);font-weight:700}
 .slownik-litery .lista-litera--brak{color:var(--tekst-etykieta);font-weight:400}
 .tytul-sekcji+.siatka-fiszek{margin-top:16px}
