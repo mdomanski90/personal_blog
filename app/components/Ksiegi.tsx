@@ -123,9 +123,9 @@ function Tomy({ k }: { k: Ksiega }) {
                         {j.sygnatura && <span className="text-[var(--tekst-etykieta)]"> · {j.sygnatura}</span>}
                         {j.skany && <> · <Odnosnik href={j.skany}>skany</Odnosnik></>}
                         {j.digitalizacja === 'brak' && <span className="text-[var(--tekst-etykieta)]"> · bez skanów online</span>}
-                        {j.liczbaSkanow !== null && j.liczbaSkanow > 0 && <span className="text-[var(--tekst-etykieta)]"> · {j.liczbaSkanow} skanów</span>}
+                        {j.liczbaSkanow !== null && j.liczbaSkanow > 0 && <span className="text-[var(--tekst-etykieta)]"> · <span className="whitespace-nowrap">{odmiana(j.liczbaSkanow, ['skan', 'skany', 'skanów'])}</span></span>}
                         {j.tytul && j.tytul !== k.nazwa && <span className="block text-[var(--tekst-etykieta)]">{j.tytul}</span>}
-                        {j.uwagi && <span className="block text-[var(--tekst-etykieta)]">{j.uwagi}</span>}
+                        {j.uwagi && <span className="block whitespace-pre-line text-[var(--tekst-etykieta)]">{j.uwagi}</span>}
                     </li>
                 ))}
             </ul>

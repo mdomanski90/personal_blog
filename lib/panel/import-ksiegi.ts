@@ -2,6 +2,7 @@
 // Bez publikacji nowych ksiąg, bez usuwania tomów i bez zamiany wypełnionych pól na puste.
 // P5: zapis przez wspólny mechanizm operacji (lib/panel/operacje.ts) – blokada, kopia w content/_operacje, „cofnij” w panelu;
 // IMP-10: kolumny spoza formatu nie giną – trafiają do uwag księgi / tomu.
+import { wierszeNotatki } from './ksiegi-uwagi'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import readExcelFile from 'read-excel-file/node'
@@ -133,8 +134,14 @@ function tomZCsv(w: Wiersz) {
     const scanCount = skany === '' ? null : Number(skany) // 0 to informacja, a nie brak danych
     if (scanCount === 0 && scans) throw new Error(`Tom ${w.sygnatura_tomu}: liczba skanów wynosi 0, ale podano link do skanów — popraw sprzeczne dane.`)
     const digitization: Tom['digitization'] = scanCount === 0 ? 'brak' : scanCount !== null && scanCount > 0 || scans ? 'online' : 'nieustalone'
-    const info = [w.uwagi_tomu, w.status_linku ? `Status linku: ${w.status_linku}` : '', w.zrodlo_zespol_url ? `Źródło: ${w.zrodlo_zespol_url}` : '', ...kolumnyDodatkowe(w, KOLUMNY_TOMU)].filter(Boolean).join('\n')
+    // P7c łatka (20.11): „status linku” i „źródło” nie trafiają już do publicznych uwag tomu – idą do notatki roboczej księgi (notatkaTomow)
+    const info = [w.uwagi_tomu, ...kolumnyDodatkowe(w, KOLUMNY_TOMU)].filter(Boolean).join('\n')
     return { years, identifier: w.sygnatura_tomu || '', scans, gaps: info, title: tytul, scanCount, digitization }
+}
+/** Status linku i źródło z wierszy tomów → wiersze notatki roboczej księgi (bez powtórzeń; adres strony zespołu księgi pomijany). */
+export function notatkaTomow(tomy: Wiersz[], zrodloKsiegi = ''): string {
+    const zrodla = tomy.map((t) => (t.zrodlo_zespol_url || '').trim()).filter((u) => u && u !== zrodloKsiegi.trim())
+    return wierszeNotatki(tomy.map((t) => (t.status_linku || '').trim()).filter(Boolean), zrodla).join('\n')
 }
 function slugCheck(id: string) {
     if (!SLUG.test(id) || id.length > 110) throw new Error(`Niepoprawny identyfikator księgi: ${id}`)
@@ -198,8 +205,8 @@ export async function odczytajImport(f: FormData): Promise<Zestaw> {
         if (spatial.some((s) => !SLUG.test(s))) throw new Error(`${id}: niepoprawny identyfikator miejscowości.`)
         const pomoc = polaExtra.map(([pole, etykieta]) => w[pole] ? `${etykieta}: ${w[pole]}` : '').filter(Boolean).join('\n')
         const dodatkowe = kolumnyDodatkowe(w, KOLUMNY_KSIEGI)
-        const notes = [w.notatka_robocza, pomoc, dodatkowe.length ? `inne kolumny arkusza:\n${dodatkowe.join('\n')}` : ''].filter(Boolean).join('\n\n')
         const tomyWiersze = grupy.get(id) ?? []
+        const notes = [w.notatka_robocza, pomoc, notatkaTomow(tomyWiersze, w.zrodlo_zespol_url || ''), dodatkowe.length ? `inne kolumny arkusza:\n${dodatkowe.join('\n')}` : ''].filter(Boolean).join('\n\n')
         const vol = tomyWiersze.sort((a, b) => Number(a.kolejnosc || 0) - Number(b.kolejnosc || 0)).map(tomZCsv)
         const sig = new Set<string>()
         for (const t of vol) {

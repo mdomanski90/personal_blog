@@ -5,7 +5,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import * as yaml from 'js-yaml'
-import { kolumnyDodatkowe, nieznaneKolumny, zapiszImport } from './import-ksiegi'
+import { kolumnyDodatkowe, nieznaneKolumny, notatkaTomow, zapiszImport } from './import-ksiegi'
 import { cofnijOperacje, wczytajManifest } from './operacje'
 
 test('IMP-10: kolumny spoza formatu są wykrywane i zachowywane jako „kolumna: wartość” (puste pomijane)', () => {
@@ -13,6 +13,13 @@ test('IMP-10: kolumny spoza formatu są wykrywane i zachowywane jako „kolumna:
     const w: Record<string, string>[] = [{ ksiega_id: 'a', nazwa: 'A', przyszla_kolumna: 'x', pusta: '' }, { ksiega_id: 'b', nazwa: 'B', inna: 'y' }]
     assert.deepEqual(nieznaneKolumny(w, znane), ['przyszla_kolumna', 'pusta', 'inna'])
     assert.deepEqual(kolumnyDodatkowe(w[0], znane), ['przyszla_kolumna: x'])
+})
+
+test('P7c (20.11): status linku i źródło tomów idą do notatki roboczej księgi, nie do publicznych uwag tomu', () => {
+    const Z = 'https://example.org/zespol/1'
+    const t = [{ status_linku: 'link przekazany', zrodlo_zespol_url: Z }, { status_linku: 'link przekazany', zrodlo_zespol_url: 'https://example.org/inny' }]
+    assert.equal(notatkaTomow(t, Z), 'status linku tomów (z uwag tomów): link przekazany\nźródło tomów (z uwag tomów): https://example.org/inny')
+    assert.equal(notatkaTomow([{ uwagi_tomu: 'brak kart' }]), '')
 })
 
 const ksiega = (title: string, note = '') => ({

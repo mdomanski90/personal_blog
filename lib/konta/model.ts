@@ -250,7 +250,7 @@ export function uprawnieniaTrasy(sciezka: string, metoda: string): Uprawnienie[]
     if (pasuje(/^\/panel\/wyglad$/)) return ['administracja']
     if (pasuje(/^\/panel\/praca$/)) return ['panel'] // własne „przypięte” i „ostatnie”
     if (pasuje(/^\/(zgloszenia|plany\/zgloszenia|panel\/zgloszenia|panel\/jakosc)$/)) return ['zgloszenia']
-    if (pasuje(/^\/panel\/(ksiegi-import|lista|polacz|operacje|historia)$/) || p === '/panel') return ['operacje']
+    if (pasuje(/^\/panel\/(ksiegi-import|porzadek-tomow|lista|polacz|operacje|historia)$/) || p === '/panel') return ['operacje']
     if (pasuje(/^\/plany(\/|$)/)) return m === 'DELETE' && pasuje(/^\/plany\/[^/]+$/) ? ['plany', 'usuwanie'] : ['plany']
     if (pasuje(/^\/osoby(\/|$)/)) return m === 'DELETE' ? ['osoby', 'usuwanie'] : ['osoby']
     if (pasuje(/^\/materialy(\/|$)/)) return ['archiwum']

@@ -1,9 +1,10 @@
 'use client'
 // P5 (REL-07): raport ksiąg – ile ksiąg pokazuje katalog, a ile karty miejscowości i parafii; różnice i uwagi do danych.
-// Te same reguły co widoki (lib/ksiegi-raport.ts). Tylko odczyt.
+// Te same reguły co widoki (lib/ksiegi-raport.ts). Tylko odczyt – poza kartą „uwagi tomów” (P7c łatka 20.11: operacja z podglądem i „cofnij”).
 import * as React from 'react'
 import { odmiana, useDane } from '../wspolne'
 import type { RaportKsiag } from '@/lib/ksiegi-raport'
+import type { PodgladPorzadku } from '@/lib/panel/porzadek-tomow'
 
 const KS = (id: string) => `/keystatic/collection/ksiegi/item/${encodeURIComponent(id)}`
 /** sama forma słowa po liczbie (1 księga, 2 księgi, 5 ksiąg) */
@@ -27,6 +28,7 @@ export default function RaportKsiagPanel() {
             </header>
             {blad && <p className="pn-kom pn-bez-marginesu">{blad}</p>}
             {!r && !blad && <span className="pn-szary">liczę…</span>}
+            <PorzadekTomow />
             {r && <>
                 <div className="pn-kafle">
                     <div className="pn-kafel"><span className="pn-liczba">{r.ksiag}</span><span className="pn-maly">{forma(r.ksiag, ['księga', 'księgi', 'ksiąg'])}, w tym publicznie: {r.publicznych}</span></div>
@@ -79,5 +81,49 @@ export default function RaportKsiagPanel() {
                 </div>
             </>}
         </>
+    )
+}
+
+/** P7c łatka (20.11): uwagi tomów z wierszami „Tytuł jednostki / Liczba skanów / Status linku / Źródło” – porządek jedną operacją. */
+function PorzadekTomow() {
+    const { dane: p, odswiez } = useDane<PodgladPorzadku>('/api/keystatic/panel/porzadek-tomow')
+    const [stan, ustawStan] = React.useState<'' | 'pytanie' | 'zapis'>('')
+    const [wynik, ustawWynik] = React.useState<{ operacja: string | null; ksiag: number; tomow: number } | null>(null)
+    const [blad, ustawBlad] = React.useState('')
+    if (!p || (p.ksiag === 0 && !wynik)) return null
+    const zapisz = async () => {
+        ustawStan('zapis'); ustawBlad('')
+        const r = await fetch('/api/keystatic/panel/porzadek-tomow', { method: 'POST' }).catch(() => null)
+        const j = r ? await r.json().catch(() => null) : null
+        if (!r?.ok || !j) { ustawBlad(j?.blad ?? 'Nie udało się zapisać – nic nie zmieniono.'); ustawStan(''); return }
+        ustawWynik(j); ustawStan(''); odswiez()
+    }
+    const pr = p.przeniesione
+    return (
+        <section className="pn-karta" aria-labelledby="r-tomy">
+            <h2 id="r-tomy">uwagi tomów do uporządkowania</h2>
+            {wynik ? (
+                <p className="pn-kom pn-ok pn-bez-marginesu" role="status">Uporządkowano {odmiana(wynik.tomow, ['tom', 'tomy', 'tomów'])} w {odmiana(wynik.ksiag, ['księdze', 'księgach', 'księgach'])}. {wynik.operacja && <a href="/keystatic/panel/operacje">cofnij w „operacje” →</a>}</p>
+            ) : <>
+                <span className="pn-maly">W polu „Uwagi” {odmiana(p.tomow, ['tomu', 'tomów', 'tomów'])} ({odmiana(p.ksiag, ['księga', 'księgi', 'ksiąg'])}) są wiersze „Tytuł jednostki”, „Liczba skanów”, „Status linku”, „Źródło” – na stronie idą jednym ciągiem.</span>
+                <ul className="pn-lista-bez-znakow pn-maly">
+                    <li>do pola „Oryginalny tytuł jednostki”: {pr.tytul}</li>
+                    <li>do pola „Liczba skanów”: {pr.skany}</li>
+                    <li>do notatki roboczej księgi (tylko panel): status linku {pr.status}, inny adres źródła {pr.zrodla}</li>
+                    <li>adres równy skanom lub stronie zespołu – usunięty jako powtórzenie</li>
+                </ul>
+                {p.sprzecznosci.length > 0 && <details className="pn-maly"><summary>zostają w uwagach – sprzeczne z polem ({p.sprzecznosci.length})</summary><ul className="pn-lista-bez-znakow">{p.sprzecznosci.slice(0, 50).map((x, i) => <li key={i}>{x}</li>)}</ul></details>}
+                <details className="pn-maly"><summary>księgi ({p.pozycje.length})</summary><ul className="pn-lista-bez-znakow">{p.pozycje.map((x) => <li key={x.id}><a href={KS(x.id)}>{x.nazwa}</a> – {odmiana(x.tomow, ['tom', 'tomy', 'tomów'])}</li>)}</ul></details>
+                {blad && <p className="pn-kom pn-bez-marginesu" role="alert">{blad}</p>}
+                <div className="pn-rzad">
+                    {stan === '' && <button type="button" className="pn-btn" onClick={() => ustawStan('pytanie')}>uporządkuj…</button>}
+                    {stan !== '' && <>
+                        <span className="pn-maly">Zmienić {odmiana(p.ksiag, ['księgę', 'księgi', 'ksiąg'])}? Przed zapisem powstają kopie, cofnięcie w „operacje”.</span>
+                        <button type="button" className="pn-btn pn-btn-gl" disabled={stan === 'zapis'} onClick={zapisz}>{stan === 'zapis' ? 'zapisuję…' : 'tak, uporządkuj'}</button>
+                        <button type="button" className="pn-btn" disabled={stan === 'zapis'} onClick={() => ustawStan('')}>anuluj</button>
+                    </>}
+                </div>
+            </>}
+        </section>
     )
 }
