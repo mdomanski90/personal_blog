@@ -1,0 +1,150 @@
+{
+ "opis": "P7c (SRW-01): dozwolona liczba ostrzeżeń reguł kompilatora React (react-hooks/*) per plik. Może tylko maleć – npm run lint -- --zapisz.",
+ "pliki": {
+  "app/archiwum/SpisDzialow.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/aplet/RamaPrzegladarki.tsx": {
+   "react-hooks/refs": 3,
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/InfoZMapa.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/Logowanie.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/MapaMiejsc.tsx": {
+   "react-hooks/immutability": 1,
+   "react-hooks/refs": 7,
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/ObjasnieniaSkanu.tsx": {
+   "react-hooks/immutability": 2,
+   "react-hooks/refs": 3
+  },
+  "app/components/plan/PlanInteraktywny.tsx": {
+   "react-hooks/preserve-manual-memoization": 2,
+   "react-hooks/refs": 2,
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/plan/WarstwaRekonstrukcji.tsx": {
+   "react-hooks/immutability": 1,
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/PrzegladarkaDokumentu.tsx": {
+   "react-hooks/immutability": 2,
+   "react-hooks/refs": 9,
+   "react-hooks/set-state-in-effect": 3
+  },
+  "app/components/ScrollToTop.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/SiteHeader.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/ThemeToggle.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/Wroc.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/Wyszukiwarka.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/components/Zgloszenie.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/MenuKonta.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/osoby/[id]/EdytorOsoby.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/osoby/page.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/PaletaPolecen.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/panel/do-opracowania/page.tsx": {
+   "react-hooks/set-state-in-effect": 2
+  },
+  "app/keystatic/panel/dostep/[id]/page.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/panel/dostep/page.tsx": {
+   "react-hooks/set-state-in-effect": 2
+  },
+  "app/keystatic/panel/dostep/role/page.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/panel/dostep/wspolne.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/panel/lista/[kolekcja]/page.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/panel/materialy/[id]/objasnienia/page.tsx": {
+   "react-hooks/refs": 4
+  },
+  "app/keystatic/panel/materialy/[id]/page.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/panel/page.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/panel/polacz/page.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/panel/system/page.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/panel/zgloszenia/page.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/plany/[slug]/Edytor.tsx": {
+   "react-hooks/immutability": 1,
+   "react-hooks/preserve-manual-memoization": 1,
+   "react-hooks/refs": 10,
+   "react-hooks/set-state-in-effect": 4
+  },
+  "app/keystatic/plany/[slug]/Numeracja.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/plany/[slug]/Uchwyt.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/plany/page.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/RamaPanelu.tsx": {
+   "react-hooks/set-state-in-effect": 6
+  },
+  "app/keystatic/RamaTerenu.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/SzufladaHistorii.tsx": {
+   "react-hooks/immutability": 1,
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/teren/konto/page.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/keystatic/teren/nowe/page.tsx": {
+   "react-hooks/set-state-in-effect": 2
+  },
+  "app/keystatic/teren/plan/[slug]/PlanTerenowy.tsx": {
+   "react-hooks/set-state-in-effect": 2
+  },
+  "app/osoby/drzewo/PrzegladarkaDrzewa.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "app/osoby/ListaOsob.tsx": {
+   "react-hooks/set-state-in-effect": 1
+  },
+  "lib/ruch.ts": {
+   "react-hooks/refs": 1
+  }
+ }
+}

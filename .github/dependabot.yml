@@ -17,22 +17,6 @@ updates:
       - "dependencies"
       - "automated"
 
-  # Docker dependencies
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 3
-    reviewers:
-      - "mdomanski90"
-    commit-message:
-      prefix: "docker"
-    labels:
-      - "docker"
-      - "automated"
-
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"

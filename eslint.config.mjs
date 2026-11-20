@@ -15,7 +15,8 @@ export default [
     { files: ['tailwind.config.ts'], rules: { '@typescript-eslint/no-require-imports': 'off' } },
     // eslint-plugin-react-hooks 6+ (z eslint-config-next 16): reguły pod React Compiler. Kompilatora nie używamy; stan 19.11.2026:
     // 99 miejsc w 40 plikach (set-state-in-effect 49, refs 39, immutability 8, preserve-manual-memoization 3) – ostrzeżenia,
-    // nie błędy (budowanie na serwerze uruchamia „eslint . --quiet”). Nowy kod: bez nowych ostrzeżeń tych reguł.
+    // nie błędy. P7c (20.11.2026, 105 w 44 plikach): zapadka per plik w lib/zapadka-react.json – pilnuje jej scripts/lint.ts
+    // (npm run lint, krok budowania zamiast „eslint . --quiet”); ostrzeżeń w pliku nie może przybyć, nowy plik – 0.
     { rules: { 'react-hooks/set-state-in-effect': 'warn', 'react-hooks/refs': 'warn', 'react-hooks/immutability': 'warn', 'react-hooks/preserve-manual-memoization': 'warn' } },
     { linterOptions: { reportUnusedDisableDirectives: 'warn' } },
 ]

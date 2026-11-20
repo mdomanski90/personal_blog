@@ -16,12 +16,12 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
       
       - name: Install dependencies
@@ -42,28 +42,29 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       
       - name: Dependency Review
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: high
 
-  docker-scan:
-    name: Docker Image Scan
+  # P7c: skan plików repozytorium (zależności z package-lock.json) zamiast obrazu Docker – Dockerfile nie służył do wdrożeń
+  # (VPS: systemd + scripts/wdroz.sh) i od dawna nie dawał się zbudować w CI; usunięty decyzją właściciela 20.11.2026
+  dependency-scan:
+    name: Trivy – zależności
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Build Docker image
-        run: docker build -t personal_blog:security-test .
-      
-      - name: Run Trivy vulnerability scanner
+        uses: actions/checkout@v7
+
+      - name: Run Trivy vulnerability scanner (fs)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'personal_blog:security-test'
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'vuln'
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
