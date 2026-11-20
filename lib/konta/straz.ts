@@ -123,3 +123,15 @@ export function brakUprawnienia(req: Request, ...wymagane: Uprawnienie[]): Respo
 }
 
 export { mozeTylkoJa }
+
+/**
+ * P7c (KON-08, decyzja 20.11.2026): pozycje „tylko ja” widzi w panelu wyłącznie konto z rolą administratora – ta sama reguła
+ * co przy zapisie (`mozeTylkoJa`, lib/konta/zapis-tresci.ts). Konta wyłączone (panel za hasłem nginx) – jak dotąd wszystko.
+ */
+export const widziTylkoJa = (z: Zalogowany | null): boolean => !kontaWlaczone() || (!!z && mozeTylkoJa(z.konto))
+export const widziTylkoJaZadanie = (req: Request) => widziTylkoJa(kontaWlaczone() ? zalogowany(req) : null)
+/** Poziom odczytu treści w panelu dla tego konta: „ja” (wszystko) albo „bliscy” (bez pozycji „tylko ja”). */
+export const poziomPanelu = (req: Request): 'ja' | 'bliscy' => (widziTylkoJaZadanie(req) ? 'ja' : 'bliscy')
+export async function poziomPaneluTeraz(): Promise<'ja' | 'bliscy'> {
+    return widziTylkoJa(kontaWlaczone() ? await zalogowanyTeraz() : null) ? 'ja' : 'bliscy'
+}

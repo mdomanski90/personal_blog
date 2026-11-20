@@ -238,6 +238,8 @@ export function uprawnieniaTrasy(sciezka: string, metoda: string): Uprawnienie[]
     // P7b (TER-01): teren. Zapis czynności i odczyt planu „dla terenu” – „plany-teren” (trasa sprawdza jeszcze listę planów konta);
     // plik planu – trasa sama sprawdza „panel” albo dostęp terenowy do tego planu; nowe miejsca – „teren”; reszta tras terenowych
     // wymaga tylko zalogowania, a trasa wydaje wyłącznie to, co wolno temu kontu (własne wpisy, własne plany).
+    // P7c (TER-04): „utwórz obiekt…” ze skrzynki – podgląd i zapis: redakcja działu „miejsca i obiekty” (trasa sprawdza jeszcze „tylko ja”)
+    if (pasuje(/^\/teren\/miejsca\/[^/]+\/obiekt$/)) return ['panel', 'miejsca']
     if (pasuje(/^\/plany\/[^/]+\/teren$/)) return ['plany-teren']
     if (pasuje(/^\/plany\/[^/]+\/plik\/[^/]+$/) && odczyt) return []
     if (pasuje(/^\/teren\/miejsca$/) && !odczyt) return ['teren']

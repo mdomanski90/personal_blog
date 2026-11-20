@@ -1,10 +1,12 @@
 'use client'
 // P7b (TER-01): „z terenu – do przejrzenia” dla redakcji: skrzynka nowych miejsc z telefonów (redakcja robi z wpisu obiekt
 // albo plan, albo go odrzuca – decyzja 19.11) oraz zmiany zapisane na planach przez współpracowników, z napisami „do decyzji”.
+// P7c (TER-04): „utwórz obiekt…” – obiekt z wpisu jednym poleceniem (podgląd, „tylko ja”, operacja z „cofnij”).
 import * as React from 'react'
 import { NAZWA_CZYNNOSCI, type WpisDziennika } from '@/lib/teren/czynnosci'
 import { nazwaRodzajuTerenu, opisBlisko, type MiejsceTerenu } from '@/lib/teren/miejsca'
 import { useDane } from '../wspolne'
+import { UtworzObiekt } from './UtworzObiekt'
 
 type Miejsca = { redakcja: boolean; miejsca: MiejsceTerenu[] }
 type Zmiany = { wpisy: (WpisDziennika & { plan: string; tytul: string })[]; doDecyzji: number }
@@ -16,6 +18,7 @@ export default function ZTerenu() {
     const [widok, ustawWidok] = React.useState<'nowe' | 'wszystkie'>('nowe')
     const [opis, ustawOpis] = React.useState<Record<string, string>>({})
     const [kom, ustawKom] = React.useState('')
+    const [info, ustawInfo] = React.useState('')
     const akcja = async (adres: string, tresc: unknown, potem: () => void) => {
         const r = await fetch(adres, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tresc) }).catch(() => null)
         const j = await r?.json().catch(() => null)
@@ -30,6 +33,7 @@ export default function ZTerenu() {
                 <span className="pn-maly">Nowe miejsca i zmiany na planach zapisane telefonem. Nic z tej strony nie jest publiczne.</span>
             </header>
             {kom && <p className="pn-ostrz pn-bez-marginesu" role="alert"><span>{kom}</span></p>}
+            <div aria-live="polite">{info && <p className="pn-info pn-bez-marginesu"><span>{info}</span></p>}</div>
 
             {m.dane?.redakcja && (
                 <section className="pn-kol pn-kol-12" aria-labelledby="zt-miejsca">
@@ -58,7 +62,7 @@ export default function ZTerenu() {
                                     ? <><a href={`https://www.openstreetmap.org/?mlat=${x.lat}&mlon=${x.lon}#map=17/${x.lat}/${x.lon}`} target="_blank" rel="noreferrer">{x.lat.toFixed(5)}, {x.lon.toFixed(5)} – OpenStreetMap ↗</a>{x.dokl !== undefined && ` · dokładność ±${x.dokl} m`}</>
                                     : <span className="pn-szary">nie odczytano</span>}</dd>
                                 {x.blisko && <><dt>najbliżej</dt><dd>{opisBlisko(x.blisko)}</dd></>}
-                                {x.opis && <><dt>co powstało</dt><dd>{x.opis}</dd></>}
+                                {x.opis && <><dt>co powstało</dt><dd>{x.obiekt ? <a href={`/keystatic/collection/obiekty/item/${x.obiekt}`}>{x.opis}</a> : x.opis}</dd></>}
                             </dl>
                             {x.stan === 'nowe' ? (
                                 <>
@@ -66,8 +70,9 @@ export default function ZTerenu() {
                                         <input className="pn-in" value={opis[x.id] ?? ''} maxLength={300} onChange={(e) => ustawOpis((o) => ({ ...o, [x.id]: e.target.value }))} />
                                     </label>
                                     <div className="pn-rzad">
-                                        <a className="pn-btn" href="/keystatic/collection/obiekty/create" target="_blank" rel="noreferrer">+ nowy obiekt ↗</a>
-                                        <button type="button" className="pn-btn pn-btn-gl" onClick={() => akcja(`/api/keystatic/teren/miejsca/${x.id}`, { akcja: 'opracowane', opis: opis[x.id] ?? '' }, m.odswiez)}>opracowane ✓</button>
+                                        <UtworzObiekt wpis={x} onGotowe={(t) => { ustawInfo(t); m.odswiez() }} />
+                                        <a className="pn-btn" href="/keystatic/collection/obiekty/create" target="_blank" rel="noreferrer">+ nowy obiekt ręcznie ↗</a>
+                                        <button type="button" className="pn-btn" onClick={() => akcja(`/api/keystatic/teren/miejsca/${x.id}`, { akcja: 'opracowane', opis: opis[x.id] ?? '' }, m.odswiez)}>opracowane ✓</button>
                                         <button type="button" className="pn-btn" onClick={() => akcja(`/api/keystatic/teren/miejsca/${x.id}`, { akcja: 'odrzuc' }, m.odswiez)}>odrzuć</button>
                                     </div>
                                 </>

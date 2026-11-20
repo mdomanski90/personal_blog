@@ -607,6 +607,8 @@ button.pn-szukaj { background: var(--pn-pole); border-color: var(--pn-linia); }
 .tr-zdjecie { position: relative; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; background: var(--pn-tor); }
 .tr-zdjecie img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .tr-zdjecie button { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--pn-zaslona); color: var(--pn-na-wyp); font-size: 18px; line-height: 1; cursor: pointer; }
+.tr-zdjecie input[type="checkbox"] { position: absolute; top: 6px; left: 6px; width: 20px; height: 20px; margin: 0; accent-color: var(--pn-akcent); }
+.tr-zdjecie:has(input[type="checkbox"]:not(:checked)) img { opacity: 0.4; } /* P7c (TER-04): zdjęcie odznaczone – nie przejdzie do obiektu */
 .tr-ukryty { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .tr-wpis { display: flex; flex-direction: column; gap: 2px; padding: 9px 0; border-bottom: 1px solid var(--pn-linia2); }
 .tr-wpis:last-child { border-bottom: 0; }

@@ -32,6 +32,8 @@ export interface MiejsceTerenu {
     opis?: string
     rozstrzygnal?: string
     rozstrzygnieto?: string
+    /** P7c (TER-04): identyfikator obiektu utworzonego z tego wpisu („utwórz obiekt…”) */
+    obiekt?: string
 }
 
 export const ID_MIEJSCA = /^[A-Za-z0-9_-]{8,64}$/
@@ -65,6 +67,7 @@ export function odczytajMiejsce(j: unknown): MiejsceTerenu | null {
         ...(czysc(o.opis, 300) ? { opis: czysc(o.opis, 300) } : {}),
         ...(czysc(o.rozstrzygnal, 100) ? { rozstrzygnal: czysc(o.rozstrzygnal, 100) } : {}),
         ...(czysc(o.rozstrzygnieto, 40) ? { rozstrzygnieto: czysc(o.rozstrzygnieto, 40) } : {}),
+        ...(typeof o.obiekt === 'string' && /^obj-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(o.obiekt) ? { obiekt: o.obiekt } : {}),
     }
 }
 
