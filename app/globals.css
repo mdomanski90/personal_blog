@@ -1928,7 +1928,7 @@ img.miniatura-planu{object-fit:contain!important;background:var(--pl-papier)}
   .strona-tresc.uklad-kolumna{max-width:none}
   .karta-odcinek{display:flex;flex-direction:column;gap:4mm}
   /* bez menu, stopki strony, filtrów, przycisków, formularzy, prośby o zdjęcie, spisu treści i paska bocznego */
-  .odp>.strona-pion>header,.odp>.strona-pion>footer,nav.okruszki,.pasek-akcji,.karta-zglos,.k-btn,.odp button,.szukaj-filtr,.filtry-rzad,.odp form,
+  .odp>.strona-pion>header,.odp>.strona-pion>footer,nav.okruszki,.pasek-akcji,.karta-zglos,.zgl-ramka,.k-btn,.odp button,.szukaj-filtr,.filtry-rzad,.odp form,
   .osoba-bez-zdjecia,.osoba-bez-zdjecia-krotko,.ot-drzewo,#drzewo,.spis-tresci,.karta-bok,.karta-bok-dalej,.szt-skan,.szt-tekst,.karta-mapa,.widok-przelacznik,.material-wstawka-podpis .k-btn{display:none!important}
   /* materiał: skan na szerokość kartki (do 190 mm), pod nim transkrypcja i tłumaczenie */
   .skan-z-tekstem{display:block;border:0;background:none;border-radius:0}
@@ -2020,6 +2020,20 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 /* ---- etap R (17.11): strona „współtwórz” (WSP-01, makieta 16.11) i wejścia – wyłącznie tokeny, oba motywy ---- */
 .zgl-link{font:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
 .zgl-przycisk{max-width:100%;white-space:normal;text-align:left}
+/* P7c (20.11): formularz zgłoszenia w ramce jak „szukaj i filtruj” – tło sekcji, nagłówek z tytułem i „zamknij”; pod całym zdaniem */
+.zgl-ramka{margin:10px 0 14px;max-width:var(--szer-tekstu);font-size:var(--rozmiar-tekst);font-weight:400;color:var(--tekst);text-align:left}
+.zgl-ramka .zgl-naglowek{cursor:default}
+.zgl-ramka h3.k-filtry-tytul{margin:0;font-size:var(--rozmiar-tekst);line-height:1.4}
+.zgl-ramka>.zgl-formularz,.zgl-ramka>.zgl-wynik{padding:4px 24px 18px;max-width:none;box-sizing:border-box}
+.zgl-ramka--pelna>.zgl-formularz,.zgl-ramka--pelna>.zgl-wynik{padding-top:18px}
+.zgl-formularz>.k-etykieta{display:block}
+.zgl-wymagane{font-weight:400}
+.zgl-pytanie{margin-top:-6px}
+@media (max-width:640px){.zgl-ramka>.zgl-formularz,.zgl-ramka>.zgl-wynik{padding-inline:16px}}
+.karta-zglos>.zgl-ramka,.wpis-zaproszenie-tresc>.zgl-ramka{flex-basis:100%;align-self:stretch;margin:4px 0 0}
+/* w polu „brak zdjęcia” (już na tle sekcji, z ramką) – bez drugiej ramki w ramce */
+.osoba-bez-zdjecia .zgl-ramka{background:transparent;margin:4px 0 0;width:100%}
+.osoba-bez-zdjecia .zgl-ramka .zgl-naglowek,.osoba-bez-zdjecia .zgl-ramka>.zgl-formularz,.osoba-bez-zdjecia .zgl-ramka>.zgl-wynik{padding-inline:0}
 .tekst-tresc{font-size:var(--rozmiar-tresc)}
 .wsp-wstep{max-width:var(--szer-tekstu)}
 .wsp-wstep p{margin:0;font-size:var(--rozmiar-tresc);line-height:1.6}

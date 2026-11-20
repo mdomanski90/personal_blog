@@ -1,7 +1,11 @@
 'use client'
 // Zgłoszenie czytelnika: przycisk z rozwijanym formularzem (karty) albo formularz otwarty (strona „współtwórz”, wariant „formularz”).
 // Nic nie publikuje – trafia do panelu. WSP-03 (etap R): rodzaje odczyt / wspomnienie / rozpoznanie, kontekst braku, zgoda na podpis.
+// P7c (uwaga właściciela 20.11, ankieta A): formularz w ramce jak „szukaj i filtruj” (tło sekcji, nagłówek, „zamknij”);
+// przycisk w zdaniu zostaje, a ramka pojawia się POD całym zdaniem – dawniej <form> wewnątrz <p> łamał akapit
+// i zostawiał osierocony dalszy ciąg zdania; etykieta pola zwykła z „(wymagane)”, pytanie jako podpowiedź pod etykietą.
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import Komunikat from './Komunikat'
 import EmailLink from './EmailLink'
 import { komunikatBleduZgloszenia } from '@/lib/zgloszenie-blad'
@@ -31,6 +35,13 @@ function pytaniePoprawki(adres: string): string {
 
 type Stan = 'zamkniety' | 'otwarty' | 'wysylanie' | 'wyslany' | 'blad'
 
+/** Najdalszy przodek w biegu tekstu (akapit, span, wyróżnienie) – ramka formularza trafia za niego, nie do środka zdania. */
+function kotwicaZdania(el: HTMLElement): HTMLElement | null {
+    let k: HTMLElement | null = null, e = el.parentElement
+    while (e && ['P', 'SPAN', 'B', 'I', 'EM', 'STRONG', 'SMALL'].includes(e.tagName)) { k = e; e = e.parentElement }
+    return k
+}
+
 export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk', etykieta, podpowiedz, brak, zgoda = false, email, czegoDotyczy }: {
     rodzaj: RodzajFormularza; adres: string; tytul: string
     /** „przycisk” / „link” – rozwija formularz w miejscu; „formularz” – otwarty, z wyborem rodzaju i polem „czego dotyczy” (współtwórz) */
@@ -56,6 +67,18 @@ export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk',
     const idPola = `zg-${React.useId()}`
     const [status, ustawStatus] = React.useState<number | null>(null)
     const wynikRef = React.useRef<HTMLDivElement>(null)
+    const przyciskRef = React.useRef<HTMLButtonElement>(null)
+    const [miejsce, ustawMiejsce] = React.useState<HTMLElement | null>(null)
+    const otwarty = !pelny && stan !== 'zamkniety'
+    // ramka pod zdaniem: osobny element za akapitem (portal), tworzony przy otwarciu; bez akapitu dookoła – ramka zaraz za przyciskiem
+    const otworz = () => {
+        if (otwarty) { poleRef.current?.focus(); return }
+        const k = przyciskRef.current ? kotwicaZdania(przyciskRef.current) : null
+        if (k) { const d = document.createElement('div'); d.className = 'zgl-miejsce'; k.after(d); ustawMiejsce(d) }
+        ustawStan('otwarty')
+    }
+    React.useEffect(() => () => { miejsce?.remove() }, [miejsce])
+    const zamknij = () => { ustawStan('zamkniety'); ustawMiejsce(null); window.setTimeout(() => przyciskRef.current?.focus(), 0) }
     const poleRef = React.useRef<HTMLTextAreaElement>(null)
     // P1 (UX-05): po wysłaniu fokus na komunikacie (potwierdzenie albo błąd); przy odrzuconej treści – na polu treści
     const [fokusWyniku, ustawFokusWyniku] = React.useState(0)
@@ -78,20 +101,38 @@ export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk',
         ustawStan(odp?.ok ? 'wyslany' : 'blad')
         ustawFokusWyniku((n) => n + 1)
     }
-    if (stan === 'wyslany') return (
-        <div ref={wynikRef} tabIndex={-1} className="zgl-wynik">
-            <Komunikat rodzaj="ok" tytul="dziękuję – zgłoszenie trafiło do redakcji." rola="status">
-                <p>Nic nie pojawi się na stronie bez sprawdzenia{kontakt.trim() ? '; odezwiemy się pod podany kontakt' : ''}.</p>
-            </Komunikat>
-        </div>
+    const tytulRamki = (etykieta ?? OPISY[rodzaj].przycisk).replace(/\s*[→›]\s*$/, '')
+    const idRamki = `${idPola}-ramka`
+    const wyzwalacz = wariant === 'link'
+        ? <button ref={przyciskRef} type="button" onClick={otworz} className="odn zgl-link" aria-expanded={otwarty} aria-controls={otwarty ? idRamki : undefined}>{etykieta ?? OPISY[rodzaj].przycisk}</button>
+        : <button ref={przyciskRef} type="button" onClick={otworz} className="k-btn k-btn--s lowercase zgl-przycisk" aria-expanded={otwarty} aria-controls={otwarty ? idRamki : undefined}>{etykieta ?? OPISY[rodzaj].przycisk}</button>
+    if (pelny) return <div className="k-filtry-ramka zgl-ramka zgl-ramka--pelna">{stan === 'wyslany' ? podziekowanie() : formularz()}</div>
+    if (!otwarty) return wyzwalacz
+    const ramka = (
+        <section id={idRamki} className="k-filtry-ramka zgl-ramka" aria-labelledby={`${idRamki}-t`}>
+            <div className="k-filtry-naglowek zgl-naglowek">
+                <h3 id={`${idRamki}-t`} className="k-filtry-tytul">{tytulRamki}</h3>
+                <button type="button" className="k-btn k-filtry-przelacz" onClick={zamknij}>zamknij <span aria-hidden="true">×</span></button>
+            </div>
+            {stan === 'wyslany' ? podziekowanie() : formularz()}
+        </section>
     )
-    if (stan === 'zamkniety')
-        return wariant === 'link'
-            ? <button type="button" onClick={() => ustawStan('otwarty')} className="odn zgl-link">{etykieta ?? OPISY[rodzaj].przycisk}</button>
-            : <button type="button" onClick={() => ustawStan('otwarty')} className="k-btn k-btn--s lowercase zgl-przycisk">{etykieta ?? OPISY[rodzaj].przycisk}</button>
+    return <>{wyzwalacz}{miejsce ? createPortal(ramka, miejsce) : ramka}</>
+
+    function podziekowanie() {
+        return (
+            <div ref={wynikRef} tabIndex={-1} className="zgl-wynik">
+                <Komunikat rodzaj="ok" tytul="dziękuję – zgłoszenie trafiło do redakcji." rola="status">
+                    <p>Nic nie pojawi się na stronie bez sprawdzenia{kontakt.trim() ? '; odezwiemy się pod podany kontakt' : ''}.</p>
+                </Komunikat>
+            </div>
+        )
+    }
+
+    function formularz() {
     return (
         // P7B (JV-11): etykieta nad polem, podpowiedź pod nim, błąd ze słowem i ikoną, potwierdzenie z dalszym krokiem
-        <form onSubmit={wyslij} className={`k-formularz${pelny ? ' wsp-formularz' : ''}`}>
+        <form onSubmit={wyslij} className={`k-formularz zgl-formularz${pelny ? ' wsp-formularz' : ''}`}>
             {pelny && (
                 <>
                     <label className="k-etykieta" htmlFor={`${idPola}-r`}>w czym chcesz pomóc</label>
@@ -102,11 +143,9 @@ export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk',
                     <input id={`${idPola}-d`} className="k-pole" value={dotyczy} onChange={(e) => ustawDotyczy(e.target.value)} maxLength={200} placeholder="np. tytuł dokumentu, nazwa miejsca albo adres strony" />
                 </>
             )}
-            <label className="k-etykieta" htmlFor={idPola}>
-                <b>{pelny ? 'co wiesz albo co masz' : podpowiedz ?? (r === 'poprawka' ? pytaniePoprawki(adres) : OPISY[r].podpowiedz)}</b>
-            </label>
-            <textarea ref={poleRef} id={idPola} autoFocus={!pelny} aria-invalid={stan === 'blad' && komunikatBleduZgloszenia(status).pole === 'tresc' ? true : undefined} aria-describedby={`${idPola}-pom${stan === 'blad' ? ` ${idPola}-blad` : ''}`} required minLength={3} maxLength={4000} rows={pelny ? 5 : 4} value={tresc} onChange={(e) => ustawTresc(e.target.value)} className="k-pole k-pole--tekst"
-                placeholder={pelny ? OPISY[r].podpowiedz : undefined} />
+            <label className="k-etykieta" htmlFor={idPola}>co wiesz albo co masz <span className="zgl-wymagane">(wymagane)</span></label>
+            <span id={`${idPola}-pyt`} className="k-podpowiedz zgl-pytanie">{pelny ? OPISY[r].podpowiedz : podpowiedz ?? (r === 'poprawka' ? pytaniePoprawki(adres) : OPISY[r].podpowiedz)}</span>
+            <textarea ref={poleRef} id={idPola} autoFocus={!pelny} aria-invalid={stan === 'blad' && komunikatBleduZgloszenia(status).pole === 'tresc' ? true : undefined} aria-describedby={`${idPola}-pyt ${idPola}-pom${stan === 'blad' ? ` ${idPola}-blad` : ''}`} required minLength={3} maxLength={4000} rows={pelny ? 5 : 4} value={tresc} onChange={(e) => ustawTresc(e.target.value)} className="k-pole k-pole--tekst" />
             <span id={`${idPola}-pom`} className="k-podpowiedz">
                 {email
                     ? <>Zdjęcia, skany i nagrania wyślij na adres <EmailLink k={email} /> – w temacie wpisz, czego dotyczą.</>
@@ -129,8 +168,9 @@ export default function Zgloszenie({ rodzaj, adres, tytul, wariant = 'przycisk',
             })()}
             <div className="k-formularz-akcje">
                 <button type="submit" disabled={stan === 'wysylanie'} className="k-btn k-btn--glowny">{stan === 'wysylanie' ? 'wysyłam…' : stan === 'blad' ? 'spróbuj ponownie' : 'wyślij'}</button>
-                {!pelny && <button type="button" onClick={() => ustawStan('zamkniety')} className="k-btn">anuluj</button>}
+                {!pelny && <button type="button" onClick={zamknij} className="k-btn">anuluj</button>}
             </div>
         </form>
     )
+    }
 }
