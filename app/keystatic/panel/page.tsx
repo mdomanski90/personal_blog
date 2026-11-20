@@ -190,7 +190,7 @@ export default function Pulpit() {
 
                         <section className="pn-karta" aria-labelledby="zmiany">
                             <h2 id="zmiany" className="pn-tytul-karty">ostatnie zmiany</h2>
-                            <ul className="pn-lista">
+                            <ul className="pn-lista pn-lista-zmian">
                                 {d.zmiany.map((z, i) => <li key={i}>{z.href ? <a href={z.href}>{z.opis}</a> : <span>{z.opis}</span>}<span className="pn-szary pn-bez-zawijania">{kiedy(z.czas)}</span></li>)}
                                 {d.zmiany.length === 0 && <li className="pn-szary">brak</li>}
                             </ul>

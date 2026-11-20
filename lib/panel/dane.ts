@@ -26,6 +26,7 @@ import { ostrzezeniaWgOsob } from '../osoby/serwer'
 import { listaZgloszenStrony, RODZAJE_ZGLOSZEN, type ZgloszenieStrony } from '../zgloszenia'
 import { etykietaBraku } from '../wspoltworz-reguly'
 import { logowanieWlaczone } from '../sesja'
+import { opisTechniczny } from './zmiany'
 import { ukryteDla, ukrytaSciezka, ukrytyAdresPanelu, ukrytyKlucz, widocznoscPliku, type UkrytePozycje } from '../konta/tylko-ja'
 
 const CONTENT = () => path.join(process.cwd(), 'content')
@@ -178,7 +179,7 @@ async function plikiTresci(kat: string, glebokosc = 3, wyn: { p: string; czas: n
     let wpisy: fs.Dirent[] = []
     try { wpisy = await fs.promises.readdir(kat, { withFileTypes: true }) } catch { return wyn }
     for (const w of wpisy) {
-        if (w.name.startsWith('.') || w.name === '_kosz' || w.name === '_operacje' || w.name.endsWith('.tmp')) continue
+        if (w.name.startsWith('.') || w.name === '_kosz' || w.name === '_operacje' || w.name === '_historia' || w.name.endsWith('.tmp')) continue
         const p = path.join(kat, w.name)
         if (w.isDirectory()) { if (glebokosc > 0) await plikiTresci(p, glebokosc - 1, wyn) }
         else { try { wyn.push({ p, czas: (await fs.promises.stat(p)).mtimeMs }) } catch { /* zniknął */ } }
@@ -268,7 +269,10 @@ export async function podsumowanie(widzi = true) {
         if (ukrytaSciezka(rel.join('/'), u)) continue
         let opis = rel.join('/'), href: string | null = null, klucz = opis
         const stem = (x: string) => x.replace(/\.(mdoc|md|json|yaml)$/, '')
-        if (rel[0] === 'plany' && rel.length === 2 && rel[1].endsWith('.json') && !rel[1].startsWith('_')) { const sl = stem(rel[1]); opis = `plan „${planyM.get(sl) ?? sl}”`; href = KS.plan(sl) }
+        const tech = opisTechniczny(rel)
+        if (tech?.pomin) continue
+        if (tech) { opis = tech.opis; href = tech.href; klucz = tech.klucz }
+        else if (rel[0] === 'plany' && rel.length === 2 && rel[1].endsWith('.json') && !rel[1].startsWith('_')) { const sl = stem(rel[1]); opis = `plan „${planyM.get(sl) ?? sl}”`; href = KS.plan(sl) }
         else if (rel[0] === 'plany' && rel[1] === '_zgloszenia') { opis = 'zgłoszenie do planu'; href = '/keystatic/panel/zgloszenia'; klucz = 'zgl-plan' }
         else if (rel[0] === 'zgloszenia') { opis = 'zgłoszenie ze strony'; href = '/keystatic/panel/zgloszenia'; klucz = 'zgl-strona' }
         else if (rel[0] === 'osoby' && rel.length === 2 && !rel[1].startsWith('_')) { const id = stem(rel[1]); const o = s.drzewo.osoby.get(id); opis = `osoba „${o ? nazwaOsoby(o) : id}”`; href = KS.osoba(id) }
