@@ -8,6 +8,7 @@ import * as yaml from 'js-yaml'
 import { LISTY, WIDOCZNOSCI, kolumnyWgUstawien, type AkcjaZbiorcza, type Kolumna, type KonfigListy } from './listy-konfig'
 import { STRONA_PUBLICZNA } from './menu'
 import { wykonajOperacje, type ZmianaPliku } from './operacje'
+import { BRAK_UKRYTYCH, ukrytyKlucz, type UkrytePozycje } from '../konta/tylko-ja'
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 export const MAKS_ZAZNACZONYCH = 2000
@@ -90,10 +91,10 @@ async function etykietyWyborow(kolekcja: string): Promise<Record<string, Record<
     return w
 }
 
-async function nazwyCelow(kolekcje: string[], korzen: string): Promise<Record<string, { slug: string; nazwa: string }[]>> {
+async function nazwyCelow(kolekcje: string[], korzen: string, u: UkrytePozycje = BRAK_UKRYTYCH): Promise<Record<string, { slug: string; nazwa: string }[]>> {
     const w: Record<string, { slug: string; nazwa: string }[]> = {}
     for (const k of [...new Set(kolekcje)]) {
-        w[k] = (await wczytajKolekcje(k, korzen)).wpisy.map((x) => ({ slug: x.slug, nazwa: String(x.dane.title ?? x.slug) }))
+        w[k] = (await wczytajKolekcje(k, korzen)).wpisy.filter((x) => !ukrytyKlucz(k, x.slug, u)).map((x) => ({ slug: x.slug, nazwa: String(x.dane.title ?? x.slug) }))
             .sort((a, b) => a.nazwa.localeCompare(b.nazwa, 'pl'))
     }
     return w
@@ -120,13 +121,15 @@ export interface DaneListy {
     strona: string | null
 }
 
-export async function daneListy(kolekcja: string, korzen = process.cwd()): Promise<DaneListy> {
+/** `u` (P7c, KON-08) – pozycje „tylko ja” do pominięcia (konto bez roli administratora); w powiązaniach zostaje sam identyfikator, jak w Keystatic. */
+export async function daneListy(kolekcja: string, korzen = process.cwd(), u: UkrytePozycje = BRAK_UKRYTYCH): Promise<DaneListy> {
     const konfig = LISTY[kolekcja]
     if (!konfig) throw new Error('Nieznana kolekcja.')
-    const [{ wpisy, nieczytelne }, ust, etyk] = await Promise.all([wczytajZKontrola(kolekcja, korzen), ustawienia(korzen), etykietyWyborow(kolekcja)])
+    const [z, ust, etyk] = await Promise.all([wczytajZKontrola(kolekcja, korzen), ustawienia(korzen), etykietyWyborow(kolekcja)])
+    const wpisy = z.wpisy.filter((w) => !ukrytyKlucz(kolekcja, w.slug, u)), nieczytelne = z.nieczytelne.filter((w) => !ukrytyKlucz(kolekcja, w.slug, u))
     const kolumny = kolumnyWgUstawien(konfig, ust[kolekcja]?.kolumny)
     const potrzebne = [...konfig.kolumny.filter((k) => k.kolekcja).map((k) => k.kolekcja!), ...konfig.relacje.map((r) => r.kolekcja)]
-    const cele = await nazwyCelow(potrzebne, korzen)
+    const cele = await nazwyCelow(potrzebne, korzen, u)
     const mapy = Object.fromEntries(Object.entries(cele).map(([k, L]) => [k, new Map(L.map((x) => [x.slug, x.nazwa]))]))
     const bledy = new Map(nieczytelne.map((x) => [x.slug, x.blad]))
     const wiersze = wpisy.map((w) => ({
@@ -171,7 +174,7 @@ async function odwolania(slugi: string[], wlasna: string, korzen: string): Promi
     return n
 }
 
-async function przygotuj(kolekcja: string, slugi: string[], a: AkcjaZbiorcza, korzen: string) {
+async function przygotuj(kolekcja: string, slugi: string[], a: AkcjaZbiorcza, korzen: string, u: UkrytePozycje | null) {
     const konfig = LISTY[kolekcja]
     if (!konfig) throw new Error('Nieznana kolekcja.')
     if (!Array.isArray(slugi) || !slugi.length) throw new Error('Zaznacz co najmniej jedną pozycję.')
@@ -180,13 +183,14 @@ async function przygotuj(kolekcja: string, slugi: string[], a: AkcjaZbiorcza, ko
     if (a.rodzaj === 'widocznosc') {
         if (!konfig.widocznosc) throw new Error('Ta kolekcja nie ma ustawienia widoczności.')
         if (!(a.wartosc in WIDOCZNOSCI)) throw new Error('Niepoprawna widoczność.')
+        if (u && a.wartosc === 'ja') throw new Error('Widoczność „tylko ja” ustawia tylko administrator (przełącz rolę w menu pod swoim imieniem).')
         opisAkcji = `widoczność → ${WIDOCZNOSCI[a.wartosc]}`
     } else if (a.rodzaj === 'dodaj-relacje' || a.rodzaj === 'usun-relacje') {
         const r = konfig.relacje.find((x) => x.pole === a.pole)
         if (!r) throw new Error('Tego powiązania nie można zmieniać zbiorczo.')
         if (!SLUG.test(a.wartosc)) throw new Error('Niepoprawny identyfikator powiązania.')
         const cele = (await wczytajKolekcje(r.kolekcja, korzen)).wpisy
-        const c = cele.find((x) => x.slug === a.wartosc)
+        const c = cele.find((x) => x.slug === a.wartosc && !(u && ukrytyKlucz(r.kolekcja, x.slug, u)))
         if (!c && a.rodzaj === 'dodaj-relacje') throw new Error('Nie ma takiej pozycji do powiązania.')
         cel = String(c?.dane.title ?? a.wartosc)
         opisAkcji = `${a.rodzaj === 'dodaj-relacje' ? 'dopisz do' : 'usuń z'} „${r.etykieta}”: ${cel}`
@@ -199,7 +203,7 @@ async function przygotuj(kolekcja: string, slugi: string[], a: AkcjaZbiorcza, ko
     const pominiete: string[] = []
     for (const s of [...new Set(slugi.map(String))]) {
         const w = wgSlug.get(s)
-        if (!w || nieczyt.has(s)) { pominiete.push(s); continue }
+        if (!w || nieczyt.has(s) || (u && ukrytyKlucz(kolekcja, s, u))) { pominiete.push(s); continue }
         const po = zastosuj(w.dane, a)
         const wynik = serializuj(po, w.cialo)
         if (JSON.stringify(po) === JSON.stringify(w.dane)) { bezZmian++; continue }
@@ -208,8 +212,9 @@ async function przygotuj(kolekcja: string, slugi: string[], a: AkcjaZbiorcza, ko
     return { konfig, opisAkcji, cel, zmiany, bezZmian, pominiete }
 }
 
-export async function podgladZmiany(kolekcja: string, slugi: string[], a: AkcjaZbiorcza, korzen = process.cwd()): Promise<PodgladZmiany> {
-    const p = await przygotuj(kolekcja, slugi, a, korzen)
+/** `u` (P7c, KON-08) – konto bez roli administratora: bez pozycji „tylko ja” i bez ustawiania „tylko ja”. */
+export async function podgladZmiany(kolekcja: string, slugi: string[], a: AkcjaZbiorcza, korzen = process.cwd(), u: UkrytePozycje | null = null): Promise<PodgladZmiany> {
+    const p = await przygotuj(kolekcja, slugi, a, korzen, u)
     const skutek: string[] = []
     const strona = STRONA_PUBLICZNA[kolekcja]
     if (a.rodzaj === 'widocznosc') {
@@ -240,8 +245,8 @@ export async function podgladZmiany(kolekcja: string, slugi: string[], a: AkcjaZ
 }
 
 /** Zapis zmiany zbiorczej jako operacja. Kontrola po zapisie: każdy zmieniony wpis musi się wczytać czytnikiem Keystatic. */
-export async function zapiszZmiane(kolekcja: string, slugi: string[], a: AkcjaZbiorcza, korzen = process.cwd()) {
-    const p = await przygotuj(kolekcja, slugi, a, korzen)
+export async function zapiszZmiane(kolekcja: string, slugi: string[], a: AkcjaZbiorcza, korzen = process.cwd(), u: UkrytePozycje | null = null) {
+    const p = await przygotuj(kolekcja, slugi, a, korzen, u)
     if (!p.zmiany.length) return { id: null, zapisane: 0, bezZmian: p.bezZmian }
     const w = await wykonajOperacje({
         korzen, rodzaj: 'zbiorcza', opis: `${p.konfig.nazwa}: ${p.opisAkcji} (${p.zmiany.length})`,

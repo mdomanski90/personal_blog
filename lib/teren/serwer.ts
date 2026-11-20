@@ -5,7 +5,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { maTeren, planWTerenie, type Uprawnienie } from '../konta/model'
+import { maTeren, mozeTylkoJa, planWTerenie, type Uprawnienie } from '../konta/model'
 import { kontaWlaczone, zalogowany, type Zalogowany } from '../konta/straz'
 import { listaPlanow, poKolei, sciezkaPliku, wczytajPlan, wczytajUstawienia, zapiszPlan } from '../plany/dane'
 import { popraw, SLUG, type Plan, type Widocznosc } from '../plany/model'
@@ -45,7 +45,8 @@ export function osobaZKonta(z: Zalogowany): OsobaWTerenie {
     const u = z.uprawnienia as Set<Uprawnienie>
     return {
         id: z.konto.id, imie: z.konto.imie, pelne: u.has('plany'), plany: u.has('plany-teren'), miejsca: u.has('teren'), redakcja: u.has('miejsca'),
-        poziom: u.has('plany') ? 'ja' : u.has('bliscy') ? 'bliscy' : 'publiczne',
+        // P7c (KON-08): „tylko ja” tylko dla konta z rolą administratora (dział „plany” bez tej roli – jak „dla bliskich”)
+        poziom: u.has('plany') && mozeTylkoJa(z.konto) ? 'ja' : u.has('plany') || u.has('bliscy') ? 'bliscy' : 'publiczne',
         naPlanie: (slug) => planWTerenie(u, z.konto.zakres, slug),
     }
 }
@@ -136,10 +137,16 @@ export async function rozstrzygnijZmiane(slug: string, id: string, wybor: 'teren
     })
 }
 
+/**
+ * P7c (KON-08): plan „tylko ja” w terenie – niewidoczny dla konta z działem „plany” bez roli administratora (redaktor widzi wszystkie
+ * plany, więc nie dostał tego planu jawnie). Konto tylko terenowe pracuje na planach przydzielonych mu przez administratora – bez zmian.
+ */
+export const planUkrytyWTerenie = (o: Pick<OsobaWTerenie, 'pelne' | 'poziom'>, p: Pick<Plan, 'widocznosc'> | null) => o.pelne && o.poziom !== 'ja' && p?.widocznosc === 'ja'
+
 /** Plany, na których ta osoba pracuje w terenie. */
 export async function planyOsoby(o: OsobaWTerenie): Promise<Plan[]> {
     if (!o.plany) return []
-    return (await listaPlanow()).filter((p) => o.naPlanie(p.slug))
+    return (await listaPlanow()).filter((p) => o.naPlanie(p.slug) && !planUkrytyWTerenie(o, p))
 }
 
 /** Wpisy dzienników: własne (telefon) albo wszystkie (redakcja), od najnowszych. */

@@ -1,4 +1,5 @@
 import { brakDostepu } from '@/lib/plany/dane'
+import { poziomPanelu } from '@/lib/konta/straz'
 import { celeSieci, material } from '@/lib/archiwum'
 import { ID_MATERIALU, stronyMaterialu } from '@/lib/strony-materialow'
 import { objasnieniaMaterialu, poprawObjasnienie, zapiszObjasnienia, type Objasnienie } from '@/lib/objasnienia'
@@ -10,7 +11,8 @@ async function sprawdz(req: Request, params: Promise<{ id: string }>) {
     const b = brakDostepu(req); if (b) return { b }
     const { id } = await params
     if (!ID_MATERIALU.test(id)) return { b: Response.json({ blad: 'zły identyfikator' }, { status: 400 }) }
-    const m = await material(id, 'ja')
+    // P7c (KON-08): materiał „tylko ja” – tylko dla konta z rolą administratora
+    const m = await material(id, poziomPanelu(req))
     if (!m) return { b: Response.json({ blad: 'Nie ma takiego materiału.' }, { status: 404 }) }
     return { id, m }
 }
@@ -19,11 +21,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const r = await sprawdz(req, params); if (r.b) return r.b
     const id = r.id!
     const strony = stronyMaterialu(id).map((s) => ({ ...s, podglad: `/api/keystatic/materialy/${id}/strony?podglad=${encodeURIComponent(s.plik)}` }))
-    const cele = (await celeSieci('ja')).filter((c) => !(c.rodzaj === 'material' && c.id === id)).map((c) => ({ id: c.id, nazwa: c.nazwa, rodzaj: c.rodzaj }))
+    const cele = (await celeSieci(poziomPanelu(req))).filter((c) => !(c.rodzaj === 'material' && c.id === id)).map((c) => ({ id: c.id, nazwa: c.nazwa, rodzaj: c.rodzaj }))
     // PH-02: gdzie objaśnienia tego materiału są podstawą elementów planów (do pokazania przy objaśnieniu w panelu)
     const { listaPlanow } = await import('@/lib/plany/dane')
     const uzycia: Record<string, { slug: string; tytul: string; element: string }[]> = {}
-    for (const p of await listaPlanow()) for (const e of p.elementy) for (const q of e.podstawa ?? [])
+    const widzi = poziomPanelu(req) === 'ja'
+    for (const p of await listaPlanow()) if (widzi || p.widocznosc !== 'ja') for (const e of p.elementy) if (widzi || e.widocznosc !== 'ja') for (const q of e.podstawa ?? [])
         if (q.material === id && q.objasnienie) (uzycia[q.objasnienie] ??= []).push({ slug: p.slug, tytul: p.tytul, element: e.nazwa || e.nazwaZrodlowa || e.typ })
     return Response.json({ id, nazwa: r.m!.nazwa, widocznosc: r.m!.widocznosc, opracowal: r.m!.opracowal, strony, objasnienia: objasnieniaMaterialu(id), cele, uzycia })
 }

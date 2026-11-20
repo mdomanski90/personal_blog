@@ -8,6 +8,8 @@ import { zapiszOstatnie } from '@/lib/panel/praca';
 import { brakPrawaZapisu, komunikatPrawa } from '@/lib/panel/prawa-zapisu';
 import { kontaWlaczone, odmowaKonta, odpowiedzZamknietego, panelZamkniety, zalogowany } from '@/lib/konta/straz';
 import { odmowaZapisuTresci } from '@/lib/konta/zapis-tresci';
+import { widziTylkoJaZadanie } from '@/lib/konta/straz';
+import { ukrytaSciezka, ukrytePozycje, zapomnijUkryte } from '@/lib/konta/tylko-ja';
 
 const obsluga = makeRouteHandler({ config });
 
@@ -16,7 +18,28 @@ export async function GET(req: Request) {
     // KON-07: bez hasła nginx i bez kont ta trasa nie miałaby żadnej kontroli – wtedy panel jest zamknięty
     if (panelZamkniety()) return odpowiedzZamknietego();
     const odmowa = kontaWlaczone() ? odmowaKonta(req, ['panel']) : null;
-    return odmowa ?? obsluga.GET(req);
+    if (odmowa) return odmowa;
+    if (widziTylkoJaZadanie(req)) return obsluga.GET(req);
+    return odczytBezTylkoJa(req);
+}
+
+// P7c (KON-08): konto bez roli administratora nie dostaje pozycji „tylko ja” – lista plików (tree) bez nich i ich plików,
+// treść (blob/<sha>/<ścieżka>) – 404, jakby pliku nie było. Zapis takich pozycji i tak odrzuca ocenZapis (lib/konta/model.ts).
+async function odczytBezTylkoJa(req: Request): Promise<Response> {
+    const czesci = new URL(req.url).pathname.replace(/^\/api\/keystatic\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
+    const u = await ukrytePozycje();
+    if (czesci[0] === 'blob' && ukrytaSciezka(czesci.slice(2).join('/'), u)) return new Response('Not Found', { status: 404 });
+    const r = await obsluga.GET(req);
+    if (czesci.join('/') !== 'tree' || !r.ok) return r;
+    return bezUkrytychWDrzewie(r);
+}
+
+async function bezUkrytychWDrzewie(r: Response): Promise<Response> {
+    const u = await ukrytePozycje();
+    if (!u.sciezki.length) return r;
+    const wpisy = (await r.json()) as { path: string }[];
+    const h = new Headers(r.headers); h.delete('content-length');
+    return new Response(JSON.stringify(Array.isArray(wpisy) ? wpisy.filter((w) => !ukrytaSciezka(w.path, u)) : wpisy), { status: r.status, headers: h });
 }
 
 const tekst = (t: string, status: number) => new Response(t, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
@@ -54,8 +77,11 @@ export async function POST(req: Request) {
     }
     const r = await obsluga.POST(req);
     if (r.ok) {
+        zapomnijUkryte();
         await poZapisieTresci();
         if (zadanie) await zapiszOstatnie(zadanie.additions.map((a) => a.path).filter((x) => !zadanie.deletions.some((d) => d.path === x)), process.cwd(), pola).catch(() => {});
+        // P7c (KON-08): po zapisie Keystatic odsyła całą listę plików – bez pozycji „tylko ja” dla konta bez roli administratora
+        if (!widziTylkoJaZadanie(req)) return bezUkrytychWDrzewie(r);
     }
     return r;
 }

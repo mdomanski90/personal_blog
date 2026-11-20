@@ -26,8 +26,8 @@ export function skrot(s: StanOsob, o: Osoba, ostrz = 0): SkrotOsoby {
     }
 }
 
-export async function miejscaDoDopasowania() {
-    return (await wszystkieMiejsca('ja')).map((m) => ({ id: m.id, nazwa: m.nazwa, inneNazwy: m.inneNazwy }))
+export async function miejscaDoDopasowania(poziom: 'ja' | 'bliscy' = 'ja') {
+    return (await wszystkieMiejsca(poziom)).map((m) => ({ id: m.id, nazwa: m.nazwa, inneNazwy: m.inneNazwy }))
 }
 
 /** Ostrzeżenia osób; `zycie: false` – bez „czy żyje?” (edytor osoby liczy je sam, na bieżąco – PPL-11). */

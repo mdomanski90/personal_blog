@@ -4,21 +4,25 @@ import { rodzajPlanu } from '@/lib/plany/metadane'
 import { brakDostepu, listaPlanow, listaZgloszen, wczytajPlan, wczytajUstawienia, zapiszObraz, zapiszPlan } from '@/lib/plany/dane'
 import { nowyPlan, popraw, SLUG, type Plan } from '@/lib/plany/model'
 import { zNadaniemNumerow } from '@/lib/katalog/dane'
+import { poziomPanelu, widziTylkoJaZadanie } from '@/lib/konta/straz'
+import { BLAD_TYLKO_JA, planUkryty } from '@/lib/plany/tylko-ja'
 
 // Lista planów (z miejscami i obiektami do wyboru), nowy plan, import pliku planu (z osadzonym podkładem).
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
     const b = brakDostepu(req); if (b) return b
-    const plany = await listaPlanow()
+    // P7c (KON-08): konto bez roli administratora – bez planów i kart „tylko ja”
+    const poziom = poziomPanelu(req)
+    const plany = (await listaPlanow()).filter((p) => poziom === 'ja' || !planUkryty(p))
     return Response.json({
         plany: plany.map((p) => ({ slug: p.slug, tytul: p.tytul, rodzaj: rodzajPlanu(p), widocznosc: p.widocznosc, miejsce: p.miejsce, obiekt: p.obiekt, elementow: p.elementy.length, zmieniono: p.zmieniono })),
-        miejsca: (await miejsca('ja')).map((m) => ({ id: m.id, nazwa: m.nazwa })),
-        obiekty: (await obiekty('ja')).map((o) => ({ id: o.id, nazwa: o.nazwa, miejsce: o.miejsce })),
-        // PH1: materiały ze stronami skanu – źródło planu i podkład ze strony materiału (panel za hasłem: wszystkie poziomy)
-        materialy: (await materialy('ja')).map((m) => ({ id: m.id, nazwa: m.nazwa, strony: stronyMaterialu(m.id).map((x) => x.plik) })).filter((m) => m.strony.length),
+        miejsca: (await miejsca(poziom)).map((m) => ({ id: m.id, nazwa: m.nazwa })),
+        obiekty: (await obiekty(poziom)).map((o) => ({ id: o.id, nazwa: o.nazwa, miejsce: o.miejsce })),
+        // PH1: materiały ze stronami skanu – źródło planu i podkład ze strony materiału
+        materialy: (await materialy(poziom)).map((m) => ({ id: m.id, nazwa: m.nazwa, strony: stronyMaterialu(m.id).map((x) => x.plik) })).filter((m) => m.strony.length),
         // PH-09: karty do powiązań elementów (jak w panelu objaśnień)
-        cele: (await celeSieci('ja')).map((c) => ({ id: c.id, nazwa: c.nazwa, rodzaj: c.rodzaj })),
+        cele: (await celeSieci(poziom)).map((c) => ({ id: c.id, nazwa: c.nazwa, rodzaj: c.rodzaj })),
         zgloszenia: (await listaZgloszen()).length,
         ustawienia: await wczytajUstawienia(),
     })
@@ -35,6 +39,8 @@ async function zapiszPOST(req: Request) {
         if (!SLUG.test(slug)) return Response.json({ blad: 'Identyfikator: małe litery, cyfry i myślniki.' }, { status: 400 })
         if (await wczytajPlan(slug)) return Response.json({ blad: 'Plan o takim identyfikatorze już jest.' }, { status: 409 })
         const p = nowyPlan(slug, String(d.tytul || slug))
+        // P7c (KON-08): nowy plan zaczyna jako „tylko ja”; konto bez roli administratora by go od razu nie widziało – „dla bliskich”
+        if (!widziTylkoJaZadanie(req)) p.widocznosc = 'bliscy'
         if (typeof d.miejsce === 'string' && SLUG.test(d.miejsce)) p.miejsce = d.miejsce
         return Response.json(await zapiszPlan(p))
     }
@@ -42,9 +48,11 @@ async function zapiszPOST(req: Request) {
         const wej = d.plan as Plan & { podklady: (Plan['podklady'][number] & { dane?: string })[] }
         const slug = String(d.slug || wej.slug || '')
         if (!SLUG.test(slug)) return Response.json({ blad: 'Plik nie ma poprawnego identyfikatora planu.' }, { status: 400 })
-        if ((await wczytajPlan(slug)) && !d.nadpisz) return Response.json({ blad: `Plan „${slug}” już jest. Zaznacz „zastąp”, żeby go nadpisać.` }, { status: 409 })
+        const byl = await wczytajPlan(slug)
+        if (!widziTylkoJaZadanie(req) && (planUkryty(byl) || planUkryty(wej) || wej.elementy?.some((e) => e.widocznosc === 'ja'))) return Response.json({ blad: BLAD_TYLKO_JA }, { status: 403 })
+        if (byl && !d.nadpisz) return Response.json({ blad: `Plan „${slug}” już jest. Zaznacz „zastąp”, żeby go nadpisać.` }, { status: 409 })
         try {
-            return Response.json(await importuj(slug, wej))
+            return Response.json(await importuj(slug, widziTylkoJaZadanie(req) || wej.widocznosc ? wej : { ...wej, widocznosc: 'bliscy' }))
         } catch (e) {
             // np. brak uprawnień do zapisu w content/plany albo pliki-archiwum/plany
             const kod = (e as NodeJS.ErrnoException)?.code

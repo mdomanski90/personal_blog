@@ -1,6 +1,9 @@
 import { brakDostepu } from '@/lib/plany/dane'
 import { adresPanelu, dodajDoListy, usunZListy, wczytajPrace } from '@/lib/panel/praca'
 import { nazwaDlaAdresu } from '@/lib/panel/praca-nazwy'
+import { ukryjWPracy } from '@/lib/panel/dane'
+import { widziTylkoJaZadanie } from '@/lib/konta/straz'
+import { ukryteDla, ukrytyAdresPanelu } from '@/lib/konta/tylko-ja'
 
 // P6a (PNL-08): „wróć do pracy” – GET: ostatnio edytowane, przypięte, widoki list; POST {akcja:'dodaj'|'usun', lista, href, nazwa?}.
 export const dynamic = 'force-dynamic'
@@ -8,7 +11,8 @@ const BEZ_CACHE = { 'Cache-Control': 'private, no-store' }
 
 export async function GET(req: Request) {
     const b = brakDostepu(req); if (b) return b
-    return Response.json(await wczytajPrace(), { headers: BEZ_CACHE })
+    // P7c (KON-08): bez pozycji „tylko ja” dla konta bez roli administratora
+    return Response.json(ukryjWPracy(await wczytajPrace(), await ukryteDla(widziTylkoJaZadanie(req))), { headers: BEZ_CACHE })
 }
 
 export async function POST(req: Request) {
@@ -18,6 +22,7 @@ export async function POST(req: Request) {
     try {
         if (d.akcja === 'usun') return Response.json(await usunZListy(d.lista as 'przypiete', d.href), { headers: BEZ_CACHE })
         if (d.akcja === 'dodaj' && d.lista !== 'ostatnie') {
+            if (ukrytyAdresPanelu(String(d.href), await ukryteDla(widziTylkoJaZadanie(req)))) return Response.json({ blad: 'złe dane' }, { status: 400, headers: BEZ_CACHE })
             const nazwa = typeof d.nazwa === 'string' && d.nazwa.trim() ? d.nazwa : await nazwaDlaAdresu(d.href)
             const p = await dodajDoListy(d.lista as 'przypiete' | 'widoki', { href: d.href, nazwa })
             return p ? Response.json(p, { headers: BEZ_CACHE }) : Response.json({ blad: 'złe dane' }, { status: 400, headers: BEZ_CACHE })

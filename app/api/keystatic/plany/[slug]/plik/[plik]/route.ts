@@ -1,6 +1,7 @@
 import { brakDostepu, wczytajPlan, wczytajUstawienia } from '@/lib/plany/dane'
 import { wydajPlik } from '@/lib/plany/serwer'
-import { kontaWlaczone, zalogowany } from '@/lib/konta/straz'
+import { kontaWlaczone, widziTylkoJa, zalogowany } from '@/lib/konta/straz'
+import { planUkryty, plikiUkrytychElementow } from '@/lib/plany/tylko-ja'
 import { planDlaTerenu, plikiDlaTerenu } from '@/lib/teren/czynnosci'
 import { osobaZKonta } from '@/lib/teren/serwer'
 
@@ -15,6 +16,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     if (z && !z.uprawnienia.has('panel')) {
         const o = osobaZKonta(z), plan = o.naPlanie(slug) ? await wczytajPlan(slug) : null
         if (!plan || !plikiDlaTerenu(planDlaTerenu(plan, o.pelne, o.poziom, await wczytajUstawienia())).has(plik)) return Response.json({ blad: 'Brak dostępu do tego pliku.' }, { status: 403 })
+    }
+    // P7c (KON-08): panel bez roli administratora – bez plików planu „tylko ja” i zdjęć elementów „tylko ja”
+    if (z && z.uprawnienia.has('panel') && !widziTylkoJa(z)) {
+        const plan = await wczytajPlan(slug)
+        if (plan && (planUkryty(plan) || plikiUkrytychElementow(plan).has(plik))) return Response.json({ blad: 'Brak dostępu do tego pliku.' }, { status: 403 })
     }
     return wydajPlik(slug, plik, false)
 }

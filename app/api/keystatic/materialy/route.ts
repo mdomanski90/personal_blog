@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { brakDostepu } from '@/lib/plany/dane'
+import { poziomPanelu } from '@/lib/konta/straz'
 import { materialy } from '@/lib/archiwum'
 import { stronyMaterialu } from '@/lib/strony-materialow'
 import { RODZAJE_MATERIALOW } from '@/lib/materialy'
@@ -11,7 +12,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
     const b = brakDostepu(req); if (b) return b
-    const L = await materialy('ja')
+    const L = await materialy(poziomPanelu(req)) // P7c (KON-08): „tylko ja” – tylko dla roli administratora
     const kat = path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'materialy')
     const wyn = await Promise.all(L.map(async (m) => {
         const strony = stronyMaterialu(m.id)

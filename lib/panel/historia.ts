@@ -13,6 +13,7 @@ import { zapewnijKatalog, katalogKopii, BrakKataloguKopii } from './katalogi'
 import { ktoTeraz } from '../konta/straz'
 import { listaOperacji, wczytajManifest, wykonajOperacje, NAZWY_OPERACJI, type WynikOperacji } from './operacje'
 import { zmianyPol, type ZmianaPola } from './roznica-pol'
+import { ukrytaSciezka, widocznoscPliku, type UkrytePozycje } from '../konta/tylko-ja'
 
 /** Przechowywanie jak na planszy (PDF 18.11, funkcja 4): wszystkie wersje z ostatnich 30 dni, starsze – jedna na tydzień. */
 export const DNI_PELNEJ_HISTORII = 30
@@ -163,6 +164,19 @@ export async function listaKoszaTresci(korzen = process.cwd()): Promise<PozycjaK
         } catch { /* uszkodzona pozycja – zostaje na dysku, nie zgadujemy */ }
     }
     return wyn
+}
+
+/**
+ * P7c (KON-08): pozycja kosza „tylko ja” – usunięty plik treści miał widoczność „tylko ja” albo pliki należą do pozycji,
+ * która dziś jest „tylko ja” (np. zdjęcia). Takiej pozycji konto bez roli administratora nie widzi i nie przywraca.
+ */
+export async function pozycjaKoszaTylkoJa(m: PozycjaKoszaTresci, u: UkrytePozycje, korzen = process.cwd()): Promise<boolean> {
+    if (m.pliki.some((p) => ukrytaSciezka(p.sciezka, u))) return true
+    for (const [i, p] of m.pliki.entries()) {
+        if (!p.tekst) continue
+        try { if (widocznoscPliku(p.sciezka, await fs.readFile(path.join(katalogKopii(korzen, '_kosz'), m.id, 'pliki', String(i)), 'utf8')) === 'ja') return true } catch { /* brak kopii */ }
+    }
+    return false
 }
 
 /** Przywraca pozycję z kosza na dawne miejsce: teksty z content/ operacją (do cofnięcia), pliki binarne kopią; nic nie nadpisuje. */

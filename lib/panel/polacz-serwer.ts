@@ -10,8 +10,9 @@ import { polaczWTekscie, wzmiankiWTekscie, wzorcePozycji, type TekstDoPolaczenia
 
 export interface DanePolacz { wzmianki: Wzmianka[]; teksty: number }
 
-async function tekstyZDysku(korzen: string) {
-    const { pozycje, teksty } = await daneSieci('ja')
+// P7c (KON-08): poziom „bliscy” dla konta bez roli administratora – bez tekstów i celów „tylko ja”
+async function tekstyZDysku(korzen: string, poziom: 'ja' | 'bliscy') {
+    const { pozycje, teksty } = await daneSieci(poziom)
     const wyn: TekstDoPolaczenia[] = []
     for (const t of teksty) {
         const zawartosc = await fs.readFile(path.join(/*turbopackIgnore: true*/ korzen, t.plik), 'utf8').catch(() => null)
@@ -20,8 +21,8 @@ async function tekstyZDysku(korzen: string) {
     return { pozycje, teksty: wyn }
 }
 
-export async function wzmiankiDoPolaczenia(korzen = process.cwd()): Promise<DanePolacz> {
-    const { pozycje, teksty } = await tekstyZDysku(korzen)
+export async function wzmiankiDoPolaczenia(korzen = process.cwd(), poziom: 'ja' | 'bliscy' = 'ja'): Promise<DanePolacz> {
+    const { pozycje, teksty } = await tekstyZDysku(korzen, poziom)
     const rozwiaz = slownikOdnosnikow(pozycje)
     const wzorce = wzorcePozycji(pozycje)
     return { wzmianki: teksty.flatMap((t) => wzmiankiWTekscie(t, wzorce, rozwiaz)), teksty: teksty.length }
@@ -39,9 +40,9 @@ async function brakPrawKatalogow(korzen: string, pliki: string[]): Promise<BrakP
 }
 
 /** Zapisuje wybrane wzmianki jako odnośniki – jedna operacja (kopia „przed”, „cofnij”), kontrola czytnikiem Keystatic. */
-export async function zapiszPolaczenia(klucze: string[], korzen = process.cwd()) {
+export async function zapiszPolaczenia(klucze: string[], korzen = process.cwd(), poziom: 'ja' | 'bliscy' = 'ja') {
     const wybrane = new Set(klucze)
-    const { wzmianki } = await wzmiankiDoPolaczenia(korzen)
+    const { wzmianki } = await wzmiankiDoPolaczenia(korzen, poziom)
     const doZmiany = wzmianki.filter((w) => wybrane.has(w.klucz))
     if (doZmiany.length !== wybrane.size) throw new Error('Część zaznaczonych wzmianek już nie istnieje (tekst zmienił się od podglądu) – odśwież listę.')
     const poPlikach = new Map<string, Wzmianka[]>()

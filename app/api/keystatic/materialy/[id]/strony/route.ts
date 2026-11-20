@@ -3,6 +3,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import sharp from 'sharp'
 import { brakDostepu } from '@/lib/plany/dane'
+import { poziomPanelu } from '@/lib/konta/straz'
 import { material } from '@/lib/archiwum'
 import { ID_MATERIALU, NAZWA_STRONY, adresStrony, katalogStron, stronyMaterialu, zapiszStrony, type StronaMaterialu } from '@/lib/strony-materialow'
 
@@ -16,7 +17,8 @@ async function sprawdz(req: Request, params: Promise<{ id: string }>) {
     const b = brakDostepu(req); if (b) return { b }
     const { id } = await params
     if (!ID_MATERIALU.test(id)) return { b: Response.json({ blad: 'zły identyfikator' }, { status: 400 }) }
-    const m = await material(id, 'ja')
+    // P7c (KON-08): materiał „tylko ja” – tylko dla konta z rolą administratora
+    const m = await material(id, poziomPanelu(req))
     if (!m) return { b: Response.json({ blad: 'Nie ma takiego materiału – najpierw załóż go w Keystatic i zapisz.' }, { status: 404 }) }
     return { id, m }
 }

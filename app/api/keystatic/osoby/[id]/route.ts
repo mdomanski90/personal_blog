@@ -1,5 +1,7 @@
 import { brakDostepu } from '@/lib/plany/dane'
-import { odmowaOsobyZyjacej, widziZyjacych } from '@/lib/konta/zyjacy'
+import { odmowaOsobyZyjacej, osobaDostepna } from '@/lib/konta/zyjacy'
+import { widziTylkoJaZadanie } from '@/lib/konta/straz'
+import { BLAD_TYLKO_JA } from '@/lib/plany/tylko-ja'
 import { Konflikt, obrzadekZdarzenia, stanOsob, usunOsobe, zapiszOsobe } from '@/lib/osoby/dane'
 import { ID_OSOBY, poprawOsobe, rokUrodzenia, widocznoscOsoby, type Osoba } from '@/lib/osoby/model'
 import { ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
@@ -20,8 +22,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const o = s.drzewo.osoby.get(id)
     if (!o) return Response.json({ blad: 'Nie ma takiej osoby.' }, { status: 404 })
     const rel = s.relacje.get(id) ?? { rodzice: [], malzenstwa: [] }
-    const wszyscy = widziZyjacych(req)
-    const sk = (x?: string) => (x && s.drzewo.osoby.get(x) && (wszyscy || !s.zyje(x)) ? skrot(s, s.drzewo.osoby.get(x)!) : null)
+    // P7a: krewni żyjący – z uprawnieniem; P7c (KON-08): krewni „tylko ja” – z rolą administratora
+    const dostepna = osobaDostepna(req)
+    const sk = (x?: string) => (x && s.drzewo.osoby.get(x) && dostepna(s, x) ? skrot(s, s.drzewo.osoby.get(x)!) : null)
     const par = await parafie()
     const zWszystkich = [...o.zdarzenia, ...rel.malzenstwa.flatMap((f) => f.zdarzenia)]
     const zParafii = Object.fromEntries(zWszystkich.map((z) => [z.id, obrzadekZdarzenia({ ...z, obrzadek: undefined }, par)?.obrzadek ?? null]))
@@ -40,7 +43,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         wiek: s.lata.get(id) != null ? new Date().getFullYear() - s.lata.get(id)! : null,
         wiekSzacowany: rokUrodzenia(o) == null,
         zParafii,
-        wszystkie: [...s.drzewo.osoby.values()].map((x) => skrot(s, x)),
+        wszystkie: [...s.drzewo.osoby.values()].filter((x) => dostepna(s, x.id)).map((x) => skrot(s, x)),
     })
 }
 
@@ -54,6 +57,7 @@ async function zapiszPUT(req: Request, { params }: { params: Promise<{ id: strin
     if (!ID_OSOBY.test(id)) return Response.json({ blad: 'zły identyfikator' }, { status: 400 })
     const d = (await req.json().catch(() => null)) as { osoba?: Osoba } | null
     if (!d?.osoba) return Response.json({ blad: 'brak danych' }, { status: 400 })
+    if (d.osoba.widocznosc === 'ja' && !widziTylkoJaZadanie(req)) return Response.json({ blad: BLAD_TYLKO_JA }, { status: 403 })
     try {
         const o = await zapiszOsobe(poprawOsobe({ ...d.osoba, id }), d.osoba.wersja)
         await zapiszOstatniePozycje([{ href: `/keystatic/osoby/${id}`, nazwa: `osoba „${nazwaOsoby(o) || id}”`, rodzaj: 'osoba', ...(o.widocznosc !== 'ja' ? { strona: `/osoby/${id}` } : {}) }]).catch(() => {}) // P6a: „wróć do pracy”

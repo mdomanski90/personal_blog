@@ -15,6 +15,7 @@ import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { zapewnijKatalog } from './katalogi'
 import { ktoTeraz } from '../konta/straz'
+import { ukrytaSciezka, widocznoscPliku, type UkrytePozycje } from '../konta/tylko-ja'
 
 export type RodzajOperacji = 'import-ksiag' | 'import-drzewa' | 'zbiorcza' | 'odtworzenie' | 'przywrocenie' | 'polacz' | 'z-terenu'
 export const NAZWY_OPERACJI: Record<RodzajOperacji, string> = { 'import-ksiag': 'import ksiąg', 'import-drzewa': 'import drzewa (GEDCOM)', zbiorcza: 'zmiana zbiorcza', odtworzenie: 'odtworzenie z kopii', przywrocenie: 'przywrócenie wersji / z kosza', polacz: 'połącz wzmianki (odnośniki [[…]])', 'z-terenu': 'obiekt ze skrzynki „z terenu”' }
@@ -186,6 +187,22 @@ async function sprzataj(korzen: string) {
         if (m.stan === 'przygotowane') continue // przerwana – zostaje do decyzji
         await fs.rm(path.join(katOperacji(korzen), m.id), { recursive: true, force: true }).catch(() => {})
     }
+}
+
+/**
+ * P7c (KON-08): operacja dotyczy pozycji „tylko ja” – plik jest dziś „tylko ja” albo był nim przed lub po operacji (kopie).
+ * Takich operacji konto bez roli administratora nie widzi w historii operacji i nie cofa.
+ */
+export async function operacjaTylkoJa(m: Manifest, u: UkrytePozycje, korzen = process.cwd()): Promise<boolean> {
+    for (const z of m.zmiany) {
+        if (ukrytaSciezka(z.plik, u)) return true
+        for (const k of [z.przed, z.po]) {
+            if (!k) continue
+            const t = await czytaj(plikKopii(korzen, m.id, k)).catch(() => null)
+            if (t !== null && widocznoscPliku(z.plik, t) === 'ja') return true
+        }
+    }
+    return false
 }
 
 // ---------- operacja ----------

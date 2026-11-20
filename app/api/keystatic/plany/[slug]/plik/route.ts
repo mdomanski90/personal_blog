@@ -1,4 +1,6 @@
 import { brakDostepu, usunPlik, wczytajPlan, zapiszObraz } from '@/lib/plany/dane'
+import { widziTylkoJaZadanie } from '@/lib/konta/straz'
+import { planUkryty, plikiUkrytychElementow } from '@/lib/plany/tylko-ja'
 
 // Wgrywanie podkładu (duże obrazy zmniejszane do 6000 px) albo zdjęcia nagrobka (2400 px, bez danych EXIF).
 export const dynamic = 'force-dynamic'
@@ -7,7 +9,8 @@ type P = { params: Promise<{ slug: string }> }
 export async function POST(req: Request, { params }: P) {
     const b = brakDostepu(req); if (b) return b
     const slug = (await params).slug
-    if (!(await wczytajPlan(slug))) return Response.json({ blad: 'nie ma takiego planu' }, { status: 404 })
+    const plan = await wczytajPlan(slug)
+    if (!plan || (!widziTylkoJaZadanie(req) && planUkryty(plan))) return Response.json({ blad: 'nie ma takiego planu' }, { status: 404 })
     const f = await req.formData().catch(() => null)
     const plik = f?.get('plik'), rodzaj = f?.get('rodzaj') === 'zdjecie' ? 'zdjecie' : 'podklad'
     if (!(plik instanceof File)) return Response.json({ blad: 'brak pliku' }, { status: 400 })
@@ -23,6 +26,10 @@ export async function POST(req: Request, { params }: P) {
 export async function DELETE(req: Request, { params }: P) {
     const b = brakDostepu(req); if (b) return b
     const plik = new URL(req.url).searchParams.get('plik') ?? ''
+    if (!widziTylkoJaZadanie(req)) {
+        const plan = await wczytajPlan((await params).slug)
+        if (plan && (planUkryty(plan) || plikiUkrytychElementow(plan).has(plik))) return Response.json({ blad: 'nie ma takiego pliku' }, { status: 404 })
+    }
     await usunPlik((await params).slug, plik)
     return Response.json({ ok: true })
 }

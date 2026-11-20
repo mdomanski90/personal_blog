@@ -1,11 +1,13 @@
 // Panel administracyjny (/keystatic/panel): podsumowanie, wyszukiwarka, zgłoszenia, kosz, stan serwera.
 // Tylko odczyt plików strony i drobne zapisy w content/ (stan zgłoszeń, przywracanie z kosza).
+// P7c (KON-08): funkcje odczytu przyjmują `widzi` (konto widzi „tylko ja” – lib/konta/straz.ts widziTylkoJa); bez tego
+// pozycje „tylko ja” (treści, plany, elementy planów, osoby, kosz) nie trafiają do wyniku ani do liczników (zasada 1.6).
 import { wczytajZnacznik } from './kopia'
 import { brakujaceKatalogi } from './katalogi'
 import { LISTY } from './listy-konfig'
 import { wczytajKolekcje } from './listy'
-import { wczytajPrace } from './praca'
-import { doKosza, listaKoszaTresci, przywrocZKoszaTresci, usunZKoszaTresci } from './historia'
+import { wczytajPrace, type Praca, type PozycjaPracy } from './praca'
+import { doKosza, listaKoszaTresci, pozycjaKoszaTylkoJa, przywrocZKoszaTresci, usunZKoszaTresci } from './historia'
 import { kontrolaCzytnikiem } from './historia-adresy'
 import { stronaZAdresuKeystatic } from './menu'
 import type { RodzajKat } from '../katalog/model'
@@ -24,6 +26,7 @@ import { ostrzezeniaWgOsob } from '../osoby/serwer'
 import { listaZgloszenStrony, RODZAJE_ZGLOSZEN, type ZgloszenieStrony } from '../zgloszenia'
 import { etykietaBraku } from '../wspoltworz-reguly'
 import { logowanieWlaczone } from '../sesja'
+import { ukryteDla, ukrytaSciezka, ukrytyAdresPanelu, ukrytyKlucz, widocznoscPliku, type UkrytePozycje } from '../konta/tylko-ja'
 
 const CONTENT = () => path.join(process.cwd(), 'content')
 const ID_ZGL = /^\d+-[0-9a-f]+$/
@@ -78,8 +81,11 @@ export interface ZgloszeniePanelu {
 
 const czeka = (s: StanZgloszenia) => s === 'nowe' || s === 'odlozone'
 
-export async function zgloszeniaPanelu(): Promise<ZgloszeniePanelu[]> {
-    const [s, p, plany] = await Promise.all([listaZgloszenStrony(), listaZgloszen(), listaPlanow()])
+export async function zgloszeniaPanelu(widzi = true): Promise<ZgloszeniePanelu[]> {
+    const [s0, p0, plany, u] = await Promise.all([listaZgloszenStrony(), listaZgloszen(), listaPlanow(), ukryteDla(widzi)])
+    const ukryteEl = new Set(widzi ? [] : plany.flatMap((x) => x.elementy.filter((e) => e.widocznosc === 'ja').map((e) => `${x.slug}/${e.id}`)))
+    const s = (s0 as ZgloszenieStrony[]).filter((z) => !z.adres || !ukrytyAdresPanelu(doPoprawy(z.adres), u))
+    const p = (p0 as Zgloszenie[]).filter((z) => !ukrytyKlucz('plany', z.plan, u) && !ukryteEl.has(`${z.plan}/${z.element}`))
     const tytulPlanu = new Map(plany.map((x) => [x.slug, x]))
     const zS = (s as (ZgloszenieStrony & Dopiski)[]).map((z): ZgloszeniePanelu => ({
         id: z.id, zrodlo: 'strona', rodzaj: RODZAJE_ZGLOSZEN[z.rodzaj] ?? z.rodzaj, tytul: z.tytul || z.adres, adres: z.adres || null,
@@ -95,6 +101,11 @@ export async function zgloszeniaPanelu(): Promise<ZgloszeniePanelu[]> {
         }
     })
     return [...zS, ...zP].sort((a, b) => b.data.localeCompare(a.data))
+}
+
+/** P7c (KON-08): czy zgłoszenie jest dla tego konta (zgłoszenia o pozycjach „tylko ja” – tylko dla roli administratora). */
+export async function zgloszenieWidoczne(zrodlo: string, id: string, widzi: boolean): Promise<boolean> {
+    return widzi || (await zgloszeniaPanelu(false)).some((z) => z.zrodlo === zrodlo && z.id === id)
 }
 
 const plikZgloszenia = (zrodlo: string, id: string) => {
@@ -134,11 +145,11 @@ export interface PostepPlanu {
     grobow: number; sprawdzone: number; zNapisem: number; zeZdjeciem: number
 }
 
-export async function postepPlanow(): Promise<PostepPlanu[]> {
+export async function postepPlanow(widzi = true): Promise<PostepPlanu[]> {
     const [plany, ust] = await Promise.all([listaPlanow(), wczytajUstawienia()])
     const typy = katalog(ust)
-    return plany.map((p) => {
-        const g = p.elementy.filter((e) => typGrobu(typy.get(e.typ)))
+    return plany.filter((p) => widzi || p.widocznosc !== 'ja').map((p) => {
+        const g = p.elementy.filter((e) => typGrobu(typy.get(e.typ)) && (widzi || e.widocznosc !== 'ja'))
         return {
             slug: p.slug, tytul: p.tytul, widocznosc: p.widocznosc, zmieniono: p.zmieniono, geo: p.geo.length, grobow: g.length,
             sprawdzone: g.filter((e) => etapElementu(e) === 'sprawdzony').length,
@@ -150,8 +161,9 @@ export async function postepPlanow(): Promise<PostepPlanu[]> {
 
 // ---------- treści ----------
 type Poz = { id: string; nazwa: string; widocznosc: string }
-async function tresci() {
-    const [w, m, t, o, mat, h, k, p] = await Promise.all([opowiesci('ja'), miejsca('ja'), tematy('ja'), obiekty('ja'), materialy('ja'), hasla('ja'), ksiegi('ja'), parafie()])
+async function tresci(widzi = true) {
+    const poz = widzi ? 'ja' : 'bliscy'
+    const [w, m, t, o, mat, h, k, p] = await Promise.all([opowiesci(poz), miejsca(poz), tematy(poz), obiekty(poz), materialy(poz), hasla(poz), ksiegi(poz), parafie()])
     const z = (L: { id: string; nazwa?: string; tytul?: string; haslo?: string; widocznosc?: string }[]): Poz[] => L.map((x) => ({ id: x.id, nazwa: x.nazwa ?? x.tytul ?? x.haslo ?? x.id, widocznosc: x.widocznosc ?? 'publiczne' }))
     return {
         posts: { nazwa: 'wpisy', L: z(w) }, miejsca: { nazwa: 'miejsca', L: z(m) }, tematy: { nazwa: 'tematy', L: z(t) }, obiekty: { nazwa: 'obiekty', L: z(o) },
@@ -237,8 +249,9 @@ export async function stanSerwera(): Promise<StanSerwera> {
 }
 
 // ---------- podsumowanie na pulpit ----------
-export async function podsumowanie() {
-    const [zg, plany, tr, s, imp, serwer] = await Promise.all([zgloszeniaPanelu(), postepPlanow(), tresci(), stanOsob(), sladImportu(), stanSerwera()])
+export async function podsumowanie(widzi = true) {
+    const [zg, plany, tr, s, imp, serwer, u] = await Promise.all([zgloszeniaPanelu(widzi), postepPlanow(widzi), tresci(widzi), stanOsob(), sladImportu(), stanSerwera(), ukryteDla(widzi)])
+    const osobaWidoczna = (id: string) => widzi || s.widocznosc(id) !== 'ja'
     const osobyUwagi = ostrzezeniaWgOsob(s)
 
     const nazwy = new Map<string, Zmiana['opis']>()
@@ -252,6 +265,7 @@ export async function podsumowanie() {
     for (const f of pliki) {
         if (zmiany.length >= 10) break
         const rel = path.relative(CONTENT(), f.p).split(path.sep)
+        if (ukrytaSciezka(rel.join('/'), u)) continue
         let opis = rel.join('/'), href: string | null = null, klucz = opis
         const stem = (x: string) => x.replace(/\.(mdoc|md|json|yaml)$/, '')
         if (rel[0] === 'plany' && rel.length === 2 && rel[1].endsWith('.json') && !rel[1].startsWith('_')) { const sl = stem(rel[1]); opis = `plan „${planyM.get(sl) ?? sl}”`; href = KS.plan(sl) }
@@ -268,12 +282,13 @@ export async function podsumowanie() {
 
     const szkice = Object.entries(tr).map(([k, v]) => ({ k, nazwa: v.nazwa, n: v.L.filter((x) => x.widocznosc === 'ja').length })).filter((x) => x.n)
     // P6a (ADM-11): szkice ze wszystkich kolekcji z widocznością (dawniej 8 – bez zbiorów i publikacji; biogramy i zespoły nie mają widoczności)
-    for (const k of Object.keys(LISTY).filter((x) => LISTY[x].widocznosc && !(x in tr))) {
+    for (const k of Object.keys(LISTY).filter((x) => widzi && LISTY[x].widocznosc && !(x in tr))) {
         const n = (await wczytajKolekcje(k).catch(() => ({ wpisy: [] }))).wpisy.filter((w) => w.dane.visibility === 'ja').length
         if (n) szkice.push({ k, nazwa: LISTY[k].nazwa, n })
     }
     const planySzkice = plany.filter((p) => p.widocznosc === 'ja').length
-    const oProjekcieSzkic = await istnieje(path.join(CONTENT(), 'o-projekcie.szkic.mdoc'))
+    const oProjekcieSzkic = widzi && await istnieje(path.join(CONTENT(), 'o-projekcie.szkic.mdoc'))
+    const osobyW = [...s.drzewo.osoby.keys()].filter(osobaWidoczna)
 
     const uwagi: { tekst: string; ostrz: boolean; href: string }[] = []
     const dniOdKopii = serwer.kopia ? (Date.now() - Date.parse(serwer.kopia)) / 864e5 : Infinity
@@ -288,13 +303,13 @@ export async function podsumowanie() {
     return {
         zgloszenia: { czeka: zg.filter((z) => czeka(z.stan)).length, nowe: zg.filter((z) => z.stan === 'nowe').length },
         plany,
-        osoby: { liczba: s.drzewo.osoby.size, doSprawdzenia: osobyUwagi.size, zyjace: [...s.drzewo.osoby.keys()].filter((id) => s.zyje(id)).length, import: imp ? { data: imp.data } : null },
+        osoby: { liczba: osobyW.length, doSprawdzenia: [...osobyUwagi.keys()].filter(osobaWidoczna).length, zyjace: osobyW.filter((id) => s.zyje(id)).length, import: imp ? { data: imp.data } : null },
         tresci: Object.fromEntries(Object.entries(tr).map(([k, v]) => [k, { nazwa: v.nazwa, n: v.L.length, szkice: v.L.filter((x) => x.widocznosc === 'ja').length }])),
         szkice: { pierwsza: szkice[0]?.k, razem: szkice.reduce((a, x) => a + x.n, 0) + planySzkice + (oProjekcieSzkic ? 1 : 0), lista: [...szkice.map((x) => `${x.nazwa} ${x.n}`), ...(planySzkice ? [`plany ${planySzkice}`] : []), ...(oProjekcieSzkic ? ['„o projekcie”'] : [])] },
         oProjekcieSzkic,
         zmiany,
         uwagi,
-        praca: await pracaZOpisem(),
+        praca: await pracaZOpisem(u),
         serwer: { commit: serwer.commit, zbudowano: serwer.zbudowano },
     }
 }
@@ -302,7 +317,7 @@ export async function podsumowanie() {
 // ---------- „wróć do pracy” wg planszy: rodzaj przypiętych i liczba pozycji zapisanego widoku ----------
 const RODZAJ_ADRESU: [RegExp, string][] = [[/^\/keystatic\/osoby\//, 'osoba'], [/^\/keystatic\/plany\//, 'plan'], [/^\/keystatic\/singleton\//, 'ustawienie']]
 /** Liczba pozycji listy panelu dla adresu widoku (?q=…&f.<pole>=…) – te same reguły co filtr listy (lista/[kolekcja]/page.tsx). */
-export async function liczbaWidoku(href: string): Promise<number | null> {
+export async function liczbaWidoku(href: string, u?: UkrytePozycje): Promise<number | null> {
     const m = /^\/keystatic\/panel\/lista\/([\w-]+)(?:\?(.*))?$/.exec(href)
     if (!m || !LISTY[m[1]]) return null
     const q = new URLSearchParams(m[2] ?? '')
@@ -312,6 +327,7 @@ export async function liczbaWidoku(href: string): Promise<number | null> {
     if (q.get('f.title') === '__nieczytelne') return nieczytelne.length
     const t = norm(q.get('q') ?? '')
     return wpisy.filter((w) => {
+        if (u && ukrytyKlucz(m[1], w.slug, u)) return false
         if (t && !norm(`${w.slug} ${Object.values(w.dane).map((v) => lista(v).join(' ')).join(' ')}`).includes(t)) return false
         for (const [k, v] of q) {
             if (!k.startsWith('f.') || !v) continue
@@ -321,14 +337,21 @@ export async function liczbaWidoku(href: string): Promise<number | null> {
         return true
     }).length
 }
-async function pracaZOpisem() {
-    const p = await wczytajPrace()
+async function pracaZOpisem(u?: UkrytePozycje) {
+    const p0 = await wczytajPrace()
+    const p = u ? ukryjWPracy(p0, u) : p0
     const rodzaj = (h: string) => RODZAJ_ADRESU.find(([r]) => r.test(h))?.[1] ?? ETYKIETY[/\/collection\/([\w-]+)\//.exec(h)?.[1] ?? ''] ?? ''
     return {
         ...p,
         przypiete: p.przypiete.map((x) => ({ ...x, rodzaj: x.rodzaj ?? rodzaj(x.href) })),
-        widoki: await Promise.all(p.widoki.map(async (x) => ({ ...x, liczba: await liczbaWidoku(x.href) }))),
+        widoki: await Promise.all(p.widoki.map(async (x) => ({ ...x, liczba: await liczbaWidoku(x.href, u) }))),
     }
+}
+/** P7c (KON-08): „wróć do pracy” bez pozycji „tylko ja” (przypięte, ostatnie) – wspólne z trasą panel/praca. */
+export function ukryjWPracy(p: Praca, u: UkrytePozycje): Praca {
+    if (!u.klucze.size) return p
+    const f = (L: PozycjaPracy[]) => L.filter((x) => !ukrytyAdresPanelu(x.href, u))
+    return { ...p, ostatnie: f(p.ostatnie), przypiete: f(p.przypiete), widoki: f(p.widoki) }
 }
 
 // ---------- wyszukiwarka panelu / paleta Ctrl+K (P6a, PNL-07) ----------
@@ -339,8 +362,9 @@ export interface PozycjaIndeksu { t: string; typ: string; href: string; d?: stri
 const RODZAJ_KAT: Record<string, RodzajKat> = { posts: 'wpis', miejsca: 'miejsce', obiekty: 'obiekt', tematy: 'temat', materialy: 'material', parafie: 'instytucja', zbiory: 'zbior', publikacje: 'publikacja' }
 const ETYKIETY: Record<string, string> = { posts: 'wpis', miejsca: 'miejsce', tematy: 'temat', obiekty: 'obiekt', materialy: 'materiał', ksiegi: 'księga', parafie: 'instytucja', hasla: 'hasło', zbiory: 'zbiór', publikacje: 'publikacja', biogramy: 'biogram', zespoly: 'zespół' }
 
-export async function indeksPanelu(): Promise<PozycjaIndeksu[]> {
-    const [tr, plany, s, zg] = await Promise.all([tresci(), listaPlanow(), stanOsob(), zgloszeniaPanelu()])
+export async function indeksPanelu(widzi = true): Promise<PozycjaIndeksu[]> {
+    const [tr, plany0, s, zg] = await Promise.all([tresci(widzi), listaPlanow(), stanOsob(), zgloszeniaPanelu(widzi)])
+    const plany = plany0.filter((p) => widzi || p.widocznosc !== 'ja')
     const wyn: PozycjaIndeksu[] = []
     const dodajTresc = (k: string, x: Poz) => {
         const href = k === 'posts' ? KS.wpis(x.id) : KS.kolekcja(k, x.id)
@@ -352,13 +376,14 @@ export async function indeksPanelu(): Promise<PozycjaIndeksu[]> {
     // kolekcje spoza tresci(): zbiory, publikacje, biogramy, zespoły (odczyt plików jak lista panelu)
     for (const k of ['zbiory', 'publikacje', 'biogramy', 'zespoly']) {
         for (const w of (await wczytajKolekcje(k).catch(() => ({ wpisy: [] as { slug: string; dane: Record<string, unknown> }[] }))).wpisy)
-            dodajTresc(k, { id: w.slug, nazwa: tytulWpisu(w.dane.title) || w.slug, widocznosc: String(w.dane.visibility ?? 'publiczne') })
+            if (widzi || w.dane.visibility !== 'ja') dodajTresc(k, { id: w.slug, nazwa: tytulWpisu(w.dane.title) || w.slug, widocznosc: String(w.dane.visibility ?? 'publiczne') })
     }
     for (const p of plany) {
         const nr = numerKat('plan', p.slug) ?? undefined
         wyn.push({ t: p.tytul, typ: 'plan', href: KS.plan(p.slug), grupa: 'plany', d: p.widocznosc === 'ja' ? 'szkic' : undefined, ...(p.widocznosc !== 'ja' ? { strona: `/plany/${p.slug}` } : {}), ...(nr ? { nr } : {}) })
     }
     for (const o of s.drzewo.osoby.values()) {
+        if (!widzi && s.widocznosc(o.id) === 'ja') continue
         const nr = numerKat('osoba', o.id) ?? undefined
         const lata = lataZycia(o)
         wyn.push({ t: nazwaOsoby(o), typ: 'osoba', href: KS.osoba(o.id), grupa: 'osoby', d: lata ? `ok. ${lata}` : s.lata.get(o.id) ? `ok. ${s.lata.get(o.id)}` : undefined, ...(s.widocznosc(o.id) !== 'ja' ? { strona: `/osoby/${o.id}` } : {}), ...(nr ? { nr } : {}) })
@@ -381,11 +406,14 @@ export interface PozycjaKosza { rodzaj: 'plan' | 'osoba' | 'rodzina' | 'import' 
 const KOSZE = { plan: () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'plany', '_kosz'), osoby: () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'osoby', '_kosz') }
 const PLIK_KOSZA = /^[\w.-]+-\d{12,}\.json$/
 
-export async function kosz(): Promise<PozycjaKosza[]> {
+export async function kosz(widzi = true): Promise<PozycjaKosza[]> {
     const wyn: PozycjaKosza[] = []
+    const u = await ukryteDla(widzi)
+    const ukrytyJson = async (plik: string) => !widzi && widocznoscPliku(plik, await fs.promises.readFile(plik, 'utf8').catch(() => '')) === 'ja'
     const czytaj = async (kat: string) => { try { return await fs.promises.readdir(kat, { withFileTypes: true }) } catch { return [] } }
     for (const w of await czytaj(KOSZE.plan())) {
         if (!w.isFile() || !PLIK_KOSZA.test(w.name)) continue
+        if (await ukrytyJson(path.join(/*turbopackIgnore: true*/ KOSZE.plan(), w.name))) continue
         let nazwa = w.name.replace(/-\d+\.json$/, '')
         try { nazwa = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KOSZE.plan(), w.name), 'utf8')).tytul || nazwa } catch { /* nic */ }
         wyn.push({ rodzaj: 'plan', plik: w.name, nazwa, czas: new Date(+w.name.match(/-(\d+)\.json$/)![1]).toISOString() })
@@ -394,6 +422,7 @@ export async function kosz(): Promise<PozycjaKosza[]> {
         if (w.isDirectory() && w.name.startsWith('przed-importem-')) { wyn.push({ rodzaj: 'import', plik: w.name, nazwa: 'drzewo sprzed ponownego importu', czas: new Date(+w.name.slice(15)).toISOString() }); continue }
         if (!w.isFile() || !PLIK_KOSZA.test(w.name)) continue
         const czas = new Date(+w.name.match(/-(\d+)\.json$/)![1]).toISOString()
+        if (!w.name.startsWith('rodzina-') && await ukrytyJson(path.join(/*turbopackIgnore: true*/ KOSZE.osoby(), w.name))) continue
         if (w.name.startsWith('rodzina-')) { wyn.push({ rodzaj: 'rodzina', plik: w.name, nazwa: w.name.replace(/^rodzina-|-\d+\.json$/g, ''), czas }); continue }
         let nazwa = w.name.replace(/-\d+\.json$/, '')
         try { const o = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KOSZE.osoby(), w.name), 'utf8')); nazwa = nazwaOsoby(o) || nazwa } catch { /* nic */ }
@@ -401,13 +430,18 @@ export async function kosz(): Promise<PozycjaKosza[]> {
     }
     // podkłady i zdjęcia planów (30 dni, potem znikają same)
     await wyczyscKoszPlikow()
-    for (const k of await listaKoszaPlikow()) wyn.push({ rodzaj: 'plik', plik: k.nazwa, nazwa: `${k.slug}: ${k.plik}`, czas: k.czas })
+    for (const k of await listaKoszaPlikow()) if (!ukrytyKlucz('plany', k.slug, u)) wyn.push({ rodzaj: 'plik', plik: k.nazwa, nazwa: `${k.slug}: ${k.plik}`, czas: k.czas })
     // P6a (PNL-10): treści usunięte w Keystatic i usunięte zgłoszenia (content/_kosz)
-    for (const k of await listaKoszaTresci()) wyn.push({ rodzaj: 'tresc', plik: k.id, nazwa: k.opis + (k.pliki.length > 1 ? ` (${k.pliki.length} pliki)` : ''), czas: k.czas, wygasa: k.wygasa })
+    for (const k of await listaKoszaTresci()) if (widzi || !(await pozycjaKoszaTylkoJa(k, u))) wyn.push({ rodzaj: 'tresc', plik: k.id, nazwa: k.opis + (k.pliki.length > 1 ? ` (${k.pliki.length} pliki)` : ''), czas: k.czas, wygasa: k.wygasa })
     return wyn.sort((a, b) => b.czas.localeCompare(a.czas))
 }
 
 /** Przywraca plik z kosza na dawne miejsce (tylko gdy tam nic nie ma). */
+/** P7c (KON-08): czy pozycja kosza jest dla tego konta (konto bez roli administratora nie rusza pozycji „tylko ja”). */
+export async function pozycjaKoszaWidoczna(rodzaj: string, plik: string, widzi: boolean): Promise<boolean> {
+    return widzi || (await kosz(false)).some((k) => k.rodzaj === rodzaj && k.plik === plik)
+}
+
 export async function przywrocZKosza(rodzaj: string, plik: string): Promise<string | null> {
     if (rodzaj === 'plik') return przywrocPlikZKosza(plik)
     if (rodzaj === 'tresc') {

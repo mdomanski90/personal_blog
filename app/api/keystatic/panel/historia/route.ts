@@ -1,6 +1,7 @@
 import { brakDostepu } from '@/lib/plany/dane'
-import { imieKonta } from '@/lib/konta/straz'
-import { koszRodzaju, osHistorii, przywrocSprzedOperacji, przywrocWersje, relTresci, trescBiezaca } from '@/lib/panel/historia'
+import { imieKonta, widziTylkoJaZadanie } from '@/lib/konta/straz'
+import { ukryteDla, ukrytaSciezka } from '@/lib/konta/tylko-ja'
+import { koszRodzaju, osHistorii, pozycjaKoszaTylkoJa, przywrocSprzedOperacji, przywrocWersje, relTresci, trescBiezaca } from '@/lib/panel/historia'
 import { etykietyPol, kontrolaCzytnikiem, opisPlikuZTytulem, plikDlaAdresu } from '@/lib/panel/historia-adresy'
 import { poZapisieTresci } from '@/lib/katalog/dane'
 
@@ -19,7 +20,11 @@ export async function GET(req: Request) {
     const b = brakDostepu(req); if (b) return b
     const plik = plikZ(new URL(req.url).searchParams)
     if (!plik) return Response.json({ blad: 'Historia dotyczy wpisów i ustawień Keystatic.' }, { status: 404, headers: BEZ_CACHE })
-    const [o, wpisy, kosz, teraz] = await Promise.all([opisPlikuZTytulem(process.cwd(), plik), osHistorii(plik, etykietyPol(plik)), koszRodzaju(plik), trescBiezaca(plik)])
+    // P7c (KON-08): historia i kosz pozycji „tylko ja” – tylko dla konta z rolą administratora
+    const u = await ukryteDla(widziTylkoJaZadanie(req))
+    if (ukrytaSciezka(plik, u)) return Response.json({ blad: 'Historia dotyczy wpisów i ustawień Keystatic.' }, { status: 404, headers: BEZ_CACHE })
+    const [o, wpisy, kosz0, teraz] = await Promise.all([opisPlikuZTytulem(process.cwd(), plik), osHistorii(plik, etykietyPol(plik)), koszRodzaju(plik), trescBiezaca(plik)])
+    const kosz = u.klucze.size || !widziTylkoJaZadanie(req) ? (await Promise.all(kosz0.map(async (k) => ((await pozycjaKoszaTylkoJa(k, u)) ? null : k)))).filter((k) => k !== null) : kosz0
     return Response.json({ plik, nazwa: o.nazwa, edycja: o.edycja, istnieje: teraz !== null, wpisy: wpisy.map((w) => ({ ...w, kto: imieKonta(w.kto) ?? undefined })), kosz }, { headers: BEZ_CACHE })
 }
 
@@ -28,6 +33,7 @@ export async function POST(req: Request) {
     const d = (await req.json().catch(() => null)) as { plik?: unknown; wersja?: unknown; operacja?: unknown } | null
     if (typeof d?.plik !== 'string' || !relTresci(`content/${d.plik}`) || (typeof d.wersja !== 'string' && typeof d.operacja !== 'string'))
         return Response.json({ blad: 'złe dane' }, { status: 400, headers: BEZ_CACHE })
+    if (ukrytaSciezka(d.plik, await ukryteDla(widziTylkoJaZadanie(req)))) return Response.json({ blad: 'złe dane' }, { status: 400, headers: BEZ_CACHE })
     try {
         const sprawdz = kontrolaCzytnikiem(process.cwd(), [d.plik])
         const w = typeof d.wersja === 'string' ? await przywrocWersje(d.plik, d.wersja, { sprawdz }) : await przywrocSprzedOperacji(d.plik, d.operacja as string, { sprawdz })

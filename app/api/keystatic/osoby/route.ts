@@ -1,6 +1,7 @@
 import { brakDostepu } from '@/lib/plany/dane'
+import { poziomPanelu } from '@/lib/konta/straz'
 import { brakUprawnienia } from '@/lib/konta/straz'
-import { widziZyjacych } from '@/lib/konta/zyjacy'
+import { osobaDostepna, widziZyjacych } from '@/lib/konta/zyjacy'
 import { importujGedcom } from '@/lib/osoby/gedcom'
 import { idOsobRecznych, sladImportu, stanOsob, zapiszImport, zapiszOsobe } from '@/lib/osoby/dane'
 import { polacz } from '@/lib/osoby/relacje'
@@ -20,14 +21,15 @@ export async function GET(req: Request) {
     const ostrz = ostrzezeniaWgOsob(s)
     // P7a (KON-01): bez uprawnienia „dane osób żyjących” lista i ostrzeżenia nie zawierają osób żyjących
     const wszyscy = widziZyjacych(req)
-    const osoby = [...s.drzewo.osoby.values()].filter((o) => wszyscy || !s.zyje(o.id)).map((o) => skrot(s, o, ostrz.get(o.id)?.length ?? 0))
+    const dostepna = osobaDostepna(req) // P7c (KON-08): także bez osób „tylko ja” dla konta bez roli administratora
+    const osoby = [...s.drzewo.osoby.values()].filter((o) => dostepna(s, o.id)).map((o) => skrot(s, o, ostrz.get(o.id)?.length ?? 0))
         .sort((a, b) => porownajPl(a.nazwisko, b.nazwisko) || porownajPl(a.imiona, b.imiona))
     return Response.json({
         osoby,
         import: await sladImportu(),
-        doSprawdzeniaZycia: wszyscy ? doSprawdzeniaZycia(s) : [],
-        ostrzezenia: [...ostrz].filter(([id]) => wszyscy || !s.zyje(id)).flatMap(([id, t]) => t.map((tekst) => ({ osoba: id, tekst }))).slice(0, 300),
-        miejsca: (await miejscaDoDopasowania()).map((m) => ({ id: m.id, nazwa: m.nazwa })),
+        doSprawdzeniaZycia: wszyscy ? doSprawdzeniaZycia(s).filter((x) => dostepna(s, x.id)) : [],
+        ostrzezenia: [...ostrz].filter(([id]) => dostepna(s, id)).flatMap(([id, t]) => t.map((tekst) => ({ osoba: id, tekst }))).slice(0, 300),
+        miejsca: (await miejscaDoDopasowania(poziomPanelu(req))).map((m) => ({ id: m.id, nazwa: m.nazwa })),
     })
 }
 
@@ -63,7 +65,8 @@ async function zapiszPOST(req: Request) {
         // szybkie oznaczenie z listy „czy jeszcze żyją?”: nie żyje / żyje (lista zawiera wtedy tylko osoby „tak” 105+)
         if (d?.akcja === 'zyje') {
             const s = await stanOsob()
-            const ids: string[] = (Array.isArray(d.ids) ? d.ids : [d.id]).map(String).filter((x: string) => ID_OSOBY.test(x) && s.drzewo.osoby.has(x)).slice(0, 2000)
+            const dostepna = osobaDostepna(req)
+            const ids: string[] = (Array.isArray(d.ids) ? d.ids : [d.id]).map(String).filter((x: string) => ID_OSOBY.test(x) && s.drzewo.osoby.has(x) && dostepna(s, x)).slice(0, 2000)
             const zyje = d.zyje === 'tak' ? 'tak' : 'nie'
             for (const id of ids) {
                 const o = s.drzewo.osoby.get(id)!
