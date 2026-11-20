@@ -5,6 +5,8 @@
 // paskiem, a <details> z ukrytym summary zostaje tylko dla animacji rozwijania (5A, .rozwin-tresc – lib/ruch.test.ts).
 // Wspólny dla: osoby (ListaOsob), archiwum i biblioteka (FiltryKatalogu), księgi (KatalogKsiegiNaZywo).
 import * as React from 'react'
+import { flushSync } from 'react-dom'
+import { zmianaWysokosci } from '@/lib/ruch'
 import { odmiana } from '@/lib/tekst'
 
 const WASKI = '(max-width: 640px)'
@@ -26,15 +28,17 @@ export const RamkaFiltrow = React.forwardRef<HTMLDivElement, {
 }>(function RamkaFiltrow({ pole, aktywnych = 0, otwarte, naZmiane, children }, ref) {
     const id = React.useId()
     const waski = useWaskiEkran()
+    // spis działów nad ramką zwija się do jednego wiersza, gdy filtry są rozwinięte (CSS, decyzja 15.11) – płynnie, nie skokiem (20.11)
+    const przelacz = (o: boolean) => zmianaWysokosci(document.querySelector<HTMLElement>('.spis-ramka'), () => flushSync(() => naZmiane(o)))
     return (
         <div ref={ref} className="k-filtry-ramka" data-otwarte={otwarte ? '' : undefined}>
             <div className="k-filtry-naglowek k-filtry-pasek">
                 {pole(waski)}
-                <button type="button" className="k-btn k-filtry-przelacz" aria-expanded={otwarte} aria-controls={`${id}-filtry`} onClick={() => naZmiane(!otwarte)}>
+                <button type="button" className="k-btn k-filtry-przelacz" aria-expanded={otwarte} aria-controls={`${id}-filtry`} onClick={() => przelacz(!otwarte)}>
                     filtry{aktywnych > 0 && <span className="k-filtry-licznik" aria-label={odmiana(aktywnych, ['aktywny filtr', 'aktywne filtry', 'aktywnych filtrów'])}>{aktywnych}</span>} <span aria-hidden="true">{otwarte ? '▴' : '▾'}</span>
                 </button>
             </div>
-            <details id={`${id}-filtry`} className="k-filtry-szczegoly" open={otwarte} onToggle={(e) => { const o = (e.currentTarget as HTMLDetailsElement).open; if (o !== otwarte) naZmiane(o) }}>
+            <details id={`${id}-filtry`} className="k-filtry-szczegoly" open={otwarte} onToggle={(e) => { const o = (e.currentTarget as HTMLDetailsElement).open; if (o !== otwarte) przelacz(o) }}>
                 <summary tabIndex={-1} aria-hidden="true" />
                 <div className="rozwin-tresc">{children}</div>
             </details>

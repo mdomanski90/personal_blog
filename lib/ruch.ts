@@ -84,6 +84,23 @@ export function pojaw(el: Element, token: TokenRuchu = 'sredni'): void {
     ;(el as HTMLElement).animate([{ opacity: 0 }, { opacity: 1 }], { duration: czas, easing: krzywaCss() })
 }
 
+/**
+ * Zmiana, po której element zmienia wysokość (np. spis działów zwija się do jednego wiersza przy rozwinięciu filtrów –
+ * uwaga właściciela 20.11: skok bez animacji). `zmien` musi zmienić DOM od razu (flushSync); wysokość przechodzi płynnie
+ * ze starej do nowej, treść wchodzi wygaszeniem, elementy niżej podjeżdżają razem z nią. Przy ograniczeniu ruchu – od razu.
+ */
+export function zmianaWysokosci(el: HTMLElement | null, zmien: () => void, token: TokenRuchu = 'sredni'): void {
+    const czas = czasRuchu(token)
+    if (!el || czas <= 0 || typeof el.animate !== 'function') { zmien(); return }
+    const h0 = el.getBoundingClientRect().height
+    zmien()
+    const h1 = el.getBoundingClientRect().height
+    if (Math.abs(h1 - h0) < 1) return
+    const opcje = { duration: czas, easing: krzywaCss() }
+    el.animate([{ height: `${h0}px`, overflow: 'clip' }, { height: `${h1}px`, overflow: 'clip' }], opcje)
+    for (const d of Array.from(el.children)) (d as HTMLElement).animate?.([{ opacity: 0.25 }, { opacity: 1 }], opcje)
+}
+
 /** Płynne przewijanie (spis treści, „do góry”, transkrypcja, drzewo); przy ograniczeniu ruchu – skok. */
 export function przewin(cel: Element | Window, opcje: ScrollToOptions = {}): void {
     const behavior: ScrollBehavior = bezRuchu() ? 'auto' : 'smooth'
