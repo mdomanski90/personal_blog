@@ -14,8 +14,9 @@ export function czyKrotkaZapowiedz(tekst: string, zObrazem: boolean): boolean {
 }
 
 /** Adres obrazu miniatury wpisu z materiału: pierwsza strona skanu albo plik obrazu; inne pliki (PDF, nagranie) – brak.
- *  Wspólne dla zapowiedzi i strony wpisu (makieta wpisu 17.11, P1). */
-export function adresMiniatury(m: { strony: { adres: string }[]; plik?: string | null } | undefined, w = 640): string | undefined {
+ *  Wspólne dla zapowiedzi i strony wpisu (makieta wpisu 17.11, P1). Szerokość z listy serwera (lib/szerokosci-obrazow.ts) –
+ *  dawne 640 nie było na liście i dawało pełny oryginał (20.11). */
+export function adresMiniatury(m: { strony: { adres: string }[]; plik?: string | null } | undefined, w: 480 | 1200 = 480): string | undefined {
     if (!m) return undefined
     const skan = m.strony[0]?.adres
     if (skan) return skan.startsWith('/pliki/strony/') ? `${skan}?w=${w}` : skan

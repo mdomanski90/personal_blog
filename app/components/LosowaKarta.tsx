@@ -54,10 +54,11 @@ export default function LosowaKarta({ pozycje }: { pozycje: PozycjaLosowa[] }) {
                     <Link href={p.href} className="kl-tytul">{p.tytul}</Link>
                     <p className="kl-opis">{p.tekst}</p>
                 </div>
+                {/* miniatura ok. 200×150 px: kopia 480 (WebP) – wspólna dla skanów i zdjęć obiektów (lib/szerokosci-obrazow.ts); 320 dawało pełny oryginał */}
                 <Link href={p.href} className="kl-mini" tabIndex={-1} aria-hidden="true">
                     {p.zdjecie
                         // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={`${p.zdjecie}?w=320`} alt="" loading="lazy" style={/* styl-dynamiczny: kadr miniatury z danych materiału */ { objectPosition: pozycjaKadru(p.kadr) }} />
+                        ? <img src={`${p.zdjecie}?w=480`} alt="" loading="lazy" decoding="async" style={/* styl-dynamiczny: kadr miniatury z danych materiału */ { objectPosition: pozycjaKadru(p.kadr) }} />
                         : <Ikonka rodzaj={rodzaj} />}
                 </Link>
             </div>

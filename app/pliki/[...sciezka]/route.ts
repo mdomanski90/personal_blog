@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 import sharp from 'sharp'
+import { dozwolona } from '@/lib/szerokosci-obrazow'
 import { material, obiekt, poziomCzytelnika } from '@/lib/archiwum'
 import { ID_MATERIALU, NAZWA_STRONY, katalogStron, stronyMaterialu } from '@/lib/strony-materialow'
 import { ADRES_PLIKOW, KATALOG_PLIKOW, mimePliku } from '@/lib/pliki'
@@ -47,6 +48,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ sciezka:
     }
     if (!publiczny) naglowki['X-Robots-Tag'] = 'noindex, nofollow'
 
+    // plik obrazu materiału: ?w=480|1200 – pomniejszona kopia WebP bez metadanych (miniatury wpisów; dawniej zawsze oryginał)
+    const szer = Number(new URL(req.url).searchParams.get('w'))
+    if (dozwolona('plikMaterialu', szer) && /\.(jpe?g|png|webp)$/i.test(nazwa)) {
+        try {
+            const bufor = await sharp(plik).rotate().resize({ width: szer, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer()
+            return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': 'image/webp', 'Cache-Control': naglowki['Cache-Control'], 'X-Content-Type-Options': 'nosniff', ...(publiczny ? {} : { 'X-Robots-Tag': 'noindex, nofollow' }) } })
+        } catch { return nieMa() }
+    }
+
     const zakres = /^bytes=(\d*)-(\d*)$/.exec(req.headers.get('range') ?? '')
     if (zakres && (zakres[1] || zakres[2])) {
         let start = zakres[1] ? Number(zakres[1]) : rozmiar - Number(zakres[2])
@@ -79,7 +89,7 @@ async function zdjecieObiektu(req: Request, sciezka: string[]): Promise<Response
     const cache = publiczny ? 'public, max-age=86400' : 'private, no-store'
     const w = Number(new URL(req.url).searchParams.get('w'))
     try {
-        if ([480, 1200, 1800].includes(w)) {
+        if (dozwolona('obiekty', w)) {
             const bufor = await sharp(plik).rotate().resize({ width: w, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer()
             return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': 'image/webp', 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' } })
         }
@@ -100,7 +110,7 @@ async function stronaMaterialu(req: Request, sciezka: string[]): Promise<Respons
     const cache = m.widocznosc === 'publiczne' ? 'public, max-age=86400' : 'private, no-store'
     const w = Number(new URL(req.url).searchParams.get('w'))
     try {
-        if ([160, 480, 1200, 2400].includes(w)) {
+        if (dozwolona('strony', w)) {
             const bufor = await sharp(plik).rotate().resize({ width: w, withoutEnlargement: true }).webp({ quality: w >= 2400 ? 86 : 80 }).toBuffer()
             return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': 'image/webp', 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' } })
         }
@@ -126,7 +136,7 @@ async function portretOsoby(req: Request, sciezka: string[]): Promise<Response> 
     const szer = Number(new URL(req.url).searchParams.get('w'))
     try {
         const obraz = sharp(plik).rotate()
-        const bufor = [480, 1200].includes(szer) ? await obraz.resize({ width: szer, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer() : await obraz.webp({ quality: 88 }).toBuffer()
+        const bufor = dozwolona('osoby', szer) ? await obraz.resize({ width: szer, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer() : await obraz.webp({ quality: 88 }).toBuffer()
         return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': 'image/webp', 'Cache-Control': w === 'publiczne' ? 'public, max-age=86400' : 'private, no-store', 'X-Content-Type-Options': 'nosniff' } })
     } catch { return nieMa() }
 }

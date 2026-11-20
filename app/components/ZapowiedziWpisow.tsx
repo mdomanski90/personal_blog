@@ -22,6 +22,7 @@ export default async function ZapowiedziWpisow({ wpisy, poziom, naglowek = 'h3' 
             {wpisy.map((w) => {
                 const m = w.miniatura ? mats.get(w.miniatura) : undefined
                 const obraz = adresMiniatury(m)
+                const obrazDuzy = adresMiniatury(m, 1200)
                 const tekst = w.zapowiedz || (obraz
                     ? zajawka(w.tresc, DLUGOSC_ZAPOWIEDZI.zObrazem, kontekst.rozwiaz)
                     : zajawka(w.tresc, DLUGOSC_ZAPOWIEDZI.bezObrazu, kontekst.rozwiaz, { akapity: true }))
@@ -33,8 +34,9 @@ export default async function ZapowiedziWpisow({ wpisy, poziom, naglowek = 'h3' 
                         <div className="zapowiedz-uklad">
                             {obraz && (
                                 <Link href={`/wpisy/${w.id}`} className="zapowiedz-obraz" tabIndex={-1} aria-hidden="true">
+                                    {/* kopia 480, na telefonie (pełna szerokość) i ekranach o podwójnej gęstości 1200 – WebP z listy serwera (20.11) */}
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={obraz} alt="" loading="lazy" style={/* styl-dynamiczny: kadr miniatury z danych materiału */ { objectPosition: pozycjaKadru(m!.kadr) }} />
+                                    <img src={obraz} srcSet={obrazDuzy && obrazDuzy !== obraz ? `${obraz} 480w, ${obrazDuzy} 1200w` : undefined} sizes="(max-width: 640px) 100vw, 300px" alt="" loading="lazy" decoding="async" style={/* styl-dynamiczny: kadr miniatury z danych materiału */ { objectPosition: pozycjaKadru(m!.kadr) }} />
                                 </Link>
                             )}
                             <div className="zapowiedz-tresc">
