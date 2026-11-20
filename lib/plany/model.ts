@@ -87,8 +87,10 @@ export interface Element extends PolaPH3 {
     /** @deprecated dawne jedno pole statusu (auto | przyp | ok) – zastępuje je migracja `npm run plany:statusy` */
     weryfikacja?: 'auto' | 'przyp' | 'ok'
     notatka?: string
-    /** wyliczone przy wydawaniu: napis i osoby ukryte przed czytelnikiem */
+    /** wyliczone przy wydawaniu: napis (i osoby z progu lat) ukryte przed czytelnikiem */
     ograniczony?: boolean
+    /** wyliczone przy wydawaniu (grób mieszany, decyzja 20.11): w grobie są też osoby zmarłe w progu lat – czytelnik dostaje dopisek */
+    ukryteOsoby?: boolean
     /** PH-09: powiązania z kartami (identyfikatory jak w [[…]]) – czytelnik dostaje je rozwiązane w `odnosniki` */
     powiazania?: string[]
     /** PH-02: na czym oparto element – materiał archiwum i (opcjonalnie) objaśnienie na skanie */
@@ -365,6 +367,18 @@ export function grobOgraniczony(e: Element, typ: TypElementu | undefined, progLa
     return r !== null && r > rok - progLat
 }
 
+/**
+ * Grób mieszany (decyzja właściciela 20.11, ankieta B): rok zgonu osoby z ograniczonego grobu względem progu lat.
+ * Rok: przy grobie, inaczej z drzewa (`rokZDrzewa`). Osobę „bez roku” pokazujemy tylko, gdy powód ograniczenia
+ * ma inna osoba z datą w progu (KOREKTA 20.11: gdy powodem jest rok z napisu albo pola „rok śmierci”, osoba bez roku
+ * może być właśnie zmarłą niedawno).
+ */
+export function progOsoby(o: Osoba, progLat: number, rokZDrzewa?: (id: string) => number | null, rok = new Date().getFullYear()): 'poza' | 'w-progu' | 'bez-roku' {
+    const m = (o.zm ?? '').match(/(1[6-9]|20)\d\d/)
+    const r = m ? +m[0] : o.id && rokZDrzewa ? rokZDrzewa(o.id) ?? null : null
+    return r === null ? 'bez-roku' : r > rok - progLat ? 'w-progu' : 'poza'
+}
+
 export function widoczne(w: Widocznosc | undefined, poziom: Widocznosc): boolean {
     const v = w || 'publiczne'
     if (v === 'publiczne') return true
@@ -376,7 +390,7 @@ export function widoczne(w: Widocznosc | undefined, poziom: Widocznosc): boolean
  * Plan przygotowany dla czytelnika: bez elementów, których nie może widzieć, bez typów ukrytych,
  * bez podkładów „tylko do edycji”, bez pól roboczych; groby zmarłych niedawno – sam kształt.
  */
-export function dlaCzytelnika(plan: Plan, poziom: Widocznosc, u: UstawieniaPlanow): Plan {
+export function dlaCzytelnika(plan: Plan, poziom: Widocznosc, u: UstawieniaPlanow, rokZDrzewa?: (id: string) => number | null): Plan {
     const typy = katalog(u), ukryte = new Set(u.ukryteTypy ?? [])
     // numery z PEŁNEGO planu (przed filtrem) – ten sam numer dla anonima i redaktora (A2-01, zasada 2.3)
     const numery = numeryPlanu(plan)
@@ -389,7 +403,16 @@ export function dlaCzytelnika(plan: Plan, poziom: Widocznosc, u: UstawieniaPlano
         const { weryfikacja: _w, notatka: _n, etap: _e, zrodlaStan: _z, polozenie: _p, zTerenu: _zt, oznaczenie: _o, numer: _nr, powiazania: _pw, podstawa: _ps, odnosniki: _od, ...bezNumeru } = e
         const nr = numery.get(e.id), czysty: Element = nr ? { ...bezNumeru, numer: nr } : bezNumeru
         if (poziom === 'publiczne' && grobOgraniczony(e, typy.get(e.typ), u.progLat)) {
-            elementy.push({ id: e.id, typ: e.typ, g: e.g, stan: e.stan, ograniczony: true, ...(nr ? { numer: nr } : {}) })
+            // grób mieszany (20.11): osoby spoza progu z nazwą i datami; napis, zdjęcia, opis i rok zostają ukryte (zwykle zawierają też osoby z progu);
+            // „ukryj napis” – decyzja redakcji o całym grobie, bez wyjątków
+            const L = e.ukryjNapis ? [] : (e.osoby ?? []).filter((o) => o.nazwa?.trim())
+            const prog = L.map((o) => progOsoby(o, u.progLat, rokZDrzewa))
+            const powodPrzyOsobie = prog.includes('w-progu')
+            const widac = L.filter((_, i) => prog[i] === 'poza' || (prog[i] === 'bez-roku' && powodPrzyOsobie)).map(({ nazwa, ur, zm, id }) => ({ nazwa, ...(ur ? { ur } : {}), ...(zm ? { zm } : {}), ...(id ? { id } : {}) }))
+            elementy.push({
+                id: e.id, typ: e.typ, g: e.g, stan: e.stan, ograniczony: true, ...(nr ? { numer: nr } : {}),
+                ...(widac.length ? { osoby: widac, ...(widac.length < L.length ? { ukryteOsoby: true } : {}) } : {}),
+            })
         } else if (poziom === 'publiczne' && czysty.zdjecia?.length) {
             elementy.push({ ...czysty, zdjecia: czysty.zdjecia.map(({ lat: _la, lon: _lo, ...z }) => z) })
         } else elementy.push(czysty)

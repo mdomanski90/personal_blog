@@ -6,12 +6,20 @@ import { kadr } from '@/app/components/plan/Rysunek'
 import { sciezkaPliku, wczytajPlan, wczytajUstawienia, listaPlanow } from './dane'
 import { mimePliku } from '@/lib/pliki'
 
+/** Grób mieszany (20.11): rok zgonu osoby z drzewa – gdy przy grobie nie wpisano daty, a osoba jest powiązana z kartą. */
+export async function rokZgonuZDrzewa(): Promise<(id: string) => number | null> {
+    const { stanOsob } = await import('@/lib/osoby/dane')
+    const { rokZgonu } = await import('@/lib/osoby/model')
+    const s = await stanOsob()
+    return (id) => { const o = s.drzewo.osoby.get(id); return o ? rokZgonu(o) : null }
+}
+
 export async function planDlaCzytelnika(slug: string): Promise<{ plan: Plan; poziom: 'publiczne' | 'bliscy' } | null> {
     const surowy = await wczytajPlan(slug)
     if (!surowy) return null
     const poziom = (await poziomCzytelnika()) === 'bliscy' ? 'bliscy' : 'publiczne'
     if (!widoczne(surowy.widocznosc, poziom)) return null
-    return { plan: await uzupelnijDlaCzytelnika(surowy, dlaCzytelnika(surowy, poziom, await wczytajUstawienia()), poziom), poziom }
+    return { plan: await uzupelnijDlaCzytelnika(surowy, dlaCzytelnika(surowy, poziom, await wczytajUstawienia(), await rokZgonuZDrzewa()), poziom), poziom }
 }
 
 /**
@@ -53,8 +61,8 @@ export async function planyDlaCzytelnika(rodzaj: 'miejsce' | 'obiekt', id: strin
 /** Wszystkie plany widoczne dla czytelnika (spis „wszystkie plany”), w wersji dla czytelnika. */
 export async function wszystkiePlanyDlaCzytelnika(): Promise<Plan[]> {
     const poziom = (await poziomCzytelnika()) === 'bliscy' ? 'bliscy' : 'publiczne'
-    const u = await wczytajUstawienia()
-    return (await listaPlanow()).filter((p) => widoczne(p.widocznosc, poziom)).map((p) => dlaCzytelnika(p, poziom, u))
+    const u = await wczytajUstawienia(), rd = await rokZgonuZDrzewa()
+    return (await listaPlanow()).filter((p) => widoczne(p.widocznosc, poziom)).map((p) => dlaCzytelnika(p, poziom, u, rd))
 }
 
 export const nieMa = () => new Response('Nie znaleziono', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
@@ -104,10 +112,10 @@ export async function pochowkiOsoby(osobaId: string): Promise<Pochowek[]> {
     const poziom = (await poziomCzytelnika()) === 'bliscy' ? 'bliscy' : 'publiczne'
     const kandydaci = (await listaPlanow()).filter((p) => widoczne(p.widocznosc, poziom) && p.elementy.some((e) => e.osoby?.some((o) => o.id === osobaId)))
     if (!kandydaci.length) return []
-    const ust = await wczytajUstawienia()
+    const ust = await wczytajUstawienia(), rd = await rokZgonuZDrzewa()
     const wyn: Pochowek[] = []
     for (const surowy of kandydaci) {
-        const p = dlaCzytelnika(surowy, poziom, ust), nr = numeryPlanu(p)
+        const p = dlaCzytelnika(surowy, poziom, ust, rd), nr = numeryPlanu(p)
         for (const e of p.elementy) if (e.osoby?.some((o) => o.id === osobaId)) wyn.push({ slug: p.slug, tytul: p.tytul, elementId: e.id, numer: nr.get(e.id), ...(e.zdjecia?.[0]?.plik ? { zdjecie: `/plany/${p.slug}/zdjecie/${e.zdjecia[0].plik}` } : {}) })
     }
     return wyn
@@ -119,9 +127,9 @@ export async function miejscaGrobowOsob(): Promise<Map<string, string[]>> {
     const wyn = new Map<string, string[]>()
     const kandydaci = (await listaPlanow()).filter((p) => p.miejsce && widoczne(p.widocznosc, poziom) && p.elementy.some((e) => e.osoby?.length))
     if (!kandydaci.length) return wyn
-    const ust = await wczytajUstawienia()
+    const ust = await wczytajUstawienia(), rd = await rokZgonuZDrzewa()
     for (const surowy of kandydaci) {
-        const p = dlaCzytelnika(surowy, poziom, ust)
+        const p = dlaCzytelnika(surowy, poziom, ust, rd)
         for (const e of p.elementy) for (const o of e.osoby ?? []) {
             if (!o.id) continue
             const L = wyn.get(o.id) ?? []

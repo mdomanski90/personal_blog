@@ -1,7 +1,8 @@
 /**
  * Etap 3 · jedna przeglądarka planów (CEM-07, 08, 09, 13, 24; PH-13) – czyste funkcje dla PanelPlanu i PlanInteraktywny.
  * Wszystko liczone z planu w wersji DLA CZYTELNIKA (dlaCzytelnika): pola robocze (etap, weryfikacja, notatka) są już usunięte,
- * groby z ograniczonym napisem mają sam kształt i numer – nic z treści ukrytej nie przechodzi do liczb ani znaków (zasada 1.6).
+ * groby z ograniczonym napisem mają sam kształt i numer (grób mieszany – też osoby spoza progu lat, decyzja 20.11) – nic z treści ukrytej
+ * nie przechodzi do liczb ani znaków (zasada 1.6).
  * Test: lib/plany/przegladarka.test.ts.
  */
 import { KROK_PRZYCISKU, klawiszPrzyblizenia } from '../przyblizenie'
@@ -15,7 +16,8 @@ type Typy = Map<string, TypElementu>
 
 /** CEM-09: grób „opisany” – wyłącznie z danych jawnych dla czytelnika (napis, osoby, zdjęcie), nigdy ze statusu pracy (`etap`). */
 export function opisany(e: Element): boolean {
-    if (e.ograniczony) return false
+    // grób mieszany (20.11): ograniczony, ale z osobami spoza progu lat – opisany tymi osobami
+    if (e.ograniczony) return !!e.osoby?.some((o) => o.nazwa?.trim())
     return !!(e.napis?.trim() || e.osoby?.some((o) => o.nazwa?.trim()) || e.zdjecia?.length)
 }
 
@@ -36,7 +38,7 @@ export function stanPlanu(plan: Pick<Plan, 'elementy'>, typy: Typy, osobyWidoczn
     const groby = plan.elementy.filter((e) => typGrobu(typy.get(e.typ)) && !e.nieznanePolozenie)
     const opisane = groby.filter(opisany).length
     const dlaBliskich = groby.filter((e) => e.ograniczony).length
-    const wDrzewie = groby.filter((e) => !e.ograniczony && e.osoby?.some((o) => o.id && osobyWidoczne.has(o.id))).length
+    const wDrzewie = groby.filter((e) => e.osoby?.some((o) => o.id && osobyWidoczne.has(o.id))).length
     return { groby: groby.length, opisane, dlaBliskich, wDrzewie, bezOpisu: groby.length - opisane - dlaBliskich }
 }
 

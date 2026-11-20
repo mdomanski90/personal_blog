@@ -42,7 +42,8 @@ export default function ListaPochowanych({ plan, ustawienia, osoby, naPlanie }: 
         const W: Wiersz[] = []
         let bez = 0, ogr = 0
         for (const e of groby) {
-            if (e.ograniczony) { ogr++; continue }
+            // grób mieszany (20.11): ograniczony, ale z osobami spoza progu – te osoby są na liście
+            if (e.ograniczony && !e.osoby?.length) { ogr++; continue }
             const L = (e.osoby ?? []).filter((o) => o.nazwa.trim())
             if (L.length) {
                 L.forEach((o, i) => {

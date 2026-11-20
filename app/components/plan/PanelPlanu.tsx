@@ -211,24 +211,8 @@ export function KartaGrobu({ el, plan, numer, numery, kolejno, osoby, zalogowany
     }
     const ileGrobowRodziny = rodzinaIle.krewni.filter((k) => k.grob).length
     const pochowani = (el.osoby ?? []).filter((o) => o.nazwa?.trim())
-
-    return (
-        <>
-            <div className="plan-panel-nawig" role="group" aria-label="poprzedni i następny grób">
-                <button type="button" className="k-btn k-btn--s" disabled={!poprz} onClick={() => poprz && idz(poprz)}>‹ {etykietaSasiada(poprz) || 'poprzedni'}</button>
-                <button type="button" className="k-btn k-btn--s" disabled={!nast} onClick={() => nast && idz(nast)}>{etykietaSasiada(nast) || 'następny'} ›</button>
-                <span className="plan-panel-odstep" />
-                <button type="button" className="k-btn k-btn--s" onClick={kopiuj}>{skopiowano ? 'skopiowano' : 'kopiuj link'}</button>
-            </div>
-            {numer && <WierszPanelu e="miejsce">{numerTekst(numer)}</WierszPanelu>}
-            {el.ograniczony ? (
-                <CalyPanelu>
-                    {/* decyzja 15.11: bez podawania powodu ograniczenia (CEM-10) */}
-                    <p className="plan-panel-tekst">Opis niedostępny publicznie.{!zalogowany && <> <a href={`/zaloguj?wroc=${encodeURIComponent(`/plany/${plan.slug}?grob=${el.id}`)}`} className="odn">Zaloguj się</a>.</>}</p>
-                </CalyPanelu>
-            ) : (
-                <>
-                    {(pochowani.length > 0 || el.nazwa) && (
+    // grób mieszany (20.11): lista także przy grobie ograniczonym – czytelnik dostaje tylko osoby spoza progu lat
+    const blokPochowanych = (pochowani.length > 0 || el.nazwa) && (
                         <>
                             <CzescPanelu tytul="pochowani">{rodzinaIle.krewni.length > 0 && <button type="button" onClick={pokazRodzine} className="plan-panel-odn">groby rodziny{ileGrobowRodziny ? ` (${ileGrobowRodziny})` : ''}</button>}</CzescPanelu>
                             <CalyPanelu>
@@ -258,7 +242,28 @@ export function KartaGrobu({ el, plan, numer, numery, kolejno, osoby, zalogowany
                                 </ul>
                             </CalyPanelu>
                         </>
-                    )}
+                    )
+
+    return (
+        <>
+            <div className="plan-panel-nawig" role="group" aria-label="poprzedni i następny grób">
+                <button type="button" className="k-btn k-btn--s" disabled={!poprz} onClick={() => poprz && idz(poprz)}>‹ {etykietaSasiada(poprz) || 'poprzedni'}</button>
+                <button type="button" className="k-btn k-btn--s" disabled={!nast} onClick={() => nast && idz(nast)}>{etykietaSasiada(nast) || 'następny'} ›</button>
+                <span className="plan-panel-odstep" />
+                <button type="button" className="k-btn k-btn--s" onClick={kopiuj}>{skopiowano ? 'skopiowano' : 'kopiuj link'}</button>
+            </div>
+            {numer && <WierszPanelu e="miejsce">{numerTekst(numer)}</WierszPanelu>}
+            {el.ograniczony ? (
+                <>
+                {blokPochowanych}
+                <CalyPanelu>
+                    {/* decyzja 15.11: bez podawania powodu ograniczenia (CEM-10); wyjątek 20.11 (ankieta B): dopisek o osobach zmarłych niedawno w grobie mieszanym */}
+                    <p className="plan-panel-tekst">{el.ukryteOsoby && 'W grobie są też osoby zmarłe niedawno – dane dostępne dla bliskich. '}{pochowani.length ? 'Napis, zdjęcia i opis niedostępne publicznie.' : 'Opis niedostępny publicznie.'}{!zalogowany && <> <a href={`/zaloguj?wroc=${encodeURIComponent(`/plany/${plan.slug}?grob=${el.id}`)}`} className="odn">Zaloguj się</a>.</>}</p>
+                </CalyPanelu>
+                </>
+            ) : (
+                <>
+                    {blokPochowanych}
                     <WierszPanelu e="czas">{el.czas}</WierszPanelu>
                     <WierszPanelu e="stan">{el.stan && el.stan !== 'istnieje' ? (el.stan === 'nie-istnieje' ? 'nie istnieje' : 'do sprawdzenia') : null}</WierszPanelu>
                     {el.napis && (
@@ -357,7 +362,7 @@ export function PanelRodziny({ rodzina, numery, wybierz }: { rodzina: Rodzina; n
 /** Krótki opis elementu (wyniki, podpowiedź po najechaniu): grób – pochowani albo napis; inny – nazwa. Bez treści ukrytej. */
 export function opisElementu(e: Element, t: TypElementu | undefined, n?: Numer): string {
     if (typGrobu(t)) {
-        const kto = e.ograniczony ? 'grób – opis niedostępny publicznie' : e.osoby?.map((o) => o.nazwa).filter(Boolean).join(', ') || e.nazwa || (e.napis ? e.napis.split('\n').find((l) => /\p{L}{3,}/u.test(l))?.trim() : '') || 'grób'
+        const kto = e.ograniczony && !e.osoby?.length ? 'grób – opis niedostępny publicznie' : e.osoby?.map((o) => o.nazwa).filter(Boolean).join(', ') || e.nazwa || (e.napis ? e.napis.split('\n').find((l) => /\p{L}{3,}/u.test(l))?.trim() : '') || 'grób'
         return `${kto}${n ? ` · ${numerKrotki(n)}` : ''}`
     }
     return e.nazwa?.split('\n').join(' ') || e.nazwaZrodlowa || t?.nazwa.replace(/ \(.*\)$/, '') || ''
