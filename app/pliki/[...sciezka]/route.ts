@@ -48,11 +48,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ sciezka:
     }
     if (!publiczny) naglowki['X-Robots-Tag'] = 'noindex, nofollow'
 
-    // plik obrazu materiału: ?w=480|1200 – pomniejszona kopia WebP bez metadanych (miniatury wpisów; dawniej zawsze oryginał)
+    // plik obrazu materiału: ?w=160|480|1200|2400 – pomniejszona kopia WebP bez metadanych (miniatury wpisów; dawniej zawsze oryginał)
     const szer = Number(new URL(req.url).searchParams.get('w'))
     if (dozwolona('plikMaterialu', szer) && /\.(jpe?g|png|webp)$/i.test(nazwa)) {
         try {
-            const bufor = await sharp(plik).rotate().resize({ width: szer, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer()
+            const bufor = await sharp(plik).rotate().resize({ width: szer, withoutEnlargement: true }).webp({ quality: szer >= 2400 ? 86 : 80 }).toBuffer()
             return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': 'image/webp', 'Cache-Control': naglowki['Cache-Control'], 'X-Content-Type-Options': 'nosniff', ...(publiczny ? {} : { 'X-Robots-Tag': 'noindex, nofollow' }) } })
         } catch { return nieMa() }
     }

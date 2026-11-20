@@ -218,7 +218,7 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                             {g.zdjecie && (
                                 <Link href={`/plany/${g.slug}?grob=${encodeURIComponent(g.elementId)}`} title="zdjęcie grobu – pokaż na planie">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={g.zdjecie} alt={`grób: ${tytul}`} loading="lazy" />
+                                    <img src={`${g.zdjecie}?w=480`} alt={`grób: ${tytul}`} loading="lazy" decoding="async" />
                                 </Link>
                             )}
                         </span>

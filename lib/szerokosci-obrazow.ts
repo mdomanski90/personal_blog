@@ -8,8 +8,10 @@ export const SZEROKOSCI = {
     strony: [160, 480, 1200, 2400],
     /** /pliki/osoby/<id>/<plik> */
     osoby: [480, 1200],
-    /** /pliki/<materiał>/<plik> – plik obrazu materiału (jpg, png, webp) */
-    plikMaterialu: [480, 1200],
+    /** /pliki/<materiał>/<plik> – plik obrazu materiału (jpg, png, webp); te same co strony – przeglądarka dokumentu traktuje go jak stronę */
+    plikMaterialu: [160, 480, 1200, 2400],
+    /** /plany/<plan>/zdjecie/<plik> – zdjęcia grobów (wgrane najwyżej 2400 px); bez ?w= – całe zdjęcie do powiększenia */
+    zdjeciaGrobow: [480, 1200],
 } as const satisfies Record<string, readonly number[]>
 
 export const dozwolona = (rodzaj: keyof typeof SZEROKOSCI, w: number) => (SZEROKOSCI[rodzaj] as readonly number[]).includes(w)

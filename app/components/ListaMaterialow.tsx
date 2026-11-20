@@ -2,7 +2,7 @@ import * as React from 'react'
 import type { Material } from '@/lib/archiwum'
 import { RODZAJE_MATERIALOW } from '@/lib/materialy'
 import { formatujEdtf } from '@/lib/edtf'
-import { typPliku } from '@/lib/pliki'
+import { obrazStrony, typPliku } from '@/lib/pliki'
 import SiatkaMiniatur from './SiatkaMiniatur'
 import { pozycjaKadru } from '@/lib/kadr'
 
@@ -17,7 +17,7 @@ export default function ListaMaterialow({ materialy }: { materialy: Material[] }
                 klucz: m.id, href: `/archiwum/${m.id}`, tytul: m.nazwa, znak: typ ? ZNAK[typ] : '—',
                 linia: [RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj, m.czas && formatujEdtf(m.czas), m.widocznosc === 'bliscy' && 'dla bliskich'].filter(Boolean).join(' · '),
                 // eslint-disable-next-line @next/next/no-img-element
-                obraz: s0 ? <img src={s0.adres.startsWith('/pliki/strony/') ? `${s0.adres}?w=480` : s0.adres} alt="" loading="lazy" decoding="async" style={{ '--kadr': pozycjaKadru(m.kadr) } as React.CSSProperties /* styl-dynamiczny: kadr miniatury zapisany w materiale */} /> : undefined,
+                obraz: s0 ? <img src={obrazStrony(s0.adres, 480)} alt="" loading="lazy" decoding="async" style={{ '--kadr': pozycjaKadru(m.kadr) } as React.CSSProperties /* styl-dynamiczny: kadr miniatury zapisany w materiale */} /> : undefined,
             }
         })} />
     )

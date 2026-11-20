@@ -10,6 +10,7 @@
 import type { Material, Miejsce, Obiekt } from './archiwum'
 import { naTekst, rozdzielZrodla } from './markdoc'
 import { RODZAJE_MATERIALOW } from './materialy'
+import { obrazStrony } from './pliki'
 import { formatujEdtf } from './edtf'
 import { odmiana } from './tekst'
 import { NAZWY_OBIEKTOW as RODZAJE_OBIEKTOW } from './tarcze'
@@ -53,7 +54,7 @@ export function zadaniaMaterialu(m: Material, odczytyNaSkanie: { odczyt: boolean
         linia: [RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj, m.czas && formatujEdtf(m.czas), m.miejsca.map(nazwaMiejsca).filter(Boolean)[0]].filter(Boolean).join(' · '),
         etykieta: etykietaBraku(b, { jezyk: m.jezyk, zdjecie: dane }),
         miejsca: m.miejsca, jezyki: jezyki(m.jezyk),
-        ...(s0 ? { obraz: s0.adres.startsWith('/pliki/strony/') ? `${s0.adres}?w=480` : s0.adres, kadr: m.kadr } : {}),
+        ...(s0 ? { obraz: obrazStrony(s0.adres, 480), kadr: m.kadr } : {}),
     }))
 }
 

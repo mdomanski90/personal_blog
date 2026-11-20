@@ -4,8 +4,10 @@
 export const KATALOG_PLIKOW = 'pliki-archiwum'
 export const ADRES_PLIKOW = '/pliki/'
 
-/** Obraz strony skanu w danej szerokości: strony z panelu mają pomniejszone kopie (?w=…), stary pojedynczy plik – tylko oryginał. */
-export const obrazStrony = (a: string, w: 160 | 480 | 1200 | 2400) => (a.startsWith('/pliki/strony/') ? `${a}?w=${w}` : a)
+/** Obraz strony w danej szerokości (pomniejszona kopia WebP): strony skanu z panelu i – od 20.11 – plik obrazu materiału
+ *  (/pliki/<materiał>/<plik>.jpg|png|webp); inne adresy bez zmian. Szerokości: lib/szerokosci-obrazow.ts. */
+export const obrazStrony = (a: string, w: 160 | 480 | 1200 | 2400) =>
+    a.startsWith('/pliki/strony/') || /^\/pliki\/[a-z0-9]+(?:-[a-z0-9]+)*\/[\w-]+(?:\.[\w-]+)*\.(?:jpe?g|png|webp)$/i.test(a) ? `${a}?w=${w}` : a
 
 export type TypPliku = 'obraz' | 'dzwiek' | 'film' | 'pdf' | 'inny'
 

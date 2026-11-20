@@ -59,12 +59,23 @@ export async function wszystkiePlanyDlaCzytelnika(): Promise<Plan[]> {
 
 export const nieMa = () => new Response('Nie znaleziono', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
 
-export async function wydajPlik(katalog: string, plik: string, publiczny: boolean): Promise<Response> {
+/** szer – pomniejszona kopia WebP (zdjęcia grobów, lib/szerokosci-obrazow.ts); bez – cały plik (powiększenie, podkłady). */
+export async function wydajPlik(katalog: string, plik: string, publiczny: boolean, szer?: number): Promise<Response> {
     const p = sciezkaPliku(katalog, plik)
     if (!p) return nieMa()
     try {
         const st = await fs.promises.stat(p)
         if (!st.isFile()) return nieMa()
+        if (szer) {
+            const sharp = (await import('sharp')).default
+            const bufor = await sharp(p).rotate().resize({ width: szer, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer()
+            return new Response(new Uint8Array(bufor), {
+                headers: {
+                    'Content-Type': 'image/webp', 'X-Content-Type-Options': 'nosniff',
+                    'Cache-Control': publiczny ? 'public, max-age=86400' : 'private, no-store', ...(publiczny ? {} : { 'X-Robots-Tag': 'noindex, nofollow' }),
+                },
+            })
+        }
         const dane = await fs.promises.readFile(p)
         return new Response(new Uint8Array(dane), {
             headers: {

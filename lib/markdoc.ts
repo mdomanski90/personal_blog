@@ -3,7 +3,7 @@ import { ukryjAdresy } from './email-ochrona'
 import Markdoc, { Tag, type Node, type Config, type RenderableTreeNode, type RenderableTreeNodes } from '@markdoc/markdoc'
 import type { ObjasnienieWidoku } from './objasnienia-widok'
 import { bezNawiasow, ODNOSNIK, tekstOdnosnika, type Rozwiaz } from './odnosniki'
-import { typPliku } from './pliki'
+import { obrazStrony, typPliku } from './pliki'
 
 // Wspólne renderowanie treści Markdoc (wpisy, opisy miejsc i tematów).
 // Obrazki: miniatura WebP z katalogu thumbs/ (tworzy ją skrypt generate-thumbs przy buildzie),
@@ -204,7 +204,7 @@ export function wstawkaMaterialu(m: MaterialWstawki, podpis?: string, strona?: n
         // skan (jedna albo wiele stron): kliknięcie otwiera przeglądarkę dokumentu na pełnym ekranie (DokumentyWTresci)
         const start = indeksStrony(strona, m.strony.length)
         const pierwsza = m.strony[start].adres
-        const obraz = pierwsza.startsWith('/pliki/strony/') ? `${pierwsza}?w=1200` : pierwsza
+        const obraz = obrazStrony(pierwsza, 1200)
         const n = m.strony.length
         const ile = n === 1 ? '' : odmiana(n, ['strona', 'strony', 'stron'])
         // P7E-1 (SG-04, SG-05): jedna czynność powiększania i jeden odnośnik „szczegóły w archiwum →”

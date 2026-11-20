@@ -17,7 +17,7 @@ test('zapowiedź: długość wypełnia kolumny, krótka do ok. jednej kolumny', 
 test('miniatura wpisu: strona skanu, obraz, inne pliki bez miniatury (zapowiedź i strona wpisu)', () => {
     assert.equal(adresMiniatury({ strony: [{ adres: '/pliki/strony/m/s-1.jpg' }], plik: null }), '/pliki/strony/m/s-1.jpg?w=480')
     assert.equal(adresMiniatury({ strony: [{ adres: '/pliki/strony/m/s-1.jpg' }] }, 480), '/pliki/strony/m/s-1.jpg?w=480')
-    assert.equal(adresMiniatury({ strony: [], plik: '/pliki/zdj.JPG' }), '/pliki/zdj.JPG?w=480')
+    assert.equal(adresMiniatury({ strony: [], plik: '/pliki/m/zdj.JPG' }), '/pliki/m/zdj.JPG?w=480')
     assert.equal(adresMiniatury({ strony: [], plik: '/pliki/akt.pdf' }), undefined)
     assert.equal(adresMiniatury(undefined), undefined)
 })

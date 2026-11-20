@@ -1,6 +1,7 @@
 // Zapowiedzi wpisów (strona główna i /wpisy – jeden komponent ZapowiedziWpisow). Uwagi właściciela 16.11, wariant B:
 // tekst do prawej krawędzi wpisu, w kolumnach wyrównanych z limitem wierszy (CSS: z miniaturą 2 × 7, bez miniatury 3 × 9).
 // Zapowiedź automatyczna jest dłuższa niż miejsce – resztę obcina CSS; krótka (do ok. jednej kolumny) nie dzieli się na kolumny.
+import { obrazStrony } from './pliki'
 
 /** Długość zapowiedzi z treści wpisu (znaki), gdy pole „zapowiedź” jest puste. */
 export const DLUGOSC_ZAPOWIEDZI = { zObrazem: 640, bezObrazu: 1200 } as const
@@ -19,8 +20,8 @@ export function czyKrotkaZapowiedz(tekst: string, zObrazem: boolean): boolean {
 export function adresMiniatury(m: { strony: { adres: string }[]; plik?: string | null } | undefined, w: 480 | 1200 = 480): string | undefined {
     if (!m) return undefined
     const skan = m.strony[0]?.adres
-    if (skan) return skan.startsWith('/pliki/strony/') ? `${skan}?w=${w}` : skan
-    return m.plik && /\.(jpe?g|png|webp)$/i.test(m.plik) ? `${m.plik}?w=${w}` : undefined
+    if (skan) return obrazStrony(skan, w)
+    return m.plik && /\.(jpe?g|png|webp)$/i.test(m.plik) ? obrazStrony(m.plik, w) : undefined
 }
 
 /**

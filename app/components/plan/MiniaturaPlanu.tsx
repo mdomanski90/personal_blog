@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { obrazStrony } from '@/lib/pliki'
 
 /**
  * PH-23: miniatura planu – rysunek planu w wersji dla czytelnika (/plany/<slug>/podglad.svg) w motywie strony:
@@ -7,7 +8,7 @@ import * as React from 'react'
  */
 export default function MiniaturaPlanu({ slug, skan }: { slug: string; skan?: string }) {
     /* eslint-disable @next/next/no-img-element */
-    if (skan) return <img src={skan.startsWith('/pliki/strony/') ? `${skan}?w=480` : skan} alt="" loading="lazy" decoding="async" />
+    if (skan) return <img src={obrazStrony(skan, 480)} alt="" loading="lazy" decoding="async" />
     return (
         <>
             <img className="miniatura-planu tylko-jasny" src={`/plany/${slug}/podglad.svg?motyw=jasny`} alt="" loading="lazy" decoding="async" />

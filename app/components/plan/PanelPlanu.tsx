@@ -174,7 +174,7 @@ export function KartaElementu({ el, typ, numer, nazwyMaterialow, naPodstawe }: {
             <WierszPanelu e="czas">{el.czas}</WierszPanelu>
             <WierszPanelu e="stan">{el.stan && el.stan !== 'istnieje' ? (el.stan === 'nie-istnieje' ? 'nie istnieje' : 'do sprawdzenia') : null}</WierszPanelu>
             {el.opis && <CalyPanelu><p className="plan-panel-tekst">{el.opis}</p></CalyPanelu>}
-            {(el.nazwaZrodlowa || el.identyfikacja || el.odnosniki?.length || el.podstawa?.length) && (
+            {!!(el.nazwaZrodlowa || el.identyfikacja || el.odnosniki?.length || el.podstawa?.length) && (
                 <CalyPanelu><OpisElementu e={el} nazwyMaterialow={nazwyMaterialow} naPodstawe={naPodstawe} /></CalyPanelu>
             )}
         </>
@@ -238,7 +238,8 @@ export function KartaGrobu({ el, plan, numer, numery, kolejno, osoby, zalogowany
                                         return (
                                             <li key={j} className="plan-panel-osoba">
                                                 {z ? <PastylkaOsoby href={`/osoby/${o.id}`} plec={z.plec}>{o.nazwa}</PastylkaOsoby> : <b>{o.nazwa}</b>}
-                                                {(o.ur || o.zm || z?.rodzina.length) && (
+                                                {/* !! – pusta rodzina dawała „0” pod pochowanym (20.11) */}
+                                                {!!(o.ur || o.zm || z?.rodzina.length) && (
                                                     <span className="plan-panel-drobne">
                                                         {o.ur || o.zm ? `${o.ur ?? '?'} – ${o.zm ?? '?'}` : null}
                                                         {/* P7C-4: rodzice i małżonkowie jako odnośniki do kart osób */}
@@ -273,7 +274,7 @@ export function KartaGrobu({ el, plan, numer, numery, kolejno, osoby, zalogowany
                         </>
                     )}
                     {el.opis && <CalyPanelu><p className="plan-panel-tekst plan-panel-zachowaj">{el.opis}</p></CalyPanelu>}
-                    {(el.nazwaZrodlowa || el.identyfikacja || el.odnosniki?.length || el.podstawa?.length) && <CalyPanelu><OpisElementu e={el} /></CalyPanelu>}
+                    {!!(el.nazwaZrodlowa || el.identyfikacja || el.odnosniki?.length || el.podstawa?.length) && <CalyPanelu><OpisElementu e={el} /></CalyPanelu>}
                     {!pochowani.length && !el.nazwa && !el.napis && <CalyPanelu><p className="plan-panel-pusto">Napis nie został jeszcze odczytany.</p></CalyPanelu>}
                     {el.zdjecia && el.zdjecia.length > 0 && (
                         <>
@@ -283,7 +284,7 @@ export function KartaGrobu({ el, plan, numer, numery, kolejno, osoby, zalogowany
                                     {el.zdjecia.map((z, j) => (
                                         <button key={z.plik} type="button" className="plan-panel-zdjecie" onClick={() => otworzFoto(j)} aria-label={`powiększ zdjęcie ${j + 1}`}>
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={`/plany/${plan.slug}/zdjecie/${z.plik}`} alt="" loading="lazy" />
+                                            <img src={`/plany/${plan.slug}/zdjecie/${z.plik}?w=480`} alt="" loading="lazy" decoding="async" />
                                         </button>
                                     ))}
                                 </div>
