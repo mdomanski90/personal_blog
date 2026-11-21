@@ -372,6 +372,9 @@ html.kui-scheme--dark, .pn .kui-scheme--dark {
 .pn-caly-wiersz { flex-basis: 100%; }
 .pn-rzad-gora { align-items: flex-start; gap: 12px; }
 .pn-formularz { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+/* łatka 21.11 – wspólne wiersze pól: w rzędzie formularza etykiety, pola i podpisy pod polami dzielą wiersze siatki (subgrid),
+   więc pole nie zjeżdża w dół, gdy etykieta obok zawija się do dwóch wierszy. Pola z więcej niż trzema częściami – bez zmian. */
+.pn-formularz > .pn-pole:not(:has(> :nth-child(4))) { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 4px; align-content: start; }
 .pn-osoba { display: inline-flex; align-items: baseline; gap: 4px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--pn-linia); background: var(--pn-btn); color: var(--pn-tekst) !important; }
 .pn-osoba:hover { background: var(--pn-hover); text-decoration: none !important; }
 .pn-wiersz-btn { border: 0; border-bottom: 1px solid var(--pn-linia2); background: none; font: inherit; text-align: left; cursor: pointer; width: 100%; }

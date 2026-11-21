@@ -71,3 +71,28 @@ test('łatka P5: useParams w panelu zawsze z ?. – na VPS typ zwraca „| null�
         assert.doesNotMatch(kod, /const \{[^}]*\} = useParams/, `${p}: destrukturyzacja wyniku useParams`)
     }
 })
+
+// Łatka 21.11 (wyrównanie pól): w rzędzie formularza panelu etykiety, pola i podpisy mają wspólne wiersze siatki (subgrid) –
+// pole nie zjeżdża w dół, gdy etykieta obok zawija się do dwóch wierszy (zdarzenia na karcie osoby: „data (np. …)” – 17 px).
+const PANEL_TSX = (() => {
+    const wynik: string[] = []
+    const chodz = (k: string) => { for (const n of fs.readdirSync(path.join(ROOT, k), { withFileTypes: true })) { const p = `${k}/${n.name}`; if (n.isDirectory()) chodz(p); else if (p.endsWith('.tsx')) wynik.push(p) } }
+    chodz('app/keystatic')
+    return wynik
+})()
+test('formularze panelu: pole w rzędzie na wspólnych wierszach siatki (etykieta – pole – podpis)', () => {
+    const css = czytaj(CSS)
+    const blok = css.match(/\.pn-formularz > \.pn-pole[^{]*\{([^}]*)\}/)
+    assert.ok(blok, 'brak reguły .pn-formularz > .pn-pole')
+    assert.match(blok![1], /grid-template-rows:\s*subgrid/)
+    assert.match(blok![1], /grid-row:\s*span 3/)
+})
+test('formularze panelu: etykieta pola krótka (do 32 znaków) – przykłady i objaśnienia pod polem, nie w etykiecie', () => {
+    const dlugie: string[] = []
+    for (const p of PANEL_TSX) {
+        const t = czytaj(p)
+        for (const m of t.matchAll(/className="pn-pole[^"]*"[^>]*>\s*<span[^>]*>([^<{]+)/g)) if (m[1].trim().length > 32) dlugie.push(`${p}: ${m[1].trim()}`)
+        for (const m of t.matchAll(/\bpole\('([^']+)'/g)) if (m[1].length > 32) dlugie.push(`${p}: ${m[1]}`)
+    }
+    assert.deepEqual(dlugie, [])
+})

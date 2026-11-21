@@ -84,15 +84,16 @@ function EdycjaZdarzenia({ z, zmien, usun, miejsca, zParafii, wszystkie, osoby, 
                 <span className="pn-prawo pn-maly" aria-hidden="true">{rozwin ? '▲' : '▼'}</span>
             </button>
             {rozwin && (
-                <div className="pn-formularz">
+                <div className="pn-formularz pn-formularz-4">
                     <label className="pn-pole"><span>rodzaj</span>
                         <select value={z.rodzaj} onChange={(e) => zmien({ ...z, rodzaj: e.target.value as RodzajZdarzenia })} className="pn-in">{rodzajeDozwolone.map((r) => <option key={r} value={r}>{RODZAJE_ZDARZEN[r]}</option>)}</select></label>
                     {(z.rodzaj === 'inne' || z.nazwa) && <label className="pn-pole"><span>nazwa</span><input value={z.nazwa ?? ''} onChange={(e) => zmien({ ...z, nazwa: e.target.value || undefined })} className="pn-in" /></label>}
-                    <label className="pn-pole"><span>data (np. 1862-03-05, 1862, 1862~, ../1900)</span>
-                        <input value={z.data ?? ''} onChange={(e) => zmien({ ...z, data: e.target.value.trim() || undefined, ...(e.target.value ? { dataTekst: undefined } : {}) })} className="pn-in" aria-invalid={!dataOk} placeholder={z.dataTekst ? `z Ancestry: ${z.dataTekst}` : ''} />
-                        <span className={dataOk ? 'pn-maly' : 'pn-maly pn-blad'}>{z.data ? (dataOk ? formatujEdtf(z.data) : 'nieczytelna data') : z.dataTekst ? `w Ancestry: „${z.dataTekst}”` : ''}</span></label>
-                    <label className="pn-pole"><span>miejsce {z.miejsceId && '· połączone z miejscowością'}</span>
-                        <input list="miejsca-strony" value={z.miejsce ?? ''} onChange={(e) => zmienMiejsce(e.target.value)} className="pn-in" /></label>
+                    <label className="pn-pole"><span>data</span>
+                        <input aria-describedby={`${z.id}-data-podp`} value={z.data ?? ''} onChange={(e) => zmien({ ...z, data: e.target.value.trim() || undefined, ...(e.target.value ? { dataTekst: undefined } : {}) })} className="pn-in" aria-invalid={!dataOk} placeholder={z.dataTekst ? `z Ancestry: ${z.dataTekst}` : ''} />
+                        <span id={`${z.id}-data-podp`} className={dataOk ? 'pn-maly' : 'pn-maly pn-blad'}>{z.data ? (dataOk ? formatujEdtf(z.data) : 'nieczytelna data') : z.dataTekst ? `w Ancestry: „${z.dataTekst}”` : 'np. 1862-03-05, 1862, 1862~, ../1900'}</span></label>
+                    <label className="pn-pole"><span>miejsce</span>
+                        <input list="miejsca-strony" value={z.miejsce ?? ''} onChange={(e) => zmienMiejsce(e.target.value)} className="pn-in" aria-describedby={z.miejsceId ? `${z.id}-miejsce-podp` : undefined} />
+                        {z.miejsceId && <span id={`${z.id}-miejsce-podp`} className="pn-maly">połączone z miejscowością</span>}</label>
                     {ZDARZENIA_Z_OBRZADKIEM.includes(z.rodzaj) && (
                         <label className="pn-pole"><span>obrządek</span>
                             <select value={z.obrzadek ?? ''} onChange={(e) => zmien({ ...z, obrzadek: (e.target.value || undefined) as Obrzadek | undefined })} className="pn-in">
