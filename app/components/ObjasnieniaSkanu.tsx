@@ -7,6 +7,7 @@
 import * as React from 'react'
 import type OpenSeadragon from 'openseadragon'
 import { RODZAJE_OBJASNIEN, wKsztalcie, type ObjasnienieWidoku } from '@/lib/objasnienia-widok'
+import { PastylkaOsoby } from './Wzorce'
 
 export type TrybObjasnien = 'margines' | 'numery' | 'ukryj'
 export type ObjasnienieNaStronie = ObjasnienieWidoku & { nr: number | string }
@@ -43,7 +44,9 @@ export function Notka({ o, aktywna, wskazana, onKlik, onNad, pelna, wezel, role 
             {(aktywna || pelna) && (o.powiazania.length > 0 || o.opracowal || o.weryfikacja) && (
                 <div className="dok-obj-wiecej">
                     {o.powiazania.length > 0 && (
-                        <span className="dok-obj-powiazania">{o.powiazania.map((p, i) => <React.Fragment key={p.adres}>{i > 0 && ', '}<a href={p.adres}>{p.nazwa}</a></React.Fragment>)}</span>
+                        <span className="dok-obj-powiazania">{o.powiazania.map((p, i) => p.plec
+                            ? <PastylkaOsoby key={p.adres} href={p.adres} plec={p.plec}>{p.nazwa}</PastylkaOsoby>
+                            : <React.Fragment key={p.adres}>{i > 0 && <span aria-hidden="true">·</span>}<a href={p.adres}>{p.nazwa}</a></React.Fragment>)}</span>
                     )}
                     {o.opracowal && <span className="dok-obj-kto">opracował(a): {o.opracowal}</span>}
                     {o.weryfikacja && (

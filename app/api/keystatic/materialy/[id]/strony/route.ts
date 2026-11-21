@@ -39,7 +39,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             return new Response(new Uint8Array(bufor), { headers: { 'Content-Type': 'image/webp', 'Cache-Control': 'private, max-age=3600' } })
         } catch { return new Response('Nie znaleziono', { status: 404 }) }
     }
-    return Response.json({ id: r.id, nazwa: r.m!.nazwa, plik: r.m!.plik, widocznosc: r.m!.widocznosc, strony: lista(r.id!) })
+    const { uzytyW } = await import('@/lib/panel/uzyty-w')
+    return Response.json({ id: r.id, nazwa: r.m!.nazwa, plik: r.m!.plik, widocznosc: r.m!.widocznosc, strony: lista(r.id!), uzycia: await uzytyW(r.id!, poziomPanelu(req)) })
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -3,9 +3,11 @@
 import * as React from 'react'
 import { useParams } from 'next/navigation'
 import { odmiana } from '../../wspolne'
+import { UzytyW } from '../UzytyW'
+import type { UzycieMaterialu } from '@/lib/panel/uzyty-w'
 
 type Strona = { plik: string; podpis?: string; adres: string }
-type Dane = { id: string; nazwa: string; plik: string | null; widocznosc: string; strony: Strona[] }
+type Dane = { id: string; nazwa: string; plik: string | null; widocznosc: string; strony: Strona[]; uzycia?: UzycieMaterialu[] }
 
 export default function StronyMaterialu() {
     // na serwerze typy Next.js dopuszczają null (strona poza trasą dynamiczną)
@@ -81,6 +83,7 @@ export default function StronyMaterialu() {
                     <a className="pn-btn" href={`/archiwum/${dane.id}`} target="_blank" rel="noreferrer">na stronie ↗</a>
                 </span>
             </div>
+            <UzytyW uzycia={dane.uzycia} />
             {kom && <div className={kom === 'zapisano' ? 'pn-info' : 'pn-kom'}>{kom}</div>}
 
             <label

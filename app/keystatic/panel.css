@@ -656,3 +656,10 @@ button.pn-szukaj { background: var(--pn-pole); border-color: var(--pn-linia); }
 .tr-plan-wiersz { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--pn-linia2); }
 .tr-plan-wiersz:last-child { border-bottom: 0; padding-bottom: 0; }
 .tr-plan-wiersz .tr-plan { padding: 0; border-bottom: 0; }
+
+/* łatka 21.11 – „użyty w” na stronach materiału w panelu: teksty w jednym zawijanym wierszu, nazwa prowadzi do edycji */
+.pn-uzyty { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.pn-uzyty-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.pn-uzyty-lista > li { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: baseline; font-size: 13px; }
+/* łatka 21.11 – kilka języków objaśnienia: mniejsze przełączniki, zawijane w panelu bocznym */
+.pn-seg-zawijany button { height: 28px; padding: 0 9px; font-size: 12.5px; }

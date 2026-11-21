@@ -10,21 +10,29 @@ import type OpenSeadragon from 'openseadragon'
 import type { ImageAnnotation, OpenSeadragonAnnotator } from '@annotorious/openseadragon'
 import '@annotorious/openseadragon/annotorious-openseadragon.css'
 import { JEZYKI, RODZAJE_OBJASNIEN, type RodzajObjasnienia } from '@/lib/objasnienia-widok'
+import type { UzycieMaterialu } from '@/lib/panel/uzyty-w'
+import { UzytyW } from '../../UzytyW'
 import { odmiana } from '../../../wspolne'
 
 type Strona = { plik: string; podpis?: string; podglad: string }
 type Obj = {
-    id: string; strona: string; x: number; y: number; w: number; h: number; rodzaj: RodzajObjasnienia; tekst: string; jezyk?: string
+    id: string; strona: string; x: number; y: number; w: number; h: number; rodzaj: RodzajObjasnienia; tekst: string; jezyki?: string[]
     powiazania: string[]; opracowal: string; weryfikacja?: string; widocznosc: 'publiczne' | 'bliscy' | 'ja'; utworzono?: string; zmieniono?: string
     /** PH-01: wielokąt albo punkt w % strony */
     ksztalt?: Ksztalt
 }
 type Cel = CelPowiazania
-type Dane = { id: string; nazwa: string; widocznosc: string; opracowal: string; strony: Strona[]; objasnienia: Obj[]; cele: Cel[]; uzycia?: Record<string, { slug: string; tytul: string; element: string }[]> }
+type Dane = { id: string; nazwa: string; widocznosc: string; opracowal: string; strony: Strona[]; objasnienia: Obj[]; cele: Cel[]; uzycia?: Record<string, { slug: string; tytul: string; element: string }[]>; uzytyW?: UzycieMaterialu[]; wersja?: string; zapisano?: string | null }
 
 const KLUCZ_AUTORA = 'pn-objasnienia-opracowal'
 const noweId = () => `o-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 const zaokr = (n: number) => Math.round(n * 1000) / 1000
+/** „o 07:52” (dziś) albo „20.11 o 23:10” */
+const kiedy = (iso: string) => {
+    const d = new Date(iso), godz = d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
+    return d.toDateString() === new Date().toDateString() ? `o ${godz}` : `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')} o ${godz}`
+}
+type StanZapisu = { stan: 'ok' | 'czeka' | 'trwa' | 'blad' | 'konflikt'; kiedy: string | null; blad?: string; inny?: string | null }
 
 export default function ObjasnieniaMaterialu() {
     const id = useParams<{ id: string }>()?.id ?? ''
@@ -40,7 +48,15 @@ export default function ObjasnieniaMaterialu() {
     narzRef.current = narzedzie
     const rysujeRef = React.useRef(rysuje)
     rysujeRef.current = rysuje
-    const [stanZapisu, ustawStanZapisu] = React.useState<'' | 'zapisuję…' | 'zapisano' | string>('')
+    // łatka 21.11: „zapisano o …”, „zapisz teraz” (Ctrl+S), ponowienie po błędzie, kontrola wersji (409 – nic nie nadpisane)
+    const [zapis, ustawZapis] = React.useState<StanZapisu>({ stan: 'ok', kiedy: null })
+    const konflikt = React.useRef(false)
+    const wersjaPliku = React.useRef('')
+    const edycje = React.useRef(0)
+    const zapisane = React.useRef(0)
+    const wTrakcie = React.useRef(false)
+    const ponow = React.useRef(false)
+    const wczytane = React.useRef(new Map<string, string>())
     const [kom, ustawKom] = React.useState('')
     const pole = React.useRef<HTMLDivElement>(null)
     const widz = React.useRef<OpenSeadragon.Viewer | null>(null)
@@ -49,39 +65,73 @@ export default function ObjasnieniaMaterialu() {
     listaRef.current = lista
     const stronaRef = React.useRef(strona)
     stronaRef.current = strona
-    const wersja = React.useRef(0)
 
     React.useEffect(() => {
         fetch(api, { cache: 'no-store' }).then(async (r) => {
             const j = await r.json().catch(() => ({}))
             if (!r.ok) { ustawKom(j.blad ?? (r.status === 401 ? 'Brak hasła panelu – odśwież stronę.' : 'Nie udało się wczytać.')); return }
+            wersjaPliku.current = j.wersja ?? ''
+            wczytane.current = new Map((j.objasnienia as Obj[]).map((o) => [o.id, JSON.stringify(o)]))
+            ustawZapis({ stan: 'ok', kiedy: j.zapisano ?? null })
             ustawDane(j)
             ustawListe(j.objasnienia)
         })
     }, [api])
 
-    // zapis automatyczny (po chwili od ostatniej zmiany)
-    const zapisz = React.useCallback(async (l: Obj[]) => {
-        ustawStanZapisu('zapisuję…')
-        const r = await fetch(api, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ objasnienia: l }) }).catch(() => null)
+    // zapis automatyczny (po chwili od ostatniej zmiany) i na żądanie; zapisy idą po kolei, z wersją pliku z ostatniego wczytania/zapisu
+    const zapiszRef = React.useRef<() => Promise<void>>(async () => {})
+    const zapisz = React.useCallback(async () => {
+        if (konflikt.current) return
+        if (wTrakcie.current) { ponow.current = true; return }
+        if (edycje.current === zapisane.current) return // nic nie czeka (np. zegar zapisu automatycznego po Ctrl+S)
+        const nr = edycje.current
+        wTrakcie.current = true
+        ustawZapis((z) => ({ ...z, stan: 'trwa' }))
+        const r = await fetch(api, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ objasnienia: listaRef.current, wersja: wersjaPliku.current }) }).catch(() => null)
         const j = r ? await r.json().catch(() => ({})) : {}
-        ustawStanZapisu(r?.ok ? 'zapisano' : `nie zapisano: ${j.blad ?? (r ? r.status : 'brak połączenia')}`)
+        wTrakcie.current = false
+        if (r?.ok) {
+            wersjaPliku.current = j.wersja ?? ''
+            zapisane.current = nr
+            const dalej = ponow.current || edycje.current > nr
+            ponow.current = false
+            ustawZapis({ stan: dalej ? 'czeka' : 'ok', kiedy: j.zapisano ?? new Date().toISOString() })
+            if (dalej) zapiszRef.current()
+        } else if (r?.status === 409) {
+            ponow.current = false
+            konflikt.current = true
+            ustawZapis((z) => ({ ...z, stan: 'konflikt', blad: j.blad, inny: j.zapisano ?? null }))
+        } else {
+            ponow.current = false
+            ustawZapis((z) => ({ ...z, stan: 'blad', blad: j.blad ?? (r ? `błąd serwera (${r.status})` : 'brak połączenia') }))
+        }
     }, [api])
+    React.useEffect(() => { zapiszRef.current = zapisz }, [zapisz])
+    const zapiszTeraz = React.useCallback(() => { zapiszRef.current() }, [])
     const zmien = React.useCallback((f: (l: Obj[]) => Obj[]) => {
         ustawListe((l) => f(l))
-        wersja.current++
-        ustawStanZapisu('zapisuję…')
+        edycje.current++
+        ustawZapis((z) => (z.stan === 'konflikt' || z.stan === 'trwa' ? z : { ...z, stan: 'czeka' }))
     }, [])
     React.useEffect(() => {
-        if (!dane || !wersja.current) return
-        const t = window.setTimeout(() => zapisz(listaRef.current), 700)
+        if (!dane || edycje.current === zapisane.current) return
+        const t = window.setTimeout(() => zapiszRef.current(), 700)
         return () => window.clearTimeout(t)
-    }, [lista, dane, zapisz])
+    }, [lista, dane])
     React.useEffect(() => {
-        const przed = (e: BeforeUnloadEvent) => { if (stanZapisu === 'zapisuję…') e.preventDefault() }
+        const niezapisane = () => edycje.current > zapisane.current || wTrakcie.current
+        const przed = (e: BeforeUnloadEvent) => { if (niezapisane()) e.preventDefault() }
+        const klawisz = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); zapiszRef.current() } }
         window.addEventListener('beforeunload', przed)
-        return () => window.removeEventListener('beforeunload', przed)
-    }, [stanZapisu])
+        window.addEventListener('keydown', klawisz)
+        return () => { window.removeEventListener('beforeunload', przed); window.removeEventListener('keydown', klawisz) }
+    }, [])
+    const kopiujMojeZmiany = async () => {
+        const zmienione = listaRef.current.filter((o) => wczytane.current.get(o.id) !== JSON.stringify(o))
+        const tekst = zmienione.map((o) => `${RODZAJE_OBJASNIEN[o.rodzaj].nazwa} (${o.id}):\n${o.tekst}`).join('\n\n')
+        try { await navigator.clipboard.writeText(tekst || '(brak zmienionych tekstów)'); ustawKom(`Skopiowano ${odmiana(zmienione.length, ['zmienione objaśnienie', 'zmienione objaśnienia', 'zmienionych objaśnień'])} – wklej je po odświeżeniu.`) }
+        catch { ustawKom('Nie udało się skopiować – zaznacz i skopiuj teksty ręcznie.') }
+    }
 
     // procenty strony ↔ piksele wczytanego obrazu
     const rozmiar = () => widz.current?.world.getItemAt(0)?.getContentSize()
@@ -177,7 +227,7 @@ export default function ObjasnieniaMaterialu() {
                 let autor = dane.opracowal
                 try { autor = localStorage.getItem(KLUCZ_AUTORA) || autor } catch { /* bez pamięci */ }
                 const poprzednie = listaRef.current.filter((o) => o.strona === plik).at(-1)
-                const o: Obj = { id: nid, strona: plik, ...g, rodzaj: poprzednie?.rodzaj ?? 'odczyt', tekst: '', ...(poprzednie?.jezyk ? { jezyk: poprzednie.jezyk } : {}), powiazania: [], opracowal: autor, widocznosc: 'publiczne' }
+                const o: Obj = { id: nid, strona: plik, ...g, rodzaj: poprzednie?.rodzaj ?? 'odczyt', tekst: '', ...(poprzednie?.jezyki?.length ? { jezyki: poprzednie.jezyki } : {}), powiazania: [], opracowal: autor, widocznosc: 'publiczne' }
                 zmien((l) => [...l, o])
                 const na = naAnno(o)
                 if (na) { a.addAnnotation(na); a.setSelected(nid, true) }
@@ -222,6 +272,7 @@ export default function ObjasnieniaMaterialu() {
 
     if (!dane) return <>{kom ? <div className="pn-kom">{kom}</div> : <span className="pn-szary">wczytuję…</span>}</>
     const plik = dane.strony[strona]?.plik
+    const opisZapisu = zapis.stan === 'trwa' ? 'zapisuję…' : zapis.stan === 'czeka' ? 'zmiany czekają na zapis' : zapis.stan === 'blad' || zapis.stan === 'konflikt' ? 'nie zapisano' : zapis.kiedy ? `zapisano ${kiedy(zapis.kiedy)}` : 'jeszcze nie zapisano'
     const naStronie = lista.filter((o) => o.strona === plik).sort((a, b) => (Math.abs(a.y - b.y) < Math.min(a.h, b.h) / 2 ? a.x - b.x : a.y - b.y))
     const w = lista.find((o) => o.id === wybrane) ?? null
     const ileNa = (p: string) => lista.filter((o) => o.strona === p).length
@@ -232,14 +283,25 @@ export default function ObjasnieniaMaterialu() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <a href={`/keystatic/panel/materialy/${dane.id}`} className="pn-maly">← strony skanów</a>
                     <h1>{dane.nazwa}</h1>
-                    <span className="pn-maly">objaśnienia na skanach · {odmiana(lista.length, ['objaśnienie', 'objaśnienia', 'objaśnień'])}{stanZapisu ? ` · ${stanZapisu}` : ''}</span>
+                    <span className="pn-maly">objaśnienia na skanach · {odmiana(lista.length, ['objaśnienie', 'objaśnienia', 'objaśnień'])} · <span role="status">{opisZapisu}</span></span>
                 </div>
                 <span className="pn-rzad">
+                    <button type="button" onClick={zapiszTeraz} disabled={zapis.stan === 'ok' || zapis.stan === 'trwa' || zapis.stan === 'konflikt'} className={zapis.stan === 'czeka' || zapis.stan === 'blad' ? 'pn-btn pn-btn-gl' : 'pn-btn'}>{zapis.stan === 'ok' ? 'zapisane' : zapis.stan === 'trwa' ? 'zapisuję…' : 'zapisz teraz (Ctrl+S)'}</button>
+                    <a className="pn-btn" href={`/keystatic/collection/materialy/item/${dane.id}`}>opis w Keystatic →</a>
                     <a className="pn-btn" href={`/archiwum/${dane.id}`} target="_blank" rel="noreferrer">na stronie ↗</a>
                     <a className="pn-btn" href={`/archiwum/${dane.id}/objasnienia.json`} target="_blank" rel="noreferrer">W3C JSON ↗</a>
                 </span>
             </div>
-            {stanZapisu.startsWith('nie zapisano') && <div className="pn-kom">{stanZapisu}</div>}
+            <UzytyW uzycia={dane.uzytyW} />
+            {zapis.stan === 'blad' && <div className="pn-kom" role="alert">Nie zapisano: {zapis.blad}. Zmiany są tylko w tym oknie. <button type="button" className="pn-btn pn-btn-maly" onClick={zapiszTeraz}>spróbuj ponownie</button></div>}
+            {zapis.stan === 'konflikt' && (
+                <div className="pn-kom" role="alert">
+                    {zapis.blad ?? 'Objaśnienia zmieniły się w innym oknie.'}{zapis.inny ? ` (zapis ${kiedy(zapis.inny)})` : ''} Twoich ostatnich zmian nie zapisano, żeby niczego nie nadpisać.{' '}
+                    <button type="button" className="pn-btn pn-btn-maly" onClick={kopiujMojeZmiany}>kopiuj moje zmiany</button>{' '}
+                    <button type="button" className="pn-btn pn-btn-maly" onClick={() => window.location.reload()}>odśwież</button>
+                </div>
+            )}
+            {kom && <div className="pn-info">{kom}</div>}
 
             {!dane.strony.length ? (
                 <div className="pn-info">Ten materiał nie ma jeszcze stron skanu. <a href={`/keystatic/panel/materialy/${dane.id}`}>Dodaj strony →</a> (objaśnienia rysuje się na stronach z panelu).</div>
@@ -294,20 +356,23 @@ export default function ObjasnieniaMaterialu() {
                                 </div>
                                 <div className="pn-seg" role="group" aria-label="rodzaj">
                                     {(Object.keys(RODZAJE_OBJASNIEN) as RodzajObjasnienia[]).map((r) => (
-                                        <button key={r} aria-pressed={w.rodzaj === r} onClick={() => ustaw(w.id, { rodzaj: r, ...(r === 'tlumaczenie' && !w.jezyk ? { jezyk: 'pl' } : {}) })}>{RODZAJE_OBJASNIEN[r].nazwa}</button>
+                                        <button key={r} aria-pressed={w.rodzaj === r} onClick={() => ustaw(w.id, { rodzaj: r, ...(r === 'tlumaczenie' && !w.jezyki?.length ? { jezyki: ['pl'] } : {}) })}>{RODZAJE_OBJASNIEN[r].nazwa}</button>
                                     ))}
                                 </div>
                                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     <span className="pn-maly">{RODZAJE_OBJASNIEN[w.rodzaj].nazwa} – {RODZAJE_OBJASNIEN[w.rodzaj].opis}</span>
                                     <textarea id="obj-tekst" className="pn-in" rows={5} value={w.tekst} onChange={(e) => ustaw(w.id, { tekst: e.target.value })} />
                                 </label>
-                                <label className="pn-rzad">
-                                    <span className="pn-maly" style={{ minWidth: 60 }}>język</span>
-                                    <select className="pn-in" value={w.jezyk ?? ''} onChange={(e) => ustaw(w.id, { jezyk: e.target.value || undefined })}>
-                                        <option value="">—</option>
-                                        {Object.entries(JEZYKI).map(([k, n]) => <option key={k} value={k}>{n}</option>)}
-                                    </select>
-                                </label>
+                                {/* łatka 21.11: kilka języków naraz (np. nadruk w trzech językach) – przełączniki jak „rodzaj” */}
+                                <div className="pn-kol pn-obj-jezyki">
+                                    <span className="pn-maly" id="obj-jezyki-t">{w.jezyki?.length ? `języki: ${w.jezyki.map((j) => JEZYKI[j] ?? j).join(', ')}` : 'język – nie wybrano'}</span>
+                                    <div className="pn-seg pn-seg-zawijany" role="group" aria-labelledby="obj-jezyki-t">
+                                        {Object.entries(JEZYKI).map(([k, n]) => {
+                                            const jest = !!w.jezyki?.includes(k)
+                                            return <button key={k} type="button" aria-pressed={jest} onClick={() => { const nowe = jest ? (w.jezyki ?? []).filter((x) => x !== k) : [...(w.jezyki ?? []), k]; ustaw(w.id, { jezyki: nowe.length ? nowe : undefined }) }}>{n}</button>
+                                        })}
+                                    </div>
+                                </div>
                                 {(dane.uzycia?.[w.id]?.length ?? 0) > 0 && (
                                     <span className="pn-maly">podstawa elementów planu: {dane.uzycia![w.id].map((u, i) => <React.Fragment key={`${u.slug}-${i}`}>{i > 0 && ' · '}<a href={`/keystatic/plany/${u.slug}`}>{u.tytul} – {u.element}</a></React.Fragment>)}</span>
                                 )}

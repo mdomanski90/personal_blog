@@ -813,10 +813,14 @@ export async function objasnieniaDoWidoku(id: string, poziom: Widocznosc): Promi
     const strony = stronyMaterialu(id).map((s) => s.plik)
     if (!strony.length) return []
     const rozwiaz = await rozwiazOdnosniki(poziom)
-    return wKolejnosci(objasnieniaMaterialu(id).filter((o) => widoczne(o.widocznosc, poziom) && strony.includes(o.strona)), strony).map((o) => ({
+    const lista = objasnieniaMaterialu(id)
+    // łatka 21.11: płeć osoby do pastylki – drzewo wczytujemy tylko, gdy któreś objaśnienie ma powiązania
+    const drzewo = lista.some((o) => o.powiazania.length) ? (await (await import('./osoby/dane')).stanOsob()).drzewo : null
+    const plecOsoby = (oid: string): 'K' | 'M' | 'U' => { const p = drzewo?.osoby.get(oid)?.plec; return p === 'K' || p === 'M' ? p : 'U' }
+    return wKolejnosci(lista.filter((o) => widoczne(o.widocznosc, poziom) && strony.includes(o.strona)), strony).map((o) => ({
         id: o.id, strona: strony.indexOf(o.strona), x: o.x, y: o.y, w: o.w, h: o.h, rodzaj: o.rodzaj, tekst: o.tekst,
-        ...(o.jezyk ? { jezyk: JEZYKI[o.jezyk] ?? o.jezyk } : {}),
-        powiazania: o.powiazania.map((p) => rozwiaz(p)).filter((c): c is Cel => !!c).map((c) => ({ nazwa: c.nazwa, adres: c.adres })),
+        ...(o.jezyki?.length ? { jezyk: o.jezyki.map((j) => JEZYKI[j] ?? j).join(', ') } : {}),
+        powiazania: o.powiazania.map((p) => rozwiaz(p)).filter((c): c is Cel => !!c).map((c) => ({ nazwa: c.nazwa, adres: c.adres, ...(c.rodzaj === 'osoba' ? { plec: plecOsoby(c.id) } : {}) })),
         opracowal: o.opracowal,
         ...(o.weryfikacja ? { weryfikacja: o.weryfikacja } : {}),
         ...(o.ksztalt ? { ksztalt: o.ksztalt } : {}),

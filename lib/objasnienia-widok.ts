@@ -14,6 +14,8 @@ export const RODZAJE_OBJASNIEN: Record<RodzajObjasnienia, { nazwa: string; cel: 
 export const JEZYKI: Record<string, string> = {
     pl: 'polski', la: 'łacina', ru: 'rosyjski', uk: 'ukraiński', be: 'białoruski', cu: 'cerkiewnosłowiański',
     de: 'niemiecki', yi: 'jidysz', he: 'hebrajski', fr: 'francuski',
+    // łatka 21.11
+    it: 'włoski', cs: 'czeski', hu: 'węgierski', lt: 'litewski', en: 'angielski',
 }
 /** Objaśnienie przygotowane dla czytelnika (lib/archiwum objasnieniaDoWidoku). */
 export interface ObjasnienieWidoku {
@@ -28,7 +30,8 @@ export interface ObjasnienieWidoku {
     tekst: string
     /** nazwa języka */
     jezyk?: string
-    powiazania: { nazwa: string; adres: string }[]
+    /** łatka 21.11: „plec” tylko przy osobie – pokazywana jako pastylka osoby (JW-10) */
+    powiazania: { nazwa: string; adres: string; plec?: 'K' | 'M' | 'U' }[]
     opracowal: string
     weryfikacja?: string
     /** PH-01: wielokąt albo punkt w % strony (brak = prostokąt) */

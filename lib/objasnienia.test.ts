@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { naW3C, poprawObjasnienie, stronaW3C, wKolejnosci, zW3C, type Objasnienie } from './objasnienia'
 
 const o: Objasnienie = {
-    id: 'o-abc123', strona: 's-k1-aa.jpg', x: 10.5, y: 20, w: 30, h: 5.25, rodzaj: 'odczyt', tekst: 'Działo się we wsi Olszanka…', jezyk: 'ru',
+    id: 'o-abc123', strona: 's-k1-aa.jpg', x: 10.5, y: 20, w: 30, h: 5.25, rodzaj: 'odczyt', tekst: 'Działo się we wsi Olszanka…', jezyki: ['ru'],
     powiazania: ['olszanka', 'jan-testowy-1880'], opracowal: 'redakcja', weryfikacja: 'Zgodne z indeksem Geneteki.', widocznosc: 'bliscy', utworzono: '2026-11-13',
 }
 
@@ -30,10 +30,10 @@ test('eksport publiczny: pełne adresy, bez widoczności', () => {
 test('poprawianie: zły identyfikator, prostokąt poza stroną, nieznany rodzaj', () => {
     assert.equal(poprawObjasnienie({ ...o, id: 'zle' }), null)
     assert.equal(poprawObjasnienie({ ...o, strona: '../x.jpg' }), null)
-    const p = poprawObjasnienie({ ...o, x: 90, w: 30, rodzaj: 'cokolwiek' as never, jezyk: 'łacina', widocznosc: 'x' as never })!
+    const p = poprawObjasnienie({ ...o, x: 90, w: 30, rodzaj: 'cokolwiek' as never, jezyki: ['łacina'], widocznosc: 'x' as never })!
     assert.equal(p.w, 10)
     assert.equal(p.rodzaj, 'objasnienie')
-    assert.equal(p.jezyk, undefined)
+    assert.equal(p.jezyki, undefined)
     assert.equal(p.widocznosc, 'publiczne')
 })
 
@@ -41,4 +41,24 @@ test('kolejność czytania: strony, wiersze, od lewej', () => {
     const z = (id: string, strona: string, x: number, y: number) => ({ id, strona, x, y, h: 4 })
     const l = wKolejnosci([z('c', 's-2.jpg', 0, 0), z('b', 's-1.jpg', 50, 31), z('a', 's-1.jpg', 10, 30), z('d', 's-1.jpg', 0, 60)], ['s-1.jpg', 's-2.jpg'])
     assert.deepEqual(l.map((x) => x.id), ['a', 'b', 'd', 'c'])
+})
+
+// Łatka 21.11: kilka języków w jednym objaśnieniu (np. nadruk „Absender / Отправитель / Mittente”); W3C – language jako lista
+test('języki: kilka kodów → W3C language jako lista → z powrotem; jeden kod – napis jak dotąd', () => {
+    const wiele = poprawObjasnienie({ ...o, jezyki: ['de', 'ru', 'it', 'de', 'zle!'] })!
+    assert.deepEqual(wiele.jezyki, ['de', 'ru', 'it'])
+    const a = naW3C(wiele)
+    assert.deepEqual((a.body as { language?: unknown }[])[0].language, ['de', 'ru', 'it'])
+    assert.deepEqual(zW3C(JSON.parse(JSON.stringify(a)))!.jezyki, ['de', 'ru', 'it'])
+    const jeden = naW3C(poprawObjasnienie({ ...o, jezyki: ['fr'] })!)
+    assert.equal((jeden.body as { language?: unknown }[])[0].language, 'fr')
+    assert.deepEqual(zW3C(JSON.parse(JSON.stringify(jeden)))!.jezyki, ['fr'])
+})
+test('języki: dawny zapis „jezyk” (jeden kod) czytany jako lista; brak języka – bez pola', () => {
+    assert.deepEqual(poprawObjasnienie({ ...o, jezyki: undefined, jezyk: 'la' } as never)!.jezyki, ['la'])
+    assert.equal(poprawObjasnienie({ ...o, jezyki: [] })!.jezyki, undefined)
+})
+test('lista języków: także włoski, czeski, węgierski, litewski, angielski', async () => {
+    const { JEZYKI } = await import('./objasnienia-widok')
+    for (const k of ['it', 'cs', 'hu', 'lt', 'en']) assert.ok(JEZYKI[k], k)
 })

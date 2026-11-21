@@ -7,6 +7,7 @@
 // do oryginału i do każdej pomniejszonej kopii.
 
 import fs from 'node:fs'
+import crypto from 'node:crypto'
 import path from 'node:path'
 import { ID_MATERIALU, NAZWA_STRONY } from './strony-materialow'
 
@@ -26,8 +27,8 @@ export interface Objasnienie {
     h: number
     rodzaj: RodzajObjasnienia
     tekst: string
-    /** język tekstu – kod z JEZYKI (np. la, ru; przy tłumaczeniu pl) */
-    jezyk?: string
+    /** języki tekstu – kody z JEZYKI (np. la, ru; przy tłumaczeniu pl); łatka 21.11: kilka naraz (nadruk wielojęzyczny) */
+    jezyki?: string[]
     /** identyfikatory osób, miejsc, tematów, obiektów (jak w [[…]]) */
     powiazania: string[]
     /** kto odczytał / przetłumaczył / objaśnił */
@@ -66,13 +67,15 @@ export function poprawObjasnienie(o: Partial<Objasnienie> | null | undefined): O
     if (w <= 0 || h <= 0) return null
     const rodzaj = (o.rodzaj && o.rodzaj in RODZAJE_OBJASNIEN ? o.rodzaj : 'objasnienie') as RodzajObjasnienia
     const widocznosc: WidocznoscObjasnienia = o.widocznosc === 'bliscy' || o.widocznosc === 'ja' ? o.widocznosc : 'publiczne'
-    const jezyk = typeof o.jezyk === 'string' && /^[a-z]{2,3}$/.test(o.jezyk) ? o.jezyk : ''
+    // dawny zapis: jeden kod w „jezyk”
+    const dawny = (o as { jezyk?: unknown }).jezyk
+    const jezyki = [...new Set((Array.isArray(o.jezyki) ? o.jezyki : typeof dawny === 'string' ? [dawny] : []).filter((j): j is string => typeof j === 'string' && /^[a-z]{2,3}$/.test(j)))].slice(0, 8)
     const weryfikacja = tekst(o.weryfikacja, 4000)
     const powiazania = [...new Set((Array.isArray(o.powiazania) ? o.powiazania : []).map((p) => tekst(p, 120)).filter((p) => /^[\p{L}\p{N}][\p{L}\p{N} .,'’-]*$/u.test(p)))].slice(0, 30)
     return {
         id: o.id, strona: o.strona, x, y, w, h, rodzaj,
         tekst: tekst(o.tekst, 8000),
-        ...(jezyk ? { jezyk } : {}),
+        ...(jezyki.length ? { jezyki } : {}),
         powiazania,
         opracowal: tekst(o.opracowal, 200),
         ...(weryfikacja ? { weryfikacja } : {}),
@@ -128,7 +131,7 @@ export function selektorSvg(k: Ksztalt, szer: number, wys: number): string {
 
 export function naW3C(o: Objasnienie, op: OpcjeW3C = {}): W3CAdnotacja {
     const r = RODZAJE_OBJASNIEN[o.rodzaj]
-    const body: Record<string, unknown>[] = [{ type: 'TextualBody', purpose: r.cel, value: o.tekst, format: 'text/plain', ...(o.jezyk ? { language: o.jezyk } : {}) }]
+    const body: Record<string, unknown>[] = [{ type: 'TextualBody', purpose: r.cel, value: o.tekst, format: 'text/plain', ...(o.jezyki?.length ? { language: o.jezyki.length === 1 ? o.jezyki[0] : o.jezyki } : {}) }]
     if (o.weryfikacja) body.push({ type: 'TextualBody', purpose: 'assessing', value: o.weryfikacja, format: 'text/plain' })
     for (const p of o.powiazania) {
         const src = op.powiazanie ? op.powiazanie(p) : p
@@ -171,7 +174,7 @@ export function zW3C(a: Partial<W3CAdnotacja> | null | undefined): Objasnienie |
         x: Number(m[1]), y: Number(m[2]), w: Number(m[3]), h: Number(m[4]),
         rodzaj: RODZAJ_Z_CELU[String(glowne?.purpose ?? a.motivation)] ?? 'objasnienie',
         tekst: String(glowne?.value ?? ''),
-        jezyk: typeof glowne?.language === 'string' ? glowne.language : undefined,
+        jezyki: typeof glowne?.language === 'string' ? [glowne.language] : Array.isArray(glowne?.language) ? glowne.language.map(String) : undefined,
         powiazania: ciala.filter((b) => b.purpose === 'linking' && typeof b.source === 'string').map((b) => String(b.source)),
         opracowal: a.creator?.name ?? '',
         weryfikacja: typeof ocena?.value === 'string' ? ocena.value : undefined,
@@ -208,4 +211,30 @@ export async function zapiszObjasnienia(id: string, lista: Objasnienie[]): Promi
     const tmp = `${plik(id)}.${process.pid}.tmp`
     await fs.promises.writeFile(tmp, JSON.stringify(stronaW3C(lista, { zWidocznoscia: true }), null, 2) + '\n')
     await fs.promises.rename(tmp, plik(id))
+}
+
+/** Wersja pliku objaśnień (skrót treści) i czas ostatniego zapisu – do kontroli wersji i „zapisano o …” w panelu. */
+export function wersjaObjasnien(id: string): { wersja: string; zapisano: string | null } {
+    if (!ID_MATERIALU.test(id)) return { wersja: '', zapisano: null }
+    try {
+        const t = fs.readFileSync(plik(id))
+        return { wersja: crypto.createHash('sha1').update(t).digest('hex').slice(0, 16), zapisano: fs.statSync(plik(id)).mtime.toISOString() }
+    } catch {
+        return { wersja: '', zapisano: null }
+    }
+}
+
+const kolejkaZapisow = new Map<string, Promise<unknown>>()
+/** Łatka 21.11 (zasada 2.3): zapis tylko wtedy, gdy plik nie zmienił się od wczytania (wersja); inaczej konflikt i nic nie nadpisane.
+ *  Zapisy jednego materiału idą po kolei – dwa równoczesne z tą samą wersją: przechodzi pierwszy. */
+export function zapiszObjasnieniaWersja(id: string, lista: Objasnienie[], wersja: string): Promise<{ ok: boolean; wersja: string; zapisano: string | null }> {
+    const zadanie = (kolejkaZapisow.get(id) ?? Promise.resolve()).then(async () => {
+        const przed = wersjaObjasnien(id)
+        if (przed.wersja !== wersja) return { ok: false, ...przed }
+        await zapiszObjasnienia(id, lista)
+        const po = wersjaObjasnien(id)
+        return { ok: true, wersja: po.wersja, zapisano: po.zapisano ?? new Date().toISOString() }
+    })
+    kolejkaZapisow.set(id, zadanie.catch(() => undefined))
+    return zadanie
 }

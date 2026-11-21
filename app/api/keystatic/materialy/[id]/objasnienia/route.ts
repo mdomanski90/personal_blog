@@ -2,7 +2,7 @@ import { brakDostepu } from '@/lib/plany/dane'
 import { poziomPanelu } from '@/lib/konta/straz'
 import { celeSieci, material } from '@/lib/archiwum'
 import { ID_MATERIALU, stronyMaterialu } from '@/lib/strony-materialow'
-import { objasnieniaMaterialu, poprawObjasnienie, zapiszObjasnienia, type Objasnienie } from '@/lib/objasnienia'
+import { objasnieniaMaterialu, poprawObjasnienie, wersjaObjasnien, zapiszObjasnieniaWersja, type Objasnienie } from '@/lib/objasnienia'
 
 // Objaśnienia na skanach materiału (panel): odczyt + zapis całej listy.
 export const dynamic = 'force-dynamic'
@@ -28,14 +28,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const widzi = poziomPanelu(req) === 'ja'
     for (const p of await listaPlanow()) if (widzi || p.widocznosc !== 'ja') for (const e of p.elementy) if (widzi || e.widocznosc !== 'ja') for (const q of e.podstawa ?? [])
         if (q.material === id && q.objasnienie) (uzycia[q.objasnienie] ??= []).push({ slug: p.slug, tytul: p.tytul, element: e.nazwa || e.nazwaZrodlowa || e.typ })
-    return Response.json({ id, nazwa: r.m!.nazwa, widocznosc: r.m!.widocznosc, opracowal: r.m!.opracowal, strony, objasnienia: objasnieniaMaterialu(id), cele, uzycia })
+    const { uzytyW } = await import('@/lib/panel/uzyty-w')
+    return Response.json({ id, nazwa: r.m!.nazwa, widocznosc: r.m!.widocznosc, opracowal: r.m!.opracowal, strony, objasnienia: objasnieniaMaterialu(id), ...wersjaObjasnien(id), cele, uzycia, uzytyW: await uzytyW(id, poziomPanelu(req)) })
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const r = await sprawdz(req, params); if (r.b) return r.b
     const id = r.id!
-    const d = (await req.json().catch(() => null)) as { objasnienia?: Partial<Objasnienie>[] } | null
+    const d = (await req.json().catch(() => null)) as { objasnienia?: Partial<Objasnienie>[]; wersja?: string } | null
     if (!Array.isArray(d?.objasnienia)) return Response.json({ blad: 'brak danych' }, { status: 400 })
+    // łatka 21.11 (zasada 2.3): bez wersji z wczytania – nie zapisujemy (stara karta sprzed wdrożenia: odśwież)
+    if (typeof d!.wersja !== 'string') return Response.json({ blad: 'Odśwież stronę – brak wersji objaśnień.', ...wersjaObjasnien(id) }, { status: 409 })
     const strony = new Set(stronyMaterialu(id).map((s) => s.plik))
     const dawne = new Map(objasnieniaMaterialu(id).map((o) => [o.id, o]))
     const teraz = new Date().toISOString().slice(0, 19) + 'Z'
@@ -49,6 +52,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         const zmiana = !by || JSON.stringify({ ...by, utworzono: 0, zmieniono: 0 }) !== JSON.stringify({ ...o, utworzono: 0, zmieniono: 0 })
         nowe.push({ ...o, utworzono: by?.utworzono ?? teraz, ...(zmiana ? { zmieniono: teraz } : by?.zmieniono ? { zmieniono: by.zmieniono } : {}) })
     }
-    await zapiszObjasnienia(id, nowe)
-    return Response.json({ objasnienia: nowe })
+    const w = await zapiszObjasnieniaWersja(id, nowe, d!.wersja!)
+    if (!w.ok) return Response.json({ blad: 'Objaśnienia zmieniły się w innym oknie albo u innej osoby.', wersja: w.wersja, zapisano: w.zapisano }, { status: 409 })
+    return Response.json({ objasnienia: nowe, wersja: w.wersja, zapisano: w.zapisano })
 }

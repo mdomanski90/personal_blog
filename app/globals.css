@@ -879,6 +879,9 @@ html[data-emblemat] .emblemat-rysuj .emblemat-tresc{animation:none;opacity:1}
 .dok-obj-tekst{margin-top:3px;white-space:pre-wrap;overflow-wrap:anywhere;cursor:pointer;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .dok-obj-notka.aktywna .dok-obj-tekst,.dok-obj-notka.pelna .dok-obj-tekst{display:block;-webkit-line-clamp:unset;overflow:visible}
 .dok-obj-wiecej{display:flex;flex-direction:column;gap:3px;margin-top:6px;font-size:calc(12px * var(--font-scale,1));color:#6b665c}
+/* łatka 21.11: powiązania objaśnienia – osoby jako pastylki (JW-10), inne odnośniki obok, w jednym zawijanym wierszu */
+.dok-obj-powiazania{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+@media (pointer:fine){.odp .dok-obj-powiazania .osoba-link{min-height:calc(30px * var(--font-scale,1));padding:0 12px}} /* niższa pastylka w notce objaśnienia; na ekranach dotykowych – 44 px jak wszędzie */
 .dok-obj-weryfikacja>summary{cursor:pointer;width:fit-content}
 .dok-obj-weryfikacja>.rozwin-tresc>div{white-space:pre-wrap;margin-top:2px;color:#4f4a41}
 .dok-obj-notka .uzupelnienie,.dok-transkrypcja .uzupelnienie{color:#736d63}
