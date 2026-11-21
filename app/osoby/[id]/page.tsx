@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { metaKarty } from '@/lib/og/meta'
 import type { Metadata } from 'next'
 import { Link } from 'next-view-transitions'
 import { notFound } from 'next/navigation'
@@ -38,7 +39,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const o = s.drzewo.osoby.get(id)
     const poziom = await poziomCzytelnika()
     if (!o || !widoczne(s.widocznosc(id), poziom)) return { title: 'osoba · odniepamieci.pl', robots: { index: false } }
-    return { title: `${nazwaOsoby(o)} · osoby · odniepamieci.pl`, robots: s.widocznosc(id) === 'publiczne' ? undefined : { index: false } }
+    // łatka 21.11: opis podglądu linku – wstęp biogramu (gdy jest), inaczej zdanie o serwisie
+    const lead = (await biogram(id, poziom))?.lead
+    return { ...metaKarty(`${nazwaOsoby(o)} · osoby · odniepamieci.pl`, nazwaOsoby(o), lead ? bezNawiasow(lead, (await kontekstTresci('publiczne')).rozwiaz) : undefined), robots: s.widocznosc(id) === 'publiczne' ? undefined : { index: false } }
 }
 
 function Obrz({ o, wywnioskowany }: { o: Obrzadek; wywnioskowany: boolean }) {

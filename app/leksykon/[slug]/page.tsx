@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { metaKarty } from '@/lib/og/meta'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import { Link } from 'next-view-transitions'
 import { nazwy, opowiesciDlaTematu, materialyDla, powiazania, poziomCzytelnika, kontekstTresci, RODZAJE_TEMATOW, temat, tematy } from '@/lib/archiwum'
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: Parametry): Promise<Metadata>
     const { slug } = await params
     const t = await temat(slug, await poziomCzytelnika())
     // PD-19 (P5): pozycja niepubliczna (widoczna po zalogowaniu) – bez indeksowania
-    return { title: t ? `${t.nazwa} · tematy · odniepamieci.pl` : 'odniepamieci.pl', robots: t && t.widocznosc !== 'publiczne' ? { index: false, follow: false } : undefined }
+    return { ...(t ? metaKarty(`${t.nazwa} · leksykon · odniepamieci.pl`, t.nazwa, zajawka(t.opis, 400, (await kontekstTresci('publiczne')).rozwiaz)) : { title: 'odniepamieci.pl' }), robots: t && t.widocznosc !== 'publiczne' ? { index: false, follow: false } : undefined }
 }
 
 // Karta tematu – wspólny układ kart, wariant bez obrazu: nagłówek na całą szerokość, tabela „w skrócie”, opis,

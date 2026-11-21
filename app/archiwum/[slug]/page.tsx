@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { metaKarty } from '@/lib/og/meta'
 import { odmiana } from '@/lib/tekst'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import { zakoduj } from '@/lib/email-ochrona'
@@ -10,7 +11,7 @@ import { zadaniaMaterialu } from '@/lib/wspoltworz'
 import Zgloszenie from '../../components/Zgloszenie'
 import { RODZAJE_MATERIALOW } from '@/lib/materialy'
 import { formatujEdtf } from '@/lib/edtf'
-import { naHtml } from '@/lib/markdoc'
+import { naHtml, zajawka } from '@/lib/markdoc'
 import { typPliku } from '@/lib/pliki'
 import { rozdzielZrodla } from '@/lib/markdoc'
 import PrzegladarkaDokumentu from '../../components/PrzegladarkaDokumentu'
@@ -45,7 +46,8 @@ export async function generateMetadata({ params }: Parametry): Promise<Metadata>
     const m = await material(slug, await poziomCzytelnika())
     if (!m) return { title: 'odniepamieci.pl' }
     return {
-        title: `${m.nazwa} · archiwum · odniepamieci.pl`,
+        // łatka 21.11: opis i tytuł do podglądu linku (obrazek – opengraph-image.tsx obok)
+        ...metaKarty(`${m.nazwa} · archiwum · odniepamieci.pl`, m.nazwa, zajawka(rozdzielZrodla(m.opis).reszta, 400, (await kontekstTresci('publiczne')).rozwiaz)),
         // strony „dla bliskich” poza wyszukiwarkami
         ...(m.widocznosc !== 'publiczne' ? { robots: { index: false, follow: false } } : {}),
     }

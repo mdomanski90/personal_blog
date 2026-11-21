@@ -1,4 +1,5 @@
 import { odmiana } from '@/lib/tekst'
+import { metaKarty } from '@/lib/og/meta'
 import type { Metadata } from 'next'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import OtworzWMapach from '../../components/OtworzWMapach'
@@ -13,7 +14,7 @@ import { punktyMapy } from '@/lib/punkty-mapy'
 import { dolaczPlany, planyNaMape } from '@/lib/plany/serwer'
 import ListaObiektow from '../../components/ListaObiektow'
 import { formatujEdtf } from '@/lib/edtf'
-import { naHtml } from '@/lib/markdoc'
+import { naHtml, zajawka } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc, maTekst } from '../../components/Uklad'
 import { wystapieniaKarty } from '@/lib/plany/wystapienia'
 import { Czesc, CzescJakCytowac, WierszZglosil, KrotkieMaterialy, KrotkieWpisy, LiniaKarty, WierszeWystapien, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
@@ -43,7 +44,7 @@ export async function generateMetadata({ params }: Parametry): Promise<Metadata>
     const { slug } = await params
     const m = await miejsce(slug, await poziomCzytelnika())
     // PD-19 (P5): pozycja niepubliczna (widoczna po zalogowaniu) – bez indeksowania
-    return { title: m ? `${m.nazwa} · miejsca · odniepamieci.pl` : 'odniepamieci.pl', robots: m && m.widocznosc !== 'publiczne' ? { index: false, follow: false } : undefined }
+    return { ...(m ? metaKarty(`${m.nazwa} · miejsca · odniepamieci.pl`, m.nazwa, zajawka(m.opis, 400, (await kontekstTresci('publiczne')).rozwiaz)) : { title: 'odniepamieci.pl' }), robots: m && m.widocznosc !== 'publiczne' ? { index: false, follow: false } : undefined }
 }
 
 export default async function MiejsceStrona({ params }: Parametry) {

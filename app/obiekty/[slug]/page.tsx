@@ -1,4 +1,5 @@
 import { odmiana } from '@/lib/tekst'
+import { metaKarty } from '@/lib/og/meta'
 import { parafie } from '@/lib/archiwum'
 import { brakiDoPomocy } from '@/lib/wspoltworz-dane'
 import Zgloszenie from '../../components/Zgloszenie'
@@ -45,7 +46,7 @@ export async function generateMetadata({ params }: Parametry): Promise<Metadata>
     const { slug } = await params
     const o = await obiekt(slug, await poziomCzytelnika())
     // PD-19 (P5): pozycja niepubliczna (widoczna po zalogowaniu) – bez indeksowania
-    return { title: o ? `${o.nazwa} · odniepamieci.pl` : 'odniepamieci.pl', robots: o && o.widocznosc !== 'publiczne' ? { index: false, follow: false } : undefined }
+    return { ...(o ? metaKarty(`${o.nazwa} · odniepamieci.pl`, o.nazwa, zajawka(o.opis, 400, (await kontekstTresci('publiczne')).rozwiaz)) : { title: 'odniepamieci.pl' }), robots: o && o.widocznosc !== 'publiczne' ? { index: false, follow: false } : undefined }
 }
 
 export default async function ObiektStrona({ params }: Parametry) {

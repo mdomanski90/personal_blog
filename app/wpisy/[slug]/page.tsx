@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { metaKarty } from '@/lib/og/meta'
 import { brakLubPrzekierowanie } from '@/lib/przekierowania'
 import { Link } from 'next-view-transitions'
 import { nazwy, opowiesc, powiazania, poziomCzytelnika, kontekstTresci, materialy } from '@/lib/archiwum'
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: Parametry): Promise<Metadata>
     const { slug } = await params
     const o = await opowiesc(slug, await poziomCzytelnika())
     // PD-19 (P5): wpis niepubliczny (widoczny po zalogowaniu) – bez indeksowania
-    return { title: o ? `${o.tytul} · odniepamieci.pl` : 'odniepamieci.pl', description: o?.zajawka, robots: o && o.widocznosc !== 'publiczne' ? { index: false, follow: false } : undefined }
+    return { ...(o ? metaKarty(`${o.tytul} · odniepamieci.pl`, o.tytul, o.zapowiedz || o.zajawka) : { title: 'odniepamieci.pl' }), robots: o && o.widocznosc !== 'publiczne' ? { index: false, follow: false } : undefined }
 }
 
 /**
