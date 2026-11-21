@@ -16,3 +16,5 @@ test('zwinięty spis działów zawija przycisk „wszystkie działy” na telefo
     assert.match(css, /@media \(max-width:640px\)\{\.spis-ramka\.sd-zwiniety:not\(\.sd-pokaz\) \.spis-dzialow,[^{]+\{flex:1 1 12em\}\}/)
 })
 test('edytor objaśnień: jedna kolumna poniżej 900 px', () => assert.match(panel, /@media \(max-width: 900px\) \{ \.pn-obj-uklad \{ grid-template-columns: minmax\(0, 1fr\); \} \}/))
+test('okno „z archiwum”: na telefonie obrazek 88 px (reguła 200 px nie może obowiązywać poniżej 641 px)', () =>
+    assert.match(css, /@media \(max-width:640px\)\{\.karta-losowa \.kl-srodek\{grid-template-columns:minmax\(0,1fr\) min\(calc\(88px \* var\(--font-scale,1\)\),26vw\)\}/))

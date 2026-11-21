@@ -2442,3 +2442,12 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
    przycisk schodzi pod spód – wybrany dział nie jest ściskany do kilkudziesięciu pikseli */
 .spis-ramka.sd-zwiniety,body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka{flex-wrap:wrap}
 @media (max-width:640px){.spis-ramka.sd-zwiniety:not(.sd-pokaz) .spis-dzialow,body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka:not(.sd-pokaz) .spis-dzialow{flex:1 1 12em}}
+/* łatka 21.11 (telefon, KOREKTA): okno „z archiwum” na głównej – reguła 200 px na obrazek (wyżej, bez ograniczenia szerokości)
+   obowiązywała też na telefonie, zostawiając tekstowi kilkadziesiąt pikseli („materi…”, „Kośció…”); na telefonie obrazek 88 px jak w planszy */
+@media (max-width:640px){.karta-losowa .kl-srodek{grid-template-columns:minmax(0,1fr) min(calc(88px * var(--font-scale,1)),26vw)}
+  /* wysokość z treści (stała 320 px ucinała opis w połowie wiersza); długie słowa łamią się zamiast wychodzić poza kolumnę */
+  .karta-losowa,.dark .karta-losowa{height:auto;min-height:0}
+  .karta-losowa .kl-mini{min-height:calc(88px * var(--font-scale,1))}
+  .odp .karta-losowa a.kl-tytul,.karta-losowa .kl-opis{overflow-wrap:anywhere}
+  /* odnośniki w jednym rzędzie pod strzałkami (dotąd kolumna – zabierała wysokość okna i ucinała opis) */
+  .kl-odnosniki{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0 16px}}
