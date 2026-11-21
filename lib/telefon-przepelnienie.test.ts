@@ -18,3 +18,8 @@ test('zwinięty spis działów zawija przycisk „wszystkie działy” na telefo
 test('edytor objaśnień: jedna kolumna poniżej 900 px', () => assert.match(panel, /@media \(max-width: 900px\) \{ \.pn-obj-uklad \{ grid-template-columns: minmax\(0, 1fr\); \} \}/))
 test('okno „z archiwum”: na telefonie obrazek 88 px (reguła 200 px nie może obowiązywać poniżej 641 px)', () =>
     assert.match(css, /@media \(max-width:640px\)\{\.karta-losowa \.kl-srodek\{grid-template-columns:minmax\(0,1fr\) min\(calc\(88px \* var\(--font-scale,1\)\),26vw\)\}/))
+test('przeglądarka skanu na karcie, telefon: wysokość pola z proporcji strony, pasek w dwóch uporządkowanych wierszach', () => {
+    assert.match(css, /@media \(max-width:640px\)\{\.dok-karta \.dok-pole\{height:auto;aspect-ratio:1 \/ var\(--proporcja-skanu,1\.4\);min-height:200px;max-height:70vh\}\}/)
+    assert.match(css, /\.dok-karta:not\(\.dok-pelny\) \.dok-pasek-lewa>\.dok-tylko-tel\{grid-column:3;grid-row:1\}/)
+    assert.match(css, /\.dok-karta:not\(\.dok-pelny\) \.dok-pasek-prawa\{grid-column:1 \/ -1;grid-row:2/)
+})

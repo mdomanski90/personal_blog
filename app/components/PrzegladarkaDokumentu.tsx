@@ -66,6 +66,8 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
     const obszar = React.useRef<HTMLDivElement>(null)
     const warstwa = React.useRef<ApiWarstwy | null>(null)
     const [wersja, ustawWersje] = React.useState(0)
+    // łatka 21.11 (telefon): proporcje bieżącej strony (wys./szer.) – na telefonie wysokość pola skanu z proporcji zamiast stałych 560 px
+    const [proporcja, ustawProporcje] = React.useState<number | null>(null)
     const [aktywne, ustawAktywneW] = React.useState<string | null>(null)
     const naAktywneRef = React.useRef(naAktywne)
     naAktywneRef.current = naAktywne
@@ -156,7 +158,7 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
                 if (vp) ustawSkale(Math.round((vp.getZoom(true) / vp.getHomeZoom()) * 100))
             }
             v.addHandler('zoom', odswiezSkale)
-            v.addHandler('open', () => { odswiezSkale(); v.viewport.setRotation(0); ustawObrot(0); ustawWersje((x) => x + 1) })
+            v.addHandler('open', () => { odswiezSkale(); v.viewport.setRotation(0); ustawObrot(0); ustawWersje((x) => x + 1); const r = v.world.getItemAt(0)?.getContentSize(); if (r && r.x > 0) ustawProporcje(r.y / r.x) })
             v.addHandler('page', (e) => { const p = (e as unknown as { page: number }).page; ustawStrone(p); ustawAktywne(null); ustawElement(null); naStroneRef.current?.(p) })
             // krótkie kliknięcie (nie przeciągnięcie): w objaśnienie – pokazuje je; gdzie indziej – pełny ekran
             v.addHandler('canvas-click', (e) => {
@@ -200,6 +202,12 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [strony.map((s) => s.adres).join('|')])
 
+    // łatka 21.11 (telefon): po zmianie wysokości pola z proporcji strony – skan od nowa dopasowany (bez pustych pasów)
+    React.useEffect(() => {
+        if (!proporcja) return
+        const t = window.setTimeout(() => widz.current?.viewport?.goHome(true), 60)
+        return () => window.clearTimeout(t)
+    }, [proporcja])
     // pełny ekran: kółko przybliża, Esc zamyka, strzałki zmieniają stronę; przewijanie strony pod spodem wyłączone
     React.useEffect(() => {
         const v = widz.current
@@ -404,7 +412,7 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
             </div>
             <div className={`dok-srodek${bok ? ' z-bokiem' : ''}`}>
             <div ref={obszar} className={`dok-obszar dok-uklad-${uklad}`}>
-                <div ref={pole} className="dok-pole" style={{ gridArea: 'pole', '--wys-skanu': pelny ? undefined : wysokosc } as React.CSSProperties} aria-label={`skan: ${tytul}${n > 1 ? `, strona ${strona + 1} z ${n}` : ''}`} role="img" />
+                <div ref={pole} className="dok-pole" style={{ gridArea: 'pole', '--wys-skanu': pelny ? undefined : wysokosc, '--proporcja-skanu': proporcja && !pelny ? String(Math.round(proporcja * 1000) / 1000) : undefined } as React.CSSProperties} aria-label={`skan: ${tytul}${n > 1 ? `, strona ${strona + 1} z ${n}` : ''}`} role="img" />
                 {rekonstrukcja && <WarstwaRekonstrukcji widz={widz} osd={osd} wersja={wersja} strona={strona} dane={rekonstrukcja} tryb={warstwy} krycie={krycie} wyroznione={wyroznione} />}
                 {sa && (
                     <ObjasnieniaSkanu widz={widz} osd={osd} pole={pole} obszar={obszar} lista={naStronie} tryb={bok && efTryb === 'margines' ? 'numery' : efTryb} pelny={pelny && !bok} aktywne={aktywne} wskazane={wskazane}
@@ -508,7 +516,7 @@ export default function PrzegladarkaDokumentu({ strony, objasnienia = [], tytul,
             </div>
             <div className={`dok-srodek${bok ? ' z-bokiem' : ''}`}>
             <div ref={obszar} className={`dok-obszar dok-uklad-${uklad}`}>
-                <div ref={pole} className="dok-pole" style={{ gridArea: 'pole', '--wys-skanu': pelny ? undefined : wysokosc } as React.CSSProperties} aria-label={`skan: ${tytul}${n > 1 ? `, strona ${strona + 1} z ${n}` : ''}`} role="img" />
+                <div ref={pole} className="dok-pole" style={{ gridArea: 'pole', '--wys-skanu': pelny ? undefined : wysokosc, '--proporcja-skanu': proporcja && !pelny ? String(Math.round(proporcja * 1000) / 1000) : undefined } as React.CSSProperties} aria-label={`skan: ${tytul}${n > 1 ? `, strona ${strona + 1} z ${n}` : ''}`} role="img" />
                 {rekonstrukcja && <WarstwaRekonstrukcji widz={widz} osd={osd} wersja={wersja} strona={strona} dane={rekonstrukcja} tryb={warstwy} krycie={krycie} wyroznione={wyroznione} />}
                 {sa && (
                     <ObjasnieniaSkanu widz={widz} osd={osd} pole={pole} obszar={obszar} lista={naStronie} tryb={bok && efTryb === 'margines' ? 'numery' : efTryb} pelny={pelny && !bok} aktywne={aktywne} wskazane={wskazane}

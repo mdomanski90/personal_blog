@@ -2451,3 +2451,15 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
   .odp .karta-losowa a.kl-tytul,.karta-losowa .kl-opis{overflow-wrap:anywhere}
   /* odnośniki w jednym rzędzie pod strzałkami (dotąd kolumna – zabierała wysokość okna i ucinała opis) */
   .kl-odnosniki{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0 16px}}
+/* łatka 21.11 (telefon): pole skanu na karcie materiału wysokie na tyle, ile wymaga bieżąca strona (proporcje z przeglądarki),
+   zamiast stałych 560 px – poziomy skan nie ma pustych pasów nad i pod; najwyżej 70 % ekranu, najmniej 200 px */
+@media (max-width:640px){.dok-karta .dok-pole{height:auto;aspect-ratio:1 / var(--proporcja-skanu,1.4);min-height:200px;max-height:70vh}}
+/* pasek przeglądarki na karcie, telefon: zawsze dwa uporządkowane wiersze – strony z lewej i ⤢ z prawej, pod spodem objaśnienia
+   z lewej i powiększenie z prawej (dotąd drugi wiersz przyklejał się do prawej, a ⤢ potrafił zostać sam w trzecim) */
+@media (max-width:640px){
+  .dok-karta:not(.dok-pelny) .dok-pasek-karta{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px}
+  .dok-karta:not(.dok-pelny) .dok-pasek-lewa>:not(.dok-tylko-tel){grid-column:1;grid-row:1}
+  .dok-karta:not(.dok-pelny) .dok-pasek-lewa>.dok-tylko-tel{grid-column:3;grid-row:1}
+  .dok-karta:not(.dok-pelny) .dok-pasek-prawa{grid-column:1 / -1;grid-row:2;margin-left:0;justify-content:space-between}
+  .dok-karta:not(.dok-pelny) .dok-pasek-prawa>:only-child{margin-left:auto}
+}
