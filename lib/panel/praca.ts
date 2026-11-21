@@ -66,6 +66,15 @@ export function dopiszOstatnie(L: PozycjaPracy[], nowe: PozycjaPracy[], czas = n
     return wyn.filter((x) => { const k = bazowy(x.href); if (byly.has(k)) return false; byly.add(k); return true }).slice(0, MAKS_OSTATNICH)
 }
 
+/** Łatka 21.11: zapis objaśnień albo stron skanu w panelu materiału – jedna pozycja na materiał (ostatnie miejsce pracy). */
+export async function zapiszOstatniMaterial(m: { id: string; nazwa: string; widocznosc: string }, gdzie: 'objasnienia' | 'strony', korzen = process.cwd()): Promise<void> {
+    const baza = `/keystatic/panel/materialy/${m.id}`
+    const nowa = pozycja({ href: gdzie === 'objasnienia' ? `${baza}/objasnienia` : baza, nazwa: `materiał „${m.nazwa || m.id}”`, rodzaj: 'materiał',
+        miejsce: gdzie === 'objasnienia' ? 'objaśnienia na skanach' : 'strony skanów', ...(m.widocznosc !== 'ja' ? { strona: `/archiwum/${m.id}` } : {}) })
+    if (!nowa) return
+    await zmien(korzen, (p) => ({ ...p, ostatnie: dopiszOstatnie(p.ostatnie.filter((x) => x.href.split('?')[0] !== baza && !x.href.startsWith(`${baza}/`)), [nowa]) }))
+}
+
 export async function zapiszOstatniePozycje(nowe: PozycjaPracy[], korzen = process.cwd()): Promise<void> {
     const ok = nowe.map(pozycja).filter((x): x is PozycjaPracy => !!x)
     if (ok.length) await zmien(korzen, (p) => ({ ...p, ostatnie: dopiszOstatnie(p.ostatnie, ok) }))

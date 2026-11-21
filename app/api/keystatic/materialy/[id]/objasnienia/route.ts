@@ -54,5 +54,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
     const w = await zapiszObjasnieniaWersja(id, nowe, d!.wersja!)
     if (!w.ok) return Response.json({ blad: 'Objaśnienia zmieniły się w innym oknie albo u innej osoby.', wersja: w.wersja, zapisano: w.zapisano }, { status: 409 })
+    // łatka 21.11: „ostatnio edytowane przez Ciebie” – materiał (objaśnienia)
+    await (await import('@/lib/panel/praca')).zapiszOstatniMaterial(r.m!, 'objasnienia').catch(() => {})
     return Response.json({ objasnienia: nowe, wersja: w.wersja, zapisano: w.zapisano })
 }

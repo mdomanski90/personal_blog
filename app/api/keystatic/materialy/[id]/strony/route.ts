@@ -5,6 +5,7 @@ import sharp from 'sharp'
 import { brakDostepu } from '@/lib/plany/dane'
 import { poziomPanelu } from '@/lib/konta/straz'
 import { material } from '@/lib/archiwum'
+import { zapiszOstatniMaterial } from '@/lib/panel/praca'
 import { ID_MATERIALU, NAZWA_STRONY, adresStrony, katalogStron, stronyMaterialu, zapiszStrony, type StronaMaterialu } from '@/lib/strony-materialow'
 
 // Strony materiału w panelu: lista, dodanie pliku (po jednym na żądanie – panel wysyła kilka po kolei),
@@ -59,6 +60,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     await fs.promises.mkdir(katalogStron(id), { recursive: true })
     await fs.promises.writeFile(path.join(/*turbopackIgnore: true*/ katalogStron(id), nazwa), dane)
     await zapiszStrony(id, [...stronyMaterialu(id), { plik: nazwa }])
+    // łatka 21.11: „ostatnio edytowane przez Ciebie” – materiał (strony skanów)
+    await zapiszOstatniMaterial(r.m!, 'strony').catch(() => {})
     return Response.json({ strony: lista(id) })
 }
 
@@ -77,5 +80,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         await fs.promises.rename(path.join(/*turbopackIgnore: true*/ katalogStron(id), p), path.join(/*turbopackIgnore: true*/ katalogStron(id), '_kosz', p)).catch(() => {})
     }
     await zapiszStrony(id, nowe)
+    // łatka 21.11: „ostatnio edytowane przez Ciebie” – materiał (strony skanów)
+    await zapiszOstatniMaterial(r.m!, 'strony').catch(() => {})
     return Response.json({ strony: lista(id) })
 }

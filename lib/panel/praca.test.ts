@@ -57,3 +57,20 @@ test('praca wg planszy: szkic „tylko ja” oznaczony, bez strony publicznej', 
         assert.equal(p.strona, undefined)
     } finally { await fs.rm(k, { recursive: true, force: true }) }
 })
+
+// Łatka 21.11: objaśnienia i strony skanów też trafiają do „ostatnio edytowane” – jedna pozycja na materiał (ostatnie miejsce pracy)
+test('praca: materiał z panelu – jedna pozycja (objaśnienia albo strony skanów), strona publiczna poza „tylko ja”', async () => {
+    const { zapiszOstatniMaterial } = await import('./praca')
+    const k = await fs.mkdtemp(path.join(os.tmpdir(), 'praca-mat-'))
+    try {
+        await zapiszOstatniMaterial({ id: 'mat-1', nazwa: 'Karta syntetyczna', widocznosc: 'publiczne' }, 'strony', k)
+        await zapiszOstatniePozycje([{ href: '/keystatic/osoby/p1', nazwa: 'osoba „Jan”', rodzaj: 'osoba' }], k)
+        await zapiszOstatniMaterial({ id: 'mat-1', nazwa: 'Karta syntetyczna', widocznosc: 'publiczne' }, 'objasnienia', k)
+        let p = await wczytajPrace(k)
+        assert.deepEqual(p.ostatnie.map((x) => x.href), ['/keystatic/panel/materialy/mat-1/objasnienia', '/keystatic/osoby/p1'])
+        assert.deepEqual([p.ostatnie[0].nazwa, p.ostatnie[0].rodzaj, p.ostatnie[0].miejsce, p.ostatnie[0].strona], ['materiał „Karta syntetyczna”', 'materiał', 'objaśnienia na skanach', '/archiwum/mat-1'])
+        await zapiszOstatniMaterial({ id: 'mat-2', nazwa: 'Ukryty', widocznosc: 'ja' }, 'strony', k)
+        p = await wczytajPrace(k)
+        assert.deepEqual([p.ostatnie[0].href, p.ostatnie[0].miejsce, p.ostatnie[0].strona], ['/keystatic/panel/materialy/mat-2', 'strony skanów', undefined])
+    } finally { await fs.rm(k, { recursive: true, force: true }) }
+})
