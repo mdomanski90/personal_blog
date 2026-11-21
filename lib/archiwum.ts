@@ -75,6 +75,8 @@ export interface Miejsce {
     sameAs: string | null
     widocznosc: Widocznosc
     dodano: string | null
+    /** łatka 21.11: zapowiedź na stronie głównej wśród ostatnio dodanych (domyślnie tak) */
+    naGlownej?: boolean
     /** skąd pochodzi opis (np. Wikipedia, CC BY-SA) */
     zrodloOpisu: string
     /** etap 3 (ankieta 2, 17.11): krótki wstęp nad tabelą karty, pisany ręcznie; pusty – nad tabelą nic (bez skrótu historii) */
@@ -160,6 +162,8 @@ export interface Temat {
     miejsca: string[]
     widocznosc: Widocznosc
     dodano: string | null
+    /** łatka 21.11: zapowiedź na stronie głównej wśród ostatnio dodanych (domyślnie tak) */
+    naGlownej?: boolean
     zrodla: string[]
     opis: Node | null
     /** KRT-01 (P3): „zgłosił(a)” */
@@ -211,6 +215,8 @@ export interface Obiekt {
     instytucje?: RelacjaObiektuZInstytucja[]
     widocznosc: Widocznosc
     dodano: string | null
+    /** łatka 21.11: zapowiedź na stronie głównej wśród ostatnio dodanych (domyślnie tak) */
+    naGlownej?: boolean
     opis: Node | null
     /** WSP-02: pole „nie pokazuj w współtwórz” */
     bezWspoltworz: boolean
@@ -254,6 +260,8 @@ export interface Material {
     transkrypcja: string
     widocznosc: Widocznosc
     dodano: string | null
+    /** łatka 21.11: zapowiedź na stronie głównej wśród ostatnio dodanych (domyślnie tak) */
+    naGlownej?: boolean
     zrodla: string[]
     opis: Node | null
     /** WSP-02: pole „nie pokazuj w współtwórz” */
@@ -302,6 +310,7 @@ const wszystkieMiejscaSurowe = cache(async (): Promise<Miejsce[]> => {
             sameAs: entry.sameAs,
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
+            naGlownej: (entry as { onHomepage?: boolean }).onHomepage !== false,
             zrodloOpisu: entry.descriptionSource ?? '',
             wstep: (entry.intro ?? '').trim(),
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
@@ -437,6 +446,7 @@ const wszystkieTematySurowe = cache(async (): Promise<Temat[]> => {
             miejsca: [...entry.spatial],
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
+            naGlownej: (entry as { onHomepage?: boolean }).onHomepage !== false,
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             zglosil: String((entry as { reportedBy?: string }).reportedBy ?? '').trim(),
             opis: entry.description?.node ?? null,
@@ -463,6 +473,7 @@ const wszystkieObiektySurowe = cache(async (): Promise<Obiekt[]> => {
             })),
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
+            naGlownej: (entry as { onHomepage?: boolean }).onHomepage !== false,
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             zglosil: String((entry as { reportedBy?: string }).reportedBy ?? '').trim(),
             opis: entry.description?.node ?? null,
@@ -507,6 +518,7 @@ const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
             transkrypcja: entry.transcription ?? '',
             widocznosc: entry.visibility as Widocznosc,
             dodano: entry.dateSubmitted,
+            naGlownej: (entry as { onHomepage?: boolean }).onHomepage !== false,
             zrodla: [...(entry.sources ?? [])].map((x) => String(x).trim()).filter(Boolean),
             zglosil: String((entry as { reportedBy?: string }).reportedBy ?? '').trim(),
             opis: entry.description?.node ?? null,

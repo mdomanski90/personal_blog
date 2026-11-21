@@ -4,6 +4,7 @@ import { opowiesci, poziomCzytelnika, pozycjeLosowe, wstepStronyGlownej, type Po
 import LosowaKarta from './components/LosowaKarta'
 import { Kreski, Strona } from './components/Uklad'
 import { TytulSekcji } from './components/Wzorce'
+import { nowosci, scalZWpisami } from '@/lib/nowosci'
 import ZapowiedziWpisow from './components/ZapowiedziWpisow'
 
 export const dynamic = 'force-dynamic'
@@ -46,7 +47,9 @@ export default async function StronaGlowna() {
     const wpisy = await opowiesci(poziom)
     const wstep = await wstepStronyGlownej()
     const doOkna = zestawDoOkna(await pozycjeLosowe())
-    const pokazane = wpisy.slice(0, WPISOW_NA_GLOWNEJ)
+    // łatka 21.11: nowe opracowane karty (archiwum, leksykon, teren, miejsca) same zapowiadają się wśród wpisów – bez dublującego wpisu
+    const pokazane = scalZWpisami(wpisy, await nowosci(poziom), WPISOW_NA_GLOWNEJ)
+    const wpisowPokazanych = pokazane.filter((x) => !('typ' in x)).length
     const wszystkie = `wszystkie wpisy (${wpisy.length}) →`
 
     return (
@@ -70,14 +73,14 @@ export default async function StronaGlowna() {
             <Kreski />
 
             <div className="glowna-naglowek-wpisow">
-                <TytulSekcji>ostatnie wpisy</TytulSekcji>
-                {wpisy.length > pokazane.length && <Link href="/wpisy" className="odn tekst-opis-maly">{wszystkie}</Link>}
+                <TytulSekcji>ostatnio dodane</TytulSekcji>
+                {wpisy.length > wpisowPokazanych && <Link href="/wpisy" className="odn tekst-opis-maly">{wszystkie}</Link>}
             </div>
 
             {/* P7E-1 / JW-04 / uwagi 16.11 (wariant B): zapowiedzi – wspólny komponent ze stroną /wpisy */}
             <ZapowiedziWpisow wpisy={pokazane} poziom={poziom} />
 
-            {wpisy.length > pokazane.length && (
+            {wpisy.length > wpisowPokazanych && (
                 <div className="flex justify-end">
                     <Link href="/wpisy" className="przycisk-odn">{wszystkie}</Link>
                 </div>

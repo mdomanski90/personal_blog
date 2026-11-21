@@ -79,6 +79,12 @@ const notatka = () =>
   fields.text({ label: 'Notatka robocza', description: 'Widoczna tylko w panelu, nie trafia na stronę ani do eksportu.', multiline: true });
 
 const dodano = () => fields.date({ label: 'Dodano', defaultValue: { kind: 'today' } });
+// łatka 21.11: nowa pozycja (z datą „Dodano” i opisem) sama pojawia się na stronie głównej wśród ostatnio dodanych – bez osobnego wpisu
+const naGlownej = () => fields.checkbox({
+  label: 'Zapowiedź na stronie głównej',
+  description: 'Pozycja z datą „Dodano” i opisem pokazuje się na stronie głównej wśród ostatnio dodanych, z „czytaj dalej” do tej karty. Odznacz, żeby jej tam nie pokazywać.',
+  defaultValue: true,
+});
 
 // KRT-01 (P3, ankieta 2 z 17.11): „zgłosił(a)” na kartach – podpis osoby, która zgłosiła informację lub materiał, tylko za jej zgodą.
 // Bez adresu e-mail (zasada 8.2) – walidacja przy zapisie odrzuca „@”.
@@ -328,6 +334,7 @@ const konfiguracja = config({
         visibility: widocznosc(),
         note: notatka(), contributeHide: bezWspoltworz(),
         dateSubmitted: dodano(),
+        onHomepage: naGlownej(),
         sources: zrodlaKarty(),
         descriptionSource: fields.text({ label: 'Źródło opisu', description: 'Np. „na podstawie: Wikipedia, hasło Olszanka (powiat łosicki), CC BY-SA 4.0 – https://pl.wikipedia.org/wiki/…”. Adresy zamieniają się w odnośniki.', multiline: true }),
         // KRT-02 (P3): pochodzenie nazwy w części „podstawowe” karty, ze źródłem
@@ -363,6 +370,7 @@ const konfiguracja = config({
         visibility: widocznosc(),
         note: notatka(),
         dateSubmitted: dodano(),
+        onHomepage: naGlownej(),
         sources: zrodlaKarty(),
         description: opisMarkdoc('Opis', 'tematy'),
       },
@@ -430,6 +438,7 @@ const konfiguracja = config({
         visibility: widocznosc(),
         note: notatka(), contributeHide: bezWspoltworz(),
         dateSubmitted: dodano(),
+        onHomepage: naGlownej(),
         sources: zrodlaKarty(),
         description: opisMarkdoc('Opis i historia', 'obiekty'),
       },
@@ -489,6 +498,7 @@ const konfiguracja = config({
         }),
         note: notatka(), contributeHide: bezWspoltworz(),
         dateSubmitted: dodano(),
+        onHomepage: naGlownej(),
         sources: zrodlaKarty(),
         description: opisMarkdoc('Opis, transkrypcja, tłumaczenie', 'materialy'),
       },
