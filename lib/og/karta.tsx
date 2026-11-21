@@ -16,8 +16,8 @@ const PAPIER = '#fbfaf6', TLO_SKANU = '#efebe2', LINIA = '#d9d2c3', TEKST = '#1c
 async function czcionki() {
     const k = path.join(/*turbopackIgnore: true*/ process.cwd(), 'lib', 'og')
     const [r, b] = await Promise.all([
-        fs.readFile(path.join(/*turbopackIgnore: true*/ k, 'JetBrainsMono-Regular.ttf')),
-        fs.readFile(path.join(/*turbopackIgnore: true*/ k, 'JetBrainsMono-Bold.ttf')),
+        fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ k, 'JetBrainsMono-Regular.ttf')),
+        fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ k, 'JetBrainsMono-Bold.ttf')),
     ])
     return [
         { name: 'JetBrains Mono', data: r, weight: 400 as const, style: 'normal' as const },

@@ -13,9 +13,9 @@ import type { UstawieniaPlanow } from '../plany/typy'
 import { rozstrzygnij, zastosujCzynnosc, type Czynnosc, type KtoWTerenie, type WpisDziennika } from './czynnosci'
 import { ID_MIEJSCA, odczytajMiejsce, type MiejsceTerenu, type PunktMiejscowosci, type ZdjecieTerenu } from './miejsca'
 
-const DZIENNIKI = () => path.resolve(process.cwd(), 'content', 'plany', '_teren')
-const MIEJSCA = () => path.resolve(process.cwd(), 'content', '_teren', 'miejsca')
-const PLIKI = () => path.resolve(process.cwd(), 'pliki-archiwum', 'teren')
+const DZIENNIKI = () => path.resolve(/*turbopackIgnore: true*/ process.cwd(), 'content', 'plany', '_teren')
+const MIEJSCA = () => path.resolve(/*turbopackIgnore: true*/ process.cwd(), 'content', '_teren', 'miejsca')
+const PLIKI = () => path.resolve(/*turbopackIgnore: true*/ process.cwd(), 'pliki-archiwum', 'teren')
 const MAKS_WPISOW = 3000
 
 async function zapiszAtomowo(plik: string, dane: string | Buffer) {
@@ -62,7 +62,7 @@ export const ktoWTerenie = (o: OsobaWTerenie): KtoWTerenie => ({ id: o.id, imie:
 export async function wczytajDziennik(slug: string): Promise<WpisDziennika[]> {
     if (!SLUG.test(slug)) return []
     try {
-        const j = JSON.parse(await fs.promises.readFile(path.join(DZIENNIKI(), `${slug}.json`), 'utf8'))
+        const j = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ DZIENNIKI(), `${slug}.json`), 'utf8'))
         return Array.isArray(j?.wpisy) ? (j.wpisy as WpisDziennika[]).filter((w) => w && typeof w.id === 'string' && typeof w.grob === 'string') : []
     } catch { return [] }
 }
@@ -70,7 +70,7 @@ async function zapiszDziennik(slug: string, wpisy: WpisDziennika[]) {
     // najstarsze rozstrzygnięte wpisy odpadają; „do decyzji” bez rozstrzygnięcia zostają zawsze
     const nadmiar = wpisy.length - MAKS_WPISOW
     const L = nadmiar > 0 ? wpisy.filter((w, i) => i >= nadmiar || (w.wynik === 'do-decyzji' && !w.rozstrzygnieto)) : wpisy
-    await zapiszAtomowo(path.join(DZIENNIKI(), `${slug}.json`), JSON.stringify({ wpisy: L }, null, 1))
+    await zapiszAtomowo(path.join(/*turbopackIgnore: true*/ DZIENNIKI(), `${slug}.json`), JSON.stringify({ wpisy: L }, null, 1))
 }
 
 export type WynikZapisu = { wpis: WpisDziennika; wersja: number; powtorzona?: boolean } | { blad: string; status: number }
@@ -104,13 +104,13 @@ export async function plikiDoPobrania(slug: string, plan: Pick<Plan, 'podklady'>
     for (const p of plan.podklady) {
         if (!p.plik || p.material) continue
         const s = sciezkaPliku(slug, p.plik)
-        const st = s ? await fs.promises.stat(s).catch(() => null) : null
+        const st = s ? await fs.promises.stat(/*turbopackIgnore: true*/ s).catch(() => null) : null
         if (st) wyn.push({ adres: `/api/keystatic/plany/${slug}/plik/${p.plik}`, bajty: st.size })
     }
     for (const w of u.wlasneTypy ?? []) {
         if (!w.png) continue
         const s = sciezkaPliku('_ikony', w.png)
-        const st = s ? await fs.promises.stat(s).catch(() => null) : null
+        const st = s ? await fs.promises.stat(/*turbopackIgnore: true*/ s).catch(() => null) : null
         wyn.push({ adres: `/plany/ikona/${w.png}`, bajty: st?.size ?? 0 })
     }
     return wyn
@@ -159,31 +159,31 @@ export async function wpisyZTerenu(plany: Pick<Plan, 'slug' | 'tytul'>[], tylkoK
 // ---------- skrzynka nowych miejsc ----------
 export async function listaMiejscTerenu(): Promise<MiejsceTerenu[]> {
     let pliki: string[] = []
-    try { pliki = await fs.promises.readdir(MIEJSCA()) } catch { return [] }
+    try { pliki = await fs.promises.readdir(/*turbopackIgnore: true*/ MIEJSCA()) } catch { return [] }
     const wyn: MiejsceTerenu[] = []
     for (const p of pliki) {
         if (!p.endsWith('.json')) continue
-        try { const m = odczytajMiejsce(JSON.parse(await fs.promises.readFile(path.join(MIEJSCA(), p), 'utf8'))); if (m) wyn.push(m) } catch { /* uszkodzony plik – pomijamy */ }
+        try { const m = odczytajMiejsce(JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ MIEJSCA(), p), 'utf8'))); if (m) wyn.push(m) } catch { /* uszkodzony plik – pomijamy */ }
     }
     return wyn.sort((a, b) => b.czas.localeCompare(a.czas))
 }
 export async function wczytajMiejsceTerenu(id: string): Promise<MiejsceTerenu | null> {
     if (!ID_MIEJSCA.test(id)) return null
-    try { return odczytajMiejsce(JSON.parse(await fs.promises.readFile(path.join(MIEJSCA(), `${id}.json`), 'utf8'))) } catch { return null }
+    try { return odczytajMiejsce(JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ MIEJSCA(), `${id}.json`), 'utf8'))) } catch { return null }
 }
 export async function zapiszMiejsceTerenu(m: MiejsceTerenu) {
-    await zapiszAtomowo(path.join(MIEJSCA(), `${m.id}.json`), JSON.stringify(m, null, 1))
+    await zapiszAtomowo(path.join(/*turbopackIgnore: true*/ MIEJSCA(), `${m.id}.json`), JSON.stringify(m, null, 1))
 }
 export async function usunMiejsceTerenu(id: string) {
     if (!ID_MIEJSCA.test(id)) return
-    await fs.promises.rm(path.join(MIEJSCA(), `${id}.json`), { force: true })
-    await fs.promises.rm(path.join(PLIKI(), id), { recursive: true, force: true })
+    await fs.promises.rm(path.join(/*turbopackIgnore: true*/ MIEJSCA(), `${id}.json`), { force: true })
+    await fs.promises.rm(path.join(/*turbopackIgnore: true*/ PLIKI(), id), { recursive: true, force: true })
 }
 
 /** Resztki przerwanej wysyłki: zdjęcia wpisu, którego plik jeszcze nie istnieje (P7b-2 – powtórka z kolejki telefonu). */
 export async function wyczyscResztkiMiejsca(id: string) {
     if (!ID_MIEJSCA.test(id) || (await wczytajMiejsceTerenu(id))) return
-    await fs.promises.rm(path.join(PLIKI(), id), { recursive: true, force: true })
+    await fs.promises.rm(path.join(/*turbopackIgnore: true*/ PLIKI(), id), { recursive: true, force: true })
 }
 
 /** Zdjęcie nowego miejsca: obrót wg EXIF utrwalony w pikselach, najwyżej 2400 px, zapis jako JPEG bez metadanych (także GPS). */
@@ -192,7 +192,7 @@ export async function zapiszZdjecieTerenu(id: string, dane: Buffer, nr: number):
     const sharp = (await import('sharp')).default
     const { data, info } = await sharp(dane, { limitInputPixels: 400_000_000 }).rotate().resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 86 }).toBuffer({ resolveWithObject: true })
     const plik = `zdjecie-${nr}-${randomBytes(3).toString('hex')}.jpg`
-    await zapiszAtomowo(path.join(PLIKI(), id, plik), data)
+    await zapiszAtomowo(path.join(/*turbopackIgnore: true*/ PLIKI(), id, plik), data)
     return { plik, szer: info.width, wys: info.height }
 }
 export function sciezkaZdjeciaTerenu(id: string, plik: string): string | null {

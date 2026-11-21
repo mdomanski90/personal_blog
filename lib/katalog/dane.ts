@@ -19,7 +19,7 @@ export class KonfliktRejestru extends Error {
 /** Rejestr albo null, gdy migracja nie była jeszcze wykonana. Uszkodzony plik – błąd (nie zaczynamy od zera po cichu). */
 export function wczytajRejestr(): Rejestr | null {
     let tekst: string
-    try { tekst = fs.readFileSync(PLIK_REJESTRU(), 'utf8') } catch (e) {
+    try { tekst = fs.readFileSync(/*turbopackIgnore: true*/ PLIK_REJESTRU(), 'utf8') } catch (e) {
         if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null
         throw e
     }
@@ -35,8 +35,8 @@ export function wczytajRejestr(): Rejestr | null {
  * (lib/panel/operacje.ts – prawa „grupaKatalogu”); bez tego jedno konto nie odczyta pliku drugiego (lekcja 16.11: EACCES na VPS).
  */
 function dostepDlaGrupy(plik: string) {
-    const kat = fs.statSync(path.dirname(plik))
-    const st = fs.statSync(plik)
+    const kat = fs.statSync(/*turbopackIgnore: true*/ path.dirname(plik))
+    const st = fs.statSync(/*turbopackIgnore: true*/ plik)
     if (st.gid !== kat.gid) { try { fs.chownSync(plik, st.uid, kat.gid) } catch { /* brak prawa do grupy – zostaje grupa konta */ } }
     fs.chmodSync(plik, 0o664)
 }
@@ -51,7 +51,7 @@ export function zapiszRejestr(r: Rejestr, oczekiwana: number | null): Rejestr {
     const tmp = `${plik}.${randomBytes(4).toString('hex')}.tmp`
     fs.writeFileSync(tmp, JSON.stringify(nowy, null, 1) + '\n')
     dostepDlaGrupy(tmp)
-    const obecna = (() => { try { return (JSON.parse(fs.readFileSync(plik, 'utf8')) as Rejestr).wersja } catch { return null } })()
+    const obecna = (() => { try { return (JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ plik, 'utf8')) as Rejestr).wersja } catch { return null } })()
     if (obecna !== oczekiwana) { fs.rmSync(tmp, { force: true }); throw new KonfliktRejestru() }
     fs.renameSync(tmp, plik)
     pamiec = null
@@ -60,10 +60,10 @@ export function zapiszRejestr(r: Rejestr, oczekiwana: number | null): Rejestr {
 
 /** Kopia rejestru do content/_panel/_kosz (przed migracją i cofnięciem). */
 export function kopiaRejestru(opis: string): string | null {
-    if (!fs.existsSync(PLIK_REJESTRU())) return null
-    const kosz = path.join(KATALOG(), '_kosz')
+    if (!fs.existsSync(/*turbopackIgnore: true*/ PLIK_REJESTRU())) return null
+    const kosz = path.join(/*turbopackIgnore: true*/ KATALOG(), '_kosz')
     fs.mkdirSync(kosz, { recursive: true })
-    const cel = path.join(kosz, `katalog-${opis}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
+    const cel = path.join(/*turbopackIgnore: true*/ kosz, `katalog-${opis}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
     fs.copyFileSync(PLIK_REJESTRU(), cel)
     return cel
 }
@@ -73,7 +73,7 @@ let pamiec: { mtime: number; idx: Map<string, string> } | null = null
 /** Nr kat. pozycji (null – brak numeru albo brak rejestru). Odczyt z pamięci, odświeżanej po zmianie pliku. */
 export function numerKat(rodzaj: RodzajKat, id: string): string | null {
     let mtime = 0
-    try { mtime = fs.statSync(PLIK_REJESTRU()).mtimeMs } catch { return null }
+    try { mtime = fs.statSync(/*turbopackIgnore: true*/ PLIK_REJESTRU()).mtimeMs } catch { return null }
     if (!pamiec || pamiec.mtime !== mtime) {
         try { const r = wczytajRejestr(); pamiec = { mtime, idx: r ? indeks(r) : new Map() } } catch { return null }
     }

@@ -38,7 +38,7 @@ function uruchom(polecenie: string, argumenty: string[]): Promise<{ kod: number;
 /** Rozpakowuje archiwum do NOWEGO pustego katalogu tymczasowego (nigdy na miejsce danych). */
 export async function rozpakuj(archiwum: string): Promise<string> {
     await fs.access(/*turbopackIgnore: true*/ archiwum)
-    const cel = await fs.mkdtemp(path.join(os.tmpdir(), 'sprawdz-kopii-'))
+    const cel = await fs.mkdtemp(path.join(/*turbopackIgnore: true*/ os.tmpdir(), 'sprawdz-kopii-'))
     // --no-same-owner: pliki należą do uruchamiającego; ścieżki absolutne i „..” tar odrzuca domyślnie (GNU tar)
     const w = await uruchom('tar', ['--no-same-owner', '-xzf', archiwum, '-C', cel])
     if (w.kod !== 0) { await fs.rm(cel, { recursive: true, force: true }); throw new Error(`Nie da się rozpakować kopii: ${w.stderr || `kod ${w.kod}`}`) }
@@ -53,8 +53,8 @@ async function pliki(kat: string, pomin: (rel: string) => boolean = () => false)
         for (const x of w) {
             const r = rel ? `${rel}/${x.name}` : x.name
             if (pomin(r) || pomin(`${r}/`)) continue
-            if (x.isDirectory()) await idz(path.join(k, x.name), r)
-            else if (x.isFile()) m.set(r, path.join(k, x.name))
+            if (x.isDirectory()) await idz(path.join(/*turbopackIgnore: true*/ k, x.name), r)
+            else if (x.isFile()) m.set(r, path.join(/*turbopackIgnore: true*/ k, x.name))
         }
     }
     await idz(kat, '')
@@ -104,18 +104,18 @@ async function integralnoscBazy(p: string): Promise<{ ok: boolean; wynik: string
 /** Raport rozpakowanej kopii względem bieżących danych w `korzen`. Niczego nie zmienia. */
 export async function raportKopii(katalog: string, korzen = process.cwd()): Promise<RaportKopii> {
     const r: RaportKopii = { katalog, opis: null, nieczytelne: [], bazy: [], czesci: [], bledy: [] }
-    try { r.opis = JSON.parse(await fs.readFile(path.join(/*turbopackIgnore: true*/ katalog, 'kopia.json'), 'utf8')) as OpisKopii }
+    try { r.opis = JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ katalog, 'kopia.json'), 'utf8')) as OpisKopii }
     catch { r.bledy.push('Brak albo uszkodzony kopia.json – to nie wygląda na kopię z panelu ani z wdroz.sh.') }
     for (const c of ['content', 'pliki-archiwum', 'data']) {
-        try { await fs.access(path.join(/*turbopackIgnore: true*/ katalog, c)) } catch { if (c !== 'pliki-archiwum') r.bledy.push(`W kopii nie ma części „${c}”.`); continue }
-        r.czesci.push(await porownaj(c, path.join(katalog, c), path.join(/*turbopackIgnore: true*/ korzen, c), c !== 'pliki-archiwum'))
+        try { await fs.access(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ katalog, c)) } catch { if (c !== 'pliki-archiwum') r.bledy.push(`W kopii nie ma części „${c}”.`); continue }
+        r.czesci.push(await porownaj(c, path.join(/*turbopackIgnore: true*/ katalog, c), path.join(/*turbopackIgnore: true*/ korzen, c), c !== 'pliki-archiwum'))
     }
-    for (const [rel, p] of await pliki(path.join(katalog, 'content'), POMIN)) {
+    for (const [rel, p] of await pliki(path.join(/*turbopackIgnore: true*/ katalog, 'content'), POMIN)) {
         if (!/\.(ya?ml|json|mdoc|md)$/.test(rel)) continue
         const b = bladOdczytu(rel, await fs.readFile(/*turbopackIgnore: true*/ p, 'utf8'))
         if (b) r.nieczytelne.push({ plik: rel, blad: b })
     }
-    for (const [rel, p] of await pliki(path.join(katalog, 'data'))) if (/\.(db|sqlite3?)$/i.test(rel)) r.bazy.push({ nazwa: rel, ...(await integralnoscBazy(p)) })
+    for (const [rel, p] of await pliki(path.join(/*turbopackIgnore: true*/ katalog, 'data'))) if (/\.(db|sqlite3?)$/i.test(rel)) r.bazy.push({ nazwa: rel, ...(await integralnoscBazy(p)) })
     if (r.bazy.some((b) => !b.ok)) r.bledy.push('Co najmniej jedna baza SQLite w kopii nie przechodzi kontroli integralności.')
     return r
 }
@@ -127,7 +127,7 @@ const tekstowy = (b: Buffer) => !b.includes(0) && Buffer.from(b.toString('utf8')
  * Katalog: także usunięcie plików, których w kopii nie ma. Pliki binarne – odmowa (odtworzenie ręczne).
  */
 export async function zmianyOdtworzenia(katalogKopii: string, sciezki: string[], korzen = process.cwd()): Promise<ZmianaPliku[]> {
-    const [a, b] = await Promise.all([pliki(path.join(katalogKopii, 'content'), POMIN), pliki(path.join(/*turbopackIgnore: true*/ korzen, 'content'), POMIN)])
+    const [a, b] = await Promise.all([pliki(path.join(/*turbopackIgnore: true*/ katalogKopii, 'content'), POMIN), pliki(path.join(/*turbopackIgnore: true*/ korzen, 'content'), POMIN)])
     const wybrane = new Set<string>()
     for (const s of sciezki.map((x) => x.replace(/^content\//, '').replace(/^\/+/, ''))) {
         if (!s || s.split('/').includes('..')) throw new Error(`Niedozwolona ścieżka: ${s}`)

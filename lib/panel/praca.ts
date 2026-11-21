@@ -36,7 +36,7 @@ const pozycja = (x: unknown): PozycjaPracy | null => {
 export async function wczytajPrace(korzen = process.cwd()): Promise<Praca> {
     try {
         // osoba z rolą administratora zaczyna od dotychczasowej wspólnej listy (praca sprzed kont nie znika)
-        const tekst = await fs.readFile(plik(korzen), 'utf8').catch((e) => { if (ktoTeraz()?.rolaAdministratora) return fs.readFile(plik(korzen, WSPOLNY), 'utf8'); throw e })
+        const tekst = await fs.readFile(/*turbopackIgnore: true*/ plik(korzen), 'utf8').catch((e) => { if (ktoTeraz()?.rolaAdministratora) return fs.readFile(/*turbopackIgnore: true*/ plik(korzen, WSPOLNY), 'utf8'); throw e })
         const j = JSON.parse(tekst) as Record<string, unknown>
         const lista = (k: string) => (Array.isArray(j[k]) ? (j[k] as unknown[]).map(pozycja).filter((x): x is PozycjaPracy => !!x) : [])
         return { wersja: 1, ostatnie: lista('ostatnie'), przypiete: lista('przypiete'), widoki: lista('widoki') }

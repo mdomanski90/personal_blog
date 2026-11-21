@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     const kat = path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'materialy')
     const wyn = await Promise.all(L.map(async (m) => {
         const strony = stronyMaterialu(m.id)
-        const zmieniono = await fs.stat(path.join(/*turbopackIgnore: true*/ kat, `${m.id}.mdoc`)).then((s) => s.mtime.toISOString(), () => null)
+        const zmieniono = await fs.stat(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ kat, `${m.id}.mdoc`)).then((s) => s.mtime.toISOString(), () => null)
         const podglad = strony[0] ? `/api/keystatic/materialy/${encodeURIComponent(m.id)}/strony?podglad=${encodeURIComponent(strony[0].plik)}` : (m.strony[0]?.adres ?? null)
         return { id: m.id, nazwa: m.nazwa, rodzaj: m.rodzaj, rodzajNazwa: (RODZAJE_MATERIALOW as Record<string, string>)[m.rodzaj] ?? m.rodzaj, czas: m.czas, widocznosc: m.widocznosc, plik: m.plik, strony: strony.length, podglad, zmieniono }
     }))

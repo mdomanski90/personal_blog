@@ -6,8 +6,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { skanujCss, skanujTsx, type Naruszenie, type Rodzaj } from './skaner'
 
-export const ROOT = path.resolve(import.meta.dirname, '..', '..')
-export const PLIK_ZAPADKI = path.join(import.meta.dirname, 'zapadka.json')
+export const ROOT = path.resolve(/*turbopackIgnore: true*/ import.meta.dirname, '..', '..')
+export const PLIK_ZAPADKI = path.join(/*turbopackIgnore: true*/ import.meta.dirname, 'zapadka.json')
 
 export type Liczby = Partial<Record<Rodzaj, number>>
 export interface Zapadka { opis: string; pliki: Record<string, Liczby> }
@@ -15,7 +15,7 @@ export interface Zapadka { opis: string; pliki: Record<string, Liczby> }
 /** Pliki publiczne: app/ bez katalogów keystatic (panel poza zakresem JW). */
 export function plikiPubliczne(dir = 'app'): string[] {
     const wyn: string[] = []
-    for (const w of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
+    for (const w of fs.readdirSync(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ ROOT, dir), { withFileTypes: true })) {
         const p = `${dir}/${w.name}`
         if (w.isDirectory()) { if (w.name !== 'keystatic' && w.name !== 'node_modules') wyn.push(...plikiPubliczne(p)) }
         else if (/\.(tsx|ts|css)$/.test(w.name) && !/\.test\.tsx?$/.test(w.name)) wyn.push(p)
@@ -24,7 +24,7 @@ export function plikiPubliczne(dir = 'app'): string[] {
 }
 
 export function naruszeniaPliku(plik: string): Naruszenie[] {
-    const kod = fs.readFileSync(path.join(ROOT, plik), 'utf8')
+    const kod = fs.readFileSync(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ ROOT, plik), 'utf8')
     return plik.endsWith('.css') ? skanujCss(kod) : skanujTsx(kod, plik)
 }
 
@@ -34,4 +34,4 @@ export function policz(n: Naruszenie[]): Liczby {
     return l
 }
 
-export const czytajZapadke = (): Zapadka => JSON.parse(fs.readFileSync(PLIK_ZAPADKI, 'utf8'))
+export const czytajZapadke = (): Zapadka => JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ PLIK_ZAPADKI, 'utf8'))

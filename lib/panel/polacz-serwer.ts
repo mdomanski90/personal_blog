@@ -15,7 +15,7 @@ async function tekstyZDysku(korzen: string, poziom: 'ja' | 'bliscy') {
     const { pozycje, teksty } = await daneSieci(poziom)
     const wyn: TekstDoPolaczenia[] = []
     for (const t of teksty) {
-        const zawartosc = await fs.readFile(path.join(/*turbopackIgnore: true*/ korzen, t.plik), 'utf8').catch(() => null)
+        const zawartosc = await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ korzen, t.plik), 'utf8').catch(() => null)
         if (zawartosc !== null) wyn.push({ plik: t.plik, zrodlo: t.zrodlo, zawartosc, zwiazane: t.zwiazane })
     }
     return { pozycje, teksty: wyn }
@@ -33,7 +33,7 @@ async function brakPrawKatalogow(korzen: string, pliki: string[]): Promise<BrakP
     const wyn: BrakPrawa[] = []
     for (const plik of pliki) {
         const kat = path.dirname(path.join(/*turbopackIgnore: true*/ korzen, plik))
-        const moze = await fs.access(kat, constants.W_OK).then(() => true, () => false)
+        const moze = await fs.access(/*turbopackIgnore: true*/ kat, constants.W_OK).then(() => true, () => false)
         if (!moze) wyn.push({ plik, katalog: path.relative(korzen, kat).split(path.sep).join('/') })
     }
     return wyn
@@ -51,7 +51,7 @@ export async function zapiszPolaczenia(klucze: string[], korzen = process.cwd(),
     if (brak.length) throw new Error(komunikatPrawa(brak))
     const zmiany: { plik: string; poprzedni: string; wynik: string }[] = []
     for (const [plik, L] of poPlikach) {
-        const poprzedni = await fs.readFile(path.join(/*turbopackIgnore: true*/ korzen, plik), 'utf8')
+        const poprzedni = await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ korzen, plik), 'utf8')
         // operacje liczą ścieżki względem content/ (lib/panel/operacje.ts – sciezkaTresci); teksty sieci mają „content/…”
         zmiany.push({ plik: plik.replace(/^content\//, ''), poprzedni, wynik: polaczWTekscie(poprzedni, L) })
     }

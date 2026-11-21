@@ -13,11 +13,11 @@ let pamiec: { plik: string; odcisk: string; dane: PlikKont } | null = null
 export function wczytajKonta(korzen = process.cwd()): PlikKont {
     const p = plikKont(korzen)
     let st: fs.Stats
-    try { st = fs.statSync(p) } catch { return { ...PUSTY_PLIK } }
+    try { st = fs.statSync(/*turbopackIgnore: true*/ p) } catch { return { ...PUSTY_PLIK } }
     const odcisk = `${st.mtimeMs}:${st.size}`
     if (pamiec && pamiec.plik === p && pamiec.odcisk === odcisk) return pamiec.dane
     let dane: PlikKont
-    try { dane = odczytajPlik(JSON.parse(fs.readFileSync(p, 'utf8'))) }
+    try { dane = odczytajPlik(JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ p, 'utf8'))) }
     catch (e) { console.error(`[konta] nieczytelny plik kont: ${(e as Error).message}`); return { ...PUSTY_PLIK } }
     pamiec = { plik: p, odcisk, dane }
     return dane

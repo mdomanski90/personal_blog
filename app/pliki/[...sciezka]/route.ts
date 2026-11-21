@@ -31,7 +31,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ sciezka:
     if (!plik.startsWith(katalog + path.sep)) return nieMa()
     let rozmiar: number
     try {
-        const st = await fs.promises.stat(plik)
+        const st = await fs.promises.stat(/*turbopackIgnore: true*/ plik)
         if (!st.isFile()) return nieMa()
         rozmiar = st.size
     } catch {

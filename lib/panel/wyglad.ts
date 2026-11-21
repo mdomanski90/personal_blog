@@ -9,7 +9,7 @@ export const AKCENT_CIEMNY_DOMYSLNY = '#419cff'
 export const WYPELNIENIE_CIEMNE_DOMYSLNE = '#0a6fd6'
 export const TLO_CIEMNE = '#1a1917'
 export const PRESETY_AKCENTU = [AKCENT_DOMYSLNY, '#155e75', '#166534', '#7f1d1d', '#92400e', '#1e40af'] as const
-const plik = () => path.join(process.cwd(), 'content', '_panel', 'wyglad.json')
+const plik = () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', '_panel', 'wyglad.json')
 export const prawidlowyHex = (v: unknown): v is string => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)
 export const normalizujAkcent = (v: unknown): string => prawidlowyHex(v) ? v.toLowerCase() : AKCENT_DOMYSLNY
 
@@ -47,7 +47,7 @@ export function koloryAkcentu(wybrany: string) {
 
 export async function wczytajAkcent(): Promise<string> {
     try {
-        const dane = JSON.parse(await fs.readFile(plik(), 'utf8')) as { akcent?: unknown }
+        const dane = JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ plik(), 'utf8')) as { akcent?: unknown }
         return normalizujAkcent(dane.akcent)
     } catch { return AKCENT_DOMYSLNY }
 }

@@ -253,11 +253,11 @@ function dopelnij(stare: Record<string, unknown>, nowe: Ksiega): Record<string, 
 async function istniejaceSygnatury(korzen = process.cwd()) {
     const m = new Map<string, string[]>()
     let pliki: string[] = []
-    try { pliki = await fs.readdir(ROOT(korzen)) } catch (e) {
+    try { pliki = await fs.readdir(/*turbopackIgnore: true*/ ROOT(korzen)) } catch (e) {
         if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e
     }
     for (const nazwa of pliki.filter((f) => f.endsWith('.yaml'))) {
-        const zaw = toObj(yaml.load(await fs.readFile(path.join(ROOT(korzen), nazwa), 'utf8')))
+        const zaw = toObj(yaml.load(await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ ROOT(korzen), nazwa), 'utf8')))
         const sygnatura = String(zaw.identifier ?? '').trim()
         if (!sygnatura) continue
         m.set(sygnatura, [...(m.get(sygnatura) ?? []), nazwa.slice(0, -5)])
@@ -266,8 +266,8 @@ async function istniejaceSygnatury(korzen = process.cwd()) {
 }
 
 async function odczytajObecne(id: string, korzen = process.cwd()) {
-    const plik = path.join(ROOT(korzen), `${id}.yaml`)
-    try { return { plik, tekst: await fs.readFile(plik, 'utf8') } }
+    const plik = path.join(/*turbopackIgnore: true*/ ROOT(korzen), `${id}.yaml`)
+    try { return { plik, tekst: await fs.readFile(/*turbopackIgnore: true*/ plik, 'utf8') } }
     catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return { plik, tekst: null }; throw e }
 }
 

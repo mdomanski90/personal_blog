@@ -46,7 +46,7 @@ export async function wczytajKolekcje(kolekcja: string, korzen = process.cwd()):
         if (!m) continue
         const slug = m[1]
         try {
-            const tekst = await fs.readFile(/*turbopackIgnore: true*/ path.join(kat, plik), 'utf8')
+            const tekst = await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ kat, plik), 'utf8')
             let dane: unknown, cialo: string | null = null
             if (mdoc) {
                 const r = rozdziel(tekst)
@@ -79,7 +79,7 @@ async function wczytajZKontrola(kolekcja: string, korzen: string) {
 }
 
 async function ustawienia(korzen: string): Promise<Record<string, { kolumny?: string[] }>> {
-    try { return JSON.parse(await fs.readFile(path.join(/*turbopackIgnore: true*/ korzen, 'content', '_panel', 'listy.json'), 'utf8')) } catch { return {} }
+    try { return JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ korzen, 'content', '_panel', 'listy.json'), 'utf8')) } catch { return {} }
 }
 
 /** Etykiety pól wyboru z konfiguracji Keystatic (jedno źródło list wartości). */

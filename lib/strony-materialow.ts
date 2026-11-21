@@ -24,7 +24,7 @@ export const adresStrony = (id: string, plik: string) => `${ADRES_PLIKOW}strony/
 export function stronyMaterialu(id: string): StronaMaterialu[] {
     if (!ID_MATERIALU.test(id)) return []
     try {
-        const d = JSON.parse(fs.readFileSync(plikListy(id), 'utf8')) as { strony?: StronaMaterialu[] }
+        const d = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ plikListy(id), 'utf8')) as { strony?: StronaMaterialu[] }
         return (d.strony ?? []).filter((s) => s && NAZWA_STRONY.test(s.plik)).map((s) => ({ plik: s.plik, ...(s.podpis?.trim() ? { podpis: s.podpis.trim().slice(0, 200) } : {}) }))
     } catch {
         return []

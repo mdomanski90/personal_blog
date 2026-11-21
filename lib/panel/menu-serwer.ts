@@ -11,7 +11,7 @@ const KATALOG_PLANOW = () => path.join(/*turbopackIgnore: true*/ process.cwd(), 
 /** Ustawienie menu z Keystatic; brak pliku albo błędny plik = menu domyślne (błąd nie wyłącza panelu). */
 export async function ustawieniaMenu(): Promise<UstawieniaMenu | null> {
     try {
-        const j = JSON.parse(await fs.promises.readFile(PLIK_MENU(), 'utf8')) as Record<string, unknown>
+        const j = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ PLIK_MENU(), 'utf8')) as Record<string, unknown>
         const lista = (x: unknown) => (Array.isArray(x) ? x.filter((v): v is string => typeof v === 'string') : [])
         return migrujUstawieniaMenu({ ukryte: lista(j.ukryte), kolejnosc: lista(j.kolejnosc) }) // P7a: dawny klucz „narzedzia” czytany jak „administracja”, zanim migracja przepisze plik
     } catch {
@@ -26,14 +26,14 @@ let pamiec: { odcisk: string; liczby: Record<RodzajPlanu, number> } | null = nul
 export async function liczbyPlanow(widzi = true): Promise<Record<RodzajPlanu, number>> {
     const zero = Object.fromEntries(Object.keys(RODZAJE_PLANU).map((k) => [k, 0])) as Record<RodzajPlanu, number>
     let pliki: string[] = []
-    try { pliki = (await fs.promises.readdir(KATALOG_PLANOW())).filter((p) => p.endsWith('.json') && !p.startsWith('_')).sort() } catch { return zero }
-    const staty = await Promise.all(pliki.map((p) => fs.promises.stat(path.join(KATALOG_PLANOW(), p)).then((s) => `${p}:${s.mtimeMs}:${s.size}`, () => p)))
+    try { pliki = (await fs.promises.readdir(/*turbopackIgnore: true*/ KATALOG_PLANOW())).filter((p) => p.endsWith('.json') && !p.startsWith('_')).sort() } catch { return zero }
+    const staty = await Promise.all(pliki.map((p) => fs.promises.stat(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KATALOG_PLANOW(), p)).then((s) => `${p}:${s.mtimeMs}:${s.size}`, () => p)))
     const odcisk = `${widzi ? 'ja' : 'bez-ja'}|${staty.join('|')}`
     if (pamiec?.odcisk === odcisk) return pamiec.liczby
     const liczby = { ...zero }
     for (const p of pliki) {
         try {
-            const plan = JSON.parse(await fs.promises.readFile(path.join(KATALOG_PLANOW(), p), 'utf8')) as { rodzaj?: RodzajPlanu; widocznosc?: string }
+            const plan = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KATALOG_PLANOW(), p), 'utf8')) as { rodzaj?: RodzajPlanu; widocznosc?: string }
             if (!widzi && plan.widocznosc === 'ja') continue
             const r = rodzajPlanu(plan)
             if (r in liczby) liczby[r]++
@@ -48,7 +48,7 @@ export async function liczbyKolekcji(klucze: string[], widzi = true): Promise<Re
     const wyn: Record<string, number> = {}
     const u = widzi ? null : await ukrytePozycje()
     await Promise.all(klucze.map(async (k) => {
-        try { wyn[k] = (await fs.promises.readdir(path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', k))).filter((p) => /\.(mdoc|yaml|yml|json)$/.test(p) && !(u && ukrytyKlucz(k, p.replace(/\.[a-z]+$/, ''), u))).length }
+        try { wyn[k] = (await fs.promises.readdir(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', k))).filter((p) => /\.(mdoc|yaml|yml|json)$/.test(p) && !(u && ukrytyKlucz(k, p.replace(/\.[a-z]+$/, ''), u))).length }
         catch { wyn[k] = 0 }
     }))
     return wyn

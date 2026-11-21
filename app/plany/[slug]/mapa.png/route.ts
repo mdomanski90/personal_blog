@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic'
 let styl: { tokeny: Map<string, string>; reguly: string } | null = null
 function zGlobals() {
     if (styl) return styl
-    const css = fs.readFileSync(path.join(process.cwd(), 'app', 'globals.css'), 'utf8')
+    const css = fs.readFileSync(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ process.cwd(), 'app', 'globals.css'), 'utf8')
     const tokeny = tokenyPlanu(css, ':root')
     styl = { tokeny, reguly: bezZmiennych(regulyPlanu(css), tokeny) }
     return styl

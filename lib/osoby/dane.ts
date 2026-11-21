@@ -9,8 +9,8 @@ import {
 } from './model'
 import type { PodsumowanieImportu } from './gedcom'
 
-const KATALOG = () => path.resolve(process.cwd(), 'content', 'osoby')
-const RODZINY = () => path.join(KATALOG(), '_rodziny')
+const KATALOG = () => path.resolve(/*turbopackIgnore: true*/ process.cwd(), 'content', 'osoby')
+const RODZINY = () => path.join(/*turbopackIgnore: true*/ KATALOG(), '_rodziny')
 const ID_RODZINY = /^r[a-z0-9-]{1,40}$/
 
 async function zapiszAtomowo(plik: string, dane: string) {
@@ -22,7 +22,7 @@ async function zapiszAtomowo(plik: string, dane: string) {
 
 async function znacznikCzasu(): Promise<string> {
     const czasy: number[] = []
-    for (const p of [KATALOG(), RODZINY(), path.join(KATALOG(), '_zrodla.json')]) {
+    for (const p of [KATALOG(), RODZINY(), path.join(/*turbopackIgnore: true*/ KATALOG(), '_zrodla.json')]) {
         try { czasy.push((await fs.promises.stat(/*turbopackIgnore: true*/ p)).mtimeMs) } catch { czasy.push(0) }
     }
     return czasy.join('|')
@@ -33,11 +33,11 @@ let pamiec: { klucz: string; drzewo: Drzewo } | null = null
 async function czytajKatalog<T>(kat: string, popraw: (x: T & { id: string }) => T): Promise<Map<string, T>> {
     const m = new Map<string, T>()
     let pliki: string[] = []
-    try { pliki = await fs.promises.readdir(kat) } catch { return m }
+    try { pliki = await fs.promises.readdir(/*turbopackIgnore: true*/ kat) } catch { return m }
     await Promise.all(pliki.filter((p) => p.endsWith('.json') && !p.startsWith('_')).map(async (p) => {
         try {
             const id = p.slice(0, -5)
-            const x = JSON.parse(await fs.promises.readFile(path.join(kat, p), 'utf8'))
+            const x = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ kat, p), 'utf8'))
             m.set(id, popraw({ ...x, id }))
         } catch { /* uszkodzony plik pomijamy */ }
     }))
@@ -50,7 +50,7 @@ export async function wczytajDrzewo(): Promise<Drzewo> {
     const [osoby, rodziny] = await Promise.all([czytajKatalog<Osoba>(KATALOG(), poprawOsobe), czytajKatalog<Rodzina>(RODZINY(), poprawRodzine)])
     let zrodla = new Map<string, Zrodlo>()
     try {
-        const z = JSON.parse(await fs.promises.readFile(path.join(KATALOG(), '_zrodla.json'), 'utf8')) as Zrodlo[]
+        const z = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KATALOG(), '_zrodla.json'), 'utf8')) as Zrodlo[]
         zrodla = new Map(z.map((x) => [x.id, x]))
     } catch { /* brak źródeł */ }
     const drzewo = { osoby, rodziny, zrodla }
@@ -72,10 +72,10 @@ async function sprawdzBlokade() {
 export async function zapiszOsobe(o: Osoba, wersjaWczytana?: number): Promise<Osoba> {
     if (!ID_OSOBY.test(o.id)) throw new Error('zły identyfikator osoby')
     await sprawdzBlokade()
-    const plik = path.join(KATALOG(), `${o.id}.json`)
+    const plik = path.join(/*turbopackIgnore: true*/ KATALOG(), `${o.id}.json`)
     if (wersjaWczytana != null) {
         try {
-            const ist = JSON.parse(await fs.promises.readFile(plik, 'utf8')) as Osoba
+            const ist = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ plik, 'utf8')) as Osoba
             if ((ist.wersja ?? 0) !== wersjaWczytana) throw new Konflikt('Ktoś zmienił tę osobę w międzyczasie – odśwież stronę.')
         } catch (e) { if (e instanceof Konflikt) throw e }
     }
@@ -91,16 +91,16 @@ export async function zapiszRodzine(f: Rodzina): Promise<Rodzina> {
     await sprawdzBlokade()
     const p = poprawRodzine({ ...f, wersja: (f.wersja ?? 0) + 1, zmieniono: new Date().toISOString() })
     const { id: _id, ...bezId } = p
-    await zapiszAtomowo(path.join(RODZINY(), `${f.id}.json`), JSON.stringify(bezId, null, 1))
+    await zapiszAtomowo(path.join(/*turbopackIgnore: true*/ RODZINY(), `${f.id}.json`), JSON.stringify(bezId, null, 1))
     uniewaznij()
     return p
 }
 
 export async function usunRodzine(id: string) {
     if (!ID_RODZINY.test(id)) return
-    const kosz = path.join(KATALOG(), '_kosz')
+    const kosz = path.join(/*turbopackIgnore: true*/ KATALOG(), '_kosz')
     await fs.promises.mkdir(kosz, { recursive: true })
-    await fs.promises.rename(path.join(RODZINY(), `${id}.json`), path.join(kosz, `rodzina-${id}-${Date.now()}.json`)).catch(() => {})
+    await fs.promises.rename(path.join(/*turbopackIgnore: true*/ RODZINY(), `${id}.json`), path.join(/*turbopackIgnore: true*/ kosz, `rodzina-${id}-${Date.now()}.json`)).catch(() => {})
     uniewaznij()
 }
 
@@ -115,9 +115,9 @@ export async function usunOsobe(id: string) {
             else await zapiszRodzine(n)
         }
     }
-    const kosz = path.join(KATALOG(), '_kosz')
+    const kosz = path.join(/*turbopackIgnore: true*/ KATALOG(), '_kosz')
     await fs.promises.mkdir(kosz, { recursive: true })
-    await fs.promises.rename(path.join(KATALOG(), `${id}.json`), path.join(kosz, `${id}-${Date.now()}.json`)).catch(() => {})
+    await fs.promises.rename(path.join(/*turbopackIgnore: true*/ KATALOG(), `${id}.json`), path.join(/*turbopackIgnore: true*/ kosz, `${id}-${Date.now()}.json`)).catch(() => {})
     uniewaznij()
 }
 
@@ -136,7 +136,7 @@ export interface SladImportu {
 }
 
 export async function sladImportu(): Promise<SladImportu | null> {
-    try { return JSON.parse(await fs.promises.readFile(path.join(KATALOG(), '_import.json'), 'utf8')) } catch { return null }
+    try { return JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KATALOG(), '_import.json'), 'utf8')) } catch { return null }
 }
 
 /** Identyfikatory osób dodanych w panelu (bez gedcomId) – import ich nie zastępuje (etap 1, PD-01). */
@@ -194,11 +194,11 @@ export async function zapiszImport(nowe: Drzewo, slad: SladImportu, korzen = pro
         try { n = await fs.promises.readdir(/*turbopackIgnore: true*/ k) } catch { return }
         for (const x of n.filter(filtr)) {
             const p = path.join(/*turbopackIgnore: true*/ k, x)
-            try { if ((await fs.promises.stat(p)).isFile()) obecne.set(`${rel}/${x}`, await fs.promises.readFile(p, 'utf8')) } catch { /* zniknął */ }
+            try { if ((await fs.promises.stat(/*turbopackIgnore: true*/ p)).isFile()) obecne.set(`${rel}/${x}`, await fs.promises.readFile(/*turbopackIgnore: true*/ p, 'utf8')) } catch { /* zniknął */ }
         }
     }
     await czytajKat(kat, 'osoby', (n) => n.endsWith('.json') && (!n.startsWith('_') || n === '_zrodla.json' || n === '_import.json'))
-    await czytajKat(path.join(kat, '_rodziny'), 'osoby/_rodziny', (n) => n.endsWith('.json'))
+    await czytajKat(path.join(/*turbopackIgnore: true*/ kat, '_rodziny'), 'osoby/_rodziny', (n) => n.endsWith('.json'))
     const pliki = new Set([...obecne.keys(), ...docelowe.keys()])
     const zmiany = [...pliki].sort().map((plik) => ({ plik, poprzedni: obecne.get(plik) ?? null, wynik: docelowe.get(plik) ?? null }))
     try {
@@ -214,9 +214,9 @@ export async function zapiszImport(nowe: Drzewo, slad: SladImportu, korzen = pro
 /** Odczyt drzewa z innego katalogu (testy na danych syntetycznych). */
 async function wczytajDrzewoZ(kat: string): Promise<Drzewo> {
     const osoby = await czytajKatalog<Osoba>(kat, poprawOsobe)
-    const rodziny = await czytajKatalog<Rodzina>(path.join(kat, '_rodziny'), poprawRodzine)
+    const rodziny = await czytajKatalog<Rodzina>(path.join(/*turbopackIgnore: true*/ kat, '_rodziny'), poprawRodzine)
     let zrodla: Zrodlo[] = []
-    try { zrodla = JSON.parse(await fs.promises.readFile(path.join(kat, '_zrodla.json'), 'utf8')) } catch { /* brak */ }
+    try { zrodla = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ kat, '_zrodla.json'), 'utf8')) } catch { /* brak */ }
     return { osoby, rodziny, zrodla: new Map(zrodla.map((z) => [z.id, z])) }
 }
 

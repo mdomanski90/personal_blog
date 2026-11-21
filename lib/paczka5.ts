@@ -20,7 +20,7 @@ export type Publikacja = { id: string; nazwa: string; rodzaj: string; autor: str
 
 async function istnieje(katalog: string): Promise<boolean> {
   const fs = await import('node:fs/promises')
-  try { await fs.access(`${process.cwd()}/content/${katalog}`); return true }
+  try { await fs.access(/*turbopackIgnore: true*/ (await import('node:path')).join(/*turbopackIgnore: true*/ process.cwd(), 'content', katalog)); return true }
   catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false; throw error }
 }
 

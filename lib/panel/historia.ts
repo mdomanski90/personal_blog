@@ -43,7 +43,7 @@ function bezpieczna(korzen: string, rel: string, korzenie = KORZENIE_KOSZA): str
     if (!korzenie.some((k) => rel.startsWith(k))) return null
     if (rel.startsWith('content/') && KOPIE.includes(rel.split('/')[1])) return null
     const p = path.resolve(/*turbopackIgnore: true*/ korzen, rel)
-    return p.startsWith(path.resolve(korzen) + path.sep) ? p : null
+    return p.startsWith(path.resolve(/*turbopackIgnore: true*/ korzen) + path.sep) ? p : null
 }
 /** Plik treści, który ma historię: content/…, tekstowy, poza katalogami kopii. Zwraca ścieżkę względem content/. */
 export function relTresci(rel: string): string | null {
@@ -65,11 +65,11 @@ export async function zapiszWersje(korzen: string, relC: string, tresc: Buffer |
     const kat = katWersji(korzen, relC)
     await fs.mkdir(kat, { recursive: true, mode: 0o750 })
     const id = noweId()
-    await fs.writeFile(path.join(kat, id), tresc, { flag: 'wx', mode: 0o640 })
+    await fs.writeFile(path.join(/*turbopackIgnore: true*/ kat, id), tresc, { flag: 'wx', mode: 0o640 })
     // P7a (KON-01): kto zastąpił tę wersję nową treścią (podpis zmiany); plik obok wersji, usuwany razem z nią
     const autor = ktoTeraz()
-    if (autor) await fs.writeFile(path.join(kat, `${id}.kto`), JSON.stringify({ kto: autor.id, ...(autor.administrator ? { administrator: true } : {}) }), { mode: 0o640 }).catch(() => {})
-    for (const stary of doUsuniecia((await fs.readdir(kat)).filter((x) => ID.test(x)))) { await fs.rm(path.join(kat, stary), { force: true }); await fs.rm(path.join(kat, `${stary}.kto`), { force: true }) }
+    if (autor) await fs.writeFile(path.join(/*turbopackIgnore: true*/ kat, `${id}.kto`), JSON.stringify({ kto: autor.id, ...(autor.administrator ? { administrator: true } : {}) }), { mode: 0o640 }).catch(() => {})
+    for (const stary of doUsuniecia((await fs.readdir(/*turbopackIgnore: true*/ kat)).filter((x) => ID.test(x)))) { await fs.rm(path.join(/*turbopackIgnore: true*/ kat, stary), { force: true }); await fs.rm(path.join(/*turbopackIgnore: true*/ kat, `${stary}.kto`), { force: true }) }
     return id
 }
 
@@ -89,12 +89,12 @@ export async function listaWersji(relC: string, korzen = process.cwd()): Promise
     if (!relTresci(`content/${relC}`)) return []
     const kat = katWersji(korzen, relC)
     let L: string[] = []
-    try { L = (await fs.readdir(kat)).filter((x) => ID.test(x)) } catch { return [] }
+    try { L = (await fs.readdir(/*turbopackIgnore: true*/ kat)).filter((x) => ID.test(x)) } catch { return [] }
     const wyn: Wersja[] = []
     for (const id of L.sort().reverse()) {
         try {
-            const w: Wersja = { id, czas: czasId(id), bajty: (await fs.stat(path.join(kat, id))).size }
-            const p = await czytaj(path.join(kat, `${id}.kto`))
+            const w: Wersja = { id, czas: czasId(id), bajty: (await fs.stat(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ kat, id))).size }
+            const p = await czytaj(path.join(/*turbopackIgnore: true*/ kat, `${id}.kto`))
             if (p) try { const j = JSON.parse(p.toString('utf8')) as { kto?: unknown; administrator?: unknown }; if (typeof j.kto === 'string') { w.kto = j.kto; if (j.administrator === true) w.administrator = true } } catch { /* bez podpisu */ }
             wyn.push(w)
         } catch { /* zniknęła */ }
@@ -103,7 +103,7 @@ export async function listaWersji(relC: string, korzen = process.cwd()): Promise
 }
 export async function trescWersji(relC: string, id: string, korzen = process.cwd()): Promise<string | null> {
     if (!ID.test(id) || !relTresci(`content/${relC}`)) return null
-    const b = await czytaj(path.join(katWersji(korzen, relC), id))
+    const b = await czytaj(path.join(/*turbopackIgnore: true*/ katWersji(korzen, relC), id))
     return b ? b.toString('utf8') : null
 }
 export async function trescBiezaca(relC: string, korzen = process.cwd()): Promise<string | null> {
@@ -138,27 +138,27 @@ export async function doKosza(korzen: string, sciezki: string[], opis: string, u
     }
     if (!pliki.length) return null
     const baza = await zapewnijKatalog(korzen, '_kosz')
-    const id = noweId(), kat = path.join(baza, id)
-    await fs.mkdir(path.join(kat, 'pliki'), { recursive: true, mode: 0o750 })
+    const id = noweId(), kat = path.join(/*turbopackIgnore: true*/ baza, id)
+    await fs.mkdir(path.join(/*turbopackIgnore: true*/ kat, 'pliki'), { recursive: true, mode: 0o750 })
     const tylkoBinarne = pliki.every((p) => !TEKST.test(p.rel))
-    for (let i = 0; i < pliki.length; i++) await fs.writeFile(path.join(kat, 'pliki', String(i)), pliki[i].tresc, { flag: 'wx', mode: 0o640 })
+    for (let i = 0; i < pliki.length; i++) await fs.writeFile(path.join(/*turbopackIgnore: true*/ kat, 'pliki', String(i)), pliki[i].tresc, { flag: 'wx', mode: 0o640 })
     const m: PozycjaKoszaTresci = {
         id, czas: new Date().toISOString(), opis: opis.slice(0, 300), wygasa: tylkoBinarne ? new Date(Date.now() + DNI_PLIKOW_W_KOSZU * 864e5).toISOString() : null,
         pliki: pliki.map((p) => ({ sciezka: p.rel, bajty: p.tresc.length, tekst: TEKST.test(p.rel) })),
     }
-    await fs.writeFile(path.join(kat, 'manifest.json'), JSON.stringify(m, null, 1), { flag: 'wx', mode: 0o640 })
+    await fs.writeFile(path.join(/*turbopackIgnore: true*/ kat, 'manifest.json'), JSON.stringify(m, null, 1), { flag: 'wx', mode: 0o640 })
     if (usun) for (const p of pliki) await fs.unlink(p.abs).catch(() => {})
     return id
 }
 
 export async function listaKoszaTresci(korzen = process.cwd()): Promise<PozycjaKoszaTresci[]> {
     let L: string[] = []
-    try { L = (await fs.readdir(katalogKopii(korzen, '_kosz'))).filter((x) => ID.test(x)) } catch { return [] }
+    try { L = (await fs.readdir(/*turbopackIgnore: true*/ katalogKopii(korzen, '_kosz'))).filter((x) => ID.test(x)) } catch { return [] }
     const wyn: PozycjaKoszaTresci[] = []
     for (const id of L.sort().reverse()) {
-        const kat = path.join(katalogKopii(korzen, '_kosz'), id)
+        const kat = path.join(/*turbopackIgnore: true*/ katalogKopii(korzen, '_kosz'), id)
         try {
-            const m = JSON.parse(await fs.readFile(path.join(kat, 'manifest.json'), 'utf8')) as PozycjaKoszaTresci
+            const m = JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ kat, 'manifest.json'), 'utf8')) as PozycjaKoszaTresci
             if (m.wygasa && Date.parse(m.wygasa) < Date.now()) { await fs.rm(kat, { recursive: true, force: true }); continue }
             wyn.push(m)
         } catch { /* uszkodzona pozycja – zostaje na dysku, nie zgadujemy */ }
@@ -174,7 +174,7 @@ export async function pozycjaKoszaTylkoJa(m: PozycjaKoszaTresci, u: UkrytePozycj
     if (m.pliki.some((p) => ukrytaSciezka(p.sciezka, u))) return true
     for (const [i, p] of m.pliki.entries()) {
         if (!p.tekst) continue
-        try { if (widocznoscPliku(p.sciezka, await fs.readFile(path.join(katalogKopii(korzen, '_kosz'), m.id, 'pliki', String(i)), 'utf8')) === 'ja') return true } catch { /* brak kopii */ }
+        try { if (widocznoscPliku(p.sciezka, await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ katalogKopii(korzen, '_kosz'), m.id, 'pliki', String(i)), 'utf8')) === 'ja') return true } catch { /* brak kopii */ }
     }
     return false
 }
@@ -183,9 +183,9 @@ export async function pozycjaKoszaTylkoJa(m: PozycjaKoszaTresci, u: UkrytePozycj
 export async function przywrocZKoszaTresci(id: string, opcje: { korzen?: string; sprawdz?: () => Promise<void> } = {}): Promise<string | null> {
     const korzen = opcje.korzen ?? process.cwd()
     if (!ID.test(id)) return 'zła pozycja kosza'
-    const kat = path.join(katalogKopii(korzen, '_kosz'), id)
+    const kat = path.join(/*turbopackIgnore: true*/ katalogKopii(korzen, '_kosz'), id)
     let m: PozycjaKoszaTresci
-    try { m = JSON.parse(await fs.readFile(path.join(kat, 'manifest.json'), 'utf8')) } catch { return 'nie ma już tej pozycji' }
+    try { m = JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ kat, 'manifest.json'), 'utf8')) } catch { return 'nie ma już tej pozycji' }
     const cele = m.pliki.map((p, i) => ({ ...p, i, abs: bezpieczna(korzen, p.sciezka) }))
     if (cele.some((c) => !c.abs)) return 'niedozwolona ścieżka w koszu'
     for (const c of cele) if (await czytaj(c.abs!) !== null) return `pod adresem ${c.sciezka} jest już inny plik – najpierw go przenieś albo zmień nazwę`
@@ -193,11 +193,11 @@ export async function przywrocZKoszaTresci(id: string, opcje: { korzen?: string;
     const binarne = cele.filter((c) => !teksty.includes(c))
     for (const c of binarne) {
         await fs.mkdir(path.dirname(c.abs!), { recursive: true })
-        await fs.copyFile(path.join(kat, 'pliki', String(c.i)), c.abs!, fs.constants.COPYFILE_EXCL)
+        await fs.copyFile(path.join(/*turbopackIgnore: true*/ kat, 'pliki', String(c.i)), c.abs!, fs.constants.COPYFILE_EXCL)
     }
     if (teksty.length) {
         const zmiany = []
-        for (const c of teksty) zmiany.push({ plik: c.sciezka.slice('content/'.length), poprzedni: null, wynik: (await fs.readFile(path.join(kat, 'pliki', String(c.i)), 'utf8')) })
+        for (const c of teksty) zmiany.push({ plik: c.sciezka.slice('content/'.length), poprzedni: null, wynik: (await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ kat, 'pliki', String(c.i)), 'utf8')) })
         await wykonajOperacje({ korzen, rodzaj: 'przywrocenie', opis: `przywrócenie z kosza: ${m.opis}`, zmiany, sprawdz: opcje.sprawdz, szczegoly: { kosz: id } })
     }
     await fs.rm(kat, { recursive: true, force: true })
@@ -206,7 +206,7 @@ export async function przywrocZKoszaTresci(id: string, opcje: { korzen?: string;
 
 export async function usunZKoszaTresci(id: string, korzen = process.cwd()): Promise<string | null> {
     if (!ID.test(id)) return 'zła pozycja kosza'
-    await fs.rm(path.join(katalogKopii(korzen, '_kosz'), id), { recursive: true, force: true })
+    await fs.rm(path.join(/*turbopackIgnore: true*/ katalogKopii(korzen, '_kosz'), id), { recursive: true, force: true })
     return null
 }
 

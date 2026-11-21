@@ -198,7 +198,7 @@ export function zbudujIndeks(plik: string, dokumenty: DokumentSzukania[], odcisk
 
 export function odcisk(plik: string): string | null {
     const Baza = sqlite()
-    if (!Baza || !fs.existsSync(plik)) return null
+    if (!Baza || !fs.existsSync(/*turbopackIgnore: true*/ plik)) return null
     try {
         const db = new Baza(plik, { readonly: true, fileMustExist: true })
         try {
@@ -237,7 +237,7 @@ export const WERSJA_INDEKSU = 3 // P3: dopisek „po mężu” z zapisem męża,
 
 /** Identyfikator wydania programu (`.next/BUILD_ID`): nowe wydanie = nowy kod budujący dokumenty = indeks do odbudowy, nawet gdy treść się nie zmieniła. */
 function wydanie(korzen: string): string {
-    try { return fs.readFileSync(path.join(/*turbopackIgnore: true*/ korzen, '.next', 'BUILD_ID'), 'utf8').trim().slice(0, 40) } catch { return '' }
+    try { return fs.readFileSync(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ korzen, '.next', 'BUILD_ID'), 'utf8').trim().slice(0, 40) } catch { return '' }
 }
 
 /** Odcisk treści: liczba plików, największy mtime i łączny rozmiar w `content/` (bez zgłoszeń) + data (reguła dat widoczności osób) + wydanie programu. */
@@ -245,14 +245,14 @@ export function odciskTresci(korzen: string, teraz: Date = new Date()): string {
     let ile = 0, mtime = 0, rozmiar = 0
     const idz = (d: string) => {
         let wpisy: fs.Dirent[]
-        try { wpisy = fs.readdirSync(d, { withFileTypes: true }) } catch { return }
+        try { wpisy = fs.readdirSync(/*turbopackIgnore: true*/ d, { withFileTypes: true }) } catch { return }
         for (const w of wpisy) {
-            const p = path.join(d, w.name)
+            const p = path.join(/*turbopackIgnore: true*/ d, w.name)
             if (w.isDirectory()) { if (w.name !== 'zgloszenia') idz(p) }
-            else { try { const s = fs.statSync(p); ile++; rozmiar += s.size; if (s.mtimeMs > mtime) mtime = s.mtimeMs } catch { /* plik zniknął */ } }
+            else { try { const s = fs.statSync(/*turbopackIgnore: true*/ p); ile++; rozmiar += s.size; if (s.mtimeMs > mtime) mtime = s.mtimeMs } catch { /* plik zniknął */ } }
         }
     }
-    idz(path.join(korzen, 'content'))
+    idz(path.join(/*turbopackIgnore: true*/ korzen, 'content'))
     return `${ile}:${Math.round(mtime)}:${rozmiar}:${teraz.toISOString().slice(0, 10)}:v${WERSJA_INDEKSU}:${wydanie(korzen)}`
 }
 

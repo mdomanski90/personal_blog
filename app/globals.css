@@ -8,6 +8,11 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 @plugin "tailwindcss-animate";
+/* łatka 21.11: Tailwind nie przegląda danych (na VPS .gitignore ich nie wyklucza) – prywatny katalog operacji
+   przerwał budowę („Permission denied”); klasy są tylko w kodzie */
+@source not "../content";
+@source not "../pliki-archiwum";
+@source not "../data";
 
 @custom-variant dark (&:is(.dark *));
 

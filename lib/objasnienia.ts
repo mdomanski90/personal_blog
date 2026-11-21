@@ -198,7 +198,7 @@ const plik = (id: string) => path.join(/*turbopackIgnore: true*/ KAT(), `${id}.j
 export function objasnieniaMaterialu(id: string): Objasnienie[] {
     if (!ID_MATERIALU.test(id)) return []
     try {
-        const d = JSON.parse(fs.readFileSync(plik(id), 'utf8')) as { items?: W3CAdnotacja[] }
+        const d = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ plik(id), 'utf8')) as { items?: W3CAdnotacja[] }
         return (d.items ?? []).map(zW3C).filter((o): o is Objasnienie => o !== null)
     } catch {
         return []
@@ -217,8 +217,8 @@ export async function zapiszObjasnienia(id: string, lista: Objasnienie[]): Promi
 export function wersjaObjasnien(id: string): { wersja: string; zapisano: string | null } {
     if (!ID_MATERIALU.test(id)) return { wersja: '', zapisano: null }
     try {
-        const t = fs.readFileSync(plik(id))
-        return { wersja: crypto.createHash('sha1').update(t).digest('hex').slice(0, 16), zapisano: fs.statSync(plik(id)).mtime.toISOString() }
+        const t = fs.readFileSync(/*turbopackIgnore: true*/ plik(id))
+        return { wersja: crypto.createHash('sha1').update(t).digest('hex').slice(0, 16), zapisano: fs.statSync(/*turbopackIgnore: true*/ plik(id)).mtime.toISOString() }
     } catch {
         return { wersja: '', zapisano: null }
     }

@@ -27,10 +27,10 @@ export interface Znacznik {
 export const WZOR_NOCNEJ = /^odniepamieci-nocna-\d{8}-\d{6}\.tar\.gz$/
 export const ZACHOWAJ_NOCNYCH = 7
 
-const plikZnacznika = (korzen: string) => path.join(korzen, 'content', '_panel', 'kopia.json')
+const plikZnacznika = (korzen: string) => path.join(/*turbopackIgnore: true*/ korzen, 'content', '_panel', 'kopia.json')
 
 export async function wczytajZnacznik(korzen = process.cwd()): Promise<Znacznik> {
-    try { return JSON.parse(await fs.readFile(plikZnacznika(korzen), 'utf8')) as Znacznik } catch { return {} }
+    try { return JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ plikZnacznika(korzen), 'utf8')) as Znacznik } catch { return {} }
 }
 
 async function zapiszZnacznik(z: Znacznik, korzen: string) {
@@ -65,7 +65,7 @@ export async function sprawdzKatalog(katalog: string, korzen = process.cwd()): P
 export async function ustawKatalog(katalog: string, korzen = process.cwd()): Promise<string | null> {
     const blad = await sprawdzKatalog(katalog, korzen)
     if (blad) return blad
-    await zapiszZnacznik({ ...(await wczytajZnacznik(korzen)), katalog: path.resolve(katalog) }, korzen)
+    await zapiszZnacznik({ ...(await wczytajZnacznik(korzen)), katalog: path.resolve(/*turbopackIgnore: true*/ katalog) }, korzen)
     return null
 }
 
@@ -73,16 +73,16 @@ let trwa = false
 
 /** Przygotowuje katalog tymczasowy: spójne kopie baz SQLite + kopia.json. Pliki content/ i pliki-archiwum/ czyta tar bez kopiowania. */
 async function przygotuj(korzen: string, commit: string | null) {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'kopia-'))
-    const dataSrc = path.join(korzen, 'data')
-    const dataDst = path.join(tmp, 'data')
+    const tmp = await fs.mkdtemp(path.join(/*turbopackIgnore: true*/ os.tmpdir(), 'kopia-'))
+    const dataSrc = path.join(/*turbopackIgnore: true*/ korzen, 'data')
+    const dataDst = path.join(/*turbopackIgnore: true*/ tmp, 'data')
     await fs.mkdir(dataDst)
     const bazy: string[] = [], inne: string[] = []
     let wpisy: import('node:fs').Dirent[] = []
     try { wpisy = await fs.readdir(/*turbopackIgnore: true*/ dataSrc, { withFileTypes: true }) } catch { /* brak data/ */ }
     for (const w of wpisy) {
         if (!w.isFile()) continue
-        const src = path.join(dataSrc, w.name), dst = path.join(dataDst, w.name)
+        const src = path.join(/*turbopackIgnore: true*/ dataSrc, w.name), dst = path.join(/*turbopackIgnore: true*/ dataDst, w.name)
         if (/-(wal|shm|journal)$/.test(w.name)) continue // pliki pomocnicze SQLite – .backup() zawiera ich treść
         if (/\.(db|sqlite3?)$/i.test(w.name)) {
             const { default: Database } = await import('better-sqlite3')
@@ -93,9 +93,9 @@ async function przygotuj(korzen: string, commit: string | null) {
     }
     const czesci = [] as string[]
     for (const c of ['content', 'pliki-archiwum'] as const) {
-        try { await fs.access(path.join(/*turbopackIgnore: true*/ korzen, c)); czesci.push(c) } catch { /* brak części */ }
+        try { await fs.access(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ korzen, c)); czesci.push(c) } catch { /* brak części */ }
     }
-    await fs.writeFile(path.join(tmp, 'kopia.json'), JSON.stringify({
+    await fs.writeFile(path.join(/*turbopackIgnore: true*/ tmp, 'kopia.json'), JSON.stringify({
         utworzono: new Date().toISOString(), commit, czesci: [...czesci, 'data'], bazySQLite: bazy, inneZData: inne,
         przywracanie: 'Rozpakuj do pustego katalogu: tar -xzf <plik> -C /tmp/test-kopii; porównaj z bieżącymi danymi, zanim cokolwiek nadpiszesz.',
     }, null, 1))
@@ -202,7 +202,7 @@ export async function kopieNaSerwerze(korzen = process.cwd()): Promise<{ nazwa: 
     if (!z.katalog) return []
     try {
         const n = (await fs.readdir(/*turbopackIgnore: true*/ z.katalog)).filter((x) => WZOR.test(x)).sort().reverse()
-        return Promise.all(n.map(async (x) => { const s = await fs.stat(path.join(/*turbopackIgnore: true*/ z.katalog!, x)); return { nazwa: x, bajty: s.size, czas: s.mtime.toISOString() } }))
+        return Promise.all(n.map(async (x) => { const s = await fs.stat(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ z.katalog!, x)); return { nazwa: x, bajty: s.size, czas: s.mtime.toISOString() } }))
     } catch { return [] }
 }
 

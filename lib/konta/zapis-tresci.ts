@@ -33,8 +33,8 @@ export function metaPliku(sciezka: string, tresc: string | null): MetaPliku | nu
 async function czytaj(korzen: string, rel: string): Promise<string | null> {
     try {
         const p = path.join(/*turbopackIgnore: true*/ korzen, ...rel.split('/'))
-        if ((await fs.stat(p)).size > MAKS) return ''
-        return await fs.readFile(p, 'utf8')
+        if ((await fs.stat(/*turbopackIgnore: true*/ p)).size > MAKS) return ''
+        return await fs.readFile(/*turbopackIgnore: true*/ p, 'utf8')
     } catch { return null }
 }
 
@@ -43,7 +43,7 @@ export async function slugiKregow(korzen = process.cwd()): Promise<Record<string
     const { kregi } = await wczytajKregi()
     const kat = path.join(/*turbopackIgnore: true*/ korzen, 'content', 'miejsca')
     const slugNazwy = new Map<string, string>()
-    for (const plik of await fs.readdir(kat).catch(() => [] as string[])) {
+    for (const plik of await fs.readdir(/*turbopackIgnore: true*/ kat).catch(() => [] as string[])) {
         if (!plik.endsWith('.mdoc')) continue
         const m = /^title:\s*['"]?(.+?)['"]?\s*$/m.exec((await czytaj(korzen, `content/miejsca/${plik}`)) ?? '')
         if (m) slugNazwy.set(kluczMiejsca(m[1]), plik.replace(/\.mdoc$/, ''))

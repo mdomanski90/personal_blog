@@ -76,10 +76,10 @@ export async function ukrytePozycje(korzen = process.cwd()): Promise<UkrytePozyc
     const skanuj = async (kolekcja: string, rozszerzenia: RegExp) => {
         const kat = path.join(/*turbopackIgnore: true*/ korzen, 'content', kolekcja)
         let pliki: string[] = []
-        try { pliki = await fs.promises.readdir(kat) } catch { return }
+        try { pliki = await fs.promises.readdir(/*turbopackIgnore: true*/ kat) } catch { return }
         await Promise.all(pliki.filter((p) => rozszerzenia.test(p) && !p.startsWith('_') && !p.startsWith('.')).map(async (p) => {
             try {
-                if (widocznoscPliku(p, await fs.promises.readFile(path.join(kat, p), 'utf8')) === 'ja') poz.push({ kolekcja, slug: p.replace(rozszerzenia, ''), plik: p })
+                if (widocznoscPliku(p, await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ kat, p), 'utf8')) === 'ja') poz.push({ kolekcja, slug: p.replace(rozszerzenia, ''), plik: p })
             } catch { /* zniknął */ }
         }))
     }

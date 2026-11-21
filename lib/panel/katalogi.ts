@@ -24,13 +24,13 @@ export async function zapewnijKatalog(korzen: string, k: KatalogKopii): Promise<
     const kat = katalogKopii(korzen, k)
     try {
         await fs.mkdir(kat, { recursive: true, mode: 0o750 })
-        await fs.access(kat, constants.W_OK)
+        await fs.access(/*turbopackIgnore: true*/ kat, constants.W_OK)
     } catch (e) {
         const kod = (e as NodeJS.ErrnoException).code
         if (kod === 'EACCES' || kod === 'EPERM' || kod === 'EROFS' || kod === 'ENOENT' || kod === 'ENOTDIR' || kod === 'EEXIST') throw new BrakKataloguKopii(k)
         throw e
     }
-    await fs.writeFile(path.join(kat, '.gitignore'), '*\n', { flag: 'wx', mode: 0o640 }).catch((e) => {
+    await fs.writeFile(path.join(/*turbopackIgnore: true*/ kat, '.gitignore'), '*\n', { flag: 'wx', mode: 0o640 }).catch((e) => {
         if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e
     })
     return kat
@@ -39,9 +39,9 @@ export async function zapewnijKatalog(korzen: string, k: KatalogKopii): Promise<
 /** Do uwag technicznych na pulpicie: katalogi, których brakuje albo w których serwer nie może pisać. */
 export async function brakujaceKatalogi(korzen = process.cwd()): Promise<KatalogKopii[]> {
     const wyn: KatalogKopii[] = []
-    const mozeZalozyc = await fs.access(path.join(/*turbopackIgnore: true*/ korzen, 'content'), constants.W_OK).then(() => true, () => false)
+    const mozeZalozyc = await fs.access(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ korzen, 'content'), constants.W_OK).then(() => true, () => false)
     for (const k of KATALOGI_KOPII) {
-        try { await fs.access(katalogKopii(korzen, k), constants.W_OK) } catch (e) {
+        try { await fs.access(/*turbopackIgnore: true*/ katalogKopii(korzen, k), constants.W_OK) } catch (e) {
             if (!(mozeZalozyc && (e as NodeJS.ErrnoException).code === 'ENOENT')) wyn.push(k)
         }
     }

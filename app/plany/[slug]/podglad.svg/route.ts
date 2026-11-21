@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic'
 const zmienne: Record<string, string> = {}
 function kolory(motyw: string): string {
     if (zmienne[motyw]) return zmienne[motyw]
-    const css = fs.readFileSync(path.join(process.cwd(), 'app', 'globals.css'), 'utf8')
+    const css = fs.readFileSync(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ process.cwd(), 'app', 'globals.css'), 'utf8')
     const blok = (sel: string) => {
         const re = new RegExp(`${sel.replace('.', '\\.')}\\s*\\{([^}]*--pl-papier[^}]*)\\}`)
         return css.match(re)?.[1] ?? ''

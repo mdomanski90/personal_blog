@@ -44,7 +44,7 @@ export function zgloszenieZDanych(d: unknown): Omit<ZgloszenieStrony, 'id' | 'da
 export async function zapiszZgloszenieStrony(z: Omit<ZgloszenieStrony, 'id' | 'data'>) {
     const id = `${Date.now()}-${randomBytes(3).toString('hex')}`
     await fs.promises.mkdir(KATALOG(), { recursive: true })
-    const plik = path.join(KATALOG(), `${id}.json`), tmp = `${plik}.${randomBytes(4).toString('hex')}.tmp`
+    const plik = path.join(/*turbopackIgnore: true*/ KATALOG(), `${id}.json`), tmp = `${plik}.${randomBytes(4).toString('hex')}.tmp`
     try {
         await fs.promises.writeFile(tmp, JSON.stringify({ ...z, id, data: new Date().toISOString() }, null, 1), { flag: 'wx' })
         await fs.promises.rename(tmp, plik)
@@ -54,12 +54,12 @@ export async function zapiszZgloszenieStrony(z: Omit<ZgloszenieStrony, 'id' | 'd
 
 export async function listaZgloszenStrony(): Promise<ZgloszenieStrony[]> {
     let pliki: string[] = []
-    try { pliki = await fs.promises.readdir(KATALOG()) } catch { return [] }
+    try { pliki = await fs.promises.readdir(/*turbopackIgnore: true*/ KATALOG()) } catch { return [] }
     const wyn: ZgloszenieStrony[] = []
-    for (const p of pliki) if (p.endsWith('.json')) { try { wyn.push(JSON.parse(await fs.promises.readFile(path.join(KATALOG(), p), 'utf8'))) } catch { /* pomiń */ } }
+    for (const p of pliki) if (p.endsWith('.json')) { try { wyn.push(JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KATALOG(), p), 'utf8'))) } catch { /* pomiń */ } }
     return wyn.sort((a, b) => b.data.localeCompare(a.data))
 }
 
 export async function usunZgloszenieStrony(id: string) {
-    if (/^\d+-[0-9a-f]+$/.test(id)) await fs.promises.unlink(path.join(KATALOG(), `${id}.json`)).catch(() => {})
+    if (/^\d+-[0-9a-f]+$/.test(id)) await fs.promises.unlink(path.join(/*turbopackIgnore: true*/ KATALOG(), `${id}.json`)).catch(() => {})
 }

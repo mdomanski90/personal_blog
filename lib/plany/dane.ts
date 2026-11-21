@@ -15,8 +15,8 @@ import { nowyPowtorzonyNrLegendy } from './ph3'
 import { USTAWIENIA_DOMYSLNE, type UstawieniaPlanow, type WlasnyTyp } from './typy'
 import { kontaWlaczone, odmowaKonta, odpowiedzZamknietego, panelZamkniety } from '../konta/straz'
 
-const KATALOG = () => path.resolve(process.cwd(), 'content', 'plany')
-const PLIKI = () => path.resolve(process.cwd(), 'pliki-archiwum', 'plany')
+const KATALOG = () => path.resolve(/*turbopackIgnore: true*/ process.cwd(), 'content', 'plany')
+const PLIKI = () => path.resolve(/*turbopackIgnore: true*/ process.cwd(), 'pliki-archiwum', 'plany')
 
 export const PLIK_OK = /^[\w-]+(\.[\w-]+)*$/
 
@@ -29,7 +29,7 @@ async function zapiszAtomowo(plik: string, dane: string | Buffer) {
 
 export async function listaPlanow(): Promise<Plan[]> {
     let pliki: string[] = []
-    try { pliki = await fs.promises.readdir(KATALOG()) } catch { return [] }
+    try { pliki = await fs.promises.readdir(/*turbopackIgnore: true*/ KATALOG()) } catch { return [] }
     const wyn: Plan[] = []
     for (const p of pliki) {
         if (!p.endsWith('.json') || p.startsWith('_')) continue
@@ -42,7 +42,7 @@ export async function listaPlanow(): Promise<Plan[]> {
 export async function wczytajPlan(slug: string): Promise<Plan | null> {
     if (!SLUG.test(slug)) return null
     try {
-        const surowy = JSON.parse(await fs.promises.readFile(path.join(KATALOG(), `${slug}.json`), 'utf8'))
+        const surowy = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KATALOG(), `${slug}.json`), 'utf8'))
         return popraw({ ...surowy, slug })
     } catch { return null }
 }
@@ -51,16 +51,16 @@ export async function zapiszPlan(plan: Plan): Promise<Plan> {
     if (!SLUG.test(plan.slug)) throw new Error('zły identyfikator planu')
     const p = popraw(plan)
     p.zmieniono = new Date().toISOString()
-    await zapiszAtomowo(path.join(KATALOG(), `${p.slug}.json`), JSON.stringify(p, null, 1))
+    await zapiszAtomowo(path.join(/*turbopackIgnore: true*/ KATALOG(), `${p.slug}.json`), JSON.stringify(p, null, 1))
     return p
 }
 
 export async function usunPlan(slug: string) {
     if (!SLUG.test(slug)) return
     // plan przenosimy do kosza zamiast kasować – na wypadek pomyłki
-    const kosz = path.join(KATALOG(), '_kosz')
+    const kosz = path.join(/*turbopackIgnore: true*/ KATALOG(), '_kosz')
     await fs.promises.mkdir(kosz, { recursive: true })
-    await fs.promises.rename(path.join(KATALOG(), `${slug}.json`), path.join(kosz, `${slug}-${Date.now()}.json`)).catch(() => {})
+    await fs.promises.rename(path.join(/*turbopackIgnore: true*/ KATALOG(), `${slug}.json`), path.join(/*turbopackIgnore: true*/ kosz, `${slug}-${Date.now()}.json`)).catch(() => {})
 }
 
 export async function planyDla(rodzaj: 'miejsce' | 'obiekt', id: string): Promise<Plan[]> {
@@ -70,7 +70,7 @@ export async function planyDla(rodzaj: 'miejsce' | 'obiekt', id: string): Promis
 // ---------- ustawienia ----------
 export async function wczytajUstawienia(): Promise<UstawieniaPlanow> {
     try {
-        const u = JSON.parse(await fs.promises.readFile(path.join(KATALOG(), '_ustawienia.json'), 'utf8'))
+        const u = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ KATALOG(), '_ustawienia.json'), 'utf8'))
         return {
             progLat: Number.isFinite(u.progLat) && u.progLat >= 0 ? Math.round(u.progLat) : USTAWIENIA_DOMYSLNE.progLat,
             ukryteTypy: Array.isArray(u.ukryteTypy) ? u.ukryteTypy.filter((t: unknown) => typeof t === 'string') : [],
@@ -80,7 +80,7 @@ export async function wczytajUstawienia(): Promise<UstawieniaPlanow> {
 }
 
 export async function zapiszUstawienia(u: UstawieniaPlanow) {
-    await zapiszAtomowo(path.join(KATALOG(), '_ustawienia.json'), JSON.stringify(u, null, 1))
+    await zapiszAtomowo(path.join(/*turbopackIgnore: true*/ KATALOG(), '_ustawienia.json'), JSON.stringify(u, null, 1))
 }
 
 // ---------- pliki (podkłady, zdjęcia, ikony) ----------
@@ -147,7 +147,7 @@ export async function usunPlik(slug: string, plik: string, teraz = Date.now()) {
 
 export async function listaKoszaPlikow(): Promise<PlikWKoszu[]> {
     let L: string[] = []
-    try { L = await fs.promises.readdir(KOSZ_PLIKOW()) } catch { return [] }
+    try { L = await fs.promises.readdir(/*turbopackIgnore: true*/ KOSZ_PLIKOW()) } catch { return [] }
     return L.map(zKosza).filter((x): x is PlikWKoszu => !!x).sort((a, b) => b.czas.localeCompare(a.czas))
 }
 
@@ -167,7 +167,7 @@ export async function przywrocPlikZKosza(nazwa: string): Promise<string | null> 
     if (!k) return 'zła nazwa pliku'
     const cel = sciezkaPliku(k.slug, k.plik)
     if (!cel) return 'zła nazwa pliku'
-    try { await fs.promises.access(cel); return 'pod tą nazwą jest już inny plik' } catch { /* wolne */ }
+    try { await fs.promises.access(/*turbopackIgnore: true*/ cel); return 'pod tą nazwą jest już inny plik' } catch { /* wolne */ }
     await fs.promises.mkdir(path.dirname(cel), { recursive: true })
     try { await fs.promises.rename(path.join(/*turbopackIgnore: true*/ KOSZ_PLIKOW(), nazwa), cel) } catch { return 'nie ma już tego pliku' }
     return null
@@ -193,7 +193,7 @@ export async function przywrocBrakujacePliki(plan: Pick<Plan, 'slug' | 'podklady
     for (const plik of plikiPlanu(plan)) {
         const p = sciezkaPliku(plan.slug, plik)
         if (!p) continue
-        try { await fs.promises.access(p) } catch { brak.push(plik) }
+        try { await fs.promises.access(/*turbopackIgnore: true*/ p) } catch { brak.push(plik) }
     }
     if (!brak.length) return []
     const kosz = await listaKoszaPlikow(), wyn: string[] = []
@@ -243,7 +243,7 @@ export async function zapiszSzkic(slug: string, plan: Plan): Promise<Szkic> {
 
 export async function wczytajSzkic(slug: string): Promise<Szkic | null> {
     if (!SLUG.test(slug)) return null
-    try { return JSON.parse(await fs.promises.readFile(path.join(/*turbopackIgnore: true*/ SZKICE(), `${slug}.json`), 'utf8')) as Szkic } catch { return null }
+    try { return JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ SZKICE(), `${slug}.json`), 'utf8')) as Szkic } catch { return null }
 }
 
 export async function usunSzkic(slug: string) {
@@ -266,15 +266,15 @@ export interface Zgloszenie {
 
 export async function zapiszZgloszenie(z: Omit<Zgloszenie, 'id' | 'data'>) {
     const id = `${Date.now()}-${randomBytes(3).toString('hex')}`
-    await zapiszAtomowo(path.join(KATALOG(), '_zgloszenia', `${id}.json`), JSON.stringify({ ...z, id, data: new Date().toISOString() }, null, 1))
+    await zapiszAtomowo(path.join(/*turbopackIgnore: true*/ KATALOG(), '_zgloszenia', `${id}.json`), JSON.stringify({ ...z, id, data: new Date().toISOString() }, null, 1))
 }
 
 export async function listaZgloszen(): Promise<Zgloszenie[]> {
-    const k = path.join(KATALOG(), '_zgloszenia')
+    const k = path.join(/*turbopackIgnore: true*/ KATALOG(), '_zgloszenia')
     let pliki: string[] = []
-    try { pliki = await fs.promises.readdir(k) } catch { return [] }
+    try { pliki = await fs.promises.readdir(/*turbopackIgnore: true*/ k) } catch { return [] }
     const wyn: Zgloszenie[] = []
-    for (const p of pliki) if (p.endsWith('.json')) { try { wyn.push(JSON.parse(await fs.promises.readFile(path.join(k, p), 'utf8'))) } catch { /* pomiń */ } }
+    for (const p of pliki) if (p.endsWith('.json')) { try { wyn.push(JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ k, p), 'utf8'))) } catch { /* pomiń */ } }
     return wyn.sort((a, b) => b.data.localeCompare(a.data))
 }
 

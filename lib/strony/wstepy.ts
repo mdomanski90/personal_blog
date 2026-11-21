@@ -22,7 +22,7 @@ export function znormalizujWstep(dane: unknown, dzial: Dzial): UstawienieDzialu 
 }
 export async function wczytajWstep(dzial: Dzial): Promise<UstawienieDzialu> {
     try {
-        const plik = path.join(process.cwd(), 'content', '_panel', 'wstepy-dzialow.json')
-        return znormalizujWstep(JSON.parse(await fs.readFile(plik, 'utf8')), dzial)
+        const plik = path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', '_panel', 'wstepy-dzialow.json')
+        return znormalizujWstep(JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ plik, 'utf8')), dzial)
     } catch { return puste() }
 }

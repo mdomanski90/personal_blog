@@ -39,11 +39,11 @@ export interface Manifest {
 
 export const ZACHOWAJ_OPERACJI = 30
 const KAT = '_operacje'
-const BLOKADA = path.join(KAT, '.blokada')
+const BLOKADA = path.join(/*turbopackIgnore: true*/ KAT, '.blokada')
 const ID = /^\d{8}-\d{6}-\d{5}-[a-f0-9]{4}$/
 
 const tresc = (korzen: string) => path.join(/*turbopackIgnore: true*/ korzen, 'content')
-const katOperacji = (korzen: string) => path.join(tresc(korzen), KAT)
+const katOperacji = (korzen: string) => path.join(/*turbopackIgnore: true*/ tresc(korzen), KAT)
 
 let licznik = 0
 /** Identyfikator rosnący w czasie (sortowanie = kolejność): data-czas UTC, milisekundy + licznik, losowy dopisek. */
@@ -75,9 +75,9 @@ export interface StanBlokady { id: string; czas: string; rodzaj: RodzajOperacji;
 
 /** Blokada jest „martwa”, gdy jej operacja nie trwa w tym procesie (awaria lub restart w trakcie). */
 export async function stanBlokady(korzen = process.cwd()): Promise<StanBlokady | null> {
-    const t = await czytaj(path.join(tresc(korzen), BLOKADA, 'info.json'))
+    const t = await czytaj(path.join(/*turbopackIgnore: true*/ tresc(korzen), BLOKADA, 'info.json'))
     if (t === null) {
-        try { await fs.stat(path.join(tresc(korzen), BLOKADA)) } catch { return null }
+        try { await fs.stat(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ tresc(korzen), BLOKADA)) } catch { return null }
         return { id: '', czas: '', rodzaj: 'zbiorcza', opis: 'blokada bez opisu', martwa: true }
     }
     try {
@@ -96,7 +96,7 @@ export async function blokadaZapisu(korzen = process.cwd()): Promise<string | nu
 }
 
 async function zablokuj(korzen: string, m: Pick<Manifest, 'id' | 'rodzaj' | 'opis'>) {
-    const kat = path.join(tresc(korzen), BLOKADA)
+    const kat = path.join(/*turbopackIgnore: true*/ tresc(korzen), BLOKADA)
     await zapewnijKatalog(korzen, '_operacje')
     try { await fs.mkdir(kat) } catch (e) {
         if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e
@@ -106,13 +106,13 @@ async function zablokuj(korzen: string, m: Pick<Manifest, 'id' | 'rodzaj' | 'opi
             : `Trwa inna operacja${b ? ` („${b.opis}”)` : ''}. Spróbuj za chwilę.`)
     }
     aktywne.add(m.id)
-    await fs.writeFile(path.join(kat, 'info.json'), JSON.stringify({ id: m.id, czas: new Date().toISOString(), rodzaj: m.rodzaj, opis: m.opis }), { mode: 0o600 })
+    await fs.writeFile(path.join(/*turbopackIgnore: true*/ kat, 'info.json'), JSON.stringify({ id: m.id, czas: new Date().toISOString(), rodzaj: m.rodzaj, opis: m.opis }), { mode: 0o600 })
 }
 
 async function odblokuj(korzen: string, id: string) {
     aktywne.delete(id)
-    const kat = path.join(tresc(korzen), BLOKADA)
-    await fs.rm(path.join(kat, 'info.json'), { force: true }).catch(() => {})
+    const kat = path.join(/*turbopackIgnore: true*/ tresc(korzen), BLOKADA)
+    await fs.rm(path.join(/*turbopackIgnore: true*/ kat, 'info.json'), { force: true }).catch(() => {})
     await fs.rmdir(kat).catch(() => {})
 }
 
@@ -124,10 +124,10 @@ async function zapiszTymczasowy(cel: string, tekst: string, prawa: { tryb: numbe
     try {
         if (prawa.grupaKatalogu) {
             // księgi: plik musi być czytelny dla grupy katalogu (użytkownik budujący Next.js) – jak dawny import
-            const [rodzic, st] = await Promise.all([fs.stat(path.dirname(cel)), fs.stat(tmp)])
+            const [rodzic, st] = await Promise.all([fs.stat(/*turbopackIgnore: true*/ path.dirname(cel)), fs.stat(/*turbopackIgnore: true*/ tmp)])
             if (st.gid !== rodzic.gid) await fs.chown(tmp, st.uid, rodzic.gid)
             await fs.chmod(tmp, prawa.tryb)
-            const g = await fs.stat(tmp)
+            const g = await fs.stat(/*turbopackIgnore: true*/ tmp)
             if ((g.mode & 0o777) !== prawa.tryb || g.gid !== rodzic.gid) throw new Error('Nie udało się nadać grupie katalogu dostępu do odczytu pliku.')
         } else await fs.chmod(tmp, prawa.tryb)
     } catch (e) { await fs.rm(tmp, { force: true }).catch(() => {}); throw e }
@@ -135,7 +135,7 @@ async function zapiszTymczasowy(cel: string, tekst: string, prawa: { tryb: numbe
 }
 
 async function trybPliku(cel: string, domyslny: number): Promise<number> {
-    try { return (await fs.stat(cel)).mode & 0o777 } catch { return domyslny }
+    try { return (await fs.stat(/*turbopackIgnore: true*/ cel)).mode & 0o777 } catch { return domyslny }
 }
 
 /** Jeden plik: z `obecny` (musi się zgadzać) na `nowy`. */
@@ -152,19 +152,19 @@ async function zapiszPlik(cel: string, obecny: string | null, nowy: string | nul
 
 // ---------- manifest ----------
 async function zapiszManifest(korzen: string, m: Manifest) {
-    const p = path.join(katOperacji(korzen), m.id, 'manifest.json'), tmp = `${p}.${randomBytes(4).toString('hex')}.tmp`
+    const p = path.join(/*turbopackIgnore: true*/ katOperacji(korzen), m.id, 'manifest.json'), tmp = `${p}.${randomBytes(4).toString('hex')}.tmp`
     await fs.writeFile(tmp, JSON.stringify(m, null, 1), { mode: 0o600 })
     await fs.rename(tmp, p)
 }
 
 export async function wczytajManifest(id: string, korzen = process.cwd()): Promise<Manifest | null> {
     if (!ID.test(id)) return null
-    const t = await czytaj(path.join(katOperacji(korzen), id, 'manifest.json'))
+    const t = await czytaj(path.join(/*turbopackIgnore: true*/ katOperacji(korzen), id, 'manifest.json'))
     if (t === null) return null
     try { return JSON.parse(t) as Manifest } catch { return null }
 }
 
-const plikKopii = (korzen: string, id: string, nazwa: string) => path.join(katOperacji(korzen), id, nazwa)
+const plikKopii = (korzen: string, id: string, nazwa: string) => path.join(/*turbopackIgnore: true*/ katOperacji(korzen), id, nazwa)
 
 async function zawartoscKopii(korzen: string, id: string, nazwa: string | null): Promise<string | null> {
     if (nazwa === null) return null
@@ -175,7 +175,7 @@ async function zawartoscKopii(korzen: string, id: string, nazwa: string | null):
 
 export async function listaOperacji(korzen = process.cwd()): Promise<Manifest[]> {
     let n: string[] = []
-    try { n = (await fs.readdir(katOperacji(korzen))).filter((x) => ID.test(x)) } catch { return [] }
+    try { n = (await fs.readdir(/*turbopackIgnore: true*/ katOperacji(korzen))).filter((x) => ID.test(x)) } catch { return [] }
     const L: Manifest[] = []
     for (const id of n.sort().reverse()) { const m = await wczytajManifest(id, korzen); if (m) L.push(m) }
     return L
@@ -185,7 +185,7 @@ async function sprzataj(korzen: string) {
     const L = await listaOperacji(korzen)
     for (const m of L.slice(ZACHOWAJ_OPERACJI)) {
         if (m.stan === 'przygotowane') continue // przerwana – zostaje do decyzji
-        await fs.rm(path.join(katOperacji(korzen), m.id), { recursive: true, force: true }).catch(() => {})
+        await fs.rm(path.join(/*turbopackIgnore: true*/ katOperacji(korzen), m.id), { recursive: true, force: true }).catch(() => {})
     }
 }
 
@@ -254,13 +254,13 @@ export async function wykonajOperacje(o: OpcjeOperacji): Promise<WynikOperacji> 
         for (const z of zmiany) if (await czytaj(sciezkaTresci(korzen, z.plik)) !== z.poprzedni)
             throw new Error(`Plik ${z.plik} zmienił się od podglądu. Odśwież podgląd i spróbuj ponownie.`)
         // 2. kopia „przed” i „po” + manifest
-        const kat = path.join(katOperacji(korzen), id)
-        await fs.mkdir(path.join(kat, 'przed'), { recursive: true, mode: 0o700 })
-        await fs.mkdir(path.join(kat, 'po'), { mode: 0o700 })
+        const kat = path.join(/*turbopackIgnore: true*/ katOperacji(korzen), id)
+        await fs.mkdir(path.join(/*turbopackIgnore: true*/ kat, 'przed'), { recursive: true, mode: 0o700 })
+        await fs.mkdir(path.join(/*turbopackIgnore: true*/ kat, 'po'), { mode: 0o700 })
         await fs.chmod(kat, 0o700)
         for (let i = 0; i < zmiany.length; i++) {
-            if (zmiany[i].poprzedni !== null) await fs.writeFile(path.join(kat, 'przed', String(i)), zmiany[i].poprzedni!, { flag: 'wx', mode: 0o600 })
-            if (zmiany[i].wynik !== null) await fs.writeFile(path.join(kat, 'po', String(i)), zmiany[i].wynik!, { flag: 'wx', mode: 0o600 })
+            if (zmiany[i].poprzedni !== null) await fs.writeFile(path.join(/*turbopackIgnore: true*/ kat, 'przed', String(i)), zmiany[i].poprzedni!, { flag: 'wx', mode: 0o600 })
+            if (zmiany[i].wynik !== null) await fs.writeFile(path.join(/*turbopackIgnore: true*/ kat, 'po', String(i)), zmiany[i].wynik!, { flag: 'wx', mode: 0o600 })
         }
         await zapiszManifest(korzen, m); manifestZapisany = true
         // 3. zapis
@@ -297,7 +297,7 @@ export async function wykonajOperacje(o: OpcjeOperacji): Promise<WynikOperacji> 
             m.stan = problemy.length ? 'wycofane-czesciowo' : 'wycofane'; m.zakonczono = new Date().toISOString()
             m.problemy = [String(blad instanceof Error ? blad.message : blad).slice(0, 300), ...problemy]
             await zapiszManifest(korzen, m).catch(() => {})
-        } else await fs.rm(path.join(katOperacji(korzen), id), { recursive: true, force: true }).catch(() => {})
+        } else await fs.rm(path.join(/*turbopackIgnore: true*/ katOperacji(korzen), id), { recursive: true, force: true }).catch(() => {})
         if (problemy.length) throw new Error(`Operacja przerwana; cofnięcie NIEPEŁNE: ${problemy.join('; ')}. Kopie: content/${KAT}/${id}.`)
         throw blad
     } finally {

@@ -348,7 +348,7 @@ const wszystkieParafie = cache(async (): Promise<Parafia[]> => {
 const wszystkieZespolyArchiwalne = cache(async (): Promise<ZespolArchiwalny[]> => {
     // Nowa kolekcja: katalog może jeszcze nie istnieć po instalacji, przed pierwszym zapisem.
     const fs = await import('node:fs/promises')
-    try { await fs.access(`${process.cwd()}/content/zespoly`) }
+    try { await fs.access(/*turbopackIgnore: true*/ (await import('node:path')).join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'zespoly')) }
     catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return []; throw e }
     const wpisy = await reader.collections.zespoly.all()
     return wpisy.map(({ slug, entry }) => ({
@@ -779,7 +779,7 @@ export async function wstepStronyGlownej(): Promise<string[]> {
     let dawny = ''
     if (!s) try {
         const [{ load }, { readFile }, { join }] = await Promise.all([import('js-yaml'), import('node:fs/promises'), import('node:path')])
-        dawny = String((load(await readFile(join(process.cwd(), 'content', 'strona-glowna.yaml'), 'utf8')) as { intro?: unknown } | null)?.intro ?? '')
+        dawny = String((load(await readFile(join(/*turbopackIgnore: true*/ process.cwd(), 'content', 'strona-glowna.yaml'), 'utf8')) as { intro?: unknown } | null)?.intro ?? '')
     } catch { /* brak pliku */ }
     const tekst = s?.intro?.trim() || dawny.trim() || WSTEP_DOMYSLNY
     return tekst.split(/\n\s*\n/).map((a) => a.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean)

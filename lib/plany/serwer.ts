@@ -72,7 +72,7 @@ export async function wydajPlik(katalog: string, plik: string, publiczny: boolea
     const p = sciezkaPliku(katalog, plik)
     if (!p) return nieMa()
     try {
-        const st = await fs.promises.stat(p)
+        const st = await fs.promises.stat(/*turbopackIgnore: true*/ p)
         if (!st.isFile()) return nieMa()
         if (szer) {
             const sharp = (await import('sharp')).default
@@ -84,7 +84,7 @@ export async function wydajPlik(katalog: string, plik: string, publiczny: boolea
                 },
             })
         }
-        const dane = await fs.promises.readFile(p)
+        const dane = await fs.promises.readFile(/*turbopackIgnore: true*/ p)
         return new Response(new Uint8Array(dane), {
             headers: {
                 'Content-Type': mimePliku(plik), 'Content-Length': String(st.size), 'X-Content-Type-Options': 'nosniff',

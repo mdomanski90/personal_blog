@@ -19,12 +19,12 @@ const zrzut = (x: unknown) => yaml.dump(x, { lineWidth: -1, noRefs: true, quotin
 async function przygotuj(korzen: string, u: UkrytePozycje) {
     const kat = sciezkaTresci(korzen, 'ksiegi')
     let pliki: string[] = []
-    try { pliki = (await fs.promises.readdir(kat)).filter((f) => /\.ya?ml$/.test(f)).sort() } catch { /* brak ksiąg */ }
+    try { pliki = (await fs.promises.readdir(/*turbopackIgnore: true*/ kat)).filter((f) => /\.ya?ml$/.test(f)).sort() } catch { /* brak ksiąg */ }
     const zmiany: ZmianaPliku[] = [], podglad: PodgladPorzadku = { ksiag: 0, tomow: 0, przeniesione: { tytul: 0, skany: 0, status: 0, zrodla: 0 }, sprzecznosci: [], pozycje: [] }
     for (const f of pliki) {
         const rel = `ksiegi/${f}`
         if (ukrytaSciezka(rel, u)) continue
-        const tekst = await fs.promises.readFile(sciezkaTresci(korzen, rel), 'utf8')
+        const tekst = await fs.promises.readFile(/*turbopackIgnore: true*/ sciezkaTresci(korzen, rel), 'utf8')
         let k: unknown
         try { k = yaml.load(tekst, { schema: yaml.CORE_SCHEMA }) } catch { continue } // nieczytelny plik zgłasza panel jakości – tu go nie ruszamy
         if (!k || typeof k !== 'object' || Array.isArray(k)) continue

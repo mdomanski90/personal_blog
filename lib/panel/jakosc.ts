@@ -85,8 +85,8 @@ export const REGULY_JAKOSCI: Record<RegulaJakosci, { nazwa: string; waga: WagaUw
     'mozliwy-duplikat': { nazwa: 'możliwy duplikat', waga: 'wskazowka', zakres: 'kolekcje z tytułem', uzasadnienie: 'Ta sama nazwa w dwóch wpisach – bywa słuszna (np. dwie wsie „Wola”), dlatego tylko wskazówka.' },
 }
 const KOLEKCJE = ['posts', 'miejsca', 'tematy', 'obiekty', 'materialy', 'zbiory', 'publikacje', 'parafie', 'hasla', 'biogramy', 'zespoly', 'ksiegi'] as const
-const DB = () => path.join(process.cwd(), 'content', '_panel', 'jakosc.json')
-const base = () => path.join(process.cwd(), 'content')
+const DB = () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', '_panel', 'jakosc.json')
+const base = () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content')
 const PUSTA: Pamiec = { wersja: 1, decyzje: {} }
 const ma = (x: unknown): boolean => {
     if (x == null || x === '') return false
@@ -105,16 +105,16 @@ const prawidloweId = (s: string) => /^[a-z0-9][a-z0-9_-]{0,130}$/.test(s)
 
 async function pamiec(): Promise<Pamiec> {
     try {
-        const j: unknown = JSON.parse(await fs.readFile(DB(), 'utf8'))
+        const j: unknown = JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ DB(), 'utf8'))
         if (j && typeof j === 'object' && 'wersja' in j && j.wersja === 1 && 'decyzje' in j && j.decyzje && typeof j.decyzje === 'object' && !Array.isArray(j.decyzje)) return j as Pamiec
     } catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e }
     return { wersja: 1, decyzje: {} }
 }
 
 async function rekordy(kolekcja: typeof KOLEKCJE[number], pominiete: { plik: string; powod: string }[] = []): Promise<{ slug: string; d: Record<string, unknown>; tekst: string }[]> {
-    const folder = path.join(base(), kolekcja)
+    const folder = path.join(/*turbopackIgnore: true*/ base(), kolekcja)
     let files: string[]
-    try { files = await fs.readdir(folder) } catch (e) {
+    try { files = await fs.readdir(/*turbopackIgnore: true*/ folder) } catch (e) {
         if ((e as NodeJS.ErrnoException).code === 'ENOENT') return []
         throw e
     }
@@ -124,9 +124,9 @@ async function rekordy(kolekcja: typeof KOLEKCJE[number], pominiete: { plik: str
         const slug = file.replace(/\.(mdoc|yaml|yml|json)$/, '')
         if (!prawidloweId(slug)) { pominiete.push({ plik: file, powod: 'identyfikator (nazwa pliku) z polskimi znakami, wielkimi literami lub spacją' }); continue }
         const f = path.join(/*turbopackIgnore: true*/ folder, file)
-        const st = await fs.stat(f)
+        const st = await fs.stat(/*turbopackIgnore: true*/ f)
         if (!st.isFile() || st.size > 2_000_000) continue
-        const content = await fs.readFile(f, 'utf8')
+        const content = await fs.readFile(/*turbopackIgnore: true*/ f, 'utf8')
         let d: Record<string, unknown>, tekst = ''
         try {
             if (file.endsWith('.json')) d = JSON.parse(content) as Record<string, unknown>
@@ -413,15 +413,15 @@ function kluczeCelow(wszystkie: Map<string, { slug: string; d: Record<string, un
 }
 
 async function osobyIstniejace(): Promise<{ id: string; nazwa: string }[]> {
-    const kat = path.join(base(), 'osoby')
+    const kat = path.join(/*turbopackIgnore: true*/ base(), 'osoby')
     let pliki: string[]
-    try { pliki = await fs.readdir(kat) } catch { return [] }
+    try { pliki = await fs.readdir(/*turbopackIgnore: true*/ kat) } catch { return [] }
     const wyn: { id: string; nazwa: string }[] = []
     for (const f of pliki.slice(0, 50000)) {
         if (!f.endsWith('.json') || f.startsWith('_')) continue
         const id = f.slice(0, -5)
         try {
-            const o = JSON.parse(await fs.readFile(path.join(/*turbopackIgnore: true*/ kat, f), 'utf8')) as { imiona?: string; nazwisko?: string }
+            const o = JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ kat, f), 'utf8')) as { imiona?: string; nazwisko?: string }
             wyn.push({ id, nazwa: `${o.imiona ?? ''} ${o.nazwisko ?? ''}`.trim() })
         } catch { wyn.push({ id, nazwa: '' }) }
     }
@@ -432,16 +432,16 @@ type ElementDoKontroli = { id: string; typ?: string; nazwa?: string; powiazania?
 export type PlanDoKontroli = { slug: string; tytul: string; elementy: ElementDoKontroli[] }
 
 async function planyDoKontroli(): Promise<PlanDoKontroli[]> {
-    const kat = path.join(base(), 'plany')
+    const kat = path.join(/*turbopackIgnore: true*/ base(), 'plany')
     let pliki: string[]
-    try { pliki = await fs.readdir(kat) } catch { return [] }
+    try { pliki = await fs.readdir(/*turbopackIgnore: true*/ kat) } catch { return [] }
     const wyn: PlanDoKontroli[] = []
     for (const f of pliki) {
         if (!f.endsWith('.json') || f.startsWith('_')) continue
         const slug = f.slice(0, -5)
         if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) continue
         try {
-            const p = JSON.parse(await fs.readFile(path.join(/*turbopackIgnore: true*/ kat, f), 'utf8')) as { tytul?: string; elementy?: unknown }
+            const p = JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ kat, f), 'utf8')) as { tytul?: string; elementy?: unknown }
             wyn.push({ slug, tytul: typeof p.tytul === 'string' && p.tytul.trim() ? p.tytul : slug, elementy: Array.isArray(p.elementy) ? (p.elementy as ElementDoKontroli[]).filter((e) => e && typeof e.id === 'string') : [] })
         } catch { continue /* uszkodzony plik – nie zgadujemy */ }
     }

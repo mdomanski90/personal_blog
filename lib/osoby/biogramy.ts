@@ -9,13 +9,13 @@ const KATALOG = () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'conten
 const plik = (id: string) => path.join(/*turbopackIgnore: true*/ KATALOG(), `${id}.mdoc`)
 
 export function maBiogram(id: string): boolean {
-    return ID_OSOBY.test(id) && fs.existsSync(plik(id))
+    return ID_OSOBY.test(id) && fs.existsSync(/*turbopackIgnore: true*/ plik(id))
 }
 
 /** Zakłada pusty biogram (gdy go nie ma) i zwraca adres edycji w Keystatic. */
 export async function zalozBiogram(id: string, podpis: string): Promise<string> {
     if (!ID_OSOBY.test(id)) throw new Error('zły identyfikator')
-    if (!fs.existsSync(plik(id))) {
+    if (!fs.existsSync(/*turbopackIgnore: true*/ plik(id))) {
         await fs.promises.mkdir(KATALOG(), { recursive: true })
         const bezpieczny = podpis.replace(/["\\\n]/g, ' ').trim() || id
         await fs.promises.writeFile(plik(id), `---\ntitle: "${bezpieczny}"\nlead: ''\n---\n`, { flag: 'wx' }).catch((e) => { if (e.code !== 'EEXIST') throw e })

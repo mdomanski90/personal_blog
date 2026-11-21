@@ -26,14 +26,14 @@ export interface PodgladObiektu {
 }
 
 async function zajeteSlugi(korzen: string): Promise<Set<string>> {
-    try { return new Set((await fs.promises.readdir(kat(korzen, 'content', 'obiekty'))).filter((p) => p.endsWith('.mdoc')).map((p) => p.slice(0, -5))) }
+    try { return new Set((await fs.promises.readdir(/*turbopackIgnore: true*/ kat(korzen, 'content', 'obiekty'))).filter((p) => p.endsWith('.mdoc')).map((p) => p.slice(0, -5))) }
     catch { return new Set() }
 }
 
 async function wpisZPliku(id: string, korzen: string): Promise<{ m: MiejsceTerenu; tekst: string } | null> {
     if (!ID_MIEJSCA.test(id)) return null
     try {
-        const tekst = await fs.promises.readFile(kat(korzen, 'content', '_teren', 'miejsca', `${id}.json`), 'utf8')
+        const tekst = await fs.promises.readFile(/*turbopackIgnore: true*/ kat(korzen, 'content', '_teren', 'miejsca', `${id}.json`), 'utf8')
         const m = odczytajMiejsce(JSON.parse(tekst))
         return m ? { m, tekst } : null
     } catch { return null }
@@ -62,12 +62,12 @@ async function kopiujZdjecia(id: string, slug: string, zdjecia: string[], korzen
     const nowe: string[] = []
     try {
         for (let i = 0; i < zdjecia.length; i++) {
-            const z = kat(korzen, 'pliki-archiwum', 'teren', id, zdjecia[i]), d = path.join(cel, plikZdjeciaObiektu(i, zdjecia[i]))
+            const z = kat(korzen, 'pliki-archiwum', 'teren', id, zdjecia[i]), d = path.join(/*turbopackIgnore: true*/ cel, plikZdjeciaObiektu(i, zdjecia[i]))
             try { await fs.promises.copyFile(z, d, fs.constants.COPYFILE_EXCL); nowe.push(d) }
             catch (e) {
                 if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e
                 // po „cofnij” zostaje kopia z poprzedniego razu – ta sama treść: używamy jej; inna – nie nadpisujemy cudzego pliku
-                const [a, b] = await Promise.all([fs.promises.readFile(z), fs.promises.readFile(d)])
+                const [a, b] = await Promise.all([fs.promises.readFile(/*turbopackIgnore: true*/ z), fs.promises.readFile(/*turbopackIgnore: true*/ d)])
                 if (!a.equals(b)) throw new Error(`W katalogu obiektu jest już inny plik ${path.basename(d)} – nic nie zapisano.`)
             }
         }
@@ -86,7 +86,7 @@ export async function utworzObiektZTerenu(id: string, dane: unknown, kto: string
     const w = await wpisZPliku(id, korzen)
     if (!w) return { ok: false, status: 404, blad: 'Nie ma takiego wpisu.' }
     // powtórka (zgubiona odpowiedź, drugie kliknięcie): obiekt już jest – ten sam wynik; plik usunięty ręcznie – można utworzyć od nowa
-    if (w.m.obiekt && fs.existsSync(kat(korzen, 'content', 'obiekty', `${w.m.obiekt}.mdoc`))) return { ok: true, slug: w.m.obiekt, nazwa: w.m.opis ?? w.m.obiekt, operacja: null, juz: true }
+    if (w.m.obiekt && fs.existsSync(/*turbopackIgnore: true*/ kat(korzen, 'content', 'obiekty', `${w.m.obiekt}.mdoc`))) return { ok: true, slug: w.m.obiekt, nazwa: w.m.opis ?? w.m.obiekt, operacja: null, juz: true }
     if (w.m.stan !== 'nowe') return { ok: false, status: 409, blad: 'Ten wpis jest już rozstrzygnięty – przywróć go do nowych, jeśli chcesz utworzyć obiekt.' }
     const miejsca = await miejscaArchiwum(poziom)
     const p = sprawdzPola(dane, w.m, { rodzaje: RODZAJE.map(([k]) => k), miejsca: miejsca.map((x) => x.id) })

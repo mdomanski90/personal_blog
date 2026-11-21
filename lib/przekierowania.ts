@@ -16,11 +16,11 @@ export const RODZAJE_PRZEKIEROWAN = {
 export type RodzajPrzekierowania = keyof typeof RODZAJE_PRZEKIEROWAN
 export interface Przekierowanie { rodzaj: string; stary: string; nowy: string; uwaga?: string }
 
-const PLIK = () => path.join(process.cwd(), 'content', '_panel', 'przekierowania.json')
+const PLIK = () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', '_panel', 'przekierowania.json')
 
 export async function wczytajPrzekierowania(): Promise<Przekierowanie[]> {
     try {
-        const j = JSON.parse(await fs.readFile(PLIK(), 'utf8')) as { wpisy?: unknown }
+        const j = JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ PLIK(), 'utf8')) as { wpisy?: unknown }
         return Array.isArray(j.wpisy) ? (j.wpisy as Przekierowanie[]).filter((w) => w && typeof w.stary === 'string' && typeof w.nowy === 'string') : []
     } catch { return [] }
 }

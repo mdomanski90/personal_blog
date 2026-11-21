@@ -29,7 +29,7 @@ import { logowanieWlaczone } from '../sesja'
 import { opisTechniczny } from './zmiany'
 import { ukryteDla, ukrytaSciezka, ukrytyAdresPanelu, ukrytyKlucz, widocznoscPliku, type UkrytePozycje } from '../konta/tylko-ja'
 
-const CONTENT = () => path.join(process.cwd(), 'content')
+const CONTENT = () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'content')
 const ID_ZGL = /^\d+-[0-9a-f]+$/
 
 async function zapiszAtomowo(plik: string, dane: string) {
@@ -111,8 +111,8 @@ export async function zgloszenieWidoczne(zrodlo: string, id: string, widzi: bool
 
 const plikZgloszenia = (zrodlo: string, id: string) => {
     if (!ID_ZGL.test(id)) return null
-    if (zrodlo === 'strona') return path.join(CONTENT(), 'zgloszenia', `${id}.json`)
-    if (zrodlo === 'plan') return path.join(CONTENT(), 'plany', '_zgloszenia', `${id}.json`)
+    if (zrodlo === 'strona') return path.join(/*turbopackIgnore: true*/ CONTENT(), 'zgloszenia', `${id}.json`)
+    if (zrodlo === 'plan') return path.join(/*turbopackIgnore: true*/ CONTENT(), 'plany', '_zgloszenia', `${id}.json`)
     return null
 }
 
@@ -120,7 +120,7 @@ export async function zmienZgloszenie(zrodlo: string, id: string, zm: { stan?: s
     const plik = plikZgloszenia(zrodlo, id)
     if (!plik) return false
     let z: Record<string, unknown>
-    try { z = JSON.parse(await fs.promises.readFile(plik, 'utf8')) } catch { return false }
+    try { z = JSON.parse(await fs.promises.readFile(/*turbopackIgnore: true*/ plik, 'utf8')) } catch { return false }
     if (zm.stan !== undefined) {
         if (!STANY_ZGLOSZEN.includes(zm.stan as StanZgloszenia)) return false
         z.stan = zm.stan
@@ -177,12 +177,12 @@ interface Zmiana { opis: string; href: string | null; czas: string }
 
 async function plikiTresci(kat: string, glebokosc = 3, wyn: { p: string; czas: number }[] = []) {
     let wpisy: fs.Dirent[] = []
-    try { wpisy = await fs.promises.readdir(kat, { withFileTypes: true }) } catch { return wyn }
+    try { wpisy = await fs.promises.readdir(/*turbopackIgnore: true*/ kat, { withFileTypes: true }) } catch { return wyn }
     for (const w of wpisy) {
         if (w.name.startsWith('.') || w.name === '_kosz' || w.name === '_operacje' || w.name === '_historia' || w.name.endsWith('.tmp')) continue
-        const p = path.join(kat, w.name)
+        const p = path.join(/*turbopackIgnore: true*/ kat, w.name)
         if (w.isDirectory()) { if (glebokosc > 0) await plikiTresci(p, glebokosc - 1, wyn) }
-        else { try { wyn.push({ p, czas: (await fs.promises.stat(p)).mtimeMs }) } catch { /* zniknął */ } }
+        else { try { wyn.push({ p, czas: (await fs.promises.stat(/*turbopackIgnore: true*/ p)).mtimeMs }) } catch { /* zniknął */ } }
     }
     return wyn
 }
@@ -197,12 +197,12 @@ export interface StanSerwera {
 
 export async function commit(): Promise<string | null> {
     try {
-        const git = path.join(process.cwd(), '.git')
-        const head = (await fs.promises.readFile(path.join(git, 'HEAD'), 'utf8')).trim()
+        const git = path.join(/*turbopackIgnore: true*/ process.cwd(), '.git')
+        const head = (await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ git, 'HEAD'), 'utf8')).trim()
         if (!head.startsWith('ref: ')) return head.slice(0, 7)
         const ref = head.slice(5)
-        try { return (await fs.promises.readFile(path.join(/*turbopackIgnore: true*/ git, ref), 'utf8')).trim().slice(0, 7) } catch { /* spakowane */ }
-        const packed = await fs.promises.readFile(path.join(git, 'packed-refs'), 'utf8')
+        try { return (await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ git, ref), 'utf8')).trim().slice(0, 7) } catch { /* spakowane */ }
+        const packed = await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ git, 'packed-refs'), 'utf8')
         const l = packed.split('\n').find((x) => x.endsWith(` ${ref}`))
         return l ? l.slice(0, 7) : null
     } catch { return null }
@@ -214,18 +214,18 @@ async function rozmiar(kat: string, limit = 50000) {
     while (stos.length) {
         const k = stos.pop()!
         let wpisy: fs.Dirent[] = []
-        try { wpisy = await fs.promises.readdir(k, { withFileTypes: true }) } catch { continue }
+        try { wpisy = await fs.promises.readdir(/*turbopackIgnore: true*/ k, { withFileTypes: true }) } catch { continue }
         for (const w of wpisy) {
-            const p = path.join(k, w.name)
+            const p = path.join(/*turbopackIgnore: true*/ k, w.name)
             if (w.isDirectory()) stos.push(p)
-            else if (w.isFile()) { try { bajty += (await fs.promises.stat(p)).size; pliki++ } catch { /* nic */ } }
+            else if (w.isFile()) { try { bajty += (await fs.promises.stat(/*turbopackIgnore: true*/ p)).size; pliki++ } catch { /* nic */ } }
             if (pliki >= limit) { ucieto = true; return { bajty, pliki, ucieto } }
         }
     }
     return { bajty, pliki, ucieto }
 }
 
-const istnieje = (p: string) => fs.promises.access(p).then(() => true, () => false)
+const istnieje = (p: string) => fs.promises.access(/*turbopackIgnore: true*/ p).then(() => true, () => false)
 
 /** Znacznik węzła domowego (gdy powstanie). Kopie z panelu: content/_panel/kopia.json (lib/panel/kopia.ts). */
 const PLIK_KOPII = () => process.env.PLIK_KOPII || '/var/lib/blog-kopia/ostatnia'
@@ -234,7 +234,7 @@ export async function stanSerwera(): Promise<StanSerwera> {
     let dysk: StanSerwera['dysk'] = null
     try { const s = await fs.promises.statfs(process.cwd()); dysk = { wolne: s.bavail * s.bsize, calosc: s.blocks * s.bsize } } catch { /* brak statfs */ }
     let zbudowano: string | null = null
-    try { zbudowano = (await fs.promises.stat(path.join(process.cwd(), '.next', 'BUILD_ID'))).mtime.toISOString() } catch { /* dev */ }
+    try { zbudowano = (await fs.promises.stat(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ process.cwd(), '.next', 'BUILD_ID'))).mtime.toISOString() } catch { /* dev */ }
     let kopia: string | null = null
     try { kopia = (await fs.promises.readFile(/*turbopackIgnore: true*/ PLIK_KOPII(), 'utf8')).trim().slice(0, 40) || null } catch { /* brak kopii */ }
     // kopia poza serwerem = węzeł domowy albo pobranie z panelu na komputer – liczy się nowsza
@@ -243,7 +243,7 @@ export async function stanSerwera(): Promise<StanSerwera> {
     return {
         dziala: Math.round(process.uptime()), node: process.version, commit: await commit(), zbudowano, dysk,
         pamiec: { wolna: os.freemem(), calosc: os.totalmem() },
-        archiwum: await rozmiar(path.join(process.cwd(), 'pliki-archiwum')),
+        archiwum: await rozmiar(path.join(/*turbopackIgnore: true*/ process.cwd(), 'pliki-archiwum')),
         restart: (await istnieje('/run/reboot-required')) || (await istnieje('/var/run/reboot-required')),
         kopia, kopiaSerwer: zn.serwer?.czas ?? null, logowanieBliskich: logowanieWlaczone(),
     }
@@ -291,7 +291,7 @@ export async function podsumowanie(widzi = true) {
         if (n) szkice.push({ k, nazwa: LISTY[k].nazwa, n })
     }
     const planySzkice = plany.filter((p) => p.widocznosc === 'ja').length
-    const oProjekcieSzkic = widzi && await istnieje(path.join(CONTENT(), 'o-projekcie.szkic.mdoc'))
+    const oProjekcieSzkic = widzi && await istnieje(path.join(/*turbopackIgnore: true*/ CONTENT(), 'o-projekcie.szkic.mdoc'))
     const osobyW = [...s.drzewo.osoby.keys()].filter(osobaWidoczna)
 
     const uwagi: { tekst: string; ostrz: boolean; href: string }[] = []
@@ -413,8 +413,8 @@ const PLIK_KOSZA = /^[\w.-]+-\d{12,}\.json$/
 export async function kosz(widzi = true): Promise<PozycjaKosza[]> {
     const wyn: PozycjaKosza[] = []
     const u = await ukryteDla(widzi)
-    const ukrytyJson = async (plik: string) => !widzi && widocznoscPliku(plik, await fs.promises.readFile(plik, 'utf8').catch(() => '')) === 'ja'
-    const czytaj = async (kat: string) => { try { return await fs.promises.readdir(kat, { withFileTypes: true }) } catch { return [] } }
+    const ukrytyJson = async (plik: string) => !widzi && widocznoscPliku(plik, await fs.promises.readFile(/*turbopackIgnore: true*/ plik, 'utf8').catch(() => '')) === 'ja'
+    const czytaj = async (kat: string) => { try { return await fs.promises.readdir(/*turbopackIgnore: true*/ kat, { withFileTypes: true }) } catch { return [] } }
     for (const w of await czytaj(KOSZE.plan())) {
         if (!w.isFile() || !PLIK_KOSZA.test(w.name)) continue
         if (await ukrytyJson(path.join(/*turbopackIgnore: true*/ KOSZE.plan(), w.name))) continue
@@ -459,9 +459,9 @@ export async function przywrocZKosza(rodzaj: string, plik: string): Promise<stri
     if (!PLIK_KOSZA.test(plik)) return 'zła nazwa pliku'
     const id = plik.replace(/-\d+\.json$/, '')
     let zr: string, cel: string
-    if (rodzaj === 'plan') { zr = path.join(/*turbopackIgnore: true*/ KOSZE.plan(), plik); cel = path.join(CONTENT(), 'plany', `${id}.json`) }
-    else if (rodzaj === 'osoba') { zr = path.join(/*turbopackIgnore: true*/ KOSZE.osoby(), plik); cel = path.join(CONTENT(), 'osoby', `${id}.json`) }
-    else if (rodzaj === 'rodzina') { zr = path.join(/*turbopackIgnore: true*/ KOSZE.osoby(), plik); cel = path.join(CONTENT(), 'osoby', '_rodziny', `${id.replace(/^rodzina-/, '')}.json`) }
+    if (rodzaj === 'plan') { zr = path.join(/*turbopackIgnore: true*/ KOSZE.plan(), plik); cel = path.join(/*turbopackIgnore: true*/ CONTENT(), 'plany', `${id}.json`) }
+    else if (rodzaj === 'osoba') { zr = path.join(/*turbopackIgnore: true*/ KOSZE.osoby(), plik); cel = path.join(/*turbopackIgnore: true*/ CONTENT(), 'osoby', `${id}.json`) }
+    else if (rodzaj === 'rodzina') { zr = path.join(/*turbopackIgnore: true*/ KOSZE.osoby(), plik); cel = path.join(/*turbopackIgnore: true*/ CONTENT(), 'osoby', '_rodziny', `${id.replace(/^rodzina-/, '')}.json`) }
     else return 'tego nie da się przywrócić z panelu'
     if (!(await istnieje(zr))) return 'nie ma już tego pliku'
     if (await istnieje(cel)) return 'pod tym adresem jest już inna pozycja – najpierw ją przenieś albo zmień nazwę'
@@ -476,21 +476,21 @@ export async function usunZKosza(rodzaj: string, plik: string): Promise<string |
     if (!PLIK_KOSZA.test(plik)) return 'zła nazwa pliku'
     const kat = rodzaj === 'plan' ? KOSZE.plan() : rodzaj === 'osoba' || rodzaj === 'rodzina' ? KOSZE.osoby() : null
     if (!kat) return 'tego nie da się usunąć z panelu'
-    await fs.promises.unlink(path.join(kat, plik)).catch(() => {})
+    await fs.promises.unlink(path.join(/*turbopackIgnore: true*/ kat, plik)).catch(() => {})
     return null
 }
 
 // ---------- eksport dla Omeka (pliki z ostatniego budowania) ----------
-const OMEKA = () => path.join(process.cwd(), 'eksport', 'omeka')
+const OMEKA = () => path.join(/*turbopackIgnore: true*/ process.cwd(), 'eksport', 'omeka')
 export async function plikiOmeka(): Promise<{ nazwa: string; bajty: number; czas: string }[]> {
     try {
-        const L = await fs.promises.readdir(OMEKA())
+        const L = await fs.promises.readdir(/*turbopackIgnore: true*/ OMEKA())
         const wyn = []
-        for (const n of L) if (/^[\w-]+\.csv$/.test(n)) { const st = await fs.promises.stat(path.join(OMEKA(), n)); wyn.push({ nazwa: n, bajty: st.size, czas: st.mtime.toISOString() }) }
+        for (const n of L) if (/^[\w-]+\.csv$/.test(n)) { const st = await fs.promises.stat(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ OMEKA(), n)); wyn.push({ nazwa: n, bajty: st.size, czas: st.mtime.toISOString() }) }
         return wyn.sort((a, b) => a.nazwa.localeCompare(b.nazwa))
     } catch { return [] }
 }
 export async function plikOmeka(nazwa: string): Promise<Buffer | null> {
     if (!/^[\w-]+\.csv$/.test(nazwa)) return null
-    try { return await fs.promises.readFile(path.join(OMEKA(), nazwa)) } catch { return null }
+    try { return await fs.promises.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ OMEKA(), nazwa)) } catch { return null }
 }

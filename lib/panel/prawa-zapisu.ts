@@ -9,7 +9,7 @@ import path from 'node:path'
 async function istniejacyKatalog(abs: string): Promise<string> {
     let k = path.dirname(abs)
     for (;;) {
-        try { if ((await fs.stat(k)).isDirectory()) return k } catch { /* nie ma – wyżej */ }
+        try { if ((await fs.stat(/*turbopackIgnore: true*/ k)).isDirectory()) return k } catch { /* nie ma – wyżej */ }
         const w = path.dirname(k)
         if (w === k) return k
         k = w
@@ -21,16 +21,16 @@ export interface BrakPrawa { plik: string; katalog: string }
 /** Pliki z zapisu Keystatic, których serwer nie zapisze (zmiana: plik albo katalog; nowy plik i usunięcie: katalog). */
 export async function brakPrawaZapisu(korzen: string, dodawane: string[], usuwane: string[]): Promise<BrakPrawa[]> {
     const wyn: BrakPrawa[] = []
-    const moze = (p: string) => fs.access(p, constants.W_OK).then(() => true, () => false)
+    const moze = (p: string) => fs.access(/*turbopackIgnore: true*/ p, constants.W_OK).then(() => true, () => false)
     for (const rel of dodawane) {
         const abs = path.join(/*turbopackIgnore: true*/ korzen, ...rel.split('/'))
-        const jest = await fs.stat(abs).then((s) => s.isFile(), () => false)
+        const jest = await fs.stat(/*turbopackIgnore: true*/ abs).then((s) => s.isFile(), () => false)
         const kat = jest ? path.dirname(abs) : await istniejacyKatalog(abs)
         if (jest ? !(await moze(abs)) : !(await moze(kat))) wyn.push({ plik: rel, katalog: path.relative(korzen, kat).split(path.sep).join('/') || '.' })
     }
     for (const rel of usuwane) {
         const abs = path.join(/*turbopackIgnore: true*/ korzen, ...rel.split('/'))
-        if (!(await fs.stat(abs).then(() => true, () => false))) continue
+        if (!(await fs.stat(/*turbopackIgnore: true*/ abs).then(() => true, () => false))) continue
         if (!(await moze(path.dirname(abs)))) wyn.push({ plik: rel, katalog: path.relative(korzen, path.dirname(abs)).split(path.sep).join('/') })
     }
     return wyn

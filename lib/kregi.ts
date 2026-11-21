@@ -32,7 +32,7 @@ export async function wczytajKregi(): Promise<{ wiersze: string[][]; kregi: Krag
     const fs = await import('node:fs/promises')
     const path = await import('node:path')
     try {
-        const j = JSON.parse(await fs.readFile(path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', '_panel', 'kregi-stopka.json'), 'utf8')) as Partial<UstawieniaKregow>
+        const j = JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', '_panel', 'kregi-stopka.json'), 'utf8')) as Partial<UstawieniaKregow>
         return zbudujKregi(j)
     } catch {
         return zbudujKregi(null)

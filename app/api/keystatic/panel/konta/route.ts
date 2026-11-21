@@ -45,7 +45,7 @@ async function dzialania(id: string): Promise<{ opis: string; czas: string }[]> 
     const wyn: { opis: string; czas: string }[] = []
     try {
         const p = path.join(/*turbopackIgnore: true*/ process.cwd(), 'content', '_panel', `praca-${id.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 80)}.json`)
-        const j = JSON.parse(await fs.readFile(p, 'utf8')) as { ostatnie?: { nazwa?: string; czas?: string; zmiany?: string[] }[] }
+        const j = JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ p, 'utf8')) as { ostatnie?: { nazwa?: string; czas?: string; zmiany?: string[] }[] }
         for (const x of j.ostatnie ?? []) if (x.nazwa && x.czas) wyn.push({ opis: `${x.nazwa}${x.zmiany?.length ? ` – ${x.zmiany.join(', ')}` : ''}`, czas: x.czas })
     } catch { /* jeszcze nic nie edytowano */ }
     for (const m of (await listaOperacji().catch(() => [])).filter((x) => x.kto === id).slice(0, 10))
