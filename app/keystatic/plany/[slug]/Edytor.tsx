@@ -1264,7 +1264,7 @@ function ZrodloElementu({ e, plan, zmiana, listy }: { e: Element; plan: Plan; zm
             <div className="ed-gt">źródło i powiązania</div>
             <Pole etykieta="nazwa w źródle (np. napis na szkicu)"><input className="ed-in" value={e.nazwaZrodlowa ?? ''} onChange={(x) => zmiana({ nazwaZrodlowa: x.target.value || undefined })} /></Pole>
             <Pole etykieta="identyfikacja (widać na stronie)"><select className="ed-in" value={e.identyfikacja ?? 'pewna'} onChange={(x) => zmiana({ identyfikacja: x.target.value === 'pewna' ? undefined : (x.target.value as Identyfikacja) })}>{(Object.keys(IDENTYFIKACJE) as Identyfikacja[]).map((k) => <option key={k} value={k}>{IDENTYFIKACJE[k]}</option>)}</select></Pole>
-            <PolePowiazan wartosc={e.powiazania ?? []} cele={listy.cele} zmien={(v) => zmiana({ powiazania: v.length ? v : undefined })} idListy={`cele-${e.id}`} etykieta="karty – obiekt, miejsce, osoba, temat" klasaPola="ed-in" klasaZnacznika="ed-btn" klasaOpisu="ed-maly" />
+            <PolePowiazan wartosc={e.powiazania ?? []} cele={listy.cele} zmien={(v) => zmiana({ powiazania: v.length ? v : undefined })} idListy={`cele-${e.id}`} etykieta="karty – obiekt, miejsce, osoba, leksykon" klasaPola="ed-in" klasaZnacznika="ed-btn" klasaOpisu="ed-maly" />
             <span className="ed-maly">podstawa – na czym oparto element</span>
             {podstawa.map((p, i) => (
                 <div key={`${p.material}-${p.objasnienie ?? i}`} className="ed-wiersz">

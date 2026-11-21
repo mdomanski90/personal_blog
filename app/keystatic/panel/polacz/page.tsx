@@ -9,7 +9,7 @@ import type { DanePolacz } from '@/lib/panel/polacz-serwer'
 import type { Wzmianka } from '@/lib/panel/polacz'
 
 const API = '/api/keystatic/panel/polacz'
-const RODZAJE: Record<string, string> = { miejsce: 'miejscowość', temat: 'temat', obiekt: 'obiekt', material: 'materiał', osoba: 'osoba', wpis: 'wpis' }
+const RODZAJE: Record<string, string> = { miejsce: 'miejscowość', temat: 'leksykon', obiekt: 'obiekt', material: 'materiał', osoba: 'osoba', wpis: 'wpis' }
 const norm = (s: string) => s.toLocaleLowerCase('pl-PL').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
 
 async function post<T>(url: string, body: unknown): Promise<{ ok: boolean; dane: T & { blad?: string } }> {
@@ -71,7 +71,7 @@ export default function Polacz() {
             <header className="pn-naglowek">
                 <div className="pn-kol pn-kol-wasko">
                     <h1>połącz wzmianki {d && <span className="pn-szary">· {d.wzmianki.length}</span>}</h1>
-                    <span className="pn-maly">Nazwy miejscowości, obiektów, tematów i osób, które padają w tekstach bez odnośnika. Zaznacz, które zamienić na odnośnik [[…]] – przed zapisem zobaczysz każdą zmianę, po zapisie możesz cofnąć.</span>
+                    <span className="pn-maly">Nazwy miejscowości, obiektów, pozycji leksykonu i osób, które padają w tekstach bez odnośnika. Zaznacz, które zamienić na odnośnik [[…]] – przed zapisem zobaczysz każdą zmianę, po zapisie możesz cofnąć.</span>
                 </div>
             </header>
             {blad && <p className="pn-kom pn-bez-marginesu">{blad}</p>}

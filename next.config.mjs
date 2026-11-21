@@ -15,6 +15,9 @@ const nextConfig = {
       // dział „opowieści” nazywa się teraz „wpisy”
       { source: '/opowiesci', destination: '/wpisy', permanent: true },
       { source: '/opowiesci/:slug', destination: '/wpisy/:slug', permanent: true },
+      // łatka 21.11: dział „tematy” nazywa się teraz „leksykon” (dane i identyfikatory bez zmian – content/tematy)
+      { source: '/tematy', destination: '/leksykon', permanent: true },
+      { source: '/tematy/:slug', destination: '/leksykon/:slug', permanent: true },
     ];
   },
 };

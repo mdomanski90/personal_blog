@@ -63,20 +63,20 @@ export default async function TematStrona({ params }: Parametry) {
         />
     )
     return (
-        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'tematy', href: '/tematy' }]} akcje={<><CopyLinkButton sciezka={`/tematy/${t.id}`} /><PrzyciskDrukuj /><PrzyciskDrukujCalosc rodzaj="temat" id={t.id} /></>} naglowek={naglowek} spis={<SpisTresci pozycje={spis} />}>
+        <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'leksykon', href: '/leksykon' }]} akcje={<><CopyLinkButton sciezka={`/leksykon/${t.id}`} /><PrzyciskDrukuj /><PrzyciskDrukujCalosc rodzaj="temat" id={t.id} /></>} naglowek={naglowek} spis={<SpisTresci pozycje={spis} />}>
             {(!!nrKat || t.czas || miejscaTematu.length > 0 || wspolne.length > 0) && (
                 <Tabela etykieta={`${t.nazwa} – w skrócie`}>
                     <Czesc tytul="w skrócie" />
                     <WierszNrKat nr={nrKat} />
                     <W e="okres">{t.czas ? formatujEdtf(t.czas) : null}</W>
                     <W e={miejscaTematu.length > 1 ? 'miejsca' : 'miejsce'}>{miejscaTematu.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaTematu.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
-                    <W e="powiązane tematy">{wspolne.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[wspolne.map((x) => ({ tekst: x.nazwa, href: `/tematy/${x.id}` }))]} />}</W>
+                    <W e="powiązane w leksykonie">{wspolne.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[wspolne.map((x) => ({ tekst: x.nazwa, href: `/leksykon/${x.id}` }))]} />}</W>
                     <WierszZglosil v={t.zglosil} />
                 </Tabela>
             )}
 
             <Sekcja tytul="opis" id={idCzesci('opis')}>
-                <Tresc html={opisHtml} pusta="opis tematu nie został jeszcze dodany." />
+                <Tresc html={opisHtml} pusta="opis nie został jeszcze dodany." />
             </Sekcja>
 
             {/* uwaga 16.11: „jak cytować” na każdej karcie, więc tabela jest zawsze */}
@@ -87,7 +87,7 @@ export default async function TematStrona({ params }: Parametry) {
                     <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
                     <WierszeWystapien w={wyst} />
                     <Powiazania dane={{ odnosniki: wpisyWTekstach, wzmianki: siec.wzmianki }} />
-                    <CzescJakCytowac plik={t.id} dane={daneCytatu({ tytul: t.nazwa, sciezka: `/tematy/${t.id}`, nrKat, rodzaj: 'temat' })} />
+                    <CzescJakCytowac plik={t.id} dane={daneCytatu({ tytul: t.nazwa, sciezka: `/leksykon/${t.id}`, nrKat, rodzaj: 'temat' })} />
                     <Zrodla pozycje={t.zrodla.map((z, i) => <ZAdresami key={i} tekst={z} />)} />
                 </Tabela>
             )}
@@ -98,7 +98,7 @@ export default async function TematStrona({ params }: Parametry) {
                 </Sekcja>
             )}
 
-            <ZglosPoprawke adres={`/tematy/${t.id}`} tytul={t.nazwa} pytanie="Coś się nie zgadza albo możesz coś dodać do tego tematu?" />
+            <ZglosPoprawke adres={`/leksykon/${t.id}`} tytul={t.nazwa} pytanie="Coś się nie zgadza albo możesz coś dodać do tej pozycji leksykonu?" />
         </Strona>
     )
 }

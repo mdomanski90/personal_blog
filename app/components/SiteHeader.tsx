@@ -46,7 +46,7 @@ const MENU: { href: string; tekst: string }[] = [
     { href: '/wpisy', tekst: 'wpisy' },
     { href: '/miejsca', tekst: 'miejsca' },
     { href: '/osoby', tekst: 'osoby' },
-    { href: '/tematy', tekst: 'tematy' },
+    { href: '/leksykon', tekst: 'leksykon' },
     { href: '/archiwum', tekst: 'archiwum' },
     { href: '/biblioteka', tekst: 'biblioteka' },
     // WSP-04 (decyzja 16.11): „współtwórz” przed „o projekcie”

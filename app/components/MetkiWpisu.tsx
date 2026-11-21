@@ -14,7 +14,7 @@ export function LiniaWpisu({ wpis, nazwy, ileMiejsc }: { wpis: Opowiesc; nazwy: 
     const pokazane = ileMiejsc ? miejsca.slice(0, ileMiejsc) : miejsca
     const odnosniki = [
         ...pokazane.map((id) => ({ href: `/miejsca/${id}`, tekst: nazwy.miejsca.get(id)! })),
-        ...tematy.map((id) => ({ href: `/tematy/${id}`, tekst: nazwy.tematy!.get(id)! })),
+        ...tematy.map((id) => ({ href: `/leksykon/${id}`, tekst: nazwy.tematy!.get(id)! })),
     ]
     return (
         <p className="metki-linia">

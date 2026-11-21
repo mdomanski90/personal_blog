@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: P): Promise<Metadata> {
     return { title: h ? `${h.haslo} · słownik · odniepamieci.pl` : 'nie znaleziono · odniepamieci.pl', robots: { index: !!h && h.widocznosc === 'publiczne' } }
 }
 
-const OPIS_CZESCI: Record<string, string> = { miejsce: 'miejscowość · opis', temat: 'temat · opis', obiekt: 'obiekt · opis', wpis: 'wpis', osoba: 'biogram' }
+const OPIS_CZESCI: Record<string, string> = { miejsce: 'miejscowość · opis', temat: 'leksykon · opis', obiekt: 'obiekt · opis', wpis: 'wpis', osoba: 'biogram' }
 
 /**
  * SLW-02 (P3; łatka wg planszy „strona hasła” 17.11): wzorzec karty – znaczenie jako wstęp; część „hasło”: znaczenie, przykład, rodzaj,

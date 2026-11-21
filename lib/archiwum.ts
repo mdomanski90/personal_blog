@@ -777,7 +777,7 @@ export async function wstepStronyGlownej(): Promise<string[]> {
 
 const pozycjeSieci = cache(async (poziom: Widocznosc): Promise<PozycjaSieci[]> => [
     ...(await miejsca(poziom)).map((m) => ({ cel: { rodzaj: 'miejsce' as const, id: m.id, nazwa: m.nazwa, adres: `/miejsca/${m.id}` }, nazwy: [m.nazwa, ...m.inneNazwy, ...m.formy] })),
-    ...(await tematy(poziom)).map((t) => ({ cel: { rodzaj: 'temat' as const, id: t.id, nazwa: t.nazwa, adres: `/tematy/${t.id}` }, nazwy: [t.nazwa, ...t.inneNazwy, ...t.formy] })),
+    ...(await tematy(poziom)).map((t) => ({ cel: { rodzaj: 'temat' as const, id: t.id, nazwa: t.nazwa, adres: `/leksykon/${t.id}` }, nazwy: [t.nazwa, ...t.inneNazwy, ...t.formy] })),
     ...(await obiekty(poziom)).map((o) => ({ cel: { rodzaj: 'obiekt' as const, id: o.id, nazwa: o.nazwa, adres: `/obiekty/${o.id}` }, nazwy: [o.nazwa, ...o.inneNazwy] })),
     ...(await opowiesci(poziom)).map((o) => ({ cel: { rodzaj: 'wpis' as const, id: o.id, nazwa: o.tytul, adres: `/wpisy/${o.id}` }, nazwy: [o.tytul] })),
     ...(await materialy(poziom)).map((m) => ({ cel: { rodzaj: 'material' as const, id: m.id, nazwa: m.nazwa, adres: `/archiwum/${m.id}` }, nazwy: [m.nazwa] })),
@@ -1003,7 +1003,7 @@ export async function dokumentySzukania(poziom: Widocznosc): Promise<DokumentSzu
     const tem = await tematy(poziom)
     for (const t of tem) {
         const tekst = bezNawiasow(naTekst(t.opis))
-        dok.push({ rodzaj: 'temat', etykieta: 'temat', id: t.id, tytul: t.nazwa, adres: `/tematy/${t.id}`, nazwy: [t.nazwa, ...t.inneNazwy, ...t.formy], tekst, tekstFragmentu: tekst, fragment: t.inneNazwy.join(', '), miejsca: t.miejsca, fragmentPrzez: '' })
+        dok.push({ rodzaj: 'temat', etykieta: 'leksykon', id: t.id, tytul: t.nazwa, adres: `/leksykon/${t.id}`, nazwy: [t.nazwa, ...t.inneNazwy, ...t.formy], tekst, tekstFragmentu: tekst, fragment: t.inneNazwy.join(', '), miejsca: t.miejsca, fragmentPrzez: '' })
     }
     const wp = await opowiesci(poziom)
     for (const o of wp) {
@@ -1096,7 +1096,7 @@ export async function tenDzien(poziom: Widocznosc, miesiac: number, dzien: numbe
         return m && m[2] === md ? Number(m[1]) : null
     }
     const wyn: PozycjaDnia[] = []
-    for (const t of await tematy(poziom)) { const r = trafia(t.czas); if (r) wyn.push({ rok: r, tytul: t.nazwa, href: `/tematy/${t.id}`, rodzaj: `temat · ${RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj}` }) }
+    for (const t of await tematy(poziom)) { const r = trafia(t.czas); if (r) wyn.push({ rok: r, tytul: t.nazwa, href: `/leksykon/${t.id}`, rodzaj: `leksykon · ${RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj}` }) }
     for (const m of await materialy(poziom)) { const r = trafia(m.czas); if (r) wyn.push({ rok: r, tytul: m.nazwa, href: `/archiwum/${m.id}`, rodzaj: `archiwum · ${RODZAJE_MATERIALOW[m.rodzaj] ?? m.rodzaj}` }) }
     for (const o of await opowiesci(poziom)) { const r = trafia(o.dzien); if (r) wyn.push({ rok: r, tytul: o.tytul, href: `/wpisy/${o.id}`, rodzaj: 'wpis' }) }
     return wyn.sort((a, b) => a.rok - b.rok)
@@ -1158,7 +1158,7 @@ export async function pozycjeLosowe(): Promise<PozycjaLosowa[]> {
     }
     for (const tm of await tematy(poziom)) {
         const t = opis(tm.opis)
-        if (t.length > 40) wyn.push({ klucz: `temat:${tm.id}`, rodzaj: `temat · ${RODZAJE_TEMATOW[tm.rodzaj] ?? tm.rodzaj}`, tytul: tm.nazwa, href: `/tematy/${tm.id}`, tekst: t })
+        if (t.length > 40) wyn.push({ klucz: `temat:${tm.id}`, rodzaj: `leksykon · ${RODZAJE_TEMATOW[tm.rodzaj] ?? tm.rodzaj}`, tytul: tm.nazwa, href: `/leksykon/${tm.id}`, tekst: t })
     }
     // materiały archiwum; cztery ostatnio dodane z dopiskiem „nowe”
     const mats = await materialy(poziom)

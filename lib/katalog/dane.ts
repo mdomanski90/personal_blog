@@ -84,7 +84,7 @@ export function numerKat(rodzaj: RodzajKat, id: string): string | null {
 
 const RODZAJ_PRZEKIEROWANIA: Partial<Record<RodzajKat, string>> = { material: 'archiwum', wpis: 'wpisy', miejsce: 'miejsca', obiekt: 'obiekty', temat: 'tematy', instytucja: 'parafie' }
 export const ADRES_RODZAJU: Record<RodzajKat, string> = {
-    material: '/archiwum', wpis: '/wpisy', osoba: '/osoby', miejsce: '/miejsca', obiekt: '/obiekty', temat: '/tematy',
+    material: '/archiwum', wpis: '/wpisy', osoba: '/osoby', miejsce: '/miejsca', obiekt: '/obiekty', temat: '/leksykon',
     plan: '/plany', instytucja: '/parafie', zbior: '/archiwum/zbiory', publikacja: '/biblioteka/publikacje',
 }
 export const adresPozycji = (rodzaj: RodzajKat, id: string) => `${ADRES_RODZAJU[rodzaj]}/${encodeURIComponent(id)}`

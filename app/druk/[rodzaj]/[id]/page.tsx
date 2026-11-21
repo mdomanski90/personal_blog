@@ -21,8 +21,8 @@ export const metadata: Metadata = { robots: { index: false } }
 
 type Rodzaj = 'miejsce' | 'temat' | 'zbior'
 const RODZAJE: Record<string, Rodzaj> = { miejsce: 'miejsce', temat: 'temat', zbior: 'zbior' }
-const ADRES_KARTY: Record<Rodzaj, string> = { miejsce: '/miejsca', temat: '/tematy', zbior: '/archiwum/zbiory' }
-const SCIEZKA: Record<Rodzaj, { tekst: string; href: string }> = { miejsce: { tekst: 'miejsca', href: '/miejsca' }, temat: { tekst: 'tematy', href: '/tematy' }, zbior: { tekst: 'zbiory', href: '/archiwum/zbiory' } }
+const ADRES_KARTY: Record<Rodzaj, string> = { miejsce: '/miejsca', temat: '/leksykon', zbior: '/archiwum/zbiory' }
+const SCIEZKA: Record<Rodzaj, { tekst: string; href: string }> = { miejsce: { tekst: 'miejsca', href: '/miejsca' }, temat: { tekst: 'leksykon', href: '/leksykon' }, zbior: { tekst: 'zbiory', href: '/archiwum/zbiory' } }
 
 type Pozycja =
     | { rodzaj: 'wpis'; x: Opowiesc }
@@ -54,7 +54,7 @@ export default async function DrukujCalosc({ params }: { params: Promise<{ rodza
     } else if (rodzaj === 'temat') {
         const t = await temat(pr.id, poziom)
         if (!t) notFound()
-        tytul = t.nazwa; opis = naHtml(t.opis, ktx); linia = ['temat', t.czas ? formatujEdtf(t.czas) : ''].filter(Boolean).join(' · ')
+        tytul = t.nazwa; opis = naHtml(t.opis, ktx); linia = ['leksykon', t.czas ? formatujEdtf(t.czas) : ''].filter(Boolean).join(' · ')
         pozycje = [
             ...[...(await opowiesciDlaTematu(t.id, poziom))].reverse().map((x) => ({ rodzaj: 'wpis' as const, x })),
             ...(await materialyDla('temat', t.id, poziom)).map((x) => ({ rodzaj: 'material' as const, x })),

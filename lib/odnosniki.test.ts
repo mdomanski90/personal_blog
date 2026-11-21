@@ -4,7 +4,7 @@ import { bezNawiasow, fragment, slownikOdnosnikow, tekstOdnosnika, wzorzecWzmian
 
 const olszanka: Cel = { rodzaj: 'miejsce', id: 'olszanka', nazwa: 'Olszanka', adres: '/miejsca/olszanka' }
 const luby: Cel = { rodzaj: 'miejsce', id: 'luby', nazwa: 'Łuby', adres: '/miejsca/luby' }
-const biez: Cel = { rodzaj: 'temat', id: 'biezenstwo', nazwa: 'Bieżeństwo', adres: '/tematy/biezenstwo' }
+const biez: Cel = { rodzaj: 'temat', id: 'biezenstwo', nazwa: 'Bieżeństwo', adres: '/leksykon/biezenstwo' }
 const rozwiaz = slownikOdnosnikow([
     { cel: olszanka, nazwy: ['w Olszance', 'Ольшанка', 'Olszanki', 'Olszance'] },
     { cel: luby, nazwy: ['Łubach'] },

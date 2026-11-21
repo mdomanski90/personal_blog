@@ -9,11 +9,11 @@ const POZ: PozycjaSieci[] = [
     { cel: { rodzaj: 'miejsce', id: 'wola-przykladowa', nazwa: 'Wola Przykładowa', adres: '/miejsca/wola-przykladowa' }, nazwy: ['Wola Przykładowa', 'Woli Przykładowej'] },
     { cel: { rodzaj: 'obiekt', id: 'mlyn', nazwa: 'Młyn Testowy', adres: '/obiekty/mlyn' }, nazwy: ['Młyn Testowy'] },
     { cel: { rodzaj: 'haslo', id: 'kluka', nazwa: 'kluka', adres: '/biblioteka/slownik/kluka' }, nazwy: ['kluka'] },
-    { cel: { rodzaj: 'temat', id: 'bieg', nazwa: 'bieżeństwo', adres: '/tematy/bieg' }, nazwy: ['bieżeństwo'] },
+    { cel: { rodzaj: 'temat', id: 'bieg', nazwa: 'bieżeństwo', adres: '/leksykon/bieg' }, nazwy: ['bieżeństwo'] },
 ]
 const rozwiaz = slownikOdnosnikow(POZ)
 const wz = wzorcePozycji(POZ)
-const ZRODLO = { rodzaj: 'temat' as const, id: 'bieg', nazwa: 'bieżeństwo', adres: '/tematy/bieg' }
+const ZRODLO = { rodzaj: 'temat' as const, id: 'bieg', nazwa: 'bieżeństwo', adres: '/leksykon/bieg' }
 const tekst = (zawartosc: string, extra: Partial<TekstDoPolaczenia> = {}): TekstDoPolaczenia => ({ plik: 'content/tematy/bieg.mdoc', zrodlo: ZRODLO, zawartosc, zwiazane: new Set(), ...extra })
 const PLIK = `---\ntitle: bieżeństwo\n---\nW Woli Przykładowej stał Młyn Testowy. Z Woli wyjechano w 1915. W Woli była kluka.\n\n# Wola w nagłówku\n\n[[Młyn Testowy]] i \`Wola\` w kodzie.\n`
 

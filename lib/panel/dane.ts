@@ -167,7 +167,7 @@ async function tresci(widzi = true) {
     const [w, m, t, o, mat, h, k, p] = await Promise.all([opowiesci(poz), miejsca(poz), tematy(poz), obiekty(poz), materialy(poz), hasla(poz), ksiegi(poz), parafie()])
     const z = (L: { id: string; nazwa?: string; tytul?: string; haslo?: string; widocznosc?: string }[]): Poz[] => L.map((x) => ({ id: x.id, nazwa: x.nazwa ?? x.tytul ?? x.haslo ?? x.id, widocznosc: x.widocznosc ?? 'publiczne' }))
     return {
-        posts: { nazwa: 'wpisy', L: z(w) }, miejsca: { nazwa: 'miejsca', L: z(m) }, tematy: { nazwa: 'tematy', L: z(t) }, obiekty: { nazwa: 'obiekty', L: z(o) },
+        posts: { nazwa: 'wpisy', L: z(w) }, miejsca: { nazwa: 'miejsca', L: z(m) }, tematy: { nazwa: 'leksykon', L: z(t) }, obiekty: { nazwa: 'obiekty', L: z(o) },
         materialy: { nazwa: 'materiały', L: z(mat) }, ksiegi: { nazwa: 'księgi', L: z(k) }, parafie: { nazwa: 'parafie', L: z(p) }, hasla: { nazwa: 'hasła słownika', L: z(h) },
     }
 }
@@ -257,7 +257,7 @@ export async function podsumowanie(widzi = true) {
 
     const nazwy = new Map<string, Zmiana['opis']>()
     const hrefy = new Map<string, string>()
-    const ETYK: Record<string, string> = { posts: 'wpis', miejsca: 'miejsce', tematy: 'temat', obiekty: 'obiekt', materialy: 'materiał', ksiegi: 'księga', parafie: 'parafia', hasla: 'hasło' }
+    const ETYK: Record<string, string> = { posts: 'wpis', miejsca: 'miejsce', tematy: 'leksykon', obiekty: 'obiekt', materialy: 'materiał', ksiegi: 'księga', parafie: 'parafia', hasla: 'hasło' }
     for (const [k, v] of Object.entries(tr)) for (const x of v.L) { nazwy.set(`${k}/${x.id}`, `${ETYK[k]} „${x.nazwa}”`); hrefy.set(`${k}/${x.id}`, k === 'posts' ? KS.wpis(x.id) : KS.kolekcja(k, x.id)) }
     const planyM = new Map(plany.map((p) => [p.slug, p.tytul]))
     const pliki = (await plikiTresci(CONTENT())).sort((a, b) => b.czas - a.czas)
@@ -364,7 +364,7 @@ export type GrupaIndeksu = 'osoby' | 'tresci' | 'plany' | 'zgloszenia'
 export interface PozycjaIndeksu { t: string; typ: string; href: string; d?: string; grupa?: GrupaIndeksu; strona?: string; nr?: string }
 
 const RODZAJ_KAT: Record<string, RodzajKat> = { posts: 'wpis', miejsca: 'miejsce', obiekty: 'obiekt', tematy: 'temat', materialy: 'material', parafie: 'instytucja', zbiory: 'zbior', publikacje: 'publikacja' }
-const ETYKIETY: Record<string, string> = { posts: 'wpis', miejsca: 'miejsce', tematy: 'temat', obiekty: 'obiekt', materialy: 'materiał', ksiegi: 'księga', parafie: 'instytucja', hasla: 'hasło', zbiory: 'zbiór', publikacje: 'publikacja', biogramy: 'biogram', zespoly: 'zespół' }
+const ETYKIETY: Record<string, string> = { posts: 'wpis', miejsca: 'miejsce', tematy: 'leksykon', obiekty: 'obiekt', materialy: 'materiał', ksiegi: 'księga', parafie: 'instytucja', hasla: 'hasło', zbiory: 'zbiór', publikacje: 'publikacja', biogramy: 'biogram', zespoly: 'zespół' }
 
 export async function indeksPanelu(widzi = true): Promise<PozycjaIndeksu[]> {
     const [tr, plany0, s, zg] = await Promise.all([tresci(widzi), listaPlanow(), stanOsob(), zgloszeniaPanelu(widzi)])

@@ -36,3 +36,13 @@ test('mapa powiązań w panelu jakości obejmuje każde pole relacji z keystatic
     }
     assert.deepEqual(brak, [], 'nowe pole powiązania – dopisz je do POWIAZANIA w lib/panel/jakosc.ts')
 })
+
+// Łatka 21.11: dział „tematy” → „leksykon” – stare adresy przekierowane na stałe (zasada 2.1), dane bez zmian
+test('stare adresy /tematy i /tematy/<slug> prowadzą na stałe do /leksykon', async () => {
+    const cfg = (await import('../next.config.mjs')).default as { redirects: () => Promise<{ source: string; destination: string; permanent: boolean }[]> }
+    const r = await cfg.redirects()
+    assert.ok(r.some((x) => x.source === '/tematy' && x.destination === '/leksykon' && x.permanent))
+    assert.ok(r.some((x) => x.source === '/tematy/:slug' && x.destination === '/leksykon/:slug' && x.permanent))
+    const { RODZAJE_PRZEKIEROWAN } = await import('./przekierowania')
+    assert.equal(RODZAJE_PRZEKIEROWAN.tematy.adres, '/leksykon')
+})

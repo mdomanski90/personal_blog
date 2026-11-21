@@ -10,7 +10,7 @@ export const RODZINY: { id: RodzinaWynikow; nazwa: string; formy: [string, strin
     { id: 'miejsca', nazwa: 'miejsca i obiekty', formy: ['miejsce lub obiekt', 'miejsca i obiekty', 'miejsc i obiektów'], rodzaje: ['miejsce', 'obiekt'] },
     { id: 'osoby', nazwa: 'osoby', formy: ['osoba', 'osoby', 'osób'], rodzaje: ['osoba'] },
     { id: 'biblioteka', nazwa: 'biblioteka', formy: ['wynik w bibliotece', 'wyniki w bibliotece', 'wyników w bibliotece'], rodzaje: ['księga', 'parafia', 'hasło', 'publikacja'] },
-    { id: 'wpisy', nazwa: 'wpisy i tematy', formy: ['wpis lub temat', 'wpisy i tematy', 'wpisów i tematów'], rodzaje: ['wpis', 'temat'] },
+    { id: 'wpisy', nazwa: 'wpisy i leksykon', formy: ['wpis lub pozycja leksykonu', 'wpisy lub pozycje leksykonu', 'wpisów lub pozycji leksykonu'], rodzaje: ['wpis', 'temat'] },
 ]
 
 /** Rodzina wyniku; każdy rodzaj należy do dokładnie jednej rodziny. */

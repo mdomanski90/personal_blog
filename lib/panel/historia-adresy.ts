@@ -72,7 +72,7 @@ export function kontrolaCzytnikiem(korzen: string, pliki: string[]): () => Promi
     }
 }
 
-const POJEDYNCZE: Record<string, string> = { posts: 'wpis', miejsca: 'miejsce', tematy: 'temat', obiekty: 'obiekt', materialy: 'materiał', zbiory: 'zbiór', publikacje: 'publikacja', parafie: 'instytucja', hasla: 'hasło', biogramy: 'biogram', zespoly: 'zespół', ksiegi: 'księga' }
+const POJEDYNCZE: Record<string, string> = { posts: 'wpis', miejsca: 'miejsce', tematy: 'pozycja leksykonu', obiekty: 'obiekt', materialy: 'materiał', zbiory: 'zbiór', publikacje: 'publikacja', parafie: 'instytucja', hasla: 'hasło', biogramy: 'biogram', zespoly: 'zespół', ksiegi: 'księga' }
 
 /** Jak opisPliku, ale z tytułem z treści pliku (pole title: tekst albo { name }) – „miejsce „Testowo”” zamiast identyfikatora. */
 export async function opisPlikuZTytulem(korzen: string, relC: string): Promise<{ nazwa: string; edycja: string | null; rodzaj?: string; widocznosc?: string }> {

@@ -21,7 +21,7 @@ export interface OpisUprawnienia {
 export const UPRAWNIENIA: OpisUprawnienia[] = [
     { klucz: 'bliscy', nazwa: 'treści „dla bliskich” na stronie', mozesz: 'czytać treści „dla bliskich”' },
     { klucz: 'panel', nazwa: 'panel – oglądanie', mozesz: 'oglądać panel' },
-    { klucz: 'wpisy', nazwa: 'wpisy i tematy', dzial: true, mozesz: 'wpisy i tematy' },
+    { klucz: 'wpisy', nazwa: 'wpisy i leksykon', dzial: true, mozesz: 'wpisy i leksykon' },
     { klucz: 'miejsca', nazwa: 'miejsca i obiekty', dzial: true, mozesz: 'miejsca i obiekty' },
     { klucz: 'archiwum', nazwa: 'archiwum', dzial: true, mozesz: 'archiwum' },
     { klucz: 'biblioteka', nazwa: 'biblioteka i księgi', dzial: true, mozesz: 'bibliotekę i księgi' },
@@ -190,7 +190,7 @@ export function odmowaZmianyKont(przed: PlikKont, po: PlikKont): string | null {
 // ---------- opis słowny ----------
 const wylicz = (L: string[]) => L.join(', ')
 
-/** „redaktor: wpisy i tematy, miejsca i obiekty, archiwum” – do komunikatu odmowy (plansza „odmowa zapisu”). */
+/** „redaktor: wpisy i leksykon, miejsca i obiekty, archiwum” – do komunikatu odmowy (plansza „odmowa zapisu”). */
 export function opisRoliZDzialami(k: Konto, role: Rola[], jakoAdministrator = false): string {
     const u = uprawnieniaKonta(k, role, jakoAdministrator)
     const nazwy = (jakoAdministrator && maRoleAdministratora(k) ? ['administrator'] : roleCodzienne(k).map((r) => nazwaRoli(role, r)))
@@ -198,7 +198,7 @@ export function opisRoliZDzialami(k: Konto, role: Rola[], jakoAdministrator = fa
     return `${nazwy.join(' + ') || 'bez roli na co dzień'}${dzialy.length ? `: ${wylicz(dzialy)}` : ''}`
 }
 
-/** „edytować wpisy i tematy, archiwum; publikować; obsługiwać zgłoszenia” – strona „moje konto”. */
+/** „edytować wpisy i leksykon, archiwum; publikować; obsługiwać zgłoszenia” – strona „moje konto”. */
 export function opisMozesz(u: Set<Uprawnienie>): string {
     const dzialy = UPRAWNIENIA.filter((x) => x.dzial && u.has(x.klucz)).map((x) => x.mozesz)
     // „zdjęcia i napisy na wybranych planach” – tylko gdy konto nie edytuje planów w całości

@@ -10,7 +10,7 @@ sprawdz() { # oczekiwany kod, ścieżka
     if [ "$kod" = "$1" ]; then printf '  ok   %s %s\n' "$kod" "$2"; else printf '  BŁĄD %s (oczekiwano %s) %s\n' "$kod" "$1" "$2"; bledy=$((bledy + 1)); fi
 }
 echo "Strony publiczne ($BAZA):"
-for s in / /miejsca /osoby /archiwum /biblioteka /biblioteka/ksiegi /obiekty /tematy; do sprawdz 200 "$s"; done
+for s in / /miejsca /osoby /archiwum /biblioteka /biblioteka/ksiegi /obiekty /leksykon; do sprawdz 200 "$s"; done
 # KON-07: panel chroni hasło nginx (401) albo – po jego wyłączeniu – konta (strony: 307 na /zaloguj, API: 401).
 sprawdz_strone() { # ścieżka strony panelu: 401 (hasło nginx) albo 307 z przekierowaniem na /zaloguj (konta)
     local w kod cel

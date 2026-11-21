@@ -9,7 +9,7 @@ export const RODZAJE_PRZEKIEROWAN = {
     miejsca: { etykieta: 'miejscowość', adres: '/miejsca' },
     parafie: { etykieta: 'parafia / urząd', adres: '/parafie' },
     obiekty: { etykieta: 'obiekt', adres: '/obiekty' },
-    tematy: { etykieta: 'temat', adres: '/tematy' },
+    tematy: { etykieta: 'pozycja leksykonu', adres: '/leksykon' },
     wpisy: { etykieta: 'wpis', adres: '/wpisy' },
     archiwum: { etykieta: 'materiał archiwalny', adres: '/archiwum' },
 } as const

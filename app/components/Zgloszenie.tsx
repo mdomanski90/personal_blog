@@ -29,7 +29,7 @@ function pytaniePoprawki(adres: string): string {
     if (adres.startsWith('/wpisy/')) return 'Co się nie zgadza w tym wpisie albo co możesz dodać?'
     if (adres.startsWith('/archiwum/')) return 'Co się nie zgadza w opisie, transkrypcji albo tłumaczeniu tego materiału?'
     if (adres.startsWith('/obiekty/') || adres.startsWith('/plany/')) return 'Co się nie zgadza albo co wiesz więcej o tym obiekcie?'
-    if (adres.startsWith('/tematy/')) return 'Co się nie zgadza albo co możesz dodać do tego tematu?'
+    if (adres.startsWith('/leksykon/')) return 'Co się nie zgadza albo co możesz dodać do tej pozycji leksykonu?'
     return 'Co się nie zgadza albo co wiesz więcej o tym miejscu?'
 }
 

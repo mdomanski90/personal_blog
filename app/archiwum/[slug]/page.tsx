@@ -164,7 +164,7 @@ export default async function MaterialStrona({ params }: Parametry) {
 
                 {jestDotyczy && <Czesc tytul="dotyczy" />}
                 <W e={miejscaM.length > 1 ? 'miejsca' : 'miejsce'}>{miejscaM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaM.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
-                <W e={tematyM.length > 1 ? 'tematy' : 'temat'}>{tematyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyM.map((id) => ({ tekst: n.tematy.get(id), href: `/tematy/${id}` }))]} />}</W>
+                <W e="leksykon">{tematyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyM.map((id) => ({ tekst: n.tematy.get(id), href: `/leksykon/${id}` }))]} />}</W>
                 <W e="przedstawia">{obiektyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[obiektyM.map((id) => ({ tekst: nazwyObiektow.get(id), href: `/obiekty/${id}` }))]} />}</W>
                 <W e="we wpisach">{wpisyZMat.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[wpisyZMat.map((z) => ({ tekst: z.zrodlo.nazwa, href: z.zrodlo.adres }))]} />}</W>
                 <W e="słowa ze słownika">{slowa.length > 0 && (

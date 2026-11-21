@@ -125,7 +125,7 @@ export default function FiltryKatalogu({ adresBazowy, tytul, etykietaFrazy = 'sz
             {miejscowosci && <PoleWyboru name="miejsce" etykieta="miejscowość" opcje={miejscowosci} wartosc={w.miejsce} naZmiane={(v) => zmien('miejsce', v)} />}
             {obiekty && <PoleWyboru name="obiekt" etykieta="obiekt" opcje={obiekty} wartosc={w.obiekt} naZmiane={(v) => zmien('obiekt', v)} />}
             {osoby && <PoleWyboru name="osoba" etykieta="osoba" opcje={osoby} wartosc={w.osoba} naZmiane={(v) => zmien('osoba', v)} />}
-            {tematy && <PoleWyboru name="temat" etykieta="temat" opcje={tematy} wartosc={w.temat} naZmiane={(v) => zmien('temat', v)} />}
+            {tematy && <PoleWyboru name="temat" etykieta="leksykon" opcje={tematy} wartosc={w.temat} naZmiane={(v) => zmien('temat', v)} />}
             {zbiory && <PoleWyboru name="zbior" etykieta="zbiór" opcje={zbiory} wartosc={w.zbior} naZmiane={(v) => zmien('zbior', v)} />}
             {lata && <span className="k-filtry-lata">
                 <label className="k-etykieta">od roku<input name="od" value={w.od} onChange={(e) => zmien('od', e.target.value.trim(), false)} inputMode="numeric" className="k-pole" placeholder="1750" /></label>

@@ -225,7 +225,7 @@ const konfiguracja = config({
           description: 'Opcjonalnie. Puste – pierwszy materiał wstawiony w tekst; bez materiału zapowiedź jest bez obrazu.',
         }),
         spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
-        subject: fields.multiRelationship({ label: 'Tematy', collection: 'tematy' }),
+        subject: fields.multiRelationship({ label: 'Leksykon', collection: 'tematy' }),
         // D-SG-14 (etap R): autorskie zaproszenie pod wybranym wpisem – puste = nic (bez identycznego formularza pod każdym wpisem)
         invitation: fields.text({
           label: 'Zaproszenie pod wpisem',
@@ -339,7 +339,7 @@ const konfiguracja = config({
       },
     }),
     tematy: collection({
-      label: 'Tematy',
+      label: 'Leksykon',
       slugField: 'title',
       path: 'content/tematy/*',
       format: { contentField: 'description' },
@@ -469,7 +469,7 @@ const konfiguracja = config({
         credit: fields.text({ label: 'Podpis źródła pod skanem', description: 'Krótka linia widoczna zawsze pod skanem lub mapą: archiwum, zespół, sygnatura, licencja – np. „AP Siedlce, 62/1106, sygn. 12 · domena publiczna”. Puste – złożona z miejsca przechowywania, sygnatury i praw.' }),
         language: fields.text({ label: 'Język', description: 'Np. polski, łacina, rosyjski.' }),
         spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
-        subject: fields.multiRelationship({ label: 'Tematy', collection: 'tematy' }),
+        subject: fields.multiRelationship({ label: 'Leksykon', collection: 'tematy' }),
         relation: fields.multiRelationship({ label: 'Przedstawia obiekty', description: 'Np. zdjęcie cerkwi, nagrobka.', collection: 'obiekty' }),
         collections: fields.multiRelationship({ label: 'Zbiory / kolekcje', collection: 'zbiory', description: 'Jeden materiał może należeć do wielu zbiorów; nie twórz kopii.' }),
         institutions: fields.multiRelationship({ label: 'Powiązane instytucje (parafie / urzędy)', collection: 'parafie' }),
@@ -522,7 +522,7 @@ const konfiguracja = config({
         identifier: fields.text({ label: 'ISBN / ISSN / sygnatura biblioteczna' }),
         url: fields.url({ label: 'Adres publikacji lub katalogu' }),
         spatial: fields.multiRelationship({ label: 'Miejsca', collection: 'miejsca' }),
-        subject: fields.multiRelationship({ label: 'Tematy', collection: 'tematy' }),
+        subject: fields.multiRelationship({ label: 'Leksykon', collection: 'tematy' }),
         reportedBy: zglosil(),
         visibility: widocznosc(), note: notatka(),
         description: fields.text({ label: 'Opis bibliograficzny', multiline: true }),
@@ -708,7 +708,7 @@ const konfiguracja = config({
               label: 'Rodzaj',
               options: [
                 { label: 'miejscowość', value: 'miejsca' }, { label: 'parafia / urząd', value: 'parafie' },
-                { label: 'obiekt', value: 'obiekty' }, { label: 'temat', value: 'tematy' },
+                { label: 'obiekt', value: 'obiekty' }, { label: 'leksykon', value: 'tematy' },
                 { label: 'wpis', value: 'wpisy' }, { label: 'materiał archiwalny', value: 'archiwum' },
               ],
               defaultValue: 'parafie',
@@ -749,7 +749,7 @@ const konfiguracja = config({
       format: { data: 'json' },
       // P2 (ADM-06): jedna definicja pól wstępu; kolejność i klucze zgodne z lib/strony/wstepy.ts (DZIALY)
       schema: Object.fromEntries(([
-        ['wpisy', 'Wpisy'], ['miejsca', 'Miejsca'], ['osoby', 'Osoby'], ['tematy', 'Tematy'], ['archiwum', 'Archiwum'],
+        ['wpisy', 'Wpisy'], ['miejsca', 'Miejsca'], ['osoby', 'Osoby'], ['tematy', 'Leksykon'], ['archiwum', 'Archiwum'],
         ['zbiory', 'Zbiory i kolekcje'], ['biblioteka', 'Biblioteka'], ['publikacje', 'Publikacje'], ['instytucje', 'Instytucje'], ['obiekty', 'Obiekty'],
         ['ksiegi', 'Księgi metrykalne'], ['slownik', 'Słownik'], ['plany', 'Plany i schematy'],
         ['wspoltworz', 'Współtwórz'], // P6b (P6-D-06); kroki „jak to działa” zostają w kodzie

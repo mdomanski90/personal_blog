@@ -36,8 +36,8 @@ test('uprawnienia konta: rola + dodane − odebrane; zablokowany i zaproszony ni
     assert.ok(!u.has('plany') && !u.has('osoby') && !u.has('usuwanie') && !u.has('administracja'))
     assert.equal(uprawnieniaKonta(konto({ stan: 'zablokowany' }), ROLE).size, 0)
     assert.equal(uprawnieniaKonta(konto({ stan: 'zaproszony' }), ROLE).size, 0)
-    assert.equal(opisMozesz(u), 'edytować wpisy i tematy, miejsca i obiekty, archiwum, słownik; dodawać zdjęcia grobów i napisy na wybranych planach; zapisywać nowe miejsca z telefonu; publikować; obsługiwać zgłoszenia')
-    assert.equal(opisRoliZDzialami(k, ROLE), 'redaktor: wpisy i tematy, miejsca i obiekty, archiwum, słownik')
+    assert.equal(opisMozesz(u), 'edytować wpisy i leksykon, miejsca i obiekty, archiwum, słownik; dodawać zdjęcia grobów i napisy na wybranych planach; zapisywać nowe miejsca z telefonu; publikować; obsługiwać zgłoszenia')
+    assert.equal(opisRoliZDzialami(k, ROLE), 'redaktor: wpisy i leksykon, miejsca i obiekty, archiwum, słownik')
 })
 
 test('dwie role: na co dzień redaktor, administrator tylko po przełączeniu; „administracji” nie da się dodać odstępstwem', () => {
@@ -146,7 +146,7 @@ test('zapis treści: dział, usuwanie, „tylko ja”, publikowanie, zakres – 
     const meta = (widocznosc: string | null, miejsca: string[] = []) => ({ widocznosc, miejsca })
     assert.equal(ocenZapis(kto, [{ sciezka: 'content/posts/a.mdoc', przed: meta('bliscy'), po: meta('bliscy') }]), null)
     assert.equal(ocenZapis(kto, [{ sciezka: 'content/plany/p.json', przed: meta(null), po: meta(null) }]),
-        'Zapis wstrzymany. Twoja rola (redaktor: wpisy i tematy, miejsca i obiekty, archiwum, biblioteka i księgi, osoby i drzewo, słownik) nie obejmuje działu „plany”. Nic nie zmieniono – poproś administratora o uprawnienie.')
+        'Zapis wstrzymany. Twoja rola (redaktor: wpisy i leksykon, miejsca i obiekty, archiwum, biblioteka i księgi, osoby i drzewo, słownik) nie obejmuje działu „plany”. Nic nie zmieniono – poproś administratora o uprawnienie.')
     assert.match(ocenZapis(kto, [{ sciezka: 'content/_panel/menu-panelu.json', przed: meta(null), po: meta(null) }])!, /zmienia tylko administrator/)
     assert.match(ocenZapis(kto, [{ sciezka: 'content/posts/a.mdoc', przed: meta('bliscy'), po: null }])!, /nie obejmuje usuwania/)
     assert.match(ocenZapis(kto, [{ sciezka: 'content/posts/a.mdoc', przed: meta('bliscy'), po: meta('publiczne') }])!, /nie obejmuje publikowania/)
@@ -191,7 +191,7 @@ test('kolumna „zakres” na liście kont', () => {
     assert.equal(opisZakresu(konto({ role: ['administrator'] }), ROLE), 'wszystko')
     assert.equal(opisZakresu(konto({ role: ['podglad'] }), ROLE), 'cały panel (bez zapisu)')
     assert.equal(opisZakresu(konto({ role: ['bliski'] }), ROLE), 'treści „dla bliskich”')
-    assert.equal(opisZakresu(konto({ odebrane: ['miejsca', 'biblioteka', 'osoby', 'plany', 'slownik'], zakres: { kregi: ['1'], miejsca: [] } }), ROLE, { '1': 'krąg 1' }), 'wpisy i tematy, archiwum · krąg 1')
+    assert.equal(opisZakresu(konto({ odebrane: ['miejsca', 'biblioteka', 'osoby', 'plany', 'slownik'], zakres: { kregi: ['1'], miejsca: [] } }), ROLE, { '1': 'krąg 1' }), 'wpisy i leksykon, archiwum · krąg 1')
     assert.equal(opisZakresu(konto({ stan: 'zaproszony' }), ROLE), 'wszystkie działy')
 })
 

@@ -3,7 +3,7 @@ import * as React from 'react'
 import type { UzycieMaterialu } from '@/lib/panel/uzyty-w'
 import { odmiana } from '../wspolne'
 
-const RODZAJ: Record<string, string> = { wpis: 'wpis', miejsce: 'miejsce', temat: 'temat', obiekt: 'obiekt', material: 'materiał', osoba: 'biogram', haslo: 'hasło' }
+const RODZAJ: Record<string, string> = { wpis: 'wpis', miejsce: 'miejsce', temat: 'leksykon', obiekt: 'obiekt', material: 'materiał', osoba: 'biogram', haslo: 'hasło' }
 
 function jak(u: UzycieMaterialu): string {
     return [u.wstawiony && 'wstawiony we wpis', u.odnosnikow > 0 && odmiana(u.odnosnikow, ['odnośnik', 'odnośniki', 'odnośników'])].filter(Boolean).join(' · ')

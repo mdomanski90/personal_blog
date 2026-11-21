@@ -66,11 +66,11 @@ export default async function Zbior({ params }: P) {
           <W e="materiały">{opisRodzajow(wiersze.rodzaje, odmiana) || null}</W>
           <W e="lata">{wiersze.lata && (wiersze.lata[0] === wiersze.lata[1] ? String(wiersze.lata[0]) : `${wiersze.lata[0]}–${wiersze.lata[1]}`)}</W>
           <W e={miejscaZ.length > 1 ? 'miejsca' : 'miejsce'}>{miejscaZ.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaZ.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
-          <W e={tematyZ.length > 1 ? 'tematy' : 'temat'}>{tematyZ.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyZ.map((id) => ({ tekst: n.tematy.get(id), href: `/tematy/${id}` }))]} />}</W>
+          <W e="leksykon">{tematyZ.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyZ.map((id) => ({ tekst: n.tematy.get(id), href: `/leksykon/${id}` }))]} />}</W>
           <W e="osoby">{wiersze.osoby.length > 0 && <span className="ot-osoby">{wiersze.osoby.map((id) => <PastylkaOsoby key={id} href={`/osoby/${id}`} plec={stan.drzewo.osoby.get(id)!.plec}>{nazwaOsoby(stan.drzewo.osoby.get(id)!)}</PastylkaOsoby>)}</span>}</W>
           {/* plansza zbioru: „udostępnianie” – drukuj całość · kolekcja IIIF (P5, PD-05: manifesty publicznych materiałów ze skanami) */}
           <W e="udostępnianie"><LiniaKarty className="karta-linia-w" elementy={[[{ tekst: 'drukuj całość', href: `/druk/zbior/${encodeURIComponent(z.id)}` }, ...(z.widocznosc === 'publiczne' && mats.some((m) => m.strony.length > 0) ? [{ tekst: 'kolekcja IIIF', href: `/archiwum/zbiory/${encodeURIComponent(z.id)}/iiif.json` }] : [])]]} /></W>
-          {mats.length > 0 && <W e=" "><span className="ot-drobne">miejsca, tematy, osoby i lata liczone z materiałów zbioru – bez osobnych pól</span></W>}
+          {mats.length > 0 && <W e=" "><span className="ot-drobne">miejsca, leksykon, osoby i lata liczone z materiałów zbioru – bez osobnych pól</span></W>}
           <WierszZglosil v={z.zglosil} />
         </Tabela>
       )}

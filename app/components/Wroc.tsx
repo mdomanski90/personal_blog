@@ -9,7 +9,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Link } from 'next-view-transitions'
 
 const KLUCZ = 'odp-sciezki'
-const DZIALY: Record<string, string> = { miejsca: '/miejsca', obiekty: '/miejsca', plany: '/miejsca', osoby: '/osoby', wpisy: '/wpisy', tematy: '/tematy', archiwum: '/archiwum', biblioteka: '/biblioteka', szukaj: '/' }
+const DZIALY: Record<string, string> = { miejsca: '/miejsca', obiekty: '/miejsca', plany: '/miejsca', osoby: '/osoby', wpisy: '/wpisy', leksykon: '/leksykon', archiwum: '/archiwum', biblioteka: '/biblioteka', szukaj: '/' }
 const styl: React.CSSProperties = {}
 const klasy = 'k-btn k-btn--s lowercase'
 

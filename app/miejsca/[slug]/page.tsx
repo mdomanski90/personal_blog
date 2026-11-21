@@ -177,7 +177,7 @@ export default async function MiejsceStrona({ params }: Parametry) {
                         <WCaly>
                             <SpisDzialow dzialy={pozycjeMiejsc(potomkowie, new Map(potomkowie.map((w) => [w.id, { wpisy: liczniki.get(w.id)?.opowiesci, obiekty: wszystkieObiekty.filter((o) => o.miejsca.includes(w.id)).length }])))} wybrany="" numeracja={false} etykieta="wsie gminy" />
                         </WCaly>
-                        <W e="tematy w gminie">{tematyGminy.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyGminy.map((t) => ({ tekst: t.nazwa, href: `/tematy/${t.id}` }))]} />}</W>
+                        <W e="leksykon – gmina">{tematyGminy.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyGminy.map((t) => ({ tekst: t.nazwa, href: `/leksykon/${t.id}` }))]} />}</W>
                     </>
                 )}
 
@@ -237,16 +237,16 @@ export default async function MiejsceStrona({ params }: Parametry) {
             </Tabela>}
 
             <Tabela etykieta={`${m.nazwa} – powiązane i źródła`}>
-                <Czesc tytul="powiązane">{[opow.length && 'wpisy', mat.length && 'materiały', tematy.length && 'tematy'].filter(Boolean).join(' · ')}</Czesc>
+                <Czesc tytul="powiązane">{[opow.length && 'wpisy', mat.length && 'materiały', tematy.length && 'leksykon'].filter(Boolean).join(' · ')}</Czesc>
                 <W e="wpisy">{opow.length > 0 && <KrotkieWpisy wpisy={opow} />}</W>
                 <W e="materiały">{mat.length > 0 && <KrotkieMaterialy materialy={mat} />}</W>
                 <WierszeWystapien w={await wystapieniaKarty('miejsce', m.id)} />
                 {/* SLW-02 (P3): hasła słownika z „występowaniem” w tej miejscowości */}
                 <W e="słowa z tej miejscowości">{slowaMiejsca.length > 0 && <span className="karta-pastylki">{slowaMiejsca.map((h) => <PastylkaFiltra key={h.id} href={adresHasla(h.id)} title={skrocZnaczenie(h.znaczenie, 160)}>{h.haslo}</PastylkaFiltra>)}</span>}</W>
-                <W e="tematy">{bezDaty.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[bezDaty.map((t) => ({ tekst: t.nazwa, href: `/tematy/${t.id}` }))]} />}</W>
+                <W e="leksykon">{bezDaty.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[bezDaty.map((t) => ({ tekst: t.nazwa, href: `/leksykon/${t.id}` }))]} />}</W>
                 <W e="oś czasu">{zData.length > 0 && (
                     <ol className="karta-os">
-                        {zData.map((t) => <li key={t.id}><b>{formatujEdtf(t.czas)}</b> <Link href={`/tematy/${t.id}`} className="odn">{t.nazwa}</Link></li>)}
+                        {zData.map((t) => <li key={t.id}><b>{formatujEdtf(t.czas)}</b> <Link href={`/leksykon/${t.id}`} className="odn">{t.nazwa}</Link></li>)}
                     </ol>
                 )}</W>
                 <WCaly>

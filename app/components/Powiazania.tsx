@@ -6,7 +6,7 @@ import { skrocFragment } from '@/lib/odnosniki'
 import { Czesc, WCaly } from './Karta'
 import { PozycjaWKarcie } from './KartaPozycji'
 
-const RODZAJ: Record<string, string> = { wpis: 'wpis', miejsce: 'miejsce', temat: 'temat', obiekt: 'obiekt', material: 'materiał', osoba: 'biogram' }
+const RODZAJ: Record<string, string> = { wpis: 'wpis', miejsce: 'miejsce', temat: 'leksykon', obiekt: 'obiekt', material: 'materiał', osoba: 'biogram' }
 
 export const TYTUL_ODNOSNIKOW = 'odnośniki w tekstach'
 export const TYTUL_WZMIANEK = 'wspomniane bez odnośnika'

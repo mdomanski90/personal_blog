@@ -61,7 +61,7 @@ export const REGULY_JAKOSCI: Record<RegulaJakosci, { nazwa: string; waga: WagaUw
     'niepoprawna-data': { nazwa: 'data nielogiczna', waga: 'blad', zakres: 'pola dat (EDTF)', uzasadnienie: 'Rok z przyszłości albo koniec przed początkiem – oś czasu i sortowanie pokażą bzdurę (zapis, którego strona nie odczyta, to „wpis nieczytelny”).' },
     'powtorzony-numer-grobu': { nazwa: 'powtórzony numer grobu', waga: 'blad', zakres: 'plany cmentarzy', uzasadnienie: 'Dwa groby z tym samym numerem – czytelnik nie wie, który to; nowe powtórzenia odrzuca już zapis planu.' },
     'powtorzona-nazwa-kwatery': { nazwa: 'powtórzona nazwa kwatery', waga: 'blad', zakres: 'plany cmentarzy', uzasadnienie: 'Numery grobów w dwóch kwaterach wyglądają tak samo.' },
-    'bez-opisu': { nazwa: 'brak opisu', waga: 'brak', zakres: 'miejsca, obiekty, wpisy, tematy, zbiory, biogramy, instytucje', uzasadnienie: 'Karta bez opisu mówi czytelnikowi niewiele.' },
+    'bez-opisu': { nazwa: 'brak opisu', waga: 'brak', zakres: 'miejsca, obiekty, wpisy, leksykon, zbiory, biogramy, instytucje', uzasadnienie: 'Karta bez opisu mówi czytelnikowi niewiele.' },
     'brak-wspolrzednych': { nazwa: 'brak współrzędnych', waga: 'brak', zakres: 'miejsca (wsie, miasta, folwarki), obiekty', uzasadnienie: 'Bez współrzędnych pozycja nie pojawi się na mapie.' },
     'brak-miejscowosci': { nazwa: 'obiekt bez miejscowości', waga: 'brak', zakres: 'obiekty', uzasadnienie: 'Obiekt nie pojawi się na karcie miejscowości.' },
     'brak-siedziby': { nazwa: 'brak siedziby instytucji', waga: 'brak', zakres: 'instytucje', uzasadnienie: 'Instytucja nie pojawi się przy miejscowości.' },

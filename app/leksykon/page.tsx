@@ -11,7 +11,7 @@ import Komunikat from '../components/Komunikat'
 import { odmiana } from '@/lib/tekst'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = { title: 'tematy · odniepamieci.pl' }
+export const metadata: Metadata = { title: 'leksykon · odniepamieci.pl' }
 
 export default async function Tematy({ searchParams }: { searchParams: Promise<{ widok?: string }> }) {
     const widok = (await searchParams).widok === 'os' ? 'os' : 'lista'
@@ -24,7 +24,7 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
         for (const t of os) {
             const w = (await opowiesciDlaTematu(t.id, poziom)).length, mat = (await materialyDla('temat', t.id, poziom)).length
             pozycje.push({
-                id: t.id, nazwa: t.nazwa, href: `/tematy/${t.id}`, rodzaj: t.rodzaj === 'zjawisko' ? 'zjawisko' : 'wydarzenie', klucz: kluczSortowania(t.czas), data: formatujEdtf(t.czas),
+                id: t.id, nazwa: t.nazwa, href: `/leksykon/${t.id}`, rodzaj: t.rodzaj === 'zjawisko' ? 'zjawisko' : 'wydarzenie', klucz: kluczSortowania(t.czas), data: formatujEdtf(t.czas),
                 opis: t.opis ? zajawka(t.opis, 120, rozwiaz) : undefined,
                 meta: [RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj, w ? odmiana(w, ['wpis', 'wpisy', 'wpisów']) : '', mat ? odmiana(mat, ['materiał', 'materiały', 'materiałów']) : ''].filter(Boolean).join(' · '),
             })
@@ -36,24 +36,24 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
     }
     return (
         <Strona uklad="pelna">
-            <TytulStrony><TytulDzialu dzial="tematy" domyslny="tematy" /></TytulStrony>
+            <TytulStrony><TytulDzialu dzial="tematy" domyslny="leksykon" /></TytulStrony>
             <WstepDzialu dzial="tematy" className="ot-drobne" />
             {/* P7D-3 (AUD-03): przełącznik widoku jak w katalogu ksiąg (k-seg) */}
-            <nav className="k-seg" aria-label="widok tematów">
-                <Link href="/tematy" aria-current={widok === 'lista' ? 'page' : undefined}>lista</Link>
-                <Link href="/tematy?widok=os" aria-current={widok === 'os' ? 'page' : undefined}>oś czasu</Link>
+            <nav className="k-seg" aria-label="widok leksykonu">
+                <Link href="/leksykon" aria-current={widok === 'lista' ? 'page' : undefined}>lista</Link>
+                <Link href="/leksykon?widok=os" aria-current={widok === 'os' ? 'page' : undefined}>oś czasu</Link>
             </nav>
-            {lista.length === 0 && <Komunikat rodzaj="pusto">Nie ma jeszcze opublikowanych tematów.</Komunikat>}
+            {lista.length === 0 && <Komunikat rodzaj="pusto">W leksykonie nie ma jeszcze opublikowanych pozycji.</Komunikat>}
 
             {widok === 'os' && <OsCzasu pozycje={pozycje} />}
 
             {widok === 'lista' && lista.length > 0 && (
-                <Sekcja tytul="wszystkie tematy">
+                <Sekcja tytul="wszystkie pozycje">
                     <ul className="lista-pozycji">
                         {lista.map((t) => (
                             <li key={t.id} className="lista-pozycja">
                                 <div className="flex flex-wrap items-baseline gap-x-3">
-                                    <Link href={`/tematy/${t.id}`} className="lista-tytul">{t.nazwa}</Link>
+                                    <Link href={`/leksykon/${t.id}`} className="lista-tytul">{t.nazwa}</Link>
                                     <span className="lista-linia">
                                         {[RODZAJE_TEMATOW[t.rodzaj] ?? t.rodzaj, t.czas ? formatujEdtf(t.czas) : ''].filter(Boolean).join(' · ')}
                                     </span>
@@ -73,7 +73,7 @@ export default async function Tematy({ searchParams }: { searchParams: Promise<{
                             {os.map((t) => (
                                 <li key={t.id} className="flex flex-wrap gap-x-4 py-1 pl-4" style={{ fontSize: 'calc(15px * var(--font-scale, 1))' }}>
                                     <span className="font-bold" style={{ minWidth: '7rem' }}>{formatujEdtf(t.czas)}</span>
-                                    <Link href={`/tematy/${t.id}`}>{t.nazwa}</Link>
+                                    <Link href={`/leksykon/${t.id}`}>{t.nazwa}</Link>
                                 </li>
                             ))}
                         </ol>

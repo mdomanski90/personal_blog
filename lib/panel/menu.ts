@@ -27,7 +27,7 @@ export const MENU: GrupaMenu[] = [
         { klucz: 'posts', nazwa: 'wpisy', href: kol('posts'), licznik: 'kolekcja:posts' },
         { klucz: 'miejsca', nazwa: 'miejsca', href: kol('miejsca'), licznik: 'kolekcja:miejsca' },
         { klucz: 'obiekty', nazwa: 'obiekty w terenie', href: kol('obiekty'), licznik: 'kolekcja:obiekty' },
-        { klucz: 'tematy', nazwa: 'tematy', href: kol('tematy'), licznik: 'kolekcja:tematy' },
+        { klucz: 'tematy', nazwa: 'leksykon', href: kol('tematy'), licznik: 'kolekcja:tematy' },
         { klucz: 'biogramy', nazwa: 'osoby – biogramy', href: kol('biogramy'), licznik: 'kolekcja:biogramy' },
         { klucz: 'polacz', nazwa: 'połącz wzmianki', href: '/keystatic/panel/polacz' }, // P6b (PD-10)
     ] },
@@ -111,7 +111,7 @@ export function menuWgUstawien(u: UstawieniaMenu | null | undefined): GrupaWgUst
 
 /** Strona publiczna pozycji Keystatic („na stronie ↗” w pasku i previewUrl). Kolekcje bez własnej strony – brak. */
 export const STRONA_PUBLICZNA: Record<string, string> = {
-    posts: '/wpisy/{slug}', miejsca: '/miejsca/{slug}', obiekty: '/obiekty/{slug}', tematy: '/tematy/{slug}',
+    posts: '/wpisy/{slug}', miejsca: '/miejsca/{slug}', obiekty: '/obiekty/{slug}', tematy: '/leksykon/{slug}',
     materialy: '/archiwum/{slug}', zbiory: '/archiwum/zbiory/{slug}', publikacje: '/biblioteka/publikacje/{slug}',
     parafie: '/parafie/{slug}', hasla: '/biblioteka/slownik/{slug}', biogramy: '/osoby/{slug}',
     stronaGlowna: '/', oProjekcie: '/o-projekcie',
