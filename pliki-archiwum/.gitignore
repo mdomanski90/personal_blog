@@ -1,3 +1,4 @@
-# pliki materiałów archiwum – tylko na serwerze, nigdy w repozytorium
-*
-!.gitignore
+# pliki materiałów archiwum – tylko na serwerze, nigdy w repozytorium.
+# Lekcja 21.11: NIE wykluczamy ich tutaj. Keystatic czyta pliki .gitignore – przy regule „*” nie widział plików,
+# pokazywał pole „Plik” jako puste i przy zapisie materiału kasował skan. Poza gitem trzyma je .git/info/exclude
+# (Keystatic go nie czyta; dopisuje scripts/wdroz.sh), test: lib/panel/straz-plikow.test.ts.

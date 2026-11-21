@@ -15,6 +15,8 @@ dziennik() { mkdir -p "$KOPIE" && printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%S
 stop() { echo "STOP: $*" >&2; [ "${ZAPISUJ:-0}" = 1 ] && dziennik "STOP: $*"; exit 1; }
 [ "$(git rev-parse --abbrev-ref HEAD)" = local ] || stop "gałąź inna niż local"
 [ ! -d .git/rebase-apply ] || stop "niedokończone git am – najpierw: git am --abort"
+# łatka 21.11: pliki archiwum poza gitem przez .git/info/exclude – nie przez .gitignore, który czyta Keystatic (lekcja 21.11)
+grep -qxF '/pliki-archiwum/*' .git/info/exclude 2>/dev/null || printf '%s\n' '/pliki-archiwum/*' '!/pliki-archiwum/.gitignore' >> .git/info/exclude
 git -C "$ZRODLO" fetch -q origin
 
 # brakujące commity: idziemy po main od najstarszego; commit jest „na serwerze”, gdy jego temat jest wśród ostatnich 300 tematów gałęzi local

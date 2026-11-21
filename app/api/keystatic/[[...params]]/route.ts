@@ -6,6 +6,7 @@ import { odczytajZadanie, przedZapisemKeystatic } from '@/lib/panel/historia';
 import { etykietyPol, opisPlikuZTytulem } from '@/lib/panel/historia-adresy';
 import { zapiszOstatnie } from '@/lib/panel/praca';
 import { brakPrawaZapisu, komunikatPrawa } from '@/lib/panel/prawa-zapisu';
+import { komunikatUsuwanychPlikow, usuwanePlikiBezZastepstwa } from '@/lib/panel/straz-plikow';
 import { kontaWlaczone, odmowaKonta, odpowiedzZamknietego, panelZamkniety, zalogowany } from '@/lib/konta/straz';
 import { odmowaZapisuTresci } from '@/lib/konta/zapis-tresci';
 import { widziTylkoJaZadanie } from '@/lib/konta/straz';
@@ -68,6 +69,9 @@ export async function POST(req: Request) {
         if (brakUprawnien) return tekst(brakUprawnien, 403);
     }
     if (zadanie) {
+        // łatka 21.11 (bezpiecznik plików): zapis, który skasowałby plik pozycji bez wgrania następcy – odrzucony w całości
+        const bezNastepcy = usuwanePlikiBezZastepstwa(zadanie);
+        if (bezNastepcy.length) return tekst(komunikatUsuwanychPlikow(bezNastepcy), 409);
         const brak = await brakPrawaZapisu(process.cwd(), zadanie.additions.map((a) => a.path), zadanie.deletions.map((d) => d.path));
         if (brak.length) return tekst(komunikatPrawa(brak), 503);
         const p = await przedZapisemKeystatic(zadanie, { opis: async (rel) => (await opisPlikuZTytulem(process.cwd(), rel.replace(/^content\//, ''))).nazwa, etykiety: etykietyPol });
