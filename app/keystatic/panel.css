@@ -663,3 +663,10 @@ button.pn-szukaj { background: var(--pn-pole); border-color: var(--pn-linia); }
 .pn-uzyty-lista > li { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: baseline; font-size: 13px; }
 /* łatka 21.11 – kilka języków objaśnienia: mniejsze przełączniki, zawijane w panelu bocznym */
 .pn-seg-zawijany button { height: 28px; padding: 0 9px; font-size: 12.5px; }
+
+/* łatka 21.11 (telefon, KOREKTA): edytor objaśnień – skan i panel boczny jeden pod drugim poniżej 900 px
+   (dawny stały układ 1fr | 300–380 px zostawiał skanowi kilkadziesiąt pikseli, przyciski wychodziły poza kolumnę) */
+.pn-obj-uklad { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .pn-obj-uklad { grid-template-columns: minmax(0, 1fr); } }
+/* na wąskim ekranie długi napis przycisku zawija się zamiast dotykać krawędzi (np. „pobierz do pracy bez internetu (9 kB)”) */
+@media (max-width: 480px) { .pn-btn { height: auto; min-height: 44px; padding-block: 6px; white-space: normal; text-align: center; line-height: 1.25; max-width: 100%; } }

@@ -306,7 +306,7 @@ export default function ObjasnieniaMaterialu() {
             {!dane.strony.length ? (
                 <div className="pn-info">Ten materiał nie ma jeszcze stron skanu. <a href={`/keystatic/panel/materialy/${dane.id}`}>Dodaj strony →</a> (objaśnienia rysuje się na stronach z panelu).</div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(300px, 380px)', gap: 16, alignItems: 'start' }}>
+                <div className="pn-obj-uklad">
                     <section className="pn-karta" style={{ padding: 12, gap: 10 }}>
                         <div className="pn-rzad" style={{ justifyContent: 'space-between' }}>
                             <span className="pn-rzad">

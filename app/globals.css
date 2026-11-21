@@ -2428,3 +2428,17 @@ div.medium-zoom-overlay{transition:opacity max(var(--ruch-wolny), 1ms) var(--ruc
 /* wąski ekran: w nagłówku sam znak ✎ (pełna nazwa w etykiecie odnośnika), imię w „moje konto” */
 @media (max-width:640px){.naglowek-konto,.naglowek-dlugi{display:none}}
 @media print{.naglowek-konto,.naglowek-edytuj{display:none}}
+/* łatka 21.11 (telefon, KOREKTA): zakładki tekstu przy skanie nie ściskają się poniżej szerokości napisu (min-width:30px w .dok-grupa
+   pozwalał je ścisnąć – napisy nachodziły na siebie przy JetBrains Mono); gdy się nie mieszczą, zawijają się, pasek rośnie,
+   „strona N” schodzi niżej. Gdy się mieszczą – wysokość jak dotąd (46 px × A±). */
+.szt-pasek{height:auto;min-height:calc(46px * var(--font-scale,1));flex-wrap:wrap;row-gap:4px;padding-block:1px}
+.szt-pasek .dok-grupa{flex:0 1 auto;max-width:100%;flex-wrap:wrap}
+.szt-pasek .dok-grupa>button{flex:1 0 auto;min-width:max-content}
+.szt-pasek .szt-strona{margin-left:auto}
+.szt-pasek .dok-grupa>button{box-shadow:0 -1px 0 var(--linia-podzialu)} /* kreska między zawiniętymi rzędami zakładek (w pierwszym rzędzie przycięta przez ramkę grupy) */
+/* łatka 21.11 (telefon, KOREKTA): przycisk „szukaj” w polu szukania nie ściska się (min-width:44px na ekranach dotykowych pozwalał) */
+.pole-szukania>button{flex:none}
+/* zwinięty spis działów (biblioteka, archiwum z otwartymi filtrami): gdy obok „wszystkie działy ▾” zostaje mniej niż ok. 12 znaków,
+   przycisk schodzi pod spód – wybrany dział nie jest ściskany do kilkudziesięciu pikseli */
+.spis-ramka.sd-zwiniety,body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka{flex-wrap:wrap}
+@media (max-width:640px){.spis-ramka.sd-zwiniety:not(.sd-pokaz) .spis-dzialow,body:has(.k-filtry-ramka:is([open],[data-otwarte])) .spis-ramka:not(.sd-pokaz) .spis-dzialow{flex:1 1 12em}}
