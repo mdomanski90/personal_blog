@@ -63,3 +63,13 @@ test('karta materiału: wiersz „data powstania” po nr kat., część pokazyw
     assert.match(kod, /<WierszNrKat nr=\{nrKat\} \/>\s*\n(?:\s*\{\/\*.*\*\/\}\s*\n)?\s*<W e="data powstania">\{m\.czas && formatujEdtf\(m\.czas\)\}<\/W>/)
     assert.match(kod, /const jestOpis = !!nrKat \|\| !!\(m\.czas \|\|/)
 })
+
+// Zgłoszenie 22.11: wiersz tabeli karty z pustą listą (np. „zbiory” po odfiltrowaniu ukrytego zbioru) – nie pokazuje samej etykiety
+test('W: pusta lista ukrywa wiersz (jak pusty tekst)', async () => {
+    const React = await import('react')
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const { W } = await import('../app/components/Karta')
+    assert.equal(W({ e: 'zbiory', children: [] }), null)
+    assert.equal(W({ e: 'zbiory', children: [null, false] }), null, 'lista samych pustych elementów')
+    assert.match(renderToStaticMarkup(W({ e: 'zbiory', children: [React.createElement('span', { key: 1 }, 'A')] })!), /zbiory[\s\S]*A/)
+})

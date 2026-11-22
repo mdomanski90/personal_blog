@@ -49,7 +49,7 @@ export default async function Zbior({ params }: P) {
   const obraz = zObrazem ? zObrazem.strony.find((x) => x.adres.startsWith('/pliki/strony/'))!.adres : null
   // ARC-14 (22.11): mapa „skąd są materiały” – punkty zbioru + miejscowości przypięte do widocznych materiałów; bez punktów zbioru – brak mapy
   const punkty = punktyMapyZbioru({
-    punkty: z.punkty, materialy: mats.map((m) => ({ id: m.id, nazwa: m.nazwa, miejsca: m.miejsca })),
+    punkty: z.punkty, materialy: mats.map((m) => ({ id: m.id, nazwa: m.nazwa, miejsca: m.miejsca, punkty: m.punkty ?? [] })),
     miejsca: new Map((await wszystkieMiejsca(poziom)).map((m) => [m.id, m])), kotwicaListy: `#${idCzesci('materiały w zbiorze')}`,
   })
   const iiif = z.widocznosc === 'publiczne' && mats.some((m) => m.strony.length > 0)

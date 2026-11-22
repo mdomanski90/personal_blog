@@ -71,6 +71,19 @@ const powiazaneOsoby = (): BasicFormField<string[]> => {
   };
 };
 
+// ARC-14 (22.11): pola punktu mapy – wspólne dla zbioru i materiału (miejscowości spoza okolicy, bez kart w „Miejscach”)
+const polaPunktuMapy = (zCzym: string) => ({
+  name: fields.text({ label: 'Nazwa', description: 'Np. „Sośnica”.', validation: { isRequired: true } }),
+  description: fields.text({ label: 'Opis', description: `Krótko: gdzie to jest i co łączy ${zCzym}, np. „obwód czernihowski, Ukraina; stąd pisała Maria Danilowna”.` }),
+  type: fields.select({ label: 'Rodzaj', options: [{ label: 'wieś', value: 'wies' }, { label: 'miasto', value: 'miasto' }, { label: 'inne', value: 'inne' }], defaultValue: 'wies' }),
+  coordinates: fields.text({
+    label: 'Współrzędne',
+    description: 'Szerokość, długość – np. 51.5236, 32.4955 (skopiuj z OpenStreetMap lub Google Maps).',
+    validation: { isRequired: true, pattern: { regex: WSPOLRZEDNE_REGEX, message: 'Zapis: 51.5236, 32.4955' } },
+  }),
+  approximate: fields.checkbox({ label: 'Położenie przybliżone' }),
+});
+
 const formyOdmiany = () =>
   fields.array(fields.text({ label: 'Forma' }), {
     label: 'Formy odmiany',
@@ -501,6 +514,12 @@ const konfiguracja = config({
         collections: fields.multiRelationship({ label: 'Zbiory / kolekcje', collection: 'zbiory', description: 'Jeden materiał może należeć do wielu zbiorów; nie twórz kopii.' }),
         institutions: fields.multiRelationship({ label: 'Powiązane instytucje (parafie / urzędy)', collection: 'parafie' }),
         peopleIds: powiazaneOsoby(),
+        // decyzja 22.11 (popołudnie): punkty na mapie materiału – wpisywane tutaj, bez kart w „Miejscach”
+        mapPoints: fields.array(fields.object(polaPunktuMapy('z materiałem')), {
+          label: 'Punkty na mapie',
+          description: 'Miejscowości spoza okolicy związane z materiałem (np. gdzie powstała fotografia, skąd wysłano list), których nie dodajesz do „Miejsc”. Materiał z co najmniej jednym punktem pokazuje małą mapę – razem z miejscowościami z pola „Miejsca”; punkty trafiają też na mapę zbioru.',
+          itemLabel: (p) => p.fields.name.value || 'punkt',
+        }),
         repository: fields.text({ label: 'Miejsce przechowywania', description: 'Archiwum, instytucja lub prywatny depozyt.' }),
         transcription: fields.text({ label: 'Transkrypcja do wyszukiwania', multiline: true, description: 'Opcjonalnie tekst odczytu. Nie wklejaj materiałów prywatnych do publicznego rekordu.' }),
         reportedBy: zglosil(),
@@ -532,20 +551,12 @@ const konfiguracja = config({
         // ARC-14 (22.11): miejscowości spoza okolicy tylko na mapie zbioru – bez kart w „Miejscach” (decyzja właściciela)
         mapPoints: fields.array(
           fields.object({
-            name: fields.text({ label: 'Nazwa', description: 'Np. „Sośnica”.', validation: { isRequired: true } }),
-            description: fields.text({ label: 'Opis', description: 'Krótko: gdzie to jest i co łączy ze zbiorem, np. „obwód czernihowski, Ukraina; stąd pisała Maria Danilowna”.' }),
-            type: fields.select({ label: 'Rodzaj', options: [{ label: 'wieś', value: 'wies' }, { label: 'miasto', value: 'miasto' }, { label: 'inne', value: 'inne' }], defaultValue: 'wies' }),
-            coordinates: fields.text({
-              label: 'Współrzędne',
-              description: 'Szerokość, długość – np. 51.5236, 32.4955 (skopiuj z OpenStreetMap lub Google Maps).',
-              validation: { isRequired: true, pattern: { regex: WSPOLRZEDNE_REGEX, message: 'Zapis: 51.5236, 32.4955' } },
-            }),
-            approximate: fields.checkbox({ label: 'Położenie przybliżone' }),
+            ...polaPunktuMapy('ze zbiorem'),
             materials: fields.multiRelationship({ label: 'Materiały', description: 'Których materiałów zbioru dotyczy punkt (kliknięcie punktu prowadzi do materiału). Puste – punkt bez odnośnika.', collection: 'materialy' }),
           }),
           {
             label: 'Punkty na mapie zbioru',
-            description: 'Miejscowości spoza okolicy, których nie dodajesz do „Miejsc” (np. skąd pisano listy). Zbiór z co najmniej jednym punktem pokazuje mapę „skąd są materiały” razem z miejscowościami przypiętymi do materiałów.',
+            description: 'Miejscowości spoza okolicy, których nie dodajesz do „Miejsc” (np. skąd pisano listy). Zbiór z co najmniej jednym punktem (tu albo w swoich materiałach) pokazuje mapę „skąd są materiały” razem z miejscowościami przypiętymi do materiałów.',
             itemLabel: (p) => p.fields.name.value || 'punkt',
           },
         ),

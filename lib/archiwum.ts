@@ -230,6 +230,8 @@ export { RODZAJE_MATERIALOW }
 
 export interface Material {
     id: string
+    /** decyzja 22.11: punkty na mapie materiału (miejscowości spoza „Miejsc”) */
+    punkty?: import('./zbior').PunktMaterialu[]
     nazwa: string
     rodzaj: string
     /** adres pliku: /pliki/<id>/file.<roz> (plik leży w pliki-archiwum/) */
@@ -515,6 +517,12 @@ const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
             zbiory: [...(entry.collections ?? [])].filter((x): x is string => !!x),
             instytucje: [...(entry.institutions ?? [])].filter((x): x is string => !!x),
             osobyIds: [...new Set([...(entry.peopleIds ?? [])].map((w) => osoba(String(w))).filter((x): x is string => !!x))],
+            // decyzja 22.11 (popołudnie): punkty na mapie materiału
+            punkty: [...(entry.mapPoints ?? [])].flatMap((p) => {
+                const w = parsujWspolrzedne(p.coordinates)
+                const nazwa = String(p.name ?? '').trim()
+                return w && nazwa ? [{ nazwa, opis: String(p.description ?? '').trim(), rodzaj: String(p.type ?? 'wies'), lat: w[0], lng: w[1], przyblizone: !!p.approximate }] : []
+            }),
             miejscePrzechowywania: entry.repository ?? '',
             podpisZrodla: entry.credit ?? '',
             kadr: entry.focus ?? 'srodek',

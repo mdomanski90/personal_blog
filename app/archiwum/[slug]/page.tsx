@@ -19,12 +19,14 @@ import TekstyZrodla from '../../components/TekstyZrodla'
 import { daneCytatu } from '@/lib/cytowanie'
 import { RAMKA, PelnaSzerokosc, Strona, Tresc, maTekst } from '../../components/Uklad'
 import { Czesc, CzescJakCytowac, WierszZglosil, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
-import { miejscaPowiazane } from '@/lib/zbior'
+import { miejscaPowiazane, punktyMapyMaterialu } from '@/lib/zbior'
 import SpisTresci from '../../components/SpisTresci'
 import { PastylkaFiltra, PastylkaOsoby } from '../../components/Wzorce'
 import { PrzyciskDrukuj } from '../../components/Druk'
 import { odnosnikiInstytucji, odnosnikiOsob } from '@/lib/powiazania-karty'
-import { parafie } from '@/lib/archiwum'
+import { parafie, miejsca as wszystkieMiejsca } from '@/lib/archiwum'
+import MapaKarty from '../../components/MapaKarty'
+import MapaMiejscLeniwa from '../../components/MapaMiejscLeniwa'
 import SkanZTekstem from '../../components/SkanZTekstem'
 import { rekonstrukcjaMaterialu } from '@/lib/plany/serwer'
 import { elementyLegendy } from '@/lib/plany/ph3'
@@ -65,7 +67,14 @@ export default async function MaterialStrona({ params }: Parametry) {
     const zbioryCzytelnika = await zbiory(poziom)
     const dostepneZbiory = new Map(zbioryCzytelnika.map((z) => [z.id, z.nazwa])) // PACZKA5_2026
     // ARC-14 (22.11): „miejsca powiązane” – punkty map widocznych zbiorów tego materiału (miejscowości spoza „Miejsc”)
-    const powiazaneM = miejscaPowiazane(m.id, zbioryCzytelnika.filter((z) => m.zbiory.includes(z.id)))
+    const zbioryM = zbioryCzytelnika.filter((z) => m.zbiory.includes(z.id))
+    const powiazaneM = miejscaPowiazane(m.id, zbioryM, m.punkty ?? [])
+    // decyzja 22.11 (popołudnie): mała mapa materiału – punkty wpisane w materiale + punkty widocznych zbiorów + miejscowości ze współrzędnymi
+    const punktyM = punktyMapyMaterialu({
+        id: m.id, punkty: m.punkty ?? [], miejsca: m.miejsca, zbiory: zbioryM,
+        wszystkieMiejsca: new Map((await wszystkieMiejsca(poziom)).map((x) => [x.id, x])),
+        kotwicaZbioru: (z) => `/archiwum/zbiory/${z}#${idCzesci('skąd są materiały')}`,
+    })
     // JW-16: osoby i instytucje z nazwami (nie identyfikatorami), tylko widoczne dla czytelnika
     const stanOsobP5 = await (await import('@/lib/osoby/dane')).stanOsob()
     const osobyM = odnosnikiOsob(m.osobyIds, stanOsobP5.drzewo.osoby, (id) => widoczne(stanOsobP5.widocznosc(id), poziom))
@@ -105,7 +114,7 @@ export default async function MaterialStrona({ params }: Parametry) {
     const jestOpis = !!nrKat || !!(m.czas || m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal || m.miejscePrzechowywania || m.transkrypcja || m.zbiory.length || osobyM.length || instytucjeM.length)
     // SLW-03 (P3, decyzja 17.11): hasła słownika wykryte w opisie i transkrypcji – liczone z sieci powiązań, bez nowych pól
     const slowa = await haslaWTekscie('material', m.id, poziom)
-    const jestDotyczy = miejscaM.length > 0 || powiazaneM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0 || slowa.length > 0
+    const jestDotyczy = miejscaM.length > 0 || powiazaneM.length > 0 || punktyM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0 || slowa.length > 0
     const jestWstep = maTekst(reszta)
     const spis = spisCzesci([jestOpis && 'opis archiwalny', jestDotyczy && 'dotyczy', rek && 'rekonstrukcja', ...czesciPowiazan({ odnosniki: inneOdnosniki, wzmianki: [] }), 'jak cytować', (oryginal || m.zrodla.length > 0) && 'źródła'], { wstep: jestWstep })
     const naglowek = (
@@ -172,7 +181,13 @@ export default async function MaterialStrona({ params }: Parametry) {
 
                 {jestDotyczy && <Czesc tytul="dotyczy" />}
                 <W e={miejscaM.length > 1 ? 'miejsca' : 'miejsce'}>{miejscaM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaM.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
-                <W e="miejsca powiązane">{powiazaneM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[powiazaneM.map((p) => ({ tekst: p.opis ? `${p.nazwa} (${p.opis})` : p.nazwa, href: `/archiwum/zbiory/${p.zbior}#${idCzesci('skąd są materiały')}` }))]} />}</W>
+                <W e="miejsca powiązane">{powiazaneM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[...powiazaneM.filter((p) => !p.zbior).map((p) => (p.opis ? `${p.nazwa} (${p.opis})` : p.nazwa)), powiazaneM.filter((p) => p.zbior).map((p) => ({ tekst: p.opis ? `${p.nazwa} (${p.opis})` : p.nazwa, href: `/archiwum/zbiory/${p.zbior}#${idCzesci('skąd są materiały')}` }))]} />}</W>
+                {punktyM.length > 0 && (
+                    <WCaly>
+                        <MapaKarty wysokosc={260} podpis="mapa – miejscowości z wierszy „miejsce” i „miejsca powiązane”"
+                            mapa={<MapaMiejscLeniwa wysokosc="100%" margines={{ top: 40, bottom: 40, left: 50, right: 120 }} punkty={punktyM.map((p) => ({ id: p.id, nazwa: p.nazwa, href: p.href, typ: 'miejsce' as const, rodzaj: p.rodzaj, przyblizone: p.przyblizone, lat: p.lat, lng: p.lng }))} />} />
+                    </WCaly>
+                )}
                 <W e="leksykon">{tematyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyM.map((id) => ({ tekst: n.tematy.get(id), href: `/leksykon/${id}` }))]} />}</W>
                 <W e="przedstawia">{obiektyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[obiektyM.map((id) => ({ tekst: nazwyObiektow.get(id), href: `/obiekty/${id}` }))]} />}</W>
                 <W e="we wpisach">{wpisyZMat.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[wpisyZMat.map((z) => ({ tekst: z.zrodlo.nazwa, href: z.zrodlo.adres }))]} />}</W>

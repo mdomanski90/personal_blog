@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { miejscaPowiazane, punktyMapyZbioru, wierszeZbioru } from './zbior'
+import { miejscaPowiazane, punktyMapyMaterialu, punktyMapyZbioru, wierszeZbioru } from './zbior'
 
 test('ARC-09 (P3): wiersze zbioru liczone z materiałów – rodzaje, lata, miejsca, tematy; osoby tylko widoczne dla czytelnika', () => {
     const w = wierszeZbioru([
@@ -70,4 +70,34 @@ test('karta zbioru: „drukuj całość” nie powtarza się w wierszu „udost�
     assert.ok(kod.includes('<PrzyciskDrukujCalosc'), 'przycisk „drukuj całość” w pasku akcji zostaje')
     assert.ok(!kod.includes("tekst: 'drukuj całość'"), 'bez drugiego odnośnika w tabeli')
     assert.match(kod, /iiif && <W e="udostępnianie">/, 'wiersz tylko, gdy jest kolekcja IIIF (bez pustego wiersza)')
+})
+
+// Decyzja 22.11 (popołudnie): punkty na mapie materiału – wpisywane w materiale (bez kart w „Miejscach”)
+test('mapa materiału: własne punkty + punkty widocznych zbiorów + miejscowości materiału; bez punktów spoza okolicy – bez mapy', () => {
+    const miejsca = new Map([['testowo', { nazwa: 'Testowo', rodzaj: 'wies', wspolrzedne: [52.1, 22.6] as [number, number], przyblizone: false }]])
+    const p = punktyMapyMaterialu({
+        id: 'foto-a', punkty: [{ nazwa: 'Dalekowo', opis: 'obwód X', rodzaj: 'miasto', lat: 51.5, lng: 32.5, przyblizone: true }],
+        miejsca: ['testowo'], wszystkieMiejsca: miejsca,
+        zbiory: [{ id: 'zb-1', punkty: [{ nazwa: 'dalekowo', opis: 'z innego', rodzaj: 'miasto', lat: 51.5, lng: 32.5, przyblizone: true, materialy: ['foto-a'] }, { nazwa: 'Wschodnie', opis: '', rodzaj: 'miasto', lat: 48.6, lng: 38, przyblizone: false, materialy: ['foto-a'] }, { nazwa: 'Obce', opis: '', rodzaj: 'wies', lat: 1, lng: 1, przyblizone: false, materialy: ['inny'] }] }],
+        kotwicaZbioru: (z) => `/archiwum/zbiory/${z}#mapa`,
+    })
+    assert.deepEqual(p.map((x) => [x.nazwa, x.href]), [['Dalekowo', ''], ['Wschodnie', '/archiwum/zbiory/zb-1#mapa'], ['Testowo', '/miejsca/testowo']])
+    assert.deepEqual(punktyMapyMaterialu({ id: 'foto-a', punkty: [], miejsca: ['testowo'], wszystkieMiejsca: miejsca, zbiory: [], kotwicaZbioru: () => '' }), [], 'same miejscowości z okolicy – bez mapy (inne karty bez zmian)')
+})
+
+test('mapa zbioru: dokłada punkty swoich (widocznych) materiałów; mapa także wtedy, gdy punkty mają tylko materiały', () => {
+    const p = punktyMapyZbioru({
+        punkty: [],
+        materialy: [{ id: 'm-1', nazwa: 'List 1', miejsca: [], punkty: [{ nazwa: 'Dalekowo', opis: 'obwód X', rodzaj: 'miasto', lat: 51.5, lng: 32.5, przyblizone: true }] }, { id: 'm-2', nazwa: 'List 2', miejsca: [], punkty: [{ nazwa: 'Dalekowo', opis: '', rodzaj: 'miasto', lat: 51.5, lng: 32.5, przyblizone: true }] }],
+        miejsca: new Map(), kotwicaListy: '#lista',
+    })
+    assert.equal(p.length, 1, 'ta sama nazwa z dwóch materiałów – jeden punkt')
+    assert.deepEqual(p[0].materialy.map((m) => m.id), ['m-1', 'm-2'])
+    assert.equal(p[0].href, '#lista')
+})
+
+test('miejsca powiązane materiału: najpierw własne punkty (bez odnośnika), potem punkty zbiorów', () => {
+    const z = [{ id: 'zb-1', punkty: [{ nazwa: 'Wschodnie', opis: 'obwód Y', rodzaj: 'miasto', lat: 1, lng: 1, przyblizone: false, materialy: ['m-1'] }] }]
+    assert.deepEqual(miejscaPowiazane('m-1', z, [{ nazwa: 'Dalekowo', opis: 'obwód X', rodzaj: 'miasto', lat: 2, lng: 2, przyblizone: false }]),
+        [{ nazwa: 'Dalekowo', opis: 'obwód X', zbior: '' }, { nazwa: 'Wschodnie', opis: 'obwód Y', zbior: 'zb-1' }])
 })

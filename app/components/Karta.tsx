@@ -97,6 +97,8 @@ export function Czesc({ tytul, id, children }: { tytul: string; id?: string; chi
 /** Wiersz: etykieta – wartość. Pusta wartość = brak wiersza. */
 export function W({ e, children }: { e: string; children: React.ReactNode }) {
     if (children === null || children === undefined || children === false || children === '') return null
+    // zgłoszenie 22.11: pusta lista (np. zbiory po odfiltrowaniu ukrytych) też ukrywa wiersz – bez samej etykiety
+    if (Array.isArray(children) && children.every((c) => c === null || c === undefined || c === false || c === '' || (Array.isArray(c) && c.length === 0))) return null
     return (
         <dl className="ot-w">
             <dt className="ot-e">{e}</dt>
