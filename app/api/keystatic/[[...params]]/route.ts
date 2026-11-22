@@ -5,6 +5,7 @@ import { blokadaZapisu } from '@/lib/panel/operacje';
 import { odczytajZadanie, przedZapisemKeystatic } from '@/lib/panel/historia';
 import { etykietyPol, opisPlikuZTytulem } from '@/lib/panel/historia-adresy';
 import { zapiszOstatnie } from '@/lib/panel/praca';
+import { planZmianyIdMaterialu, wykonajZmianeId, zmianaIdZZapisu } from '@/lib/panel/zmiana-id';
 import { brakPrawaZapisu, komunikatPrawa } from '@/lib/panel/prawa-zapisu';
 import { komunikatUsuwanychPlikow, usuwanePlikiBezZastepstwa } from '@/lib/panel/straz-plikow';
 import { kontaWlaczone, odmowaKonta, odpowiedzZamknietego, panelZamkniety, zalogowany } from '@/lib/konta/straz';
@@ -82,6 +83,12 @@ export async function POST(req: Request) {
     const r = await obsluga.POST(req);
     if (r.ok) {
         zapomnijUkryte();
+        // decyzja 22.11: zmiana identyfikatora materiału – strony skanów, skany, objaśnienia, odwołania, nr kat. i przekierowanie podążają
+        const zmiana = zadanie ? zmianaIdZZapisu(zadanie) : null
+        if (zmiana) {
+            const w = await wykonajZmianeId(process.cwd(), await planZmianyIdMaterialu(process.cwd(), zmiana.stary, zmiana.nowy)).catch((e: Error) => ({ ok: false, komunikat: e.message }))
+            console.error(`[zmiana-id] ${zmiana.stary} → ${zmiana.nowy}: ${w.komunikat}`)
+        }
         await poZapisieTresci();
         if (zadanie) await zapiszOstatnie(zadanie.additions.map((a) => a.path).filter((x) => !zadanie.deletions.some((d) => d.path === x)), process.cwd(), pola).catch(() => {});
         // P7c (KON-08): po zapisie Keystatic odsyła całą listę plików – bez pozycji „tylko ja” dla konta bez roli administratora
