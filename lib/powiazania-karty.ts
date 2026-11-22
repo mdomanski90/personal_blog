@@ -26,3 +26,11 @@ export function odnosnikiInstytucji(ids: readonly string[], instytucje: readonly
     }
     return wyn
 }
+
+/** Decyzja 22.11: zdjęcie osoby z archiwum (gdy brak portretu) – fotografia ze skanem przypięta do osoby, najstarsza (bez daty – na końcu). */
+export function zdjecieOsoby<M extends { id: string; nazwa: string; rodzaj: string; strony: { adres: string }[] }>(mats: M[], lata: (m: M) => [number, number] | null): { material: M; adres: string } | null {
+    const zdj = mats.filter((m) => m.rodzaj === 'zdjecie' && m.strony.some((s) => s.adres.startsWith('/pliki/strony/')))
+        .sort((a, b) => (lata(a)?.[0] ?? Infinity) - (lata(b)?.[0] ?? Infinity) || a.nazwa.localeCompare(b.nazwa, 'pl'))
+    const m = zdj[0]
+    return m ? { material: m, adres: m.strony.find((s) => s.adres.startsWith('/pliki/strony/'))!.adres } : null
+}

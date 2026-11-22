@@ -77,7 +77,7 @@ export const MIEJSCA: Miejsce[] = [
     { byt: 'materiał', gdzie: 'katalog archiwum', plik: 'app/archiwum/page.tsx', wzorzec: 'siatka', status: 'zgodne', adres: '/archiwum' },
     { byt: 'materiał', gdzie: 'karta zbioru', plik: 'app/archiwum/zbiory/[slug]/page.tsx', wzorzec: 'siatka', status: 'zgodne', adres: '/archiwum/zbiory/…' },
     { byt: 'materiał', gdzie: 'karta instytucji – materiały', plik: 'app/parafie/[slug]/page.tsx', wzorzec: 'karta-lista', status: 'zgodne', uwaga: 'P3 (KRT-03): jak na karcie osoby – KrotkieMaterialy, 5 pozycji + „wszystkie (N) w archiwum →” (filtr instytucji w archiwum).', adres: '/parafie/…' },
-    { byt: 'materiał', gdzie: 'karta osoby – materiały', plik: 'app/osoby/[id]/page.tsx', wzorzec: 'karta-lista', status: 'zgodne', uwaga: 'JW-2: część „materiały archiwalne” w tabeli karty (KrotkieMaterialy).', adres: '/osoby/…' },
+    { byt: 'materiał', gdzie: 'karta osoby – zdjęcia i materiały (decyzja 22.11)', plik: 'app/osoby/[id]/page.tsx', wzorzec: 'siatka', status: 'zgodne', uwaga: 'Siatka miniatur (ListaMaterialow) pod tabelą karty – jak „materiały w zbiorze”; dawniej lista tytułów w tabeli (JW-2). Bez portretu pasek boczny pokazuje najstarszą fotografię z archiwum.', adres: '/osoby/…' },
     { byt: 'materiał', gdzie: 'wpis – wstawka materiału ze skanem', plik: 'app/components/WstawkaMaterialu.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'JW-13: ten sam widok co karta materiału (SkanZTekstem) na pełnej szerokości + „pełny widok w archiwum →”.', adres: '/wpisy/…' },
     // zbiory, tematy, wpisy, hasła
     { byt: 'zbiór', gdzie: 'lista zbiorów', plik: 'app/archiwum/zbiory/page.tsx', wzorzec: 'lista-dzialu', status: 'zgodne', adres: '/archiwum/zbiory' },

@@ -31,3 +31,28 @@ test('karta materiału nie wypisuje identyfikatora jako tekstu odnośnika (regre
     assert.match(kod, /odnosnikiOsob\(/)
     assert.match(kod, /odnosnikiInstytucji\(/)
 })
+
+// Decyzja 22.11: karta osoby – bez portretu pasek boczny pokazuje fotografię z archiwum przypiętą do osoby
+test('zdjęcie osoby z archiwum: tylko fotografie ze skanem, najstarsza; bez – null', async () => {
+    const { zdjecieOsoby } = await import('./powiazania-karty')
+    const m = (id: string, rodzaj: string, rok: number | null, adres?: string) => ({ id, nazwa: id, rodzaj, czas: rok ? String(rok) : '', strony: adres ? [{ adres }] : [], lata: rok ? [rok, rok] as [number, number] : null })
+    const L = [
+        m('list-1910', 'dokument', 1910, '/pliki/strony/list-1910/s-1.jpg'),
+        m('foto-1957', 'zdjecie', 1957, '/pliki/strony/foto-1957/s-1.jpg'),
+        m('foto-1910', 'zdjecie', 1910, '/pliki/strony/foto-1910/s-1.jpg'),
+        m('foto-bez-skanu', 'zdjecie', 1900),
+        m('foto-bez-daty', 'zdjecie', null, '/pliki/strony/foto-bez-daty/s-1.jpg'),
+    ]
+    const z = zdjecieOsoby(L, (x) => x.lata)
+    assert.equal(z?.material.id, 'foto-1910')
+    assert.equal(z?.adres, '/pliki/strony/foto-1910/s-1.jpg')
+    assert.equal(zdjecieOsoby(L.filter((x) => x.rodzaj !== 'zdjecie'), (x) => x.lata), null, 'dokumenty nie zastępują zdjęcia')
+    assert.equal(zdjecieOsoby([L[4]], (x) => x.lata)?.material.id, 'foto-bez-daty', 'bez daty – też, gdy nie ma innego')
+})
+
+test('karta osoby: materiały jako siatka miniatur pod tabelą (bez listy tytułów w tabeli), zdjęcie z archiwum w pasku bocznym', () => {
+    const kod = fs.readFileSync(path.join(import.meta.dirname, '..', 'app', 'osoby', '[id]', 'page.tsx'), 'utf8')
+    assert.ok(!kod.includes('<KrotkieMaterialy'), 'lista tytułów w tabeli zastąpiona siatką')
+    assert.match(kod, /<Sekcja tytul="zdjęcia i materiały"[\s\S]*?<ListaMaterialow/)
+    assert.ok(kod.includes('zdjecieOsoby('), 'pasek boczny korzysta ze zdjęcia z archiwum')
+})

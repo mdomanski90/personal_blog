@@ -3,7 +3,7 @@ import { metaKarty } from '@/lib/og/meta'
 import type { Metadata } from 'next'
 import { Link } from 'next-view-transitions'
 import { notFound } from 'next/navigation'
-import { biogram, kontekstTresci, miejsca, parafie, poziomCzytelnika, powiazania, widoczne, materialy } from '@/lib/archiwum' // PACZKA5_2026
+import { biogram, kontekstTresci, lataMaterialu, miejsca, parafie, poziomCzytelnika, powiazania, widoczne, materialy } from '@/lib/archiwum' // PACZKA5_2026
 import { naHtml } from '@/lib/markdoc'
 import { bezNawiasow } from '@/lib/odnosniki'
 import { formatujEdtf } from '@/lib/edtf'
@@ -19,7 +19,7 @@ import CopyLinkButton from '../../components/CopyLinkButton'
 import Zgloszenie from '../../components/Zgloszenie'
 import { Sekcja, Strona, Tresc, TytulStrony } from '../../components/Uklad'
 import { wystapieniaKarty } from '@/lib/plany/wystapienia'
-import { Czesc, CzescJakCytowac, WierszZglosil, KrotkieMaterialy, NaglowekKarty, Tabela, W, WCaly, WierszeWystapien, idCzesci, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, WierszZglosil, NaglowekKarty, Tabela, W, WierszeWystapien, idCzesci, spisCzesci } from '../../components/Karta'
 import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../components/SpisTresci'
 import { PrzyciskDrukuj } from '../../components/Druk'
@@ -30,6 +30,8 @@ import { funkcjeOsoby } from '@/lib/parafie-powiazania'
 import { WYZNANIA_PARAFII } from '@/lib/ksiegi'
 import { numerKat } from '@/lib/katalog/dane'
 import { WierszNrKat } from '../../components/NrKat'
+import ListaMaterialow from '../../components/ListaMaterialow'
+import { zdjecieOsoby } from '@/lib/powiazania-karty'
 
 export const dynamic = 'force-dynamic'
 
@@ -146,13 +148,21 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
         o.przydomek && `${o.plec === 'K' ? 'zwana' : o.plec === 'M' ? 'zwany' : 'zwany(-a)'} „${o.przydomek}”`,
         o.inneNazwiska?.length && `${o.plec === 'K' ? 'z domu / także' : 'także'}: ${o.inneNazwiska.join(', ')}`,
     ].filter(Boolean).join(' · ')
-    const spis = spisCzesci([(bio?.tresc || bio?.lead) && 'biogram', 'życie', 'rodzina', html && 'drzewo', o.notatki && poziom !== 'publiczne' && 'notatki', materialyOsoby.length > 0 && 'materiały archiwalne', ...czesciPowiazan(siec), 'jak cytować', wierszeZrodel.length > 0 && 'źródła'], { wstep: !!bio?.lead, wstepTo: 'biogram' })
-    const prosbaOZdjecie = !o.portret && po1900
+    const spis = spisCzesci([(bio?.tresc || bio?.lead) && 'biogram', 'życie', 'rodzina', html && 'drzewo', o.notatki && poziom !== 'publiczne' && 'notatki', materialyOsoby.length > 0 && 'zdjęcia i materiały', ...czesciPowiazan(siec), 'jak cytować', wierszeZrodel.length > 0 && 'źródła'], { wstep: !!bio?.lead, wstepTo: 'biogram' })
+    // decyzja 22.11: bez portretu – fotografia z archiwum przypięta do osoby (najstarsza); prośba o zdjęcie tylko, gdy nie ma żadnej
+    const zdjArch = o.portret ? null : zdjecieOsoby(materialyOsoby, lataMaterialu)
+    const prosbaOZdjecie = !o.portret && !zdjArch && po1900
     const portret = o.portret ? (
         <figure className="osoba-portret">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/pliki/osoby/${id}/${o.portret.plik}?w=480`} alt={`${tytul}${o.portret.podpis ? ` – ${o.portret.podpis}` : ''}`} />
             {podpisPortretu && <figcaption>{podpisPortretu}</figcaption>}
+        </figure>
+    ) : zdjArch ? (
+        <figure className="osoba-portret">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`${zdjArch.adres}?w=480`} alt={`${zdjArch.material.nazwa} – fotografia z archiwum`} />
+            <figcaption><Link href={`/archiwum/${zdjArch.material.id}`} className="odn">{zdjArch.material.nazwa}</Link>{zdjArch.material.czas && `, ${formatujEdtf(zdjArch.material.czas)}`} · <a href={`#${idCzesci('zdjęcia i materiały')}`} className="odn">wszystkie ({materialyOsoby.length}) ↓</a></figcaption>
         </figure>
     ) : prosbaOZdjecie ? (
         // bez zdjęcia: puste pole z prośbą – może ktoś z rodziny ma fotografię
@@ -278,12 +288,14 @@ export default async function KartaOsoby({ params, searchParams }: { params: Pro
                     </>
                 )}
 
-                {materialyOsoby.length > 0 && (
-                    <>
-                        <Naglowek tytul="materiały archiwalne">{materialyOsoby.length}</Naglowek>
-                        <WCaly><KrotkieMaterialy materialy={materialyOsoby} /></WCaly>
-                    </>
-                )}
+            </Tabela>
+            {/* decyzja 22.11: zdjęcia i materiały osoby – siatka miniatur pod tabelą (wzorzec „materiały w zbiorze”; karty nie zagnieżdżamy w tabeli) */}
+            {materialyOsoby.length > 0 && (
+                <Sekcja tytul="zdjęcia i materiały" id={idCzesci('zdjęcia i materiały')}>
+                    <ListaMaterialow materialy={materialyOsoby} />
+                </Sekcja>
+            )}
+            <Tabela etykieta={`${tytul} – powiązania, jak cytować i źródła`}>
                 {/* PH2: na planach i skanach (powiązania elementów i objaśnień) */}
                 {(wyst.plany.length > 0 || wyst.skany.length > 0) && (
                     <>
