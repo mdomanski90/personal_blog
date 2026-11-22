@@ -62,3 +62,12 @@ test('ARC-14: miejsca powiązane materiału – z punktów widocznych zbiorów, 
     assert.deepEqual(miejscaPowiazane('m-1', z), [{ nazwa: 'Daleko', opis: 'obwód X', zbior: 'zb-1' }])
     assert.deepEqual(miejscaPowiazane('m-3', z), [])
 })
+
+// Zgłoszenie 22.11: „drukuj całość” na karcie zbioru tylko w pasku akcji – wiersz „udostępnianie” wyłącznie dla kolekcji IIIF
+test('karta zbioru: „drukuj całość” nie powtarza się w wierszu „udostępnianie”', async () => {
+    const fs = await import('node:fs')
+    const kod = fs.readFileSync(new URL('../app/archiwum/zbiory/[slug]/page.tsx', import.meta.url), 'utf8')
+    assert.ok(kod.includes('<PrzyciskDrukujCalosc'), 'przycisk „drukuj całość” w pasku akcji zostaje')
+    assert.ok(!kod.includes("tekst: 'drukuj całość'"), 'bez drugiego odnośnika w tabeli')
+    assert.match(kod, /iiif && <W e="udostępnianie">/, 'wiersz tylko, gdy jest kolekcja IIIF (bez pustego wiersza)')
+})

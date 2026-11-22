@@ -52,6 +52,7 @@ export default async function Zbior({ params }: P) {
     punkty: z.punkty, materialy: mats.map((m) => ({ id: m.id, nazwa: m.nazwa, miejsca: m.miejsca })),
     miejsca: new Map((await wszystkieMiejsca(poziom)).map((m) => [m.id, m])), kotwicaListy: `#${idCzesci('materiały w zbiorze')}`,
   })
+  const iiif = z.widocznosc === 'publiczne' && mats.some((m) => m.strony.length > 0)
   const jestPodstawowe = !!nrKat || !!z.pochodzenie || !!z.prawa || mats.length > 0
   return (
     <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'archiwum', href: '/archiwum' }, { tekst: 'zbiory', href: '/archiwum/zbiory' }]} akcje={<><CopyLinkButton sciezka={`/archiwum/zbiory/${z.id}`} /><PrzyciskDrukuj /><PrzyciskDrukujCalosc rodzaj="zbior" id={z.id} /></>}
@@ -75,8 +76,8 @@ export default async function Zbior({ params }: P) {
           <W e={miejscaZ.length > 1 ? 'miejsca' : 'miejsce'}>{miejscaZ.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaZ.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
           <W e="leksykon">{tematyZ.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyZ.map((id) => ({ tekst: n.tematy.get(id), href: `/leksykon/${id}` }))]} />}</W>
           <W e="osoby">{wiersze.osoby.length > 0 && <span className="ot-osoby">{wiersze.osoby.map((id) => <PastylkaOsoby key={id} href={`/osoby/${id}`} plec={stan.drzewo.osoby.get(id)!.plec}>{nazwaOsoby(stan.drzewo.osoby.get(id)!)}</PastylkaOsoby>)}</span>}</W>
-          {/* plansza zbioru: „udostępnianie” – drukuj całość · kolekcja IIIF (P5, PD-05: manifesty publicznych materiałów ze skanami) */}
-          <W e="udostępnianie"><LiniaKarty className="karta-linia-w" elementy={[[{ tekst: 'drukuj całość', href: `/druk/zbior/${encodeURIComponent(z.id)}` }, ...(z.widocznosc === 'publiczne' && mats.some((m) => m.strony.length > 0) ? [{ tekst: 'kolekcja IIIF', href: `/archiwum/zbiory/${encodeURIComponent(z.id)}/iiif.json` }] : [])]]} /></W>
+          {/* plansza zbioru: „udostępnianie” – kolekcja IIIF (P5, PD-05: manifesty publicznych materiałów ze skanami); „drukuj całość” tylko w pasku akcji (zgłoszenie 22.11) */}
+          {iiif && <W e="udostępnianie"><LiniaKarty className="karta-linia-w" elementy={[{ tekst: 'kolekcja IIIF', href: `/archiwum/zbiory/${encodeURIComponent(z.id)}/iiif.json` }]} /></W>}
           {mats.length > 0 && <W e=" "><span className="ot-drobne">{`miejsca, leksykon, osoby i lata liczone z materiałów zbioru – bez osobnych pól${punkty.length > 0 ? ' · mapa: punkty wpisane w zbiorze i miejscowości materiałów' : ''}`}</span></W>}
           <WierszZglosil v={z.zglosil} />
         </Tabela>
