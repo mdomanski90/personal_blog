@@ -52,7 +52,7 @@
     "qrcode-generator": "^2.0.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-markdown": "^9.0.1",
+    "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^16.1.0",
     "read-excel-file": "9.3.17",
     "remark-gfm": "^4.0.0",
