@@ -491,6 +491,9 @@ function stronyDoPokazania(id: string, plik: string | null): { adres: string; po
 
 const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
     const wpisy = await reader.collections.materialy.all({ resolveLinkedFiles: true })
+    // decyzja 22.11: „Powiązane osoby” – identyfikator z drzewa albo nr kat. „OS-…”
+    const { rozwiazywaczOsob } = await import('./osoby/powiazane-serwer')
+    const osoba = rozwiazywaczOsob()
     return wpisy
         .map(({ slug, entry }) => ({
             id: slug,
@@ -511,7 +514,7 @@ const wszystkieMaterialySurowe = cache(async (): Promise<Material[]> => {
             obiekty: [...entry.relation].filter(Boolean) as string[],
             zbiory: [...(entry.collections ?? [])].filter((x): x is string => !!x),
             instytucje: [...(entry.institutions ?? [])].filter((x): x is string => !!x),
-            osobyIds: [...(entry.peopleIds ?? [])].filter(Boolean),
+            osobyIds: [...new Set([...(entry.peopleIds ?? [])].map((w) => osoba(String(w))).filter((x): x is string => !!x))],
             miejscePrzechowywania: entry.repository ?? '',
             podpisZrodla: entry.credit ?? '',
             kadr: entry.focus ?? 'srodek',
@@ -848,7 +851,9 @@ export const kontekstTresci = cache(async (poziom: Widocznosc): Promise<Kontekst
     const { stanOsob } = await import('./osoby/dane')
     const { drzewoOsoby } = await import('./osoby/drzewo')
     const stan = await stanOsob()
-    return { rozwiaz: await rozwiazOdnosniki(poziom), material: (id) => mat.get(id) ?? null, drzewo: (id, op) => drzewoOsoby(stan, id, op, poziom) }
+    // decyzja 22.11: blok „Drzewo osoby” – identyfikator albo nr kat. „OS-…”
+    const osoba = (await import('./osoby/powiazane-serwer')).rozwiazywaczOsob()
+    return { rozwiaz: await rozwiazOdnosniki(poziom), material: (id) => mat.get(id) ?? null, drzewo: (id, op) => drzewoOsoby(stan, osoba(id) ?? id, op, poziom) }
 })
 
 const kluczCelu = (c: { rodzaj: string; id: string }) => `${c.rodzaj}:${c.id}`

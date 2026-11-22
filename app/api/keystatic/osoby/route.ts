@@ -9,7 +9,8 @@ import { idZNazwy, noweIdZdarzenia, poprawOsobe, ID_OSOBY, type Zdarzenie } from
 import { czyPoprawnaEdtf, rokPoczatku } from '@/lib/edtf'
 import { doSprawdzeniaZycia, miejscaDoDopasowania, ostrzezeniaWgOsob, skrot } from '@/lib/osoby/serwer'
 import { porownajPl } from '@/lib/tekst'
-import { zNadaniemNumerow } from '@/lib/katalog/dane'
+import { numerKat, zNadaniemNumerow } from '@/lib/katalog/dane'
+import type { OsobaDoWyboru } from '@/lib/panel/wybor-osob'
 import { brakSwiezejKopii } from '@/lib/panel/kopia'
 
 // Panel osób: lista, import z GEDCOM (podgląd i zapis, jednorazowy), nowa osoba.
@@ -24,6 +25,9 @@ export async function GET(req: Request) {
     const dostepna = osobaDostepna(req) // P7c (KON-08): także bez osób „tylko ja” dla konta bez roli administratora
     const osoby = [...s.drzewo.osoby.values()].filter((o) => dostepna(s, o.id)).map((o) => skrot(s, o, ostrz.get(o.id)?.length ?? 0))
         .sort((a, b) => porownajPl(a.nazwisko, b.nazwisko) || porownajPl(a.imiona, b.imiona))
+    // decyzja 22.11: ?wybor=1 – lekka lista do okna wyboru osób w Keystatic (te same filtry uprawnień; z nr kat.)
+    if (new URL(req.url).searchParams.get('wybor') === '1')
+        return Response.json(osoby.map((o): OsobaDoWyboru => ({ id: o.id, nazwa: o.nazwa, lata: o.lata, miejsce: o.miejsce, plec: o.plec, widocznosc: o.widocznosc, nr: numerKat('osoba', o.id) })), { headers: { 'Cache-Control': 'no-store' } })
     return Response.json({
         osoby,
         import: await sladImportu(),

@@ -8,6 +8,8 @@ import { ADRES_PLIKOW, KATALOG_PLIKOW } from './lib/pliki';
 import { MENU, pozycjeDoUstawien, STRONA_PUBLICZNA } from './lib/panel/menu';
 import { WYZNANIA_PARAFII, RODZAJE_KSIAG, DOSTEP_KSIAG } from './lib/ksiegi';
 import { WyborMaterialu } from './app/keystatic/WyborMaterialu';
+import { WyborOsob, WyborOsoby } from './app/keystatic/WyborOsob';
+import type { BasicFormField } from '@keystatic/core';
 
 // Model danych: claude/odniepamieci-model-danych.md (projekt „own www”).
 // Nazwy pól w plikach jak w Dublin Core – ułatwia późniejszy eksport do Omeka S.
@@ -53,6 +55,21 @@ const dataEdtf = (etykieta: string) =>
     description: EDTF_OPIS,
     validation: { pattern: { regex: EDTF_REGEX, message: 'Niepoprawny zapis daty. ' + EDTF_OPIS } },
   });
+
+// decyzja 22.11: „Powiązane osoby” – zapis jak dotąd (lista identyfikatorów w YAML), widok: okno wyboru osób z szukaniem
+// (app/keystatic/WyborOsob.tsx). Ręcznie wpisany nr kat. „OS-…” też działa (lib/osoby/powiazane.ts).
+const powiazaneOsoby = (): BasicFormField<string[]> => {
+  const parse = (v: unknown): string[] => {
+    if (v === undefined || v === null) return [];
+    if (!Array.isArray(v) || !v.every((x) => typeof x === 'string')) throw new Error('Powiązane osoby: oczekiwana lista identyfikatorów');
+    return v.filter((x) => x.trim() !== '');
+  };
+  return {
+    kind: 'form', label: 'Powiązane osoby', Input: WyborOsob, defaultValue: () => [],
+    parse, validate: (v) => v, serialize: (v) => ({ value: v.length ? v : undefined }),
+    reader: { parse: (v) => parse(v) },
+  };
+};
 
 const formyOdmiany = () =>
   fields.array(fields.text({ label: 'Forma' }), {
@@ -141,7 +158,8 @@ const komponenty = {
     label: 'Drzewo osoby',
     description: 'Drzewo z działu „osoby”: przodkowie nad osobą, potomkowie pod nią (na telefonie jako lista). Osoby żyjące widzą tylko zalogowani.',
     schema: {
-      osoba: fields.text({ label: 'Osoba', description: 'Identyfikator z panelu osób (/keystatic/osoby), np. jan-kowalski-1862 – widać go na dole karty osoby.', validation: { length: { min: 1 } } }),
+      // decyzja 22.11: wybór osoby z szukaniem (zapis bez zmian – identyfikator; nr kat. „OS-…” też działa)
+      osoba: { ...fields.text({ label: 'Osoba', description: 'Identyfikator z panelu osób (/keystatic/osoby), np. jan-kowalski-1862 – widać go na dole karty osoby.', validation: { length: { min: 1 } } }), Input: WyborOsoby },
       wstecz: fields.integer({ label: 'Pokolenia wstecz', defaultValue: 2, validation: { min: 0, max: 4 } }),
       naprzod: fields.integer({ label: 'Pokolenia naprzód', defaultValue: 1, validation: { min: 0, max: 3 } }),
       zakres: fields.select({ label: 'Zakres', options: [{ label: 'linia prosta', value: 'linia' }, { label: 'z małżonkami', value: 'malzonkowie' }, { label: 'z rodzeństwem', value: 'rodzenstwo' }], defaultValue: 'malzonkowie' }),
@@ -482,7 +500,7 @@ const konfiguracja = config({
         relation: fields.multiRelationship({ label: 'Przedstawia obiekty', description: 'Np. zdjęcie cerkwi, nagrobka.', collection: 'obiekty' }),
         collections: fields.multiRelationship({ label: 'Zbiory / kolekcje', collection: 'zbiory', description: 'Jeden materiał może należeć do wielu zbiorów; nie twórz kopii.' }),
         institutions: fields.multiRelationship({ label: 'Powiązane instytucje (parafie / urzędy)', collection: 'parafie' }),
-        peopleIds: fields.array(fields.text({ label: 'Identyfikator osoby' }), { label: 'Powiązane osoby', description: 'Identyfikatory osób z drzewa; bez kopiowania ich kart.', itemLabel: (p) => p.value }),
+        peopleIds: powiazaneOsoby(),
         repository: fields.text({ label: 'Miejsce przechowywania', description: 'Archiwum, instytucja lub prywatny depozyt.' }),
         transcription: fields.text({ label: 'Transkrypcja do wyszukiwania', multiline: true, description: 'Opcjonalnie tekst odczytu. Nie wklejaj materiałów prywatnych do publicznego rekordu.' }),
         reportedBy: zglosil(),

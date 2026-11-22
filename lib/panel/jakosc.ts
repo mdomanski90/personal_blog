@@ -234,6 +234,15 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
         for (const r of l) { const t = normalizuj(nazwa(r.d.title) || nazwa(r.d.name)); if (t) m.set(t, [...(m.get(t) ?? []), r.slug]) }
         tytulyKolekcji.set(k, m)
     }
+    // decyzja 22.11: pola osoby (materiał – „Powiązane osoby”, blok „Drzewo osoby”) – identyfikator z drzewa albo nr kat. „OS-…”
+    const osobyLista = await osobyIstniejace()
+    const osobyId = new Set(osobyLista.map((o) => o.id))
+    const { wczytajRejestr } = await import('../katalog/dane')
+    const { idOsoby } = await import('../osoby/powiazane')
+    let rejestrOsob: Record<string, { rodzaj: string; id: string }> = {}
+    try { rejestrOsob = wczytajRejestr()?.pozycje ?? {} } catch { /* bez rejestru */ }
+    const osobaZWpisu = (w: string) => idOsoby(w, (id) => osobyId.has(id), (nr) => rejestrOsob[nr])
+    const WSKAZOWKA_OSOBY = 'Wybierz osobę w oknie szukania (Keystatic: „Dodaj” przy polu) albo usuń wpis. Osoby spoza drzewa karta nie pokazuje.'
     for (const kolekcja of KOLEKCJE) {
         const lista = wszystkie.get(kolekcja)!
         for (const r of lista) {
@@ -325,12 +334,20 @@ export async function uwagiJakosci(): Promise<UwagaJakosci[]> {
                         nowy ? `W przekierowaniach: „${id}” → „${nowy}”. Wybierz nowy wpis w tym polu.` : 'Identyfikator zmieniono albo wpis usunięto. Wybierz właściwy wpis w tym polu albo usuń powiązanie.', `${sciezka}:${id}`, i + 100 * (POWIAZANIA[kolekcja].findIndex((x) => x[0] === sciezka)))
                 })
             }
+            if (kolekcja === 'materialy') for (const w of wartosciPola(d, 'peopleIds[]')) {
+                const id = osobaZWpisu(w)
+                if (id && !osobyId.has(id)) dodaj('relacja-do-nieistniejacego', `Powiązanie „powiązane osoby” wskazuje „${w}”, którego nie ma`, WSKAZOWKA_OSOBY, `osoba:${w}`)
+            }
+            for (const m of r.tekst.matchAll(/\{%\s*drzewo\b[^%]*?\bosoba="([^"]*)"/g)) {
+                const id = osobaZWpisu(m[1])
+                if (id && !osobyId.has(id)) dodaj('relacja-do-nieistniejacego', `Powiązanie „drzewo osoby” wskazuje „${m[1]}”, którego nie ma`, WSKAZOWKA_OSOBY, `drzewo:${m[1]}`)
+            }
             if (kolekcja === 'hasla' && !pole(d,'meaning')) dodaj('brak-definicji','Hasło bez definicji','Uzupełnij znaczenie słowa.')
             if (kolekcja === 'zespoly' && !pole(d,'repository')) dodaj('brak-archiwum','Brak instytucji przechowującej','Uzupełnij archiwum.')
         }
     }
     // PH3 (decyzja 16.11): elementy planów – powiązania [[…]] i podstawa (materiał, objaśnienie) wskazujące nieistniejące pozycje
-    const cele = kluczeCelow(wszystkie, await osobyIstniejace())
+    const cele = kluczeCelow(wszystkie, osobyLista)
     const typyPlanow = katalog(await wczytajUstawienia().catch(() => undefined))
     for (const plan of await planyDoKontroli()) {
         for (const u of uwagiPlanu(plan, {

@@ -244,3 +244,23 @@ test('P6a: plan – powtórzony numer grobu, powtórzona nazwa kwatery, napisy d
 test('P6a: spis reguł – każda reguła ma nazwę, wagę, zakres i uzasadnienie', () => {
     for (const [k, r] of Object.entries(REGULY_JAKOSCI)) assert.ok(r.nazwa && r.zakres && r.uzasadnienie && ['blad', 'brak', 'wskazowka'].includes(r.waga), k)
 })
+
+// Decyzja 22.11: „Powiązane osoby” i blok „Drzewo osoby” – osoba, której nie ma w drzewie (także nieznany nr kat.); OS-… z rejestru – bez ostrzeżenia
+test('osoby: powiązana osoba spoza drzewa – ostrzeżenie; identyfikator i znany nr kat. – bez (dane syntetyczne)', async () => {
+    const przed = process.cwd()
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'odniepamieci-osoby-test-'))
+    try {
+        process.chdir(tmp)
+        for (const k of ['materialy', 'posts', 'osoby', '_panel']) await fs.mkdir(`content/${k}`, { recursive: true })
+        await fs.writeFile('content/osoby/maria-testowa.json', JSON.stringify({ imiona: 'Maria', nazwisko: 'Testowa', plec: 'K' }))
+        await fs.writeFile('content/osoby/jan-testowy.json', JSON.stringify({ imiona: 'Jan', nazwisko: 'Testowy', plec: 'M' }))
+        await fs.writeFile('content/_panel/katalog.json', JSON.stringify({ wersja: 1, licznik: { OS: 1 }, pozycje: { 'OS-0001': { rodzaj: 'osoba', id: 'maria-testowa', nadano: '2026-11-22' } } }))
+        await fs.writeFile('content/materialy/list-a.mdoc', `---\ntitle: List A\ntype: dokument\npeopleIds:\n  - OS-0001\n  - jan-testowy\n  - OS-0999\n  - nie-ma-takiej\nvisibility: publiczne\n---\nOpis.\n`)
+        await fs.writeFile('content/posts/wpis-a.mdoc', `---\ntitle: Wpis A\n---\nTekst.\n\n{% drzewo osoba="OS-0001" wstecz=2 naprzod=1 /%}\n\n{% drzewo osoba="ktos-usuniety" wstecz=2 naprzod=1 /%}\n`)
+        const w = (await uwagiJakosci()).filter((x) => x.regula === 'relacja-do-nieistniejacego')
+        const mat = w.filter((x) => x.rekord === 'list-a').map((x) => x.opis).sort()
+        assert.deepEqual(mat, ['Powiązanie „powiązane osoby” wskazuje „OS-0999”, którego nie ma', 'Powiązanie „powiązane osoby” wskazuje „nie-ma-takiej”, którego nie ma'])
+        const wp = w.filter((x) => x.rekord === 'wpis-a').map((x) => x.opis)
+        assert.deepEqual(wp, ['Powiązanie „drzewo osoby” wskazuje „ktos-usuniety”, którego nie ma'])
+    } finally { process.chdir(przed); await fs.rm(tmp, { recursive: true, force: true }) }
+})
