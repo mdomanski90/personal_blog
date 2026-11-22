@@ -102,7 +102,7 @@ export default async function MaterialStrona({ params }: Parametry) {
     const wpisyZMat = siec.odnosniki.filter((z) => z.zrodlo.rodzaj === 'wpis')
     const inneOdnosniki = siec.odnosniki.filter((z) => z.zrodlo.rodzaj !== 'wpis')
     const nrKat = numerKat('material', m.id)
-    const jestOpis = !!nrKat || !!(m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal || m.miejscePrzechowywania || m.transkrypcja || m.zbiory.length || osobyM.length || instytucjeM.length)
+    const jestOpis = !!nrKat || !!(m.czas || m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal || m.miejscePrzechowywania || m.transkrypcja || m.zbiory.length || osobyM.length || instytucjeM.length)
     // SLW-03 (P3, decyzja 17.11): hasła słownika wykryte w opisie i transkrypcji – liczone z sieci powiązań, bez nowych pól
     const slowa = await haslaWTekscie('material', m.id, poziom)
     const jestDotyczy = miejscaM.length > 0 || powiazaneM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0 || slowa.length > 0
@@ -152,6 +152,8 @@ export default async function MaterialStrona({ params }: Parametry) {
             <Tabela etykieta={`${m.nazwa} – opis`}>
                 {jestOpis && <Czesc tytul="opis archiwalny" />}
                 <WierszNrKat nr={nrKat} />
+                {/* zgłoszenie 22.11: pełna data z pola „Data powstania” (pod tytułem tylko rok) */}
+                <W e="data powstania">{m.czas && formatujEdtf(m.czas)}</W>
                 <W e="sygnatura">{m.sygnatura}</W>
                 <W e="miejsce przechowywania">{m.miejscePrzechowywania}</W>
                 <W e="transkrypcja">{m.transkrypcja && <span className="whitespace-pre-wrap">{m.transkrypcja}</span>}</W>

@@ -56,3 +56,10 @@ test('karta osoby: materiały jako siatka miniatur pod tabelą (bez listy tytuł
     assert.match(kod, /<Sekcja tytul="zdjęcia i materiały"[\s\S]*?<ListaMaterialow/)
     assert.ok(kod.includes('zdjecieOsoby('), 'pasek boczny korzysta ze zdjęcia z archiwum')
 })
+
+// Zgłoszenie 22.11: karta materiału – pełna data z pola „Data powstania” w tabeli „opis archiwalny”, zaraz po nr kat.
+test('karta materiału: wiersz „data powstania” po nr kat., część pokazywana także przy samej dacie', () => {
+    const kod = fs.readFileSync(path.join(import.meta.dirname, '..', 'app', 'archiwum', '[slug]', 'page.tsx'), 'utf8')
+    assert.match(kod, /<WierszNrKat nr=\{nrKat\} \/>\s*\n(?:\s*\{\/\*.*\*\/\}\s*\n)?\s*<W e="data powstania">\{m\.czas && formatujEdtf\(m\.czas\)\}<\/W>/)
+    assert.match(kod, /const jestOpis = !!nrKat \|\| !!\(m\.czas \|\|/)
+})
