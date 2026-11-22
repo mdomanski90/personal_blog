@@ -23,6 +23,9 @@ test('wartości pól powiązań: pojedyncze, lista, lista obiektów', () => {
     assert.deepEqual(wartosciPola(d, 'parish'), ['p1'])
     assert.deepEqual(wartosciPola(d, 'spatial[]'), ['a', 'b'])
     assert.deepEqual(wartosciPola(d, 'parishes[].parish'), ['p2'])
+    // ARC-14: lista obiektów z listą identyfikatorów w środku (punkty mapy zbioru → materiały)
+    const z = { mapPoints: [{ name: 'A', materials: ['m-1', '', 'm-2'] }, { name: 'B' }, { name: 'C', materials: ['m-3'] }] }
+    assert.deepEqual(wartosciPola(z, 'mapPoints[].materials'), ['m-1', 'm-2', 'm-3'])
 })
 
 test('mapa powiązań w panelu jakości obejmuje każde pole relacji z keystatic.config.ts', () => {

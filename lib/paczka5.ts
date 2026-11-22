@@ -4,7 +4,8 @@ import { createReader } from '@keystatic/core/reader'
 import { odpornyCzytnik } from './kolekcja-odporna'
 import type { Node } from '@markdoc/markdoc'
 import keystaticConfig from '../keystatic.config'
-import { materialy, lataMaterialu, widoczne, type Widocznosc, type Material } from './archiwum'
+import { materialy, lataMaterialu, parsujWspolrzedne, widoczne, type Widocznosc, type Material } from './archiwum'
+import type { PunktZbioru } from './zbior'
 import { naTekst } from './markdoc'
 import { normalizuj, porownajPl } from './tekst'
 import { pasuje, przygotujZapytanie } from './szukanie'
@@ -15,7 +16,7 @@ const reader = odpornyCzytnik(createReader(process.cwd(), keystaticConfig))
 const cache: <T extends (...a: never[]) => unknown>(fn: T) => T =
   (React as unknown as { cache?: <T>(fn: T) => T }).cache ?? ((fn) => fn)
 
-export type Zbior = { id: string; nazwa: string; opis: Node | null; pochodzenie: string; prawa: string; widocznosc: Widocznosc; zrodla: string[]; zglosil?: string }
+export type Zbior = { id: string; nazwa: string; opis: Node | null; pochodzenie: string; prawa: string; widocznosc: Widocznosc; zrodla: string[]; zglosil?: string; /** ARC-14: punkty mapy zbioru (miejscowości spoza okolicy) */ punkty: PunktZbioru[] }
 export type Publikacja = { id: string; nazwa: string; rodzaj: string; autor: string; rok: string; wydawca: string; isbn: string; url: string; opis: string; miejsca: string[]; tematy: string[]; widocznosc: Widocznosc; zglosil?: string }
 
 async function istnieje(katalog: string): Promise<boolean> {
@@ -33,6 +34,11 @@ const wszystkieZbiory = cache(async (): Promise<Zbior[]> => {
     widocznosc: entry.visibility as Widocznosc,
     zrodla: [...(entry.sources ?? [])].map(String).filter(Boolean),
     zglosil: String(entry.reportedBy ?? '').trim(),
+    punkty: [...(entry.mapPoints ?? [])].flatMap((p) => {
+      const w = parsujWspolrzedne(p.coordinates)
+      const nazwa = String(p.name ?? '').trim()
+      return w && nazwa ? [{ nazwa, opis: String(p.description ?? '').trim(), rodzaj: String(p.type ?? 'wies'), lat: w[0], lng: w[1], przyblizone: !!p.approximate, materialy: [...(p.materials ?? [])].filter((x): x is string => !!x) }] : []
+    }),
   })).sort((a, b) => porownajPl(a.nazwa, b.nazwa))
 })
 

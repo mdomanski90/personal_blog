@@ -93,6 +93,7 @@ export default function MapaMiejsc({
     obrys,
     wyroznione,
     planyGeo,
+    margines = 50,
 }: {
     punkty: PunktMapy[]
     wysokosc?: number | string
@@ -109,6 +110,8 @@ export default function MapaMiejsc({
     wyroznione?: string[]
     /** plany z punktami geo – obraz planu na mapie przy dużym przybliżeniu */
     planyGeo?: PlanNaMapie[]
+    /** ARC-14: margines pierwszego dopasowania widoku do punktów (px); mapa zbioru – większy z prawej, na nazwy przy znacznikach */
+    margines?: number | { top: number; bottom: number; left: number; right: number }
 }) {
     const kontener = useRef<HTMLDivElement>(null)
     const mapa = useRef<MapaGL | null>(null)
@@ -181,7 +184,7 @@ export default function MapaMiejsc({
             const b = new LngLatBounds()
             punkty.forEach((p) => b.extend([p.lng, p.lat]))
             // pierwszy widok przy wejściu na stronę – od razu (5A: nic nie „wjeżdża” przy wejściu)
-            m.fitBounds(b, { padding: 50, duration: 0 })
+            m.fitBounds(b, { padding: margines, duration: 0 })
         }
 
         const wlasciwosci = (p: PunktMapy) => ({

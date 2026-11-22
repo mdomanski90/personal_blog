@@ -10,6 +10,6 @@ const MapaMiejsc = dynamic(() => import('./MapaMiejsc'), {
 })
 
 /** Mapa ładowana dopiero w przeglądarce (MapLibre nie działa po stronie serwera). */
-export default function MapaMiejscLeniwa(props: { punkty: PunktMapy[]; wysokosc?: number | string; srodek?: [number, number]; przyblizenie?: number; granice?: boolean; zapamietaj?: string; obrys?: { url: string; nazwa: string }; wyroznione?: string[]; planyGeo?: PlanNaMapie[] }) {
+export default function MapaMiejscLeniwa(props: { punkty: PunktMapy[]; wysokosc?: number | string; srodek?: [number, number]; przyblizenie?: number; granice?: boolean; zapamietaj?: string; obrys?: { url: string; nazwa: string }; wyroznione?: string[]; planyGeo?: PlanNaMapie[]; margines?: number | { top: number; bottom: number; left: number; right: number } }) {
     return <MapaMiejsc {...props} />
 }

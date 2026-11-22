@@ -149,19 +149,25 @@ export const POWIAZANIA: Record<string, [string, string][]> = {
     obiekty: [['spatial', 'miejsca'], ['spatialAlso[]', 'miejsca'], ['institutions[].parish', 'parafie']],
     materialy: [['spatial[]', 'miejsca'], ['subject[]', 'tematy'], ['relation[]', 'obiekty'], ['collections[]', 'zbiory'], ['institutions[]', 'parafie']],
     publikacje: [['spatial[]', 'miejsca'], ['subject[]', 'tematy']],
+    // ARC-14 (22.11): punkty mapy zbioru wskazują materiały
+    zbiory: [['mapPoints[].materials', 'materialy']],
     parafie: [['seat', 'miejsca']],
     // SLW-02 (P3)
     hasla: [['occurrence[]', 'miejsca'], ['seeAlso[]', 'hasla']],
     ksiegi: [['fonds', 'zespoly'], ['parish', 'parafie'], ['relatedParishes[]', 'parafie'], ['spatial[]', 'miejsca']],
 }
-const NAZWY_POL: Record<string, string> = { spatial: 'miejsca', spatialAlso: 'także w miejscowościach', subject: 'tematy', cover: 'miniatura', isPartOf: 'należy do', parishes: 'parafie', institutions: 'instytucje', relation: 'przedstawia obiekty', collections: 'zbiory', seat: 'siedziba', occurrence: 'występowanie', seeAlso: 'zobacz też', fonds: 'zespół', parish: 'instytucja główna', relatedParishes: 'pozostałe instytucje' }
+const NAZWY_POL: Record<string, string> = { spatial: 'miejsca', spatialAlso: 'także w miejscowościach', subject: 'tematy', cover: 'miniatura', isPartOf: 'należy do', parishes: 'parafie', institutions: 'instytucje', relation: 'przedstawia obiekty', collections: 'zbiory', seat: 'siedziba', occurrence: 'występowanie', seeAlso: 'zobacz też', fonds: 'zespół', parish: 'instytucja główna', relatedParishes: 'pozostałe instytucje', mapPoints: 'punkty na mapie zbioru' }
 const KOLEKCJA_RODZAJU: Record<string, string> = { miejsca: 'miejsca', parafie: 'parafie', obiekty: 'obiekty', tematy: 'tematy', wpisy: 'posts', archiwum: 'materialy' }
 const RODZAJ_KOLEKCJI: Record<string, string> = Object.fromEntries(Object.entries(KOLEKCJA_RODZAJU).map(([r, k]) => [k, r]))
 
 /** Wartości pola powiązania z rekordu (obsługa „a[]” i „a[].b”). */
 export function wartosciPola(d: Record<string, unknown>, sciezka: string): string[] {
     const [glowa, ogon] = sciezka.split('[].')
-    if (ogon !== undefined) return Array.isArray(d[glowa]) ? (d[glowa] as unknown[]).flatMap((x) => x && typeof x === 'object' && typeof (x as Record<string, unknown>)[ogon] === 'string' ? [(x as Record<string, string>)[ogon]] : []) : []
+    // „a[].b” – b pojedyncze albo lista (ARC-14: punkty mapy zbioru → materiały)
+    if (ogon !== undefined) return Array.isArray(d[glowa]) ? (d[glowa] as unknown[]).flatMap((x) => {
+        const v = x && typeof x === 'object' ? (x as Record<string, unknown>)[ogon] : undefined
+        return (Array.isArray(v) ? v : [v]).filter((y): y is string => typeof y === 'string' && y.trim() !== '')
+    }) : []
     const k = sciezka.replace('[]', ''), v = d[k]
     if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string' && x.trim() !== '')
     return typeof v === 'string' && v.trim() ? [v] : []

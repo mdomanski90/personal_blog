@@ -511,6 +511,26 @@ const konfiguracja = config({
         title: nazwaIIdentyfikator('Nazwa zbioru'),
         provenance: fields.text({ label: 'Pochodzenie / przekazał(a)', multiline: true }),
         rights: fields.text({ label: 'Prawa do zbioru' }),
+        // ARC-14 (22.11): miejscowości spoza okolicy tylko na mapie zbioru – bez kart w „Miejscach” (decyzja właściciela)
+        mapPoints: fields.array(
+          fields.object({
+            name: fields.text({ label: 'Nazwa', description: 'Np. „Sośnica”.', validation: { isRequired: true } }),
+            description: fields.text({ label: 'Opis', description: 'Krótko: gdzie to jest i co łączy ze zbiorem, np. „obwód czernihowski, Ukraina; stąd pisała Maria Danilowna”.' }),
+            type: fields.select({ label: 'Rodzaj', options: [{ label: 'wieś', value: 'wies' }, { label: 'miasto', value: 'miasto' }, { label: 'inne', value: 'inne' }], defaultValue: 'wies' }),
+            coordinates: fields.text({
+              label: 'Współrzędne',
+              description: 'Szerokość, długość – np. 51.5236, 32.4955 (skopiuj z OpenStreetMap lub Google Maps).',
+              validation: { isRequired: true, pattern: { regex: WSPOLRZEDNE_REGEX, message: 'Zapis: 51.5236, 32.4955' } },
+            }),
+            approximate: fields.checkbox({ label: 'Położenie przybliżone' }),
+            materials: fields.multiRelationship({ label: 'Materiały', description: 'Których materiałów zbioru dotyczy punkt (kliknięcie punktu prowadzi do materiału). Puste – punkt bez odnośnika.', collection: 'materialy' }),
+          }),
+          {
+            label: 'Punkty na mapie zbioru',
+            description: 'Miejscowości spoza okolicy, których nie dodajesz do „Miejsc” (np. skąd pisano listy). Zbiór z co najmniej jednym punktem pokazuje mapę „skąd są materiały” razem z miejscowościami przypiętymi do materiałów.',
+            itemLabel: (p) => p.fields.name.value || 'punkt',
+          },
+        ),
         reportedBy: zglosil(),
         visibility: widocznosc(), sources: zrodlaKarty(), note: notatka(),
         description: opisMarkdoc('Opis zbioru', 'zbiory'),

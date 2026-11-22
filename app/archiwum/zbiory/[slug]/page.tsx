@@ -1,14 +1,14 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { lataMaterialu, nazwy, poziomCzytelnika, widoczne } from '@/lib/archiwum'
-import { opisRodzajow, wierszeZbioru } from '@/lib/zbior'
+import { lataMaterialu, miejsca as wszystkieMiejsca, nazwy, poziomCzytelnika, widoczne } from '@/lib/archiwum'
+import { opisRodzajow, punktyMapyZbioru, wierszeZbioru } from '@/lib/zbior'
 import { Link } from 'next-view-transitions'
 import { PastylkaOsoby } from '../../../components/Wzorce'
 import { formatujEdtf } from '@/lib/edtf'
 import { zbior, materialyZbioru } from '@/lib/paczka5'
 import { naHtml } from '@/lib/markdoc'
 import { Sekcja, Strona, Tresc, maTekst } from '../../../components/Uklad'
-import { Czesc, CzescJakCytowac, WierszZglosil, LiniaKarty, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../../components/Karta'
+import { Czesc, CzescJakCytowac, WCaly, WierszZglosil, LiniaKarty, NaglowekKarty, Tabela, W, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../../components/Karta'
 import { daneCytatu } from '@/lib/cytowanie'
 import SpisTresci from '../../../components/SpisTresci'
 import { PrzyciskDrukuj, PrzyciskDrukujCalosc } from '../../../components/Druk'
@@ -18,6 +18,8 @@ import Komunikat from '../../../components/Komunikat'
 import { numerKat } from '@/lib/katalog/dane'
 import { odmiana } from '@/lib/tekst'
 import { WierszNrKat } from '../../../components/NrKat'
+import MapaKarty from '../../../components/MapaKarty'
+import MapaMiejscLeniwa from '../../../components/MapaMiejscLeniwa'
 export const dynamic = 'force-dynamic'
 type P = { params: Promise<{ slug: string }> }
 export async function generateMetadata({ params }: P): Promise<Metadata> {
@@ -45,6 +47,11 @@ export default async function Zbior({ params }: P) {
   // obraz w pasku bocznym: pierwszy materiał zbioru ze skanem lub zdjęciem (widoczny dla czytelnika – lista już przefiltrowana)
   const zObrazem = mats.find((m) => m.strony.some((x) => x.adres.startsWith('/pliki/strony/')))
   const obraz = zObrazem ? zObrazem.strony.find((x) => x.adres.startsWith('/pliki/strony/'))!.adres : null
+  // ARC-14 (22.11): mapa „skąd są materiały” – punkty zbioru + miejscowości przypięte do widocznych materiałów; bez punktów zbioru – brak mapy
+  const punkty = punktyMapyZbioru({
+    punkty: z.punkty, materialy: mats.map((m) => ({ id: m.id, nazwa: m.nazwa, miejsca: m.miejsca })),
+    miejsca: new Map((await wszystkieMiejsca(poziom)).map((m) => [m.id, m])), kotwicaListy: `#${idCzesci('materiały w zbiorze')}`,
+  })
   const jestPodstawowe = !!nrKat || !!z.pochodzenie || !!z.prawa || mats.length > 0
   return (
     <Strona uklad="karta" nrKat={nrKat} sciezka={[{ tekst: 'archiwum', href: '/archiwum' }, { tekst: 'zbiory', href: '/archiwum/zbiory' }]} akcje={<><CopyLinkButton sciezka={`/archiwum/zbiory/${z.id}`} /><PrzyciskDrukuj /><PrzyciskDrukujCalosc rodzaj="zbior" id={z.id} /></>}
@@ -56,7 +63,7 @@ export default async function Zbior({ params }: P) {
           <figcaption>{[zObrazem.nazwa, zObrazem.czas && formatujEdtf(zObrazem.czas)].filter(Boolean).join(', ')} · <a href={`#${idCzesci('materiały w zbiorze')}`} className="odn">wszystkie ({mats.length}) ↓</a></figcaption>
         </figure>
       ) : undefined}
-      spis={<SpisTresci pozycje={spisCzesci([jestPodstawowe && 'podstawowe', 'materiały w zbiorze', 'jak cytować', z.zrodla.length > 0 && 'źródła'], { wstep: maTekst(tekst) })} />}>
+      spis={<SpisTresci pozycje={spisCzesci([jestPodstawowe && 'podstawowe', punkty.length > 0 && 'skąd są materiały', 'materiały w zbiorze', 'jak cytować', z.zrodla.length > 0 && 'źródła'], { wstep: maTekst(tekst) })} />}>
       {jestPodstawowe && (
         <Tabela etykieta={`${z.nazwa} – podstawowe`}>
           <Czesc tytul="podstawowe" />
@@ -70,8 +77,27 @@ export default async function Zbior({ params }: P) {
           <W e="osoby">{wiersze.osoby.length > 0 && <span className="ot-osoby">{wiersze.osoby.map((id) => <PastylkaOsoby key={id} href={`/osoby/${id}`} plec={stan.drzewo.osoby.get(id)!.plec}>{nazwaOsoby(stan.drzewo.osoby.get(id)!)}</PastylkaOsoby>)}</span>}</W>
           {/* plansza zbioru: „udostępnianie” – drukuj całość · kolekcja IIIF (P5, PD-05: manifesty publicznych materiałów ze skanami) */}
           <W e="udostępnianie"><LiniaKarty className="karta-linia-w" elementy={[[{ tekst: 'drukuj całość', href: `/druk/zbior/${encodeURIComponent(z.id)}` }, ...(z.widocznosc === 'publiczne' && mats.some((m) => m.strony.length > 0) ? [{ tekst: 'kolekcja IIIF', href: `/archiwum/zbiory/${encodeURIComponent(z.id)}/iiif.json` }] : [])]]} /></W>
-          {mats.length > 0 && <W e=" "><span className="ot-drobne">miejsca, leksykon, osoby i lata liczone z materiałów zbioru – bez osobnych pól</span></W>}
+          {mats.length > 0 && <W e=" "><span className="ot-drobne">{`miejsca, leksykon, osoby i lata liczone z materiałów zbioru – bez osobnych pól${punkty.length > 0 ? ' · mapa: punkty wpisane w zbiorze i miejscowości materiałów' : ''}`}</span></W>}
           <WierszZglosil v={z.zglosil} />
+        </Tabela>
+      )}
+      {punkty.length > 0 && (
+        <Tabela etykieta={`${z.nazwa} – skąd są materiały`}>
+          <Czesc tytul="skąd są materiały" />
+          <WCaly>
+            <MapaKarty wysokosc={300} podpis="mapa zbioru – miejscowości z listy poniżej"
+              mapa={<MapaMiejscLeniwa wysokosc="100%" margines={{ top: 40, bottom: 40, left: 50, right: 120 }} punkty={punkty.map((p) => ({ id: p.id, nazwa: p.nazwa, href: p.href, typ: 'miejsce' as const, rodzaj: p.rodzaj, przyblizone: p.przyblizone, lat: p.lat, lng: p.lng }))} />} />
+          </WCaly>
+          {punkty.map((p) => (
+            <W key={p.id} e={p.nazwa}>
+              <LiniaKarty className="karta-linia-w" elementy={[
+                p.opis,
+                p.href.startsWith('/miejsca/') && { tekst: 'karta miejscowości', href: p.href },
+                p.materialy.map((m) => ({ tekst: m.nazwa, href: `/archiwum/${m.id}` })),
+                p.przyblizone && 'położenie przybliżone',
+              ]} />
+            </W>
+          ))}
         </Tabela>
       )}
       <Sekcja tytul="materiały w zbiorze" id={idCzesci('materiały w zbiorze')}>

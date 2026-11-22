@@ -29,3 +29,50 @@ export function opisRodzajow(rodzaje: { rodzaj: string; ile: number }[], odmiana
     const czesci = rodzaje.map((r) => { const f = FORMY[r.rodzaj] ?? [r.rodzaj, r.rodzaj, r.rodzaj]; return r.ile === 1 ? f[0] : odmiana(r.ile, f) })
     return `${razem} – ${czesci.join(', ')}`
 }
+
+// ---------- ARC-14 (22.11, decyzja właściciela: pole w zbiorze, świadomie poza ARC-09/D-AR-14) ----------
+// Mapa zbioru: punkty wpisane w zbiorze (miejscowości spoza okolicy, bez kart w „Miejscach”) + miejscowości z okolicy,
+// do których przypięte są materiały zbioru. Wejście: materiały już przefiltrowane dla czytelnika – punkt, którego wszystkie
+// materiały są ukryte, znika (zasada 1.6); zbiór bez własnych punktów nie ma mapy (pozostałe zbiory bez zmian).
+
+export type PunktZbioru = { nazwa: string; opis: string; rodzaj: string; lat: number; lng: number; przyblizone: boolean; materialy: string[] }
+export type PunktMapyZbioru = { id: string; nazwa: string; opis: string; rodzaj: string; lat: number; lng: number; przyblizone: boolean; href: string; materialy: { id: string; nazwa: string }[] }
+type MiejsceDlaMapy = { nazwa: string; rodzaj: string; wspolrzedne: [number, number] | null; przyblizone: boolean }
+
+const kluczNazwy = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[łŁ]/g, 'l').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
+export function punktyMapyZbioru(we: { punkty: PunktZbioru[]; materialy: { id: string; nazwa: string; miejsca: string[] }[]; miejsca: Map<string, MiejsceDlaMapy>; kotwicaListy: string }): PunktMapyZbioru[] {
+    if (!we.punkty.length) return []
+    const mat = new Map(we.materialy.map((m) => [m.id, m]))
+    const odnosnik = (l: { id: string }[]) => (l.length === 1 ? `/archiwum/${l[0].id}` : l.length > 1 ? we.kotwicaListy : '')
+    const wyn: PunktMapyZbioru[] = []
+    const byly = new Set<string>()
+    we.punkty.forEach((p, i) => {
+        const widoczne = p.materialy.filter((id) => mat.has(id)).map((id) => ({ id, nazwa: mat.get(id)!.nazwa }))
+        if (p.materialy.length && !widoczne.length) return
+        const k = kluczNazwy(p.nazwa)
+        if (!k || byly.has(k)) return
+        byly.add(k)
+        wyn.push({ id: `pz-${i}`, nazwa: p.nazwa, opis: p.opis, rodzaj: p.rodzaj, lat: p.lat, lng: p.lng, przyblizone: p.przyblizone, href: odnosnik(widoczne), materialy: widoczne })
+    })
+    for (const id of [...new Set(we.materialy.flatMap((m) => m.miejsca))]) {
+        const m = we.miejsca.get(id)
+        if (!m?.wspolrzedne || byly.has(kluczNazwy(m.nazwa))) continue
+        byly.add(kluczNazwy(m.nazwa))
+        wyn.push({ id, nazwa: m.nazwa, opis: '', rodzaj: m.rodzaj, lat: m.wspolrzedne[0], lng: m.wspolrzedne[1], przyblizone: m.przyblizone, href: `/miejsca/${id}`,
+            materialy: we.materialy.filter((x) => x.miejsca.includes(id)).map((x) => ({ id: x.id, nazwa: x.nazwa })) })
+    }
+    return wyn
+}
+
+/** Karta materiału: „miejsca powiązane” – punkty widocznych zbiorów, które wskazują ten materiał (każda nazwa raz, pierwszy zbiór). */
+export function miejscaPowiazane(materialId: string, zbiory: { id: string; punkty: PunktZbioru[] }[]): { nazwa: string; opis: string; zbior: string }[] {
+    const wyn: { nazwa: string; opis: string; zbior: string }[] = []
+    const byly = new Set<string>()
+    for (const z of zbiory) for (const p of z.punkty) {
+        if (!p.materialy.includes(materialId) || byly.has(kluczNazwy(p.nazwa))) continue
+        byly.add(kluczNazwy(p.nazwa))
+        wyn.push({ nazwa: p.nazwa, opis: p.opis, zbior: z.id })
+    }
+    return wyn
+}

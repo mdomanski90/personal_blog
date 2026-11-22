@@ -82,6 +82,8 @@ export const MIEJSCA: Miejsce[] = [
     // zbiory, tematy, wpisy, hasła
     { byt: 'zbiór', gdzie: 'lista zbiorów', plik: 'app/archiwum/zbiory/page.tsx', wzorzec: 'lista-dzialu', status: 'zgodne', adres: '/archiwum/zbiory' },
     { byt: 'zbiór', gdzie: 'karta zbioru', plik: 'app/archiwum/zbiory/[slug]/page.tsx', wzorzec: 'karta', status: 'zgodne', adres: '/archiwum/zbiory/…' },
+    { byt: 'materiał', gdzie: 'karta zbioru – „skąd są materiały” (ARC-14): mapa zbioru + wiersz na punkt z materiałami', plik: 'app/archiwum/zbiory/[slug]/page.tsx', wzorzec: 'linia', status: 'zgodne', adres: '/archiwum/zbiory/…' },
+    { byt: 'zbiór', gdzie: 'karta materiału – „miejsca powiązane” (ARC-14): punkty mapy zbioru z odnośnikiem do mapy', plik: 'app/archiwum/[slug]/page.tsx', wzorzec: 'linia', status: 'zgodne', adres: '/archiwum/…' },
     { byt: 'temat', gdzie: 'lista tematów', plik: 'app/leksykon/page.tsx', wzorzec: 'lista-dzialu', status: 'zgodne', adres: '/leksykon' },
     { byt: 'temat', gdzie: 'karta tematu', plik: 'app/leksykon/[slug]/page.tsx', wzorzec: 'karta', status: 'zgodne', adres: '/leksykon/…' },
     { byt: 'temat', gdzie: 'karta miejscowości – oś czasu', plik: 'app/miejsca/[slug]/page.tsx', wzorzec: 'wlasny', status: 'swiadomie-inne', uwaga: 'Oś czasu (ol.karta-os) – inny rodzaj informacji niż lista.', adres: '/miejsca/…' },

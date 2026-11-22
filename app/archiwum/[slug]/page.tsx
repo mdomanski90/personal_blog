@@ -18,7 +18,8 @@ import PrzegladarkaDokumentu from '../../components/PrzegladarkaDokumentu'
 import TekstyZrodla from '../../components/TekstyZrodla'
 import { daneCytatu } from '@/lib/cytowanie'
 import { RAMKA, PelnaSzerokosc, Strona, Tresc, maTekst } from '../../components/Uklad'
-import { Czesc, CzescJakCytowac, WierszZglosil, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, spisCzesci } from '../../components/Karta'
+import { Czesc, CzescJakCytowac, WierszZglosil, LiniaKarty, NaglowekKarty, Tabela, W, WCaly, ZAdresami, Zrodla, ZglosPoprawke, idCzesci, spisCzesci } from '../../components/Karta'
+import { miejscaPowiazane } from '@/lib/zbior'
 import SpisTresci from '../../components/SpisTresci'
 import { PastylkaFiltra, PastylkaOsoby } from '../../components/Wzorce'
 import { PrzyciskDrukuj } from '../../components/Druk'
@@ -61,7 +62,10 @@ export default async function MaterialStrona({ params }: Parametry) {
     const n = await nazwy(poziom)
     const nazwyObiektow = new Map((await obiekty(poziom)).map((o) => [o.id, o.nazwa]))
     const siec = await powiazania('material', m.id, poziom)
-    const dostepneZbiory = new Map((await zbiory(poziom)).map((z) => [z.id, z.nazwa])) // PACZKA5_2026
+    const zbioryCzytelnika = await zbiory(poziom)
+    const dostepneZbiory = new Map(zbioryCzytelnika.map((z) => [z.id, z.nazwa])) // PACZKA5_2026
+    // ARC-14 (22.11): „miejsca powiązane” – punkty map widocznych zbiorów tego materiału (miejscowości spoza „Miejsc”)
+    const powiazaneM = miejscaPowiazane(m.id, zbioryCzytelnika.filter((z) => m.zbiory.includes(z.id)))
     // JW-16: osoby i instytucje z nazwami (nie identyfikatorami), tylko widoczne dla czytelnika
     const stanOsobP5 = await (await import('@/lib/osoby/dane')).stanOsob()
     const osobyM = odnosnikiOsob(m.osobyIds, stanOsobP5.drzewo.osoby, (id) => widoczne(stanOsobP5.widocznosc(id), poziom))
@@ -101,7 +105,7 @@ export default async function MaterialStrona({ params }: Parametry) {
     const jestOpis = !!nrKat || !!(m.sygnatura || m.pochodzenie || m.tworca || m.jezyk || m.prawa || m.przekazal || m.opracowal || m.miejscePrzechowywania || m.transkrypcja || m.zbiory.length || osobyM.length || instytucjeM.length)
     // SLW-03 (P3, decyzja 17.11): hasła słownika wykryte w opisie i transkrypcji – liczone z sieci powiązań, bez nowych pól
     const slowa = await haslaWTekscie('material', m.id, poziom)
-    const jestDotyczy = miejscaM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0 || slowa.length > 0
+    const jestDotyczy = miejscaM.length > 0 || powiazaneM.length > 0 || tematyM.length > 0 || obiektyM.length > 0 || wpisyZMat.length > 0 || slowa.length > 0
     const jestWstep = maTekst(reszta)
     const spis = spisCzesci([jestOpis && 'opis archiwalny', jestDotyczy && 'dotyczy', rek && 'rekonstrukcja', ...czesciPowiazan({ odnosniki: inneOdnosniki, wzmianki: [] }), 'jak cytować', (oryginal || m.zrodla.length > 0) && 'źródła'], { wstep: jestWstep })
     const naglowek = (
@@ -166,6 +170,7 @@ export default async function MaterialStrona({ params }: Parametry) {
 
                 {jestDotyczy && <Czesc tytul="dotyczy" />}
                 <W e={miejscaM.length > 1 ? 'miejsca' : 'miejsce'}>{miejscaM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[miejscaM.map((id) => ({ tekst: n.miejsca.get(id), href: `/miejsca/${id}` }))]} />}</W>
+                <W e="miejsca powiązane">{powiazaneM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[powiazaneM.map((p) => ({ tekst: p.opis ? `${p.nazwa} (${p.opis})` : p.nazwa, href: `/archiwum/zbiory/${p.zbior}#${idCzesci('skąd są materiały')}` }))]} />}</W>
                 <W e="leksykon">{tematyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[tematyM.map((id) => ({ tekst: n.tematy.get(id), href: `/leksykon/${id}` }))]} />}</W>
                 <W e="przedstawia">{obiektyM.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[obiektyM.map((id) => ({ tekst: nazwyObiektow.get(id), href: `/obiekty/${id}` }))]} />}</W>
                 <W e="we wpisach">{wpisyZMat.length > 0 && <LiniaKarty className="karta-linia-w" elementy={[wpisyZMat.map((z) => ({ tekst: z.zrodlo.nazwa, href: z.zrodlo.adres }))]} />}</W>
