@@ -62,3 +62,17 @@ test('lista języków: także włoski, czeski, węgierski, litewski, angielski',
     const { JEZYKI } = await import('./objasnienia-widok')
     for (const k of ['it', 'cs', 'hu', 'lt', 'en']) assert.ok(JEZYKI[k], k)
 })
+
+// Decyzja 22.11: „+ tłumaczenie / + odczyt tego zaznaczenia” – nowe objaśnienie z identycznym obszarem, bez powielania pary
+test('para objaśnienia: odczyt ↔ tłumaczenie z tym samym obszarem; nie dla objaśnienia i pieczęci; nie, gdy para już jest', async () => {
+    const { paraObjasnienia, maPare } = await import('./objasnienia-widok')
+    const odczyt = { id: 'o-aaaa', strona: 's-1.jpg', x: 10, y: 20, w: 30, h: 5, rodzaj: 'odczyt' as const, tekst: 'На долгую память', jezyki: ['ru'], powiazania: ['maria-testowa'], opracowal: 'MD', weryfikacja: 'x', widocznosc: 'bliscy' as const, utworzono: '2026-11-22T08:00:00Z', ksztalt: { k: 'w' as const, p: [[10, 20], [40, 20], [40, 25]] as [number, number][] } }
+    const t = paraObjasnienia(odczyt, 'o-bbbb')!
+    assert.deepEqual({ ...t }, { id: 'o-bbbb', strona: 's-1.jpg', x: 10, y: 20, w: 30, h: 5, rodzaj: 'tlumaczenie', tekst: '', jezyki: ['pl'], powiazania: ['maria-testowa'], opracowal: 'MD', widocznosc: 'bliscy', ksztalt: odczyt.ksztalt })
+    const o2 = paraObjasnienia({ ...odczyt, rodzaj: 'tlumaczenie' as const, jezyki: ['pl'] }, 'o-cccc')!
+    assert.equal(o2.rodzaj, 'odczyt'); assert.equal(o2.jezyki, undefined, 'język oryginału do wybrania')
+    assert.equal(paraObjasnienia({ ...odczyt, rodzaj: 'objasnienie' as const }, 'o-dddd'), null)
+    assert.equal(maPare(odczyt, [odczyt]), false)
+    assert.equal(maPare(odczyt, [odczyt, t]), true, 'tłumaczenie o tym samym obszarze już jest')
+    assert.equal(maPare(odczyt, [odczyt, { ...t, x: 11 }]), false, 'inny obszar – to nie para')
+})

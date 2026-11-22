@@ -1,5 +1,5 @@
 'use client'
-import { obrysKsztaltu, poprawKsztalt, type Ksztalt } from '@/lib/objasnienia-widok'
+import { obrysKsztaltu, poprawKsztalt, type Ksztalt, paraObjasnienia, rodzajPary, znajdzPare } from '@/lib/objasnienia-widok'
 import PolePowiazan, { CSS_POLA_POWIAZAN, type CelPowiazania } from '../../../../wspolne/PolePowiazan'
 // Objaśnienia na skanach materiału: zaznaczanie fragmentu (Annotorious na OpenSeadragonie) i opis – odczyt, tłumaczenie,
 // objaśnienie, pieczęć; powiązania z osobami, miejscami, tematami; kto opracował, weryfikacja w źródłach, widoczność.
@@ -269,10 +269,22 @@ export default function ObjasnieniaMaterialu() {
         ustawWybrane(null)
     }
     const ustaw = (oid: string, zmiany: Partial<Obj>) => zmien((l) => l.map((o) => (o.id === oid ? { ...o, ...zmiany } : o)))
+    // decyzja 22.11: odczyt i tłumaczenie tego samego zaznaczenia – nowe objaśnienie z identycznym obszarem i powiązaniami
+    const dodajPare = (o: Obj) => {
+        const n = paraObjasnienia(o, noweId()); if (!n) return
+        zmien((l) => [...l, n])
+        ustawWybrane(n.id)
+        // po odświeżeniu listy: obszar na skanie (pokazStrone czyta aktualną listę), zaznaczenie i fokus w polu tekstu
+        window.setTimeout(() => { pokazStrone(); wybierz(n.id); document.getElementById('obj-tekst')?.focus() }, 50)
+    }
 
     if (!dane) return <>{kom ? <div className="pn-kom">{kom}</div> : <span className="pn-szary">wczytuję…</span>}</>
     const plik = dane.strony[strona]?.plik
     const opisZapisu = zapis.stan === 'trwa' ? 'zapisuję…' : zapis.stan === 'czeka' ? 'zmiany czekają na zapis' : zapis.stan === 'blad' || zapis.stan === 'konflikt' ? 'nie zapisano' : zapis.kiedy ? `zapisano ${kiedy(zapis.kiedy)}` : 'jeszcze nie zapisano'
+    // decyzja 22.11: para odczyt ↔ tłumaczenie dla wybranego objaśnienia
+    const wWybrane = lista.find((o) => o.id === wybrane)
+    const rodzajParyW = wWybrane ? rodzajPary(wWybrane.rodzaj) : null
+    const paraW = wWybrane ? znajdzPare(wWybrane, lista) : undefined
     const naStronie = lista.filter((o) => o.strona === plik).sort((a, b) => (Math.abs(a.y - b.y) < Math.min(a.h, b.h) / 2 ? a.x - b.x : a.y - b.y))
     const w = lista.find((o) => o.id === wybrane) ?? null
     const ileNa = (p: string) => lista.filter((o) => o.strona === p).length
@@ -359,6 +371,9 @@ export default function ObjasnieniaMaterialu() {
                                         <button key={r} aria-pressed={w.rodzaj === r} onClick={() => ustaw(w.id, { rodzaj: r, ...(r === 'tlumaczenie' && !w.jezyki?.length ? { jezyki: ['pl'] } : {}) })}>{RODZAJE_OBJASNIEN[r].nazwa}</button>
                                     ))}
                                 </div>
+                                {/* decyzja 22.11: para odczyt ↔ tłumaczenie na tym samym obszarze */}
+                                {paraW && <button type="button" className="pn-btn" onClick={() => wybierz(paraW.id)}>→ {RODZAJE_OBJASNIEN[paraW.rodzaj].nazwa} tego zaznaczenia</button>}
+                                {rodzajParyW && !paraW && <button type="button" className="pn-btn" onClick={() => dodajPare(w)}>+ {RODZAJE_OBJASNIEN[rodzajParyW].nazwa} tego zaznaczenia</button>}
                                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     <span className="pn-maly">{RODZAJE_OBJASNIEN[w.rodzaj].nazwa} – {RODZAJE_OBJASNIEN[w.rodzaj].opis}</span>
                                     <textarea id="obj-tekst" className="pn-in" rows={5} value={w.tekst} onChange={(e) => ustaw(w.id, { tekst: e.target.value })} />

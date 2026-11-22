@@ -79,3 +79,27 @@ export function wKsztalcie(o: { x: number; y: number; w: number; h: number; kszt
     return w
 }
 
+
+// ---------- decyzja 22.11: odczyt i tłumaczenie tego samego zaznaczenia ----------
+type DoPary = { id: string; strona: string; x: number; y: number; w: number; h: number; rodzaj: RodzajObjasnienia; tekst: string; jezyki?: string[]; powiazania: string[]; opracowal: string; weryfikacja?: string; widocznosc: WidocznoscObjasnienia; utworzono?: string; zmieniono?: string; ksztalt?: Ksztalt }
+const PARA: Partial<Record<RodzajObjasnienia, RodzajObjasnienia>> = { odczyt: 'tlumaczenie', tlumaczenie: 'odczyt' }
+
+/** Rodzaj objaśnienia do pary (odczyt ↔ tłumaczenie); objaśnienie i pieczęć – bez pary. */
+export const rodzajPary = (r: RodzajObjasnienia): RodzajObjasnienia | null => PARA[r] ?? null
+
+const tenSamObszar = (a: DoPary, b: DoPary) => a.strona === b.strona && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h && JSON.stringify(a.ksztalt ?? null) === JSON.stringify(b.ksztalt ?? null)
+
+/** Czy na liście jest już objaśnienie-para (rodzaj z pary, identyczny obszar). */
+export function znajdzPare<T extends DoPary>(o: DoPary, lista: T[]): T | undefined {
+    const r = rodzajPary(o.rodzaj)
+    return r ? lista.find((x) => x.id !== o.id && x.rodzaj === r && tenSamObszar(x, o)) : undefined
+}
+export const maPare = (o: DoPary, lista: DoPary[]): boolean => !!znajdzPare(o, lista)
+
+/** Nowe objaśnienie z identycznym obszarem i powiązaniami: tłumaczenie (pl) do odczytu albo odczyt (język do wybrania) do tłumaczenia. */
+export function paraObjasnienia<T extends DoPary>(o: T, id: string): T | null {
+    const r = rodzajPary(o.rodzaj)
+    if (!r) return null
+    const { weryfikacja: _w, utworzono: _u, zmieniono: _z, jezyki: _j, ...reszta } = o
+    return { ...reszta, id, rodzaj: r, tekst: '', ...(r === 'tlumaczenie' ? { jezyki: ['pl'] } : {}), powiazania: [...o.powiazania] } as unknown as T
+}
