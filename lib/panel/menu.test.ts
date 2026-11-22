@@ -107,3 +107,15 @@ test('aktywna pozycja: plany po rodzaju z zapytania, pulpit tylko dokładnie, po
     assert.equal(aktywna('/keystatic/panel/zgloszenia', '/keystatic/panel/zgloszenia', ''), true)
     assert.equal(aktywna('/keystatic/collection/posts', '/keystatic/collection/posts/item/x', ''), true)
 })
+
+// Decyzja 22.11 (wariant A): panel ma własną ikonę karty – kapliczka serwisu + wyraźny ołówek w kolorze akcentu panelu
+test('ikona panelu: osobny plik w app/keystatic, inny niż ikona serwisu, z ołówkiem w kolorze akcentu (oba motywy)', async () => {
+    const fs = await import('node:fs')
+    const panel = fs.readFileSync(new URL('../../app/keystatic/icon.svg', import.meta.url), 'utf8')
+    const serwis = fs.readFileSync(new URL('../../app/icon.svg', import.meta.url), 'utf8')
+    const css = fs.readFileSync(new URL('../../app/keystatic/panel.css', import.meta.url), 'utf8')
+    assert.notEqual(panel, serwis)
+    const akcenty = [...css.matchAll(/--pn-akcent:\s*(#[0-9a-f]{6})/gi)].map((m) => m[1].toLowerCase())
+    assert.ok(akcenty.length >= 2 && akcenty.every((a) => panel.toLowerCase().includes(a)), `ikona w kolorach akcentu panelu ${akcenty.join(', ')}`)
+    assert.match(panel, /prefers-color-scheme:dark/)
+})

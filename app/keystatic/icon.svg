@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<!-- Ikona panelu (/keystatic): kapliczka serwisu + wyraźny ołówek w kolorze akcentu panelu – karta z dostępem do edycji odróżnia się od kart do czytania (decyzja 22.11, wariant A) -->
+<style>.k{stroke:#111827}.o{fill:#0062cc;stroke:#fff}.r{fill:#fff}@media (prefers-color-scheme:dark){.k{stroke:#f3f4f6}.o{fill:#419cff;stroke:#1c1c1e}.r{fill:#1c1c1e}}</style>
+<g class="k">
+<path d="M5 30.5V13a11 11 0 0 1 22 0v17.5z" stroke-width="2"/>
+<path d="M16 4.6v4.2M14.4 6.2h3.2" stroke-width="1.5"/>
+<path d="M12 12.4l4-3.4 4 3.4z" stroke-width="1.5"/>
+<path d="M13.3 12.4v8.4h5.4v-8.4" stroke-width="1.5"/>
+<path d="M15 19v-3.2a1 1 0 0 1 2 0V19z" stroke-width="1"/>
+</g>
+<circle class="o" cx="21" cy="21" r="10.6" stroke-width="1.4"/>
+<g class="r" transform="rotate(-45 21 21)"><path d="M12.8 21l3.9-2.6v5.2z"/><rect x="17.5" y="18.4" width="8" height="5.2" rx="0.4"/><rect x="26.3" y="18.4" width="2.7" height="5.2" rx="1"/></g>
+</svg>
