@@ -28,3 +28,21 @@ test('Tailwind nie przegląda danych: globals.css wyklucza content/, pliki-archi
     const css = fs.readFileSync(path.join(process.cwd(), 'app', 'globals.css'), 'utf8')
     for (const k of ['content', 'pliki-archiwum', 'data']) assert.match(css, new RegExp(`@source not "\\.\\./${k}";`))
 })
+
+// KOREKTA 22.11 (wdrożenie 7418f3f przerwane): `path.join(R, …)` z korzeniem z parametru (tu: lib/panel/zmiana-id.ts) Turbopack też
+// śledzi – wszedł w content/_operacje/<id> (0700) i przerwał budowę. W plikach lib/ czytających dysk każda ścieżka składana od zmiennej
+// (nie od napisu, import.meta czy __dirname) ma znacznik w samym wywołaniu.
+test('lib/: ścieżki od zmiennej (path.join(R, …)) w plikach z node:fs mają /*turbopackIgnore: true*/', () => {
+    const zle: string[] = []
+    for (const p of pliki(path.join(process.cwd(), 'lib'))) {
+        const t = fs.readFileSync(p, 'utf8')
+        if (!/from 'node:fs|from 'fs'|require\('node:fs/.test(t)) continue
+        t.split('\n').forEach((w, i) => {
+            for (const m of w.matchAll(/path\.(join|resolve)\(\s*(?!\/\*turbopackIgnore)([^)\s,]*)/g)) {
+                if (/^['"`]|^import\.meta|^__dirname/.test(m[2])) continue
+                zle.push(`${path.relative(process.cwd(), p)}:${i + 1}`)
+            }
+        })
+    }
+    assert.deepEqual(zle, [])
+})

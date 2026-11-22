@@ -89,7 +89,7 @@ async function plikiTresci(R: string): Promise<string[]> {
     const wyn: string[] = []
     const idz = async (rel: string) => {
         let wpisy: import('node:fs').Dirent[] = []
-        try { wpisy = await fs.readdir(/*turbopackIgnore: true*/ path.join(R, rel), { withFileTypes: true }) } catch { return }
+        try { wpisy = await fs.readdir(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ R, rel), { withFileTypes: true }) } catch { return }
         for (const w of wpisy) {
             const r = `${rel}/${w.name}`
             if (POMIJANE.test(`${r}/`)) continue
@@ -105,17 +105,17 @@ async function plikiTresci(R: string): Promise<string[]> {
 export async function planZmianyIdMaterialu(R: string, stary: string, nowy: string): Promise<PlanZmianyId> {
     const plan: PlanZmianyId = { stary, nowy, przeniesienia: [], edycje: [], bledy: [], pominiete: [] }
     if (!ID.test(stary) || !ID.test(nowy) || stary === nowy) { plan.bledy.push(`niepoprawne identyfikatory: „${stary}” → „${nowy}”`); return plan }
-    if (!(await istnieje(path.join(R, 'content/materialy', `${nowy}.mdoc`)))) plan.bledy.push(`brak content/materialy/${nowy}.mdoc – najpierw zapisz materiał pod nowym identyfikatorem`)
-    if (await istnieje(path.join(R, 'content/materialy', `${stary}.mdoc`))) plan.bledy.push(`content/materialy/${stary}.mdoc nadal istnieje – to nie zmiana identyfikatora`)
+    if (!(await istnieje(path.join(/*turbopackIgnore: true*/ R, 'content/materialy', `${nowy}.mdoc`)))) plan.bledy.push(`brak content/materialy/${nowy}.mdoc – najpierw zapisz materiał pod nowym identyfikatorem`)
+    if (await istnieje(path.join(/*turbopackIgnore: true*/ R, 'content/materialy', `${stary}.mdoc`))) plan.bledy.push(`content/materialy/${stary}.mdoc nadal istnieje – to nie zmiana identyfikatora`)
     for (const [z, na] of [[`content/strony/${stary}.json`, `content/strony/${nowy}.json`], [`pliki-archiwum/strony/${stary}`, `pliki-archiwum/strony/${nowy}`], [`content/objasnienia/${stary}.json`, `content/objasnienia/${nowy}.json`]]) {
-        if (!(await istnieje(path.join(R, z)))) continue
-        if (await istnieje(path.join(R, na))) plan.bledy.push(`${na} już istnieje – nie nadpisuję`)
+        if (!(await istnieje(path.join(/*turbopackIgnore: true*/ R, z)))) continue
+        if (await istnieje(path.join(/*turbopackIgnore: true*/ R, na))) plan.bledy.push(`${na} już istnieje – nie nadpisuję`)
         else plan.przeniesienia.push({ z, na })
     }
     // odwołania w treściach
     const { POWIAZANIA } = await import('./jakosc')
     for (const rel of await plikiTresci(R)) {
-        const t = await fs.readFile(/*turbopackIgnore: true*/ path.join(R, rel), 'utf8')
+        const t = await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ R, rel), 'utf8')
         if (!t.includes(stary)) continue
         const kolekcja = rel.split('/')[1]
         const relacje = POWIAZANIA[kolekcja] ?? []
@@ -129,11 +129,11 @@ export async function planZmianyIdMaterialu(R: string, stary: string, nowy: stri
         if (ile) plan.edycje.push({ plik: rel, przed: t, po, opis: `odwołania: ${ile}` })
     }
     // powiązania w objaśnieniach innych materiałów
-    const katObj = path.join(R, 'content/objasnienia')
+    const katObj = path.join(/*turbopackIgnore: true*/ R, 'content/objasnienia')
     for (const n of (await fs.readdir(/*turbopackIgnore: true*/ katObj).catch(() => [] as string[])).filter((x) => x.endsWith('.json')).sort()) {
         if (n === `${stary}.json`) continue
         const rel = `content/objasnienia/${n}`
-        const t = await fs.readFile(/*turbopackIgnore: true*/ path.join(R, rel), 'utf8')
+        const t = await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ R, rel), 'utf8')
         if (!t.includes(`"${stary}"`)) continue
         let ile = 0
         const j = JSON.parse(t) as { items?: { body?: { purpose?: string; source?: unknown }[] }[] }
@@ -143,7 +143,7 @@ export async function planZmianyIdMaterialu(R: string, stary: string, nowy: stri
     // numer katalogowy
     const katRel = 'content/_panel/katalog.json'
     try {
-        const t = await fs.readFile(/*turbopackIgnore: true*/ path.join(R, katRel), 'utf8')
+        const t = await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ R, katRel), 'utf8')
         const r = JSON.parse(t) as { wersja?: number; pozycje?: Record<string, { rodzaj: string; id: string }> }
         const nr = Object.entries(r.pozycje ?? {}).filter(([, p]) => p.rodzaj === 'material' && p.id === stary).map(([k]) => k)
         if (nr.length) {
@@ -154,7 +154,7 @@ export async function planZmianyIdMaterialu(R: string, stary: string, nowy: stri
     } catch { /* bez rejestru */ }
     // przekierowanie
     const przRel = 'content/_panel/przekierowania.json'
-    const przT = await fs.readFile(/*turbopackIgnore: true*/ path.join(R, przRel), 'utf8').catch(() => '')
+    const przT = await fs.readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ R, przRel), 'utf8').catch(() => '')
     const prz = (przT ? JSON.parse(przT) : {}) as { wpisy?: { rodzaj: string; stary: string; nowy: string; uwaga?: string }[] }
     const wpisy = Array.isArray(prz.wpisy) ? prz.wpisy : []
     if (!wpisy.some((w) => w.rodzaj === 'archiwum' && w.stary === stary && w.nowy === nowy)) {
@@ -182,13 +182,13 @@ export async function wykonajZmianeId(R: string, plan: PlanZmianyId, test?: { aw
     try {
         for (const p of plan.przeniesienia) {
             awaria()
-            await fs.rename(/*turbopackIgnore: true*/ path.join(R, p.z), path.join(R, p.na))
-            zrobione.push(() => fs.rename(/*turbopackIgnore: true*/ path.join(R, p.na), path.join(R, p.z)))
+            await fs.rename(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ R, p.z), path.join(/*turbopackIgnore: true*/ R, p.na))
+            zrobione.push(() => fs.rename(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ R, p.na), path.join(/*turbopackIgnore: true*/ R, p.z)))
         }
         for (const e of plan.edycje) {
             awaria()
-            const abs = path.join(R, e.plik)
-            if (!abs.startsWith(path.resolve(R) + path.sep)) throw new Error(`ścieżka poza katalogiem: ${e.plik}`)
+            const abs = path.join(/*turbopackIgnore: true*/ R, e.plik)
+            if (!abs.startsWith(path.resolve(/*turbopackIgnore: true*/ R) + path.sep)) throw new Error(`ścieżka poza katalogiem: ${e.plik}`)
             const teraz = await fs.readFile(/*turbopackIgnore: true*/ abs, 'utf8').catch(() => '')
             if (teraz !== e.przed) throw new Error(`${e.plik} zmienił się w międzyczasie – nic nie nadpisuję`)
             await zapiszAtomowo(abs, e.po)
